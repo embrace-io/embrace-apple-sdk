@@ -66,7 +66,7 @@ class CaptureServiceBuilderTests: XCTestCase {
             count += 1
             XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
         #endif
-        
+
         #if canImport(UIKit) && !os(watchOS)
             count += 2
             XCTAssertNotNil(list.first(where: { $0 is TapCaptureService }))
@@ -115,14 +115,13 @@ class CaptureServiceBuilderTests: XCTestCase {
         #endif
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
-        
+
         #if os(watchOS)
             XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
         #else
             count += 1
             XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
         #endif
-        
 
         XCTAssertEqual(list.count, count)
     }

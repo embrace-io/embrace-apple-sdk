@@ -4,169 +4,169 @@
 
 #if !os(watchOS)
 
-import EmbraceCommonInternal
-import EmbraceConfiguration
-import EmbraceSemantics
-import OpenTelemetryApi
-import OpenTelemetrySdk
-import TestSupport
-import XCTest
+    import EmbraceCommonInternal
+    import EmbraceConfiguration
+    import EmbraceSemantics
+    import OpenTelemetryApi
+    import OpenTelemetrySdk
+    import TestSupport
+    import XCTest
 
-@testable import EmbraceCore
-@testable import EmbraceOTelInternal
+    @testable import EmbraceCore
+    @testable import EmbraceOTelInternal
 
-// MARK: - HangCaptureService Tests
+    // MARK: - HangCaptureService Tests
 
-final class HangCaptureServiceTests: XCTestCase {
+    final class HangCaptureServiceTests: XCTestCase {
 
-    private var otel: MockEmbraceOpenTelemetry!
+        private var otel: MockEmbraceOpenTelemetry!
 
-    override func setUp() {
-        super.setUp()
-        otel = MockEmbraceOpenTelemetry()
-    }
-
-    override func tearDown() {
-        otel = nil
-        super.tearDown()
-    }
-
-    private func makeInstalledService(limits: HangLimits = HangLimits()) -> HangCaptureService {
-        let service = HangCaptureService(limits: limits)
-        service.install(otel: otel)
-        service.start()
-        return service
-    }
-
-    // MARK: - Config
-
-    func test_onConfigUpdated_updatesHangThreshold() {
-        let service = HangCaptureService(limits: HangLimits(hangThreshold: 0.249))
-
-        let newLimits = HangLimits(hangThreshold: 0.5)
-        let mockConfig = MockEmbraceConfigurable(hangLimits: newLimits)
-        service.onConfigUpdated(mockConfig)
-
-        XCTAssertEqual(service.limits.hangThreshold, 0.5)
-    }
-
-    // MARK: - Span lifecycle
-
-    func test_hangStarted_createsSpan() {
-        let service = makeInstalledService()
-
-        service.hangStarted(at: Date(), duration: 0.5)
-
-        wait(timeout: .defaultTimeout) {
-            self.otel.spanProcessor.startedSpans.contains { $0.name == SpanSemantics.Hang.name }
+        override func setUp() {
+            super.setUp()
+            otel = MockEmbraceOpenTelemetry()
         }
 
-        XCTAssertEqual(otel.spanProcessor.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 1)
-    }
-
-    func test_hangEnded_endsSpan() {
-        let service = makeInstalledService()
-        let start = Date()
-
-        service.hangStarted(at: start, duration: 0.5)
-        service.hangEnded(at: start.addingTimeInterval(0.5), duration: 0.5)
-
-        wait(timeout: .defaultTimeout) {
-            self.otel.spanProcessor.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
+        override func tearDown() {
+            otel = nil
+            super.tearDown()
         }
 
-        let span = otel.spanProcessor.endedSpans.first { $0.name == SpanSemantics.Hang.name }
-        XCTAssertNotNil(span)
-        XCTAssertEqual(span?.startTime, start)
-        XCTAssertEqual(span?.endTime, start.addingTimeInterval(0.5))
-    }
-
-    func test_hangEnded_withoutHangStarted_doesNotCrash() {
-        let service = makeInstalledService()
-        // No prior hangStarted — should silently no-op, not crash
-        service.hangEnded(at: Date(), duration: 0.5)
-        // Allow the spanQueue to drain
-        wait(delay: 0.2)
-    }
-
-    func test_hangStarted_withoutOTel_doesNotCrash() {
-        // Service never installed — buildSpan returns nil, should not crash
-        let service = HangCaptureService()
-        service.hangStarted(at: Date(), duration: 0.5)
-        wait(delay: 0.2)
-    }
-
-    // MARK: - Per-session limit
-
-    func test_perSessionLimit_dropsExcessHangs() {
-        let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 2))
-
-        service.hangStarted(at: Date(), duration: 0.5)
-        service.hangEnded(at: Date(), duration: 0.5)
-
-        service.hangStarted(at: Date(), duration: 0.5)
-        service.hangEnded(at: Date(), duration: 0.5)
-
-        // Third hang exceeds limit — should be dropped
-        service.hangStarted(at: Date(), duration: 0.5)
-        service.hangEnded(at: Date(), duration: 0.5)
-
-        wait(timeout: .defaultTimeout) {
-            self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count >= 2
+        private func makeInstalledService(limits: HangLimits = HangLimits()) -> HangCaptureService {
+            let service = HangCaptureService(limits: limits)
+            service.install(otel: otel)
+            service.start()
+            return service
         }
 
-        // Give extra time to ensure no third span appears
-        wait(delay: 0.3)
-        XCTAssertEqual(otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
-    }
+        // MARK: - Config
 
-    func test_onSessionStart_resetsHangCount() {
-        let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 1))
-        let mockSession = MockSession.with(id: .random, state: .foreground)
+        func test_onConfigUpdated_updatesHangThreshold() {
+            let service = HangCaptureService(limits: HangLimits(hangThreshold: 0.249))
 
-        // Use the one allowed hang
-        service.hangStarted(at: Date(), duration: 0.5)
-        service.hangEnded(at: Date(), duration: 0.5)
+            let newLimits = HangLimits(hangThreshold: 0.5)
+            let mockConfig = MockEmbraceConfigurable(hangLimits: newLimits)
+            service.onConfigUpdated(mockConfig)
 
-        wait(timeout: .defaultTimeout) {
-            self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 1
+            XCTAssertEqual(service.limits.hangThreshold, 0.5)
         }
 
-        // Reset via new session
-        service.onSessionStart(mockSession)
+        // MARK: - Span lifecycle
 
-        // A new hang should now be captured
-        service.hangStarted(at: Date(), duration: 0.5)
-        service.hangEnded(at: Date(), duration: 0.5)
+        func test_hangStarted_createsSpan() {
+            let service = makeInstalledService()
 
-        wait(timeout: .defaultTimeout) {
-            self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 2
+            service.hangStarted(at: Date(), duration: 0.5)
+
+            wait(timeout: .defaultTimeout) {
+                self.otel.spanProcessor.startedSpans.contains { $0.name == SpanSemantics.Hang.name }
+            }
+
+            XCTAssertEqual(otel.spanProcessor.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 1)
         }
 
-        XCTAssertEqual(otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
+        func test_hangEnded_endsSpan() {
+            let service = makeInstalledService()
+            let start = Date()
+
+            service.hangStarted(at: start, duration: 0.5)
+            service.hangEnded(at: start.addingTimeInterval(0.5), duration: 0.5)
+
+            wait(timeout: .defaultTimeout) {
+                self.otel.spanProcessor.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
+            }
+
+            let span = otel.spanProcessor.endedSpans.first { $0.name == SpanSemantics.Hang.name }
+            XCTAssertNotNil(span)
+            XCTAssertEqual(span?.startTime, start)
+            XCTAssertEqual(span?.endTime, start.addingTimeInterval(0.5))
+        }
+
+        func test_hangEnded_withoutHangStarted_doesNotCrash() {
+            let service = makeInstalledService()
+            // No prior hangStarted — should silently no-op, not crash
+            service.hangEnded(at: Date(), duration: 0.5)
+            // Allow the spanQueue to drain
+            wait(delay: 0.2)
+        }
+
+        func test_hangStarted_withoutOTel_doesNotCrash() {
+            // Service never installed — buildSpan returns nil, should not crash
+            let service = HangCaptureService()
+            service.hangStarted(at: Date(), duration: 0.5)
+            wait(delay: 0.2)
+        }
+
+        // MARK: - Per-session limit
+
+        func test_perSessionLimit_dropsExcessHangs() {
+            let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 2))
+
+            service.hangStarted(at: Date(), duration: 0.5)
+            service.hangEnded(at: Date(), duration: 0.5)
+
+            service.hangStarted(at: Date(), duration: 0.5)
+            service.hangEnded(at: Date(), duration: 0.5)
+
+            // Third hang exceeds limit — should be dropped
+            service.hangStarted(at: Date(), duration: 0.5)
+            service.hangEnded(at: Date(), duration: 0.5)
+
+            wait(timeout: .defaultTimeout) {
+                self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count >= 2
+            }
+
+            // Give extra time to ensure no third span appears
+            wait(delay: 0.3)
+            XCTAssertEqual(otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
+        }
+
+        func test_onSessionStart_resetsHangCount() {
+            let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 1))
+            let mockSession = MockSession.with(id: .random, state: .foreground)
+
+            // Use the one allowed hang
+            service.hangStarted(at: Date(), duration: 0.5)
+            service.hangEnded(at: Date(), duration: 0.5)
+
+            wait(timeout: .defaultTimeout) {
+                self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 1
+            }
+
+            // Reset via new session
+            service.onSessionStart(mockSession)
+
+            // A new hang should now be captured
+            service.hangStarted(at: Date(), duration: 0.5)
+            service.hangEnded(at: Date(), duration: 0.5)
+
+            wait(timeout: .defaultTimeout) {
+                self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 2
+            }
+
+            XCTAssertEqual(otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
+        }
+
+        // MARK: - Config disables monitor
+
+        func test_onConfigUpdated_disablesHangs_whenPerSessionIsZero() {
+            let service = makeInstalledService()
+
+            let disabledLimits = HangLimits(hangThreshold: 0.249, hangPerSession: 0)
+            let mockConfig = MockEmbraceConfigurable(hangLimits: disabledLimits)
+            service.onConfigUpdated(mockConfig)
+
+            XCTAssertEqual(service.limits.hangPerSession, 0)
+
+            // Hangs should now be dropped
+            service.hangStarted(at: Date(), duration: 0.5)
+            service.hangEnded(at: Date(), duration: 0.5)
+
+            wait(delay: 0.3)
+            XCTAssertEqual(otel.spanProcessor.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 0)
+        }
     }
 
-    // MARK: - Config disables monitor
-
-    func test_onConfigUpdated_disablesHangs_whenPerSessionIsZero() {
-        let service = makeInstalledService()
-
-        let disabledLimits = HangLimits(hangThreshold: 0.249, hangPerSession: 0)
-        let mockConfig = MockEmbraceConfigurable(hangLimits: disabledLimits)
-        service.onConfigUpdated(mockConfig)
-
-        XCTAssertEqual(service.limits.hangPerSession, 0)
-
-        // Hangs should now be dropped
-        service.hangStarted(at: Date(), duration: 0.5)
-        service.hangEnded(at: Date(), duration: 0.5)
-
-        wait(delay: 0.3)
-        XCTAssertEqual(otel.spanProcessor.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 0)
-    }
-}
-
-#endif // !os(watchOS)
+#endif  // !os(watchOS)
 
 // MARK: - Test Helpers
 

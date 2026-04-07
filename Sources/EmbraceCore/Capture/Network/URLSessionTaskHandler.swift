@@ -114,12 +114,12 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
              The `{http.route}` corresponds to the template of the path so it's necessary to understand the templating system being employed.
              For instance, a template for a request such as http://embrace.io/users/12345?hello=world
              would be reported as /users/:userId (or /users/:userId? in other templating system).
-            
+
              Until a decision is made regarding the method to convey this information and the heuristics to extract it,
              the `.path` method will be utilized temporarily. This approach may introduce higher cardinality on the backend,
              which is less than optimal.
              It will be important to address this in the near future to enhance performance for the backend.
-            
+
              Additional information can be found at:
              - HTTP Name attribute: https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
              - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/

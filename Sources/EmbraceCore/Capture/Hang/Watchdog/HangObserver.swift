@@ -15,7 +15,7 @@ public protocol HangObserver: AnyObject {
     func hangEnded(at: Date, duration: TimeInterval)
 }
 
-public extension HangObserver {
+extension HangObserver {
     /// Default no-op. `FrameRateMonitor` uses retroactive detection and never calls this method.
-    func hangUpdated(at: Date, duration: TimeInterval) {}
+    public func hangUpdated(at: Date, duration: TimeInterval) {}
 }
