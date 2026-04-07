@@ -19,6 +19,7 @@ import OpenTelemetryApi
 #if !os(watchOS)
 
 /// Service that generates OpenTelemetry span events for hangs.
+@available(macOS 14.0, *)
 @objc(EMBHangCaptureService)
 public final class HangCaptureService: CaptureService {
 

@@ -123,8 +123,10 @@ public class CaptureServicesOptionsBuilder: NSObject {
 
         // hang
         #if !os(watchOS)
-            if map[.hang] == nil {
-                map[.hang] = true
+            if #available(macOS 14.0, *) {
+                if map[.hang] == nil {
+                    map[.hang] = true
+                }
             }
         #endif
 
@@ -193,6 +195,7 @@ public class CaptureServicesOptionsBuilder: NSObject {
 
     /// Adds a new `HangCaptureService`.
     /// - Note: If there was another `HangCaptureService` previously added, it will be replaced with the new one.
+    @available(macOS 14.0, *)
     @discardableResult
     public func addHangCaptureService() -> Self {
         map[.hang] = true

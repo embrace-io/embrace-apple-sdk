@@ -24,6 +24,7 @@ import QuartzCore
 /// `preferredFrameRateRange` transitions never produce false positives.
 /// `CADisplayLink` also pauses automatically in the background, so suspend
 /// gaps are excluded without any extra bookkeeping.
+@available(macOS 14.0, *)
 public final class FrameRateMonitor {
 
     /// Apple's own definition of a hang (≈ 250 ms).

@@ -80,8 +80,10 @@ public class CaptureServiceBuilder: NSObject {
         
         #if !os(watchOS)
             // hangs
-            if !services.contains(where: { $0 is HangCaptureService }) {
-                add(.hangWatchdog())
+            if #available(macOS 14.0, *) {
+                if !services.contains(where: { $0 is HangCaptureService }) {
+                    add(.hangWatchdog())
+                }
             }
         #endif
 
