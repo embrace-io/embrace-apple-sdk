@@ -36,7 +36,7 @@ func captureStack(thread: thread_t, maxFrames: Int = 512) -> (frames: [UInt], me
     let pthread = pthread_from_mach_thread_np(thread)
 
     guard thread_suspend(thread) == KERN_SUCCESS else {
-        return ([], .framePointerPartial)
+        return ([], .failed)
     }
 
     // Only asyn-safe things allowed between suspend and resume.
@@ -71,7 +71,7 @@ func captureStack(thread: thread_t, maxFrames: Int = 512) -> (frames: [UInt], me
     if fpSuccess && fpCount > 0 {
         return (Array(fpFrames[0..<fpCount]), .framePointerPartial)
     }
-    return ([], .framePointerPartial)
+    return ([], .failed)
 }
 
 #endif

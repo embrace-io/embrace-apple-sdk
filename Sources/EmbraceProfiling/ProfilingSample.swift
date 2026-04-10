@@ -10,6 +10,8 @@ public enum StackUnwindMethod {
     case kscrash
     /// Partial frame-pointer walk (below minFPFrames threshold, returned as last resort)
     case framePointerPartial
+    /// Stack capture failed entirely — no frames were obtained.
+    case failed
 }
 
 /// A single profiling sample containing a stack trace captured at a point in time.
