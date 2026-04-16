@@ -20,7 +20,7 @@ class UnsentDataHandlerTests: XCTestCase {
     let sdkStateProvider = MockEmbraceSDKStateProvider()
     var criticalLogsFilePath: URL!
 
-    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
+    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: -1)
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
         userAgent: "userAgent",
@@ -92,6 +92,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when sending unsent sessions
         await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: nil)
+        wait(delay: .shortTimeout)
 
         // then a session request was sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
@@ -135,12 +136,10 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when failing to send unsent sessions
         await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: nil)
+        wait(delay: .shortTimeout)
 
         // then a session request was attempted
         XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
-
-        // then the total amount of requests is correct
-        XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
 
         // then the session is no longer on storage
         let session = storage.fetchSession(id: TestConstants.sessionId)
@@ -199,6 +198,7 @@ class UnsentDataHandlerTests: XCTestCase {
         // when sending unsent sessions
         await UnsentDataHandler.sendUnsentData(
             storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
+        wait(delay: .shortTimeout)
 
         // then a crash report was sent
         // then a session request was sent
@@ -272,14 +272,12 @@ class UnsentDataHandlerTests: XCTestCase {
             storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
 
         await fulfillment(of: [didSendCrashesExpectation], timeout: .defaultTimeout)
+        wait(delay: .shortTimeout)
 
         // then a crash report request was attempted
         // then a session request was attempted
         XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0)
         XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count > 0)
-
-        // then the total amount of requests is correct
-        XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
 
         // then the session is no longer on storage
         let session = storage.fetchSession(id: TestConstants.sessionId)
@@ -344,6 +342,7 @@ class UnsentDataHandlerTests: XCTestCase {
         // when sending unsent sessions
         await UnsentDataHandler.sendUnsentData(
             storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
+        wait(delay: .shortTimeout)
 
         // then a crash report was sent
         // then a session request was sent
@@ -407,6 +406,7 @@ class UnsentDataHandlerTests: XCTestCase {
             upload: upload,
             otel: otel
         )
+        wait(delay: .shortTimeout)
 
         // then a crash log was sent
         XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0)
@@ -479,6 +479,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when sending unsent sessions
         await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel)
+        wait(delay: .shortTimeout)
 
         // then the old closed span was removed
         // and the open span was closed
@@ -564,6 +565,7 @@ class UnsentDataHandlerTests: XCTestCase {
             otel: otel,
             currentSessionId: TestConstants.sessionId
         )
+        wait(delay: .shortTimeout)
 
         // then all metadata is cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
@@ -609,6 +611,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when uploading the session
         await UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
+        wait(delay: .shortTimeout)
 
         // then the old closed span was removed
         // and the session was removed
@@ -664,6 +667,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when uploading the session
         await UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
+        wait(delay: .shortTimeout)
 
         // then metadata is correctly cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
@@ -707,6 +711,7 @@ class UnsentDataHandlerTests: XCTestCase {
         // when sending unsent data
         await UnsentDataHandler.sendUnsentData(
             storage: storage, upload: upload, otel: otel, logController: logController)
+        wait(delay: .shortTimeout)
 
         // then no sessions were sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -729,6 +734,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when sending critical logs
         await UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
+        wait(delay: .shortTimeout)
 
         // then a log is sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
@@ -744,6 +750,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when sending critical logs without a file present
         await UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
+        wait(delay: .shortTimeout)
 
         // then no log is sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)

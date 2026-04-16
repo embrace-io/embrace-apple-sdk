@@ -6,11 +6,14 @@ import Foundation
 
 extension EmbraceUpload {
     public class RedundancyOptions {
-        /// Total amount of times a request will be immediately retried in case of error. Use 0 to disable.
+        /// Retry budget per upload operation. -1 means unlimited.
+        /// A positive value causes the record to be permanently deleted from cache when exhausted.
+        /// Use 0 to disable retries entirely.
         public let automaticRetryCount: Int
 
-        /// Total amount of times a request could be retried.
-        public let maximumAmountOfRetries: Int
+        /// Maximum number of upload operations per queue.
+        /// When a queue is at capacity, new uploads are cached and picked up later via queue draining.
+        public let queueLimit: Int
 
         /// Enable to automatically try to send any unsent cached data when the phone regains internet connection.
         public let retryOnInternetConnected: Bool
@@ -19,13 +22,13 @@ extension EmbraceUpload {
         public let exponentialBackoffBehavior: ExponentialBackoff
 
         public init(
-            automaticRetryCount: Int = 3,
-            maximumAmountOfRetries: Int = 20,
+            automaticRetryCount: Int = -1,
+            queueLimit: Int = 10,
             retryOnInternetConnected: Bool = true,
             exponentialBackoffBehavior: ExponentialBackoff = .init()
         ) {
             self.automaticRetryCount = automaticRetryCount
-            self.maximumAmountOfRetries = maximumAmountOfRetries
+            self.queueLimit = queueLimit
             self.retryOnInternetConnected = retryOnInternetConnected
             self.exponentialBackoffBehavior = exponentialBackoffBehavior
         }
