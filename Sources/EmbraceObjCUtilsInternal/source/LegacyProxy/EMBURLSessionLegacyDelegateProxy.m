@@ -14,6 +14,7 @@
 #define DID_BECOME_INVALID_WITH_ERROR @selector(URLSession:didBecomeInvalidWithError:)
 #define DID_RECEIVE_RESPONSE @selector(URLSession:dataTask:didReceiveResponse:completionHandler:)
 #define WILL_PERFORM_REDIRECTION @selector(URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:)
+#define DID_RECEIVE_CHALLENGE @selector(URLSession:didReceiveChallenge:completionHandler:)
 
 @interface EMBURLSessionLegacyDelegateProxy ()
 
@@ -34,7 +35,8 @@
 {
     if (sel_isEqual(aSelector, DID_FINISH_COLLECTING_METRICS) || sel_isEqual(aSelector, DID_RECEIVE_DATA_SELECTOR) ||
         sel_isEqual(aSelector, DID_FINISH_DOWNLOADING) || sel_isEqual(aSelector, DID_COMPLETE_WITH_ERROR) ||
-        sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR) || sel_isEqual(aSelector, WILL_PERFORM_REDIRECTION)) {
+        sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR) || sel_isEqual(aSelector, WILL_PERFORM_REDIRECTION) ||
+        sel_isEqual(aSelector, DID_RECEIVE_CHALLENGE)) {
         return YES;
     }
     return [self.originalDelegate respondsToSelector:aSelector];
@@ -42,7 +44,10 @@
 
 - (id)forwardingTargetForSelector:(SEL)aSelector
 {
-    return self.originalDelegate;
+    if (self.originalDelegate && [self.originalDelegate respondsToSelector:aSelector]) {
+        return self.originalDelegate;
+    }
+    return nil;
 }
 
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)selector
@@ -99,9 +104,23 @@
     if ([self.originalDelegate respondsToSelector:@selector(URLSession:didBecomeInvalidWithError:)]) {
         [self.originalDelegate URLSession:session didBecomeInvalidWithError:error];
     }
-    
+
     self.originalDelegate = nil;
     self.handler = nil;
+}
+
+- (void)URLSession:(NSURLSession *)session
+    didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+     completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
+{
+    id delegate = self.originalDelegate;
+    if (delegate && [delegate respondsToSelector:_cmd]) {
+        [(id<NSURLSessionDelegate>)delegate URLSession:session
+                                   didReceiveChallenge:challenge
+                                    completionHandler:completionHandler];
+    } else {
+        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+    }
 }
 
 #pragma mark - NSURLSessionTaskDelegate Methods

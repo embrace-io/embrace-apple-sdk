@@ -50,7 +50,8 @@
     if (sel == @selector(URLSession:task:didCompleteWithError:) ||
         sel == @selector(URLSession:task:didFinishCollectingMetrics:) ||
         sel == @selector(URLSession:dataTask:didReceiveData:) ||
-        sel == @selector(URLSession:didBecomeInvalidWithError:)) {
+        sel == @selector(URLSession:didBecomeInvalidWithError:) ||
+        sel == @selector(URLSession:didReceiveChallenge:completionHandler:)) {
 
         return nil;
     }
@@ -89,6 +90,20 @@
     }
     self.originalDelegate = nil;
     self.handler = nil;
+}
+
+- (void)URLSession:(NSURLSession *)session
+    didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+     completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
+{
+    id delegate = self.originalDelegate;
+    if (delegate && [delegate respondsToSelector:_cmd]) {
+        [(id<NSURLSessionDelegate>)delegate URLSession:session
+                                   didReceiveChallenge:challenge
+                                    completionHandler:completionHandler];
+    } else {
+        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+    }
 }
 
 #pragma mark - NSURLSessionTaskDelegate
