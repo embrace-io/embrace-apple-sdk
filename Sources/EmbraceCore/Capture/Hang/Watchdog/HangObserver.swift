@@ -9,7 +9,7 @@ import Foundation
 /// - `hangStarted`: Called when a hang is first detected.
 /// - `hangUpdated`: Called periodically while a hang persists (not used by `FrameRateMonitor`).
 /// - `hangEnded`: Called when the hang resolves.
-public protocol HangObserver: AnyObject {
+protocol HangObserver: AnyObject {
     func hangStarted(at: Date, duration: TimeInterval)
     func hangUpdated(at: Date, duration: TimeInterval)
     func hangEnded(at: Date, duration: TimeInterval)

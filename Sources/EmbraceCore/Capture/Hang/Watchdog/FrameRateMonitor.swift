@@ -25,16 +25,16 @@
     /// `CADisplayLink` also pauses automatically in the background, so suspend
     /// gaps are excluded without any extra bookkeeping.
     @available(macOS 14.0, *)
-    public final class FrameRateMonitor {
+    final class FrameRateMonitor {
 
         /// Apple's own definition of a hang (≈ 250 ms).
-        public static let defaultAppleHangThreshold: TimeInterval = 0.249
+        static let defaultAppleHangThreshold: TimeInterval = 0.249
 
         /// Minimum frame delay (seconds) that is reported as a hang.
-        public let threshold: TimeInterval
+        let threshold: TimeInterval
 
         /// Receives hang lifecycle callbacks.
-        public weak var hangObserver: HangObserver?
+        weak var hangObserver: HangObserver?
 
         /// Optional logger for diagnostic output.
         internal var logger: InternalLogger?
@@ -42,7 +42,7 @@
         /// Creates a new `FrameRateMonitor` and immediately begins observing frame timing.
         ///
         /// Must be called on the main thread.
-        public init(threshold: TimeInterval = FrameRateMonitor.defaultAppleHangThreshold) {
+        init(threshold: TimeInterval = FrameRateMonitor.defaultAppleHangThreshold) {
             self.threshold = threshold
             self.proxy = DisplayLinkProxy()
 
