@@ -66,7 +66,8 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         completionExpectation.expectedFulfillmentCount = count
 
         for i in 0..<count {
-            module.uploadSpans(id: "span-\(i)", data: TestConstants.data) { _ in
+            let data = "span-\(i)".data(using: .utf8)!
+            module.uploadSpans(id: "span-\(i)", data: data) { _ in
                 completionExpectation.fulfill()
             }
         }
@@ -78,6 +79,12 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         // Verify requests arrived in order
         let requests = EmbraceHTTPMock.requestsForUrl(spansUrl)
         XCTAssertEqual(requests.count, count)
+        let bodies = EmbraceHTTPMock.requestBodiesForUrl(spansUrl)
+        XCTAssertEqual(bodies.count, count)
+        for i in 0..<count {
+            let expected = "span-\(i)".data(using: .utf8)!
+            XCTAssertEqual(bodies[i], expected, "span request \(i) out of order")
+        }
     }
 
     func test_logsAreUploadedInInsertionOrder() throws {
@@ -92,7 +99,8 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         completionExpectation.expectedFulfillmentCount = count
 
         for i in 0..<count {
-            module.uploadLog(id: "log-\(i)", data: TestConstants.data) { _ in
+            let data = "log-\(i)".data(using: .utf8)!
+            module.uploadLog(id: "log-\(i)", data: data) { _ in
                 completionExpectation.fulfill()
             }
         }
@@ -103,6 +111,12 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
 
         let requests = EmbraceHTTPMock.requestsForUrl(logsUrl)
         XCTAssertEqual(requests.count, count)
+        let bodies = EmbraceHTTPMock.requestBodiesForUrl(logsUrl)
+        XCTAssertEqual(bodies.count, count)
+        for i in 0..<count {
+            let expected = "log-\(i)".data(using: .utf8)!
+            XCTAssertEqual(bodies[i], expected, "log request \(i) out of order")
+        }
     }
 
     // MARK: - 2. Queue cap
