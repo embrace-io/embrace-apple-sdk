@@ -43,8 +43,6 @@ public class EmbraceUpload: EmbraceLogUploader {
     private weak var lastSpansOperation: Operation?
     private weak var lastLogsOperation: Operation?
 
-    private let isRetryingCache = EmbraceAtomic(false)
-
     private let urlSession: URLSession
     let cache: EmbraceUploadCache
     private var reachabilityMonitor: EmbraceReachabilityMonitor?
@@ -106,13 +104,6 @@ public class EmbraceUpload: EmbraceLogUploader {
                 completion?()
                 return
             }
-
-            guard self.isRetryingCache.compareExchange(expected: false, desired: true) else {
-                completion?()
-                return
-            }
-
-            defer { self.isRetryingCache.store(false) }
 
             // Clear stale data
             self.cache.clearStaleDataIfNeeded()
