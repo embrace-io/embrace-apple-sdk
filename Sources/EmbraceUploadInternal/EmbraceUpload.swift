@@ -196,8 +196,10 @@ public class EmbraceUpload: EmbraceLogUploader {
 
         // Save to cache synchronously (we are on the coordination queue).
         // Data is durable after this call.
-        if !cache.saveUploadData(id: id, type: type, data: data, payloadTypes: payloadTypes) {
+        guard cache.saveUploadData(id: id, type: type, data: data, payloadTypes: payloadTypes) else {
             logger.debug("Error caching upload data!")
+            completion?(.failure(EmbraceUploadError.internalError(.cacheSaveFailed)))
+            return
         }
 
         // Signal durability to the caller

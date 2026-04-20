@@ -157,8 +157,7 @@ class EmbraceUploadCache {
                 if let uploadData = try context.fetch(request).first {
                     uploadData.data = data
                     uploadData.payloadTypes = payloadTypes
-                    coreData.save()
-                    return true
+                    return coreData.saveIfNeeded()
                 }
             } catch {
                 logger.warning("Error upading upload data:\n\(error.localizedDescription)")
@@ -176,12 +175,10 @@ class EmbraceUploadCache {
                 payloadTypes: payloadTypes,
                 date: Date()
             ) {
-                coreData.performOperation { _ in
-                    if !coreData.saveIfNeeded() {
-                        context.delete(record)
-                    }
+                if coreData.saveIfNeeded() {
+                    return true
                 }
-                return true
+                context.delete(record)
             }
             return false
         }
