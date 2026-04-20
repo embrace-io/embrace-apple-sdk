@@ -215,7 +215,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     /// Must be called on the coordination queue.
     private func fillQueue(for type: EmbraceUploadType) {
         let queue = uploadQueue(for: type)
-        let currentCount = queue.operationCount
+        let currentCount = inFlightIDs[type]?.count ?? 0
         let limit = options.redundancy.queueLimit
 
         guard currentCount < limit else { return }
