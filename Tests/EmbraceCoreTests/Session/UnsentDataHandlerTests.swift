@@ -114,12 +114,13 @@ class UnsentDataHandlerTests: XCTestCase {
         // mock error requests
         EmbraceHTTPMock.mock(url: testSpansUrl(), errorCode: 500)
 
-        // given a storage and upload modules
+        // given a storage and upload modules (no retries so request count is deterministic)
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
+        let noRetryOptions = uploadOptions(automaticRetryCount: 0)
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue)
+            options: noRetryOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -139,15 +140,14 @@ class UnsentDataHandlerTests: XCTestCase {
         wait(delay: .shortTimeout)
 
         // then a session request was attempted
-        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
+
+        // then the total amount of requests is correct
+        XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
 
         // then the session is no longer on storage
         let session = storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
-
-        // then the session upload data cached
-        let uploadData = upload.cache.fetchAllUploadData()
-        XCTAssertEqual(uploadData.count, 1)
 
         // then no log was sent
         XCTAssertEqual(otel.logs.count, 0)
@@ -231,12 +231,13 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testSpansUrl(), errorCode: 500)
         EmbraceHTTPMock.mock(url: testLogsUrl(), errorCode: 500)
 
-        // given a storage and upload modules
+        // given a storage and upload modules (no retries so request count is deterministic)
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
+        let noRetryOptions = uploadOptions(automaticRetryCount: 0)
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue)
+            options: noRetryOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -276,16 +277,15 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then a crash report request was attempted
         // then a session request was attempted
-        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0)
-        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count > 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count, 1)
+
+        // then the total amount of requests is correct
+        XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
 
         // then the session is no longer on storage
         let session = storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
-
-        // then the session and crash report upload data are still cached
-        let uploadData = upload.cache.fetchAllUploadData()
-        XCTAssertEqual(uploadData.count, 2)
 
         // then the crash is not longer stored
         let reports = await crashReporter.fetchUnsentCrashReports()
@@ -763,6 +763,21 @@ extension UnsentDataHandlerTests {
             spansURL: testSpansUrl(forTest: testName),
             logsURL: testLogsUrl(forTest: testName),
             attachmentsURL: testAttachmentsUrl(forTest: testName)
+        )
+    }
+
+    fileprivate func uploadOptions(automaticRetryCount: Int) -> EmbraceUpload.Options {
+        let urlSessionConfig = URLSessionConfiguration.ephemeral
+        urlSessionConfig.httpMaximumConnectionsPerHost = .max
+        urlSessionConfig.protocolClasses = [EmbraceHTTPMock.self]
+
+        return EmbraceUpload.Options(
+            endpoints: testEndpointOptions(forTest: testName),
+            cache: EmbraceUpload.CacheOptions(
+                storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
+            metadata: UnsentDataHandlerTests.testMetadataOptions,
+            redundancy: EmbraceUpload.RedundancyOptions(automaticRetryCount: automaticRetryCount),
+            urlSessionConfiguration: urlSessionConfig
         )
     }
 
