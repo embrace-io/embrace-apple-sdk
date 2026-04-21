@@ -9,7 +9,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface EMBURLSessionNewDelegateProxy : NSObject <EMBURLSessionDelegateProxy>
 
-@property(nonatomic, strong, nullable) id originalDelegate;
+@property(atomic, strong, nullable) id originalDelegate;
 @property(nonatomic, weak, nullable) id<NSURLSessionDelegate> swizzledDelegate;
 @property(nonatomic, strong, nullable) id<URLSessionTaskHandler> handler;
 
