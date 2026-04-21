@@ -12,7 +12,6 @@ public class UploadDataRecord: NSManagedObject {
     @NSManaged var type: Int
     @NSManaged var data: Data
     @NSManaged var payloadTypes: String?
-    @NSManaged var attemptCount: Int
     @NSManaged var date: Date
 
     class func create(
@@ -21,7 +20,6 @@ public class UploadDataRecord: NSManagedObject {
         type: Int,
         data: Data,
         payloadTypes: String?,
-        attemptCount: Int,
         date: Date
     ) -> UploadDataRecord? {
         var record: UploadDataRecord?
@@ -36,7 +34,6 @@ public class UploadDataRecord: NSManagedObject {
             record?.type = type
             record?.data = data
             record?.payloadTypes = payloadTypes
-            record?.attemptCount = attemptCount
             record?.date = date
         }
 
@@ -49,7 +46,6 @@ public class UploadDataRecord: NSManagedObject {
             type: type,
             data: data,
             payloadTypes: payloadTypes,
-            attemptCount: attemptCount,
             date: date
         )
     }
@@ -85,14 +81,6 @@ extension UploadDataRecord {
         payloadTypesAttribute.isOptional = true
         payloadTypesAttribute.defaultValue = nil
 
-        let attemptCountAttribute = NSAttributeDescription()
-        attemptCountAttribute.name = "attemptCount"
-        #if arch(arm64_32)
-            attemptCountAttribute.attributeType = .integer32AttributeType
-        #else
-            attemptCountAttribute.attributeType = .integer64AttributeType
-        #endif
-
         let dateAttribute = NSAttributeDescription()
         dateAttribute.name = "date"
         dateAttribute.attributeType = .dateAttributeType
@@ -102,7 +90,6 @@ extension UploadDataRecord {
             typeAttribute,
             dataAttribute,
             payloadTypesAttribute,
-            attemptCountAttribute,
             dateAttribute
         ]
 
@@ -115,6 +102,5 @@ struct ImmutableUploadDataRecord {
     let type: Int
     let data: Data
     let payloadTypes: String?
-    let attemptCount: Int
     let date: Date
 }

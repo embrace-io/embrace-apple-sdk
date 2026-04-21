@@ -31,6 +31,7 @@ public class EmbraceHTTPMock: URLProtocol {
 
     private static var mockedResponses = [String: MockResponse]()
     private static var requests = [String: [URLRequest]]()
+    private static var requestBodies = [String: [Data]]()
 
     /// Adds a mocked response for a given url
     public class func mock(
@@ -85,6 +86,12 @@ public class EmbraceHTTPMock: URLProtocol {
         return requests[createKey(fromURL: url)] ?? []
     }
 
+    /// Returns the captured request bodies for a given url, in order.
+    /// URLProtocol strips httpBody from captured requests, so bodies are read from httpBodyStream at capture time.
+    public class func requestBodiesForUrl(_ url: URL) -> [Data] {
+        return requestBodies[createKey(fromURL: url)] ?? []
+    }
+
     /// Returns the total amount of requests that were executed.
     public class func totalRequestCount(_ testName: String = #function) -> Int {
         return
@@ -96,6 +103,7 @@ public class EmbraceHTTPMock: URLProtocol {
 
     public class func clearRequests() {
         requests.removeAll()
+        requestBodies.removeAll()
     }
 
     // MARK: - Internal
@@ -114,6 +122,26 @@ public class EmbraceHTTPMock: URLProtocol {
                 EmbraceHTTPMock.requests[key] = []
             }
             EmbraceHTTPMock.requests[key]?.append(request)
+
+            if EmbraceHTTPMock.requestBodies[key] == nil {
+                EmbraceHTTPMock.requestBodies[key] = []
+            }
+            if let body = request.httpBody {
+                EmbraceHTTPMock.requestBodies[key]?.append(body)
+            } else if let stream = request.httpBodyStream {
+                stream.open()
+                var data = Data()
+                let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 1024)
+                while stream.hasBytesAvailable {
+                    let read = stream.read(buffer, maxLength: 1024)
+                    if read > 0 {
+                        data.append(buffer, count: read)
+                    }
+                }
+                buffer.deallocate()
+                stream.close()
+                EmbraceHTTPMock.requestBodies[key]?.append(data)
+            }
 
             if let response = EmbraceHTTPMock.mockedResponses[key] {
                 if let data = response.data {
