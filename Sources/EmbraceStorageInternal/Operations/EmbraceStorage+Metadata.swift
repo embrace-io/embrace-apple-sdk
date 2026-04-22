@@ -198,29 +198,44 @@ extension EmbraceStorage {
         }
     }
 
-    /// Removes all `MetadataRecords` that don't correspond to the given session and process ids.
+    /// Removes all `MetadataRecords` that don't correspond to any stored session.
     /// Permanent metadata is not removed.
-    public func cleanMetadata(currentSessionId: String?, currentProcessId: String) {
+    public func cleanMetadata() {
+        let sessions = fetchAllSessions()
+        let sessionIds = sessions.compactMap { $0.id.stringValue }
+        let processIds = Array(Set(sessions.map { $0.processId.stringValue }))
+
         let request = MetadataRecord.createFetchRequest()
 
-        let processIdPredicate = NSPredicate(
-            format: "lifespanRaw == %@ AND lifespanId != %@",
-            MetadataRecordLifespan.process.rawValue,
-            currentProcessId
-        )
-
-        if let currentSessionId = currentSessionId {
-            let sessionIdPredicate = NSPredicate(
-                format: "lifespanRaw == %@ AND lifespanId != %@",
-                MetadataRecordLifespan.session.rawValue,
-                currentSessionId
+        let sessionPredicate: NSPredicate
+        if sessionIds.isEmpty {
+            sessionPredicate = NSPredicate(
+                format: "lifespanRaw == %@",
+                MetadataRecordLifespan.session.rawValue
             )
-
-            request.predicate = NSCompoundPredicate(type: .or, subpredicates: [sessionIdPredicate, processIdPredicate])
         } else {
-            request.predicate = processIdPredicate
+            sessionPredicate = NSPredicate(
+                format: "lifespanRaw == %@ AND NOT (lifespanId IN %@)",
+                MetadataRecordLifespan.session.rawValue,
+                sessionIds
+            )
         }
 
+        let processPredicate: NSPredicate
+        if processIds.isEmpty {
+            processPredicate = NSPredicate(
+                format: "lifespanRaw == %@",
+                MetadataRecordLifespan.process.rawValue
+            )
+        } else {
+            processPredicate = NSPredicate(
+                format: "lifespanRaw == %@ AND NOT (lifespanId IN %@)",
+                MetadataRecordLifespan.process.rawValue,
+                processIds
+            )
+        }
+
+        request.predicate = NSCompoundPredicate(type: .or, subpredicates: [sessionPredicate, processPredicate])
         coreData.deleteRecords(withRequest: request)
     }
 
@@ -288,19 +303,19 @@ extension EmbraceStorage {
 
     /// Increments the numeric value by 1 of a permanent resource for the given key.
     /// If no record exists it will create one with a value of 1.
-    public func incrementCountForPermanentResource(key: String) -> Int {
+    public func incrementCountForPermanentResource(key: String) -> EMBInt {
         coreData.performOperation(save: true) { context in
             // fetch existing metadata
             let request = fetchMetadataRequest(key: key, type: .requiredResource, lifespan: .permanent)
 
             // update it if it exists
             if let metadata = fetchMetadata(request: request, context: context) {
-                let val = (Int(metadata.value) ?? 0) + 1
+                let val = (EMBInt(metadata.value) ?? 0) + 1
                 metadata.value = String(val)
                 return val
                 // create it with a value of 1 if it doesn't exist
             } else {
-                let val = 1
+                let val: EMBInt = 1
                 _ = MetadataRecord.create(
                     context: context,
                     key: key,

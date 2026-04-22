@@ -29,9 +29,17 @@ extension Span {
         var errorCode = errorCode
 
         // get attributes from error
-        if let error = error as? NSError {
-            setAttribute(key: SpanSemantics.keyNSErrorMessage, value: error.localizedDescription)
-            setAttribute(key: SpanSemantics.keyNSErrorCode, value: error.code)
+        if let error {
+            // prefer LocalizedError.errorDescription over NSError.localizedDescription
+            // to avoid loosing info and producing generic messages like
+            // "The operation can't be completed. (Domain error Code.)"
+            let message =
+                (error as? LocalizedError)?.errorDescription
+                ?? error.localizedDescription
+            let nsError = error as NSError
+
+            setAttribute(key: SpanSemantics.keyNSErrorMessage, value: message)
+            setAttribute(key: SpanSemantics.keyNSErrorCode, value: nsError.code)
 
             errorCode = errorCode ?? .failure
         }

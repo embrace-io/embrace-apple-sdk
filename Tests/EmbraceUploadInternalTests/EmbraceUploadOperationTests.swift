@@ -140,7 +140,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             attemptCount: 0
         ) { result, attemptCount in
 
-            XCTAssertEqual(result, .failure(retriable: false))
+            XCTAssertEqual(result, .failure)
             XCTAssertEqual(attemptCount, 1)
 
             expectation.fulfill()
@@ -181,7 +181,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             attemptCount: 0
         ) { result, attemptCount in
 
-            XCTAssertEqual(result, .failure(retriable: false))
+            XCTAssertEqual(result, .failure)
             XCTAssertEqual(attemptCount, 1)
 
             expectation.fulfill()
@@ -212,7 +212,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         ) { result, attemptCount in
 
             // then the operation should be canceled
-            XCTAssertEqual(result, .failure(retriable: true))
+            XCTAssertEqual(result, .cancelled)
             XCTAssertEqual(attemptCount, 0)
 
             expectation.fulfill()
@@ -226,8 +226,17 @@ class EmbraceUploadOperationTests: XCTestCase {
     func test_onExecuting_whenReceivingNonRetryableError_shouldntRetry() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
 
-        // mock error response with error that cannot be fixed with retries
-        EmbraceHTTPMock.mock(url: TestConstants.url, response: .withData(Data(), statusCode: 404))
+        // mock error response with a non-retriable URLError (.badURL)
+        EmbraceHTTPMock.mock(
+            url: TestConstants.url,
+            response: .withError(
+                NSError(
+                    domain: NSURLErrorDomain,
+                    code: URLError.badURL.rawValue,
+                    userInfo: [:]
+                )
+            )
+        )
 
         // given an upload operation that errors
         let expectation = XCTestExpectation()
@@ -244,8 +253,8 @@ class EmbraceUploadOperationTests: XCTestCase {
             attemptCount: 0
         ) { result, attemptCount in
 
-            // then the operation should return the error
-            XCTAssertEqual(result, .failure(retriable: false))
+            // then the operation should not retry and return failure
+            XCTAssertEqual(result, .failure)
             XCTAssertEqual(attemptCount, 1)
 
             expectation.fulfill()
@@ -277,7 +286,7 @@ class EmbraceUploadOperationTests: XCTestCase {
             attemptCount: 0
         ) { result, attemptCount in
 
-            XCTAssertEqual(result, .failure(retriable: true))
+            XCTAssertEqual(result, .failure)
             XCTAssertEqual(attemptCount, 1)
 
             expectation.fulfill()
@@ -317,7 +326,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         ) { result, attemptCount in
 
             // then the operation should return the error
-            XCTAssertEqual(result, .failure(retriable: true))
+            XCTAssertEqual(result, .failure)
             XCTAssertEqual(attemptCount, 2)
 
             expectation.fulfill()
@@ -371,7 +380,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         ) { result, attemptCount in
 
             // then the operation should return the error
-            XCTAssertEqual(result, .failure(retriable: true))
+            XCTAssertEqual(result, .failure)
             XCTAssertEqual(attemptCount, 4)
 
             expectation.fulfill()
@@ -426,7 +435,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         ) { result, attemptCount in
 
             // then the operation should return the error
-            XCTAssertEqual(result, .failure(retriable: true))
+            XCTAssertEqual(result, .failure)
             XCTAssertEqual(attemptCount, 2)
 
             expectation.fulfill()

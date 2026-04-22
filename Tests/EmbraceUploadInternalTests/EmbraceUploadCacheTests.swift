@@ -53,7 +53,6 @@ class EmbraceUploadCacheTests: XCTestCase {
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date()
         )
 
@@ -79,7 +78,6 @@ class EmbraceUploadCacheTests: XCTestCase {
             type: 0,
             data: Data(),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date()
         )
         _ = UploadDataRecord.create(
@@ -88,7 +86,6 @@ class EmbraceUploadCacheTests: XCTestCase {
             type: 0,
             data: Data(),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date()
         )
         _ = UploadDataRecord.create(
@@ -97,7 +94,6 @@ class EmbraceUploadCacheTests: XCTestCase {
             type: 0,
             data: Data(),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date()
         )
 
@@ -180,7 +176,6 @@ class EmbraceUploadCacheTests: XCTestCase {
             type: EmbraceUploadType.spans.rawValue,
             data: Data(),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date()
         )
 
@@ -206,44 +201,4 @@ class EmbraceUploadCacheTests: XCTestCase {
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
-    func test_updateAttemptCount() throws {
-        let options = EmbraceUpload.CacheOptions(
-            storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false)
-        let cache = try EmbraceUploadCache(options: options, logger: logger)
-
-        // given inserted upload data
-        _ = UploadDataRecord.create(
-            context: cache.coreData.context,
-            id: "id",
-            type: EmbraceUploadType.spans.rawValue,
-            data: Data(),
-            payloadTypes: "test",
-            attemptCount: 0,
-            date: Date()
-        )
-
-        cache.coreData.save()
-
-        // when updating the attempt count
-        cache.updateAttemptCount(id: "id", type: .spans, attemptCount: 10)
-
-        // then the data is updated successfully
-        let expectation = XCTestExpectation()
-
-        let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
-
-        cache.coreData.context.perform {
-            do {
-                let result = try cache.coreData.context.fetch(request)
-                if result.count == 1,
-                    result.first?.id == "id",
-                    result.first?.attemptCount == 10
-                {
-                    expectation.fulfill()
-                }
-            } catch {}
-        }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
-    }
 }

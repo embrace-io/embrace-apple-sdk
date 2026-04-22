@@ -11,12 +11,7 @@ import Foundation
 
 class SessionPayloadBuilder {
 
-    static var resourceName = "emb.session.upload_index"
-
     class func build(for session: EmbraceSession, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]>? {
-
-        // increment counter or create resource if needed
-        let counter = storage.incrementCountForPermanentResource(key: resourceName)
 
         // fetch properties
         let properties = storage.fetchCustomProperties(sessionId: session.id, processId: session.processId)
@@ -25,8 +20,7 @@ class SessionPayloadBuilder {
         let (spans, spanSnapshots) = SpansPayloadBuilder.build(
             for: session,
             storage: storage,
-            customProperties: properties,
-            sessionNumber: counter
+            customProperties: properties
         )
 
         // build resources payload

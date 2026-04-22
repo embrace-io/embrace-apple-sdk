@@ -40,7 +40,9 @@ class EmbraceUploadTests: XCTestCase {
 
     override func tearDownWithError() throws {
         // prevents inconsistent errors due to the cache database being forcefully deleted on each test
-        module.operationQueue.waitUntilAllOperationsAreFinished()
+        module.spansQueue.waitUntilAllOperationsAreFinished()
+        module.logsQueue.waitUntilAllOperationsAreFinished()
+        module.attachmentsQueue.waitUntilAllOperationsAreFinished()
     }
 
     func test_invalidId() throws {
@@ -147,12 +149,17 @@ class EmbraceUploadTests: XCTestCase {
         // the observability on the database seems to be inconsistent timing wise
         // so the first 2 steps are not always in the same order
         wait(for: [expectation1, expectation2, expectation3], timeout: .veryLongTimeout)
+
+        // Clean up listener to prevent callbacks from firing during subsequent tests
+        listener.onInsertedObjects = nil
+        listener.onDeletedObjects = nil
     }
 
     func test_cacheFlowOnError() throws {
-        // given valid values
+        // given valid values (no mock URL, so upload will fail)
         let expectation1 = XCTestExpectation(description: "1. Data should be cached in the database")
-        let expectation2 = XCTestExpectation(description: "2. Sucess completion callback should be called")
+        let expectation2 = XCTestExpectation(description: "2. Success completion callback should be called")
+        let expectation3 = XCTestExpectation(description: "3. Cache should be removed after failed upload")
 
         // then the data should be cached
         let listener = CoreDataListener()
@@ -168,7 +175,12 @@ class EmbraceUploadTests: XCTestCase {
             expectation1.fulfill()
         }
 
+        listener.onDeletedObjects = { _ in
+            expectation3.fulfill()
+        }
+
         // when uploading data
+        // completion fires immediately after cache write (cache-first semantics)
         module.uploadSpans(id: "id", data: TestConstants.data) { result in
             switch result {
             case .success:
@@ -179,14 +191,15 @@ class EmbraceUploadTests: XCTestCase {
             }
         }
 
-        wait(for: [expectation1, expectation2], timeout: .veryLongTimeout)
+        // With retryCount: 0, the failed upload operation deletes the record from cache
+        wait(for: [expectation1, expectation2, expectation3], timeout: .veryLongTimeout)
 
-        // the ndata should remain cached
-        let record = module.cache.fetchUploadData(id: "id", type: .spans)
-        XCTAssertNotNil(record)
+        // Clean up listener to prevent callbacks from firing during subsequent tests
+        listener.onInsertedObjects = nil
+        listener.onDeletedObjects = nil
     }
 
-    func test_retryCachedData() async throws {
+    func test_retryCachedData() throws {
         try XCTSkipIf(XCTestCase.isWatchOS())
 
         // given cached data
@@ -197,7 +210,15 @@ class EmbraceUploadTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // when retrying to upload all cached data
-        await module.retryCachedData()
+        let retryExpectation = XCTestExpectation(description: "retryCachedData completes")
+        module.retryCachedData {
+            retryExpectation.fulfill()
+        }
+        wait(for: [retryExpectation], timeout: .defaultTimeout)
+
+        // wait for upload operations to complete
+        module.spansQueue.waitUntilAllOperationsAreFinished()
+        module.logsQueue.waitUntilAllOperationsAreFinished()
 
         // then requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
@@ -205,11 +226,15 @@ class EmbraceUploadTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testAttachmentsUrl()).count, 0)
     }
 
-    func test_retryCachedData_emptyCache() async throws {
+    func test_retryCachedData_emptyCache() throws {
         // given an empty cache
 
         // when retrying to upload all cached data
-        await module.retryCachedData()
+        let retryExpectation = XCTestExpectation(description: "retryCachedData completes")
+        module.retryCachedData {
+            retryExpectation.fulfill()
+        }
+        wait(for: [retryExpectation], timeout: .defaultTimeout)
 
         // then no requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -220,12 +245,19 @@ class EmbraceUploadTests: XCTestCase {
     func test_spansEndpoint() throws {
         try XCTSkipIf(XCTestCase.isWatchOS())
 
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+
         // when uploading session data
         let expectation = XCTestExpectation()
         module.uploadSpans(id: "id", data: TestConstants.data) { _ in
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: .defaultTimeout)
+
+        // ensure fillQueue has completed on the coordination queue
+        module.queue.sync {}
+        // wait for the upload operation to complete
+        module.spansQueue.waitUntilAllOperationsAreFinished()
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
@@ -236,12 +268,19 @@ class EmbraceUploadTests: XCTestCase {
     func test_logsEndpoint() throws {
         try XCTSkipIf(XCTestCase.isWatchOS())
 
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
         // when uploading log data
         let expectation = XCTestExpectation()
         module.uploadLog(id: "id", data: TestConstants.data) { _ in
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: .defaultTimeout)
+
+        // ensure fillQueue has completed on the coordination queue
+        module.queue.sync {}
+        // wait for the upload operation to complete
+        module.logsQueue.waitUntilAllOperationsAreFinished()
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -252,6 +291,8 @@ class EmbraceUploadTests: XCTestCase {
     func test_attachmentsEndpoint() throws {
         try XCTSkipIf(XCTestCase.isWatchOS())
 
+        EmbraceHTTPMock.mock(url: testAttachmentsUrl())
+
         // when uploading attachment data
         let expectation = XCTestExpectation()
         module.uploadAttachment(id: "id", data: TestConstants.data) { _ in
@@ -259,6 +300,11 @@ class EmbraceUploadTests: XCTestCase {
         }
 
         wait(for: [expectation], timeout: .defaultTimeout)
+
+        // ensure fillQueue has completed on the coordination queue
+        module.queue.sync {}
+        // wait for the upload operation to complete
+        module.attachmentsQueue.waitUntilAllOperationsAreFinished()
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)

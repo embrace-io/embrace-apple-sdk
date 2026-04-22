@@ -39,6 +39,7 @@ extension EmbraceStorage {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false,
+        sessionNumber: EMBInt = 0,
         completion: (() -> Void)? = nil
     ) -> EmbraceSession? {
 
@@ -66,7 +67,8 @@ extension EmbraceStorage {
                 lastHeartbeatTime: hbTime,
                 coldStart: coldStart,
                 cleanExit: cleanExit,
-                appTerminated: appTerminated
+                appTerminated: appTerminated,
+                sessionNumber: sessionNumber
             )
             guard created else {
                 logger.critical("Failed to create new session!")
@@ -88,7 +90,8 @@ extension EmbraceStorage {
             crashReportId: crashReportId,
             coldStart: coldStart,
             cleanExit: cleanExit,
-            appTerminated: appTerminated
+            appTerminated: appTerminated,
+            sessionNumber: sessionNumber
         )
     }
 
@@ -292,7 +295,8 @@ extension EmbraceSession {
             crashReportId: crashReportId ?? self.crashReportId,
             coldStart: coldStart,
             cleanExit: cleanExit ?? self.cleanExit,
-            appTerminated: appTerminated ?? self.appTerminated
+            appTerminated: appTerminated ?? self.appTerminated,
+            sessionNumber: self.sessionNumber
         )
     }
 }

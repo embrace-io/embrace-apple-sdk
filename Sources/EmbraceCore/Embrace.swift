@@ -139,7 +139,7 @@ public class Embrace {
 
             try options.validate()
 
-            client = try Embrace(options: options)
+            client = try Embrace(options: options, otelResources: otelResources)
             if let client = client {
                 EMBStartupTracker.shared().sdkSetupEndTime = Date()
                 Embrace.logger.startup("Embrace SDK setup finished")

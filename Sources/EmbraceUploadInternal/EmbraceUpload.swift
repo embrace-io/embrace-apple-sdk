@@ -18,20 +18,40 @@ public class EmbraceUpload: EmbraceLogUploader {
 
     public private(set) var options: Options
     public private(set) var logger: InternalLogger
-    public private(set) var queue: DispatchQueue
 
-    private let isRetryingCache = EmbraceAtomic(false)
+    /// Coordination queue — serializes all state management: cache reads/writes,
+    /// in-flight tracking, last-operation references, and queue-fill decisions.
+    /// Never executes network requests. Never blocks on the operation queues.
+    public let queue: DispatchQueue
+
+    /// Upload queues — only contain upload operations (network work).
+    let spansQueue: OperationQueue
+    let _spansQueue: DispatchQueue
+    let logsQueue: OperationQueue
+    let _logsQueue: DispatchQueue
+    let attachmentsQueue: OperationQueue
+    let _attachmentsQueue: DispatchQueue
+
+    /// Per-type set of record IDs that currently have active upload operations.
+    /// Read and written exclusively on the coordination queue.
+    private var inFlightIDs: [EmbraceUploadType: Set<String>] = [
+        .spans: [], .log: [], .attachment: []
+    ]
+
+    /// Weak references to the most recently enqueued upload operation for ordered types.
+    /// Used to chain new operations against their predecessor.
+    private weak var lastSpansOperation: Operation?
+    private weak var lastLogsOperation: Operation?
 
     private let urlSession: URLSession
     let cache: EmbraceUploadCache
-    let operationQueue: OperationQueue
     private var reachabilityMonitor: EmbraceReachabilityMonitor?
 
     /// Returns an `EmbraceUpload` instance
     /// - Parameters:
     ///   - options: `EmbraceUpload.Options` instance
-    ///   - logger: `EmbraceConsoleLogger` instance
-    ///   - queue: `DispatchQueue` to be used for all upload operations
+    ///   - logger: `InternalLogger` instance
+    ///   - queue: `DispatchQueue` to be used as the coordination queue
     public init(
         options: Options,
         logger: InternalLogger,
@@ -46,8 +66,21 @@ public class EmbraceUpload: EmbraceLogUploader {
 
         urlSession = URLSession(configuration: options.urlSessionConfiguration)
 
-        operationQueue = OperationQueue()
-        operationQueue.underlyingQueue = queue
+        // Serial queues for ordered types
+        spansQueue = OperationQueue()
+        spansQueue.maxConcurrentOperationCount = 1
+        _spansQueue = DispatchQueue(label: "com.embrace.upload.spans", qos: .utility)
+        spansQueue.underlyingQueue = _spansQueue
+
+        logsQueue = OperationQueue()
+        logsQueue.maxConcurrentOperationCount = 1
+        _logsQueue = DispatchQueue(label: "com.embrace.upload.logs", qos: .utility)
+        logsQueue.underlyingQueue = _logsQueue
+
+        // Concurrent queue for attachments (no ordering constraint)
+        attachmentsQueue = OperationQueue()
+        _attachmentsQueue = DispatchQueue(label: "com.embrace.upload.attachments", qos: .utility)
+        attachmentsQueue.underlyingQueue = _attachmentsQueue
 
         // reachability monitor
         if options.redundancy.retryOnInternetConnected {
@@ -61,61 +94,28 @@ public class EmbraceUpload: EmbraceLogUploader {
         }
     }
 
+    // MARK: - Public API
+
     /// Attempts to upload all the available cached data.
+    /// Called at process launch and on internet reconnection.
     public func retryCachedData(_ completion: (() -> Void)? = nil) {
-
-        let group = DispatchGroup()
-        group.enter()
-
         queue.async { [weak self] in
-            guard let strongSelf = self else {
+            guard let self = self else {
+                completion?()
                 return
             }
 
-            // in place mechanism to not retry sending cache data at the same time
-            guard strongSelf.isRetryingCache.compareExchange(expected: false, desired: true) else {
-                return
-            }
+            // Clear stale data
+            self.cache.clearStaleDataIfNeeded()
 
-            defer {
-                // on finishing everything, allow to retry cache (i.e. reconnection)
-                strongSelf.isRetryingCache.store(false)
-                group.leave()
-            }
+            // Fill queues — records are fetched in date order.
+            // inFlightIDs is NOT reset here. On internet reconnection, queues may still
+            // have active operations whose IDs are correctly tracked.
+            // At process launch, the sets are already empty (freshly initialized).
+            self.fillQueue(for: .spans)
+            self.fillQueue(for: .log)
+            self.fillQueue(for: .attachment)
 
-            // clear data from cache that shouldn't be retried as it's stale
-            strongSelf.clearCacheFromStaleData()
-
-            // get all the data cached first, is the only thing that could throw
-            let cachedObjects = strongSelf.cache.fetchAllUploadData()
-
-            // create a sempahore to allow only to send two request at a time so we don't
-            // get throttled by the backend on cases where cache has many failed requests.
-
-            let sem = DispatchSemaphore(value: 2)
-
-            for uploadData in cachedObjects {
-                guard let type = EmbraceUploadType(rawValue: uploadData.type) else {
-                    continue
-                }
-
-                group.enter()
-                sem.wait()
-
-                strongSelf.reUploadData(
-                    id: uploadData.id,
-                    data: uploadData.data,
-                    type: type,
-                    payloadTypes: uploadData.payloadTypes,
-                    attemptCount: uploadData.attemptCount
-                ) {
-                    sem.signal()
-                    group.leave()
-                }
-            }
-        }
-
-        group.notify(queue: queue) {
             completion?()
         }
     }
@@ -158,7 +158,7 @@ public class EmbraceUpload: EmbraceLogUploader {
     /// - Parameters:
     ///   - id: Identifier of the attachment
     ///   - data: The attachment's data
-    ///   - completion: Completion block called when the data is successfully uploaded, or when an `Error` occurs
+    ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
     public func uploadAttachment(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
             self?.uploadData(
@@ -170,183 +170,172 @@ public class EmbraceUpload: EmbraceLogUploader {
         }
     }
 
-    // MARK: - Internal
+    // MARK: - Internal: Upload Data (Cache-First)
+
+    /// Validates input, saves to cache synchronously, signals durability via completion,
+    /// then calls fillQueue to create upload operations if the queue has capacity.
     private func uploadData(
         id: String,
         data: Data,
         type: EmbraceUploadType,
         payloadTypes: String? = nil,
-        attemptCount: Int = 0,
         completion: ((Result<(), Error>) -> Void)?
     ) {
 
         // validate identifier
-        guard id.isEmpty == false else {
+        guard !id.isEmpty else {
             completion?(.failure(EmbraceUploadError.internalError(.invalidMetadata)))
             return
         }
 
         // validate data
-        guard data.isEmpty == false else {
+        guard !data.isEmpty else {
             completion?(.failure(EmbraceUploadError.internalError(.invalidData)))
             return
         }
 
-        // cache operation
-        let cacheOperation = BlockOperation { [weak self] in
-            guard let strongSelf = self else {
-                return
-            }
-
-            if !strongSelf.cache.saveUploadData(id: id, type: type, data: data, payloadTypes: payloadTypes) {
-                strongSelf.logger.debug("Error caching upload data!")
-            }
+        // Save to cache synchronously (we are on the coordination queue).
+        // Data is durable after this call.
+        guard cache.saveUploadData(id: id, type: type, data: data, payloadTypes: payloadTypes) else {
+            logger.debug("Error caching upload data!")
+            completion?(.failure(EmbraceUploadError.internalError(.cacheSaveFailed)))
+            return
         }
 
-        // upload operation
-        let uploadOperation = createUploadOperation(
-            id: id,
+        // Signal durability to the caller
+        completion?(.success(()))
+
+        // Try to fill the queue (may create an operation for this record or leave it in cache)
+        fillQueue(for: type)
+    }
+
+    // MARK: - Internal: Queue Fill Mechanism
+
+    /// The single mechanism for creating upload operations. Called after every cache write
+    /// and after every operation completion.
+    ///
+    /// Must be called on the coordination queue.
+    private func fillQueue(for type: EmbraceUploadType) {
+        let queue = uploadQueue(for: type)
+        let currentCount = inFlightIDs[type]?.count ?? 0
+        let limit = options.redundancy.queueLimit
+
+        guard currentCount < limit else { return }
+
+        let availableSlots = limit - currentCount
+        let excludedIDs = inFlightIDs[type] ?? []
+
+        let records = cache.fetchUploadData(
             type: type,
-            urlSession: urlSession,
-            data: data,
-            payloadTypes: payloadTypes,
-            retryCount: options.redundancy.automaticRetryCount,
-            attemptCount: attemptCount
-        ) { [weak self] (result, attemptCount) in
+            excludingIDs: excludedIDs,
+            limit: availableSlots
+        )
 
-            self?.queue.async { [weak self] in
+        for record in records {
+            let operation = createUploadOperation(
+                id: record.id,
+                type: type,
+                data: record.data,
+                payloadTypes: record.payloadTypes
+            )
 
-                self?.handleOperationFinished(
-                    id: id,
-                    type: type,
-                    result: result,
-                    attemptCount: attemptCount
-                )
-
-                self?.clearCacheFromStaleData()
-
-                completion?(.success(()))
+            // Chain for ordered types
+            if type == .spans {
+                if let last = lastSpansOperation, !last.isFinished {
+                    operation.addDependency(last)
+                }
+                lastSpansOperation = operation
+            } else if type == .log {
+                if let last = lastLogsOperation, !last.isFinished {
+                    operation.addDependency(last)
+                }
+                lastLogsOperation = operation
             }
-        }
 
-        // queue operations
-        uploadOperation.addDependency(cacheOperation)
-        operationQueue.addOperation(cacheOperation)
-        operationQueue.addOperation(uploadOperation)
+            inFlightIDs[type]?.insert(record.id)
+            queue.addOperation(operation)
+        }
     }
 
-    func reUploadData(
-        id: String,
-        data: Data,
-        type: EmbraceUploadType,
-        payloadTypes: String?,
-        attemptCount: Int,
-        completion: @escaping (() -> Void)
-    ) {
-        let totalPendingRetries = options.redundancy.maximumAmountOfRetries - attemptCount
-        let retries = min(options.redundancy.automaticRetryCount, totalPendingRetries)
-
-        let uploadOperation = EmbraceUploadOperation(
-            urlSession: urlSession,
-            queue: queue,
-            metadataOptions: options.metadata,
-            endpoint: endpoint(for: type),
-            identifier: id,
-            data: data,
-            payloadTypes: payloadTypes,
-            retryCount: retries,
-            exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
-            attemptCount: attemptCount,
-            logger: logger
-        ) { [weak self] (result, attemptCount) in
-            self?.queue.async { [weak self] in
-                self?.handleOperationFinished(
-                    id: id,
-                    type: type,
-                    result: result,
-                    attemptCount: attemptCount
-                )
-                completion()
-            }
-        }
-
-        operationQueue.addOperation(uploadOperation)
-    }
+    // MARK: - Internal: Operation Factory
 
     private func createUploadOperation(
         id: String,
         type: EmbraceUploadType,
-        urlSession: URLSession,
         data: Data,
-        payloadTypes: String?,
-        retryCount: Int,
-        attemptCount: Int,
-        completion: @escaping EmbraceUploadOperationCompletion
+        payloadTypes: String?
     ) -> EmbraceUploadOperation {
+
+        let operationCompletion: EmbraceUploadOperationCompletion = { [weak self] result, _ in
+            self?.queue.async { [weak self] in
+                self?.handleOperationFinished(id: id, type: type, result: result)
+            }
+        }
+
+        let operationQueue = uploadQueue(for: type)
 
         if type == .attachment {
             return EmbraceAttachmentUploadOperation(
                 urlSession: urlSession,
-                queue: queue,
+                queue: operationQueue.underlyingQueue ?? .global(qos: .utility),
                 metadataOptions: options.metadata,
                 endpoint: endpoint(for: type),
                 identifier: id,
                 data: data,
                 payloadTypes: payloadTypes,
-                retryCount: retryCount,
+                retryCount: options.redundancy.automaticRetryCount,
                 exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
-                attemptCount: attemptCount,
+                attemptCount: 0,
                 logger: logger,
-                completion: completion
+                completion: operationCompletion
             )
         }
 
         return EmbraceUploadOperation(
             urlSession: urlSession,
-            queue: queue,
+            queue: operationQueue.underlyingQueue ?? .global(qos: .utility),
             metadataOptions: options.metadata,
             endpoint: endpoint(for: type),
             identifier: id,
             data: data,
             payloadTypes: payloadTypes,
-            retryCount: retryCount,
+            retryCount: options.redundancy.automaticRetryCount,
             exponentialBackoffBehavior: options.redundancy.exponentialBackoffBehavior,
-            attemptCount: attemptCount,
+            attemptCount: 0,
             logger: logger,
-            completion: completion
+            completion: operationCompletion
         )
     }
+
+    // MARK: - Internal: Operation Completion
 
     private func handleOperationFinished(
         id: String,
         type: EmbraceUploadType,
-        result: EmbraceUploadOperationResult,
-        attemptCount: Int
+        result: EmbraceUploadOperationResult
     ) {
+        // Remove from in-flight tracking
+        inFlightIDs[type]?.remove(id)
+
+        // Delete from cache unless cancelled (cancelled records are replayed on next launch)
         switch result {
-        case .success:
-            addDeleteUploadDataOperation(id: id, type: type)
-        case .failure(let isRetriable):
-            if isRetriable, attemptCount < options.redundancy.maximumAmountOfRetries {
-                operationQueue.addOperation { [weak self] in
-                    self?.cache.updateAttemptCount(id: id, type: type, attemptCount: attemptCount)
-                }
-                return
-            }
-
-            addDeleteUploadDataOperation(id: id, type: type)
+        case .success, .failure:
+            cache.deleteUploadData(id: id, type: type)
+        case .cancelled:
+            break
         }
+
+        // Refill the queue
+        fillQueue(for: type)
     }
 
-    private func addDeleteUploadDataOperation(id: String, type: EmbraceUploadType) {
-        operationQueue.addOperation { [weak self] in
-            self?.cache.deleteUploadData(id: id, type: type)
-        }
-    }
+    // MARK: - Internal: Helpers
 
-    private func clearCacheFromStaleData() {
-        operationQueue.addOperation { [weak self] in
-            self?.cache.clearStaleDataIfNeeded()
+    private func uploadQueue(for type: EmbraceUploadType) -> OperationQueue {
+        switch type {
+        case .spans: return spansQueue
+        case .log: return logsQueue
+        case .attachment: return attachmentsQueue
         }
     }
 

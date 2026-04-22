@@ -26,7 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
                                       NSURLSessionDataDelegate,
                                       NSURLSessionStreamDelegate>
 
-@property(nonatomic, strong, nullable) id originalDelegate;
+@property(atomic, strong, nullable) id originalDelegate;
 
 @property(nonatomic, weak, nullable) id<NSURLSessionDelegate> swizzledDelegate;
 

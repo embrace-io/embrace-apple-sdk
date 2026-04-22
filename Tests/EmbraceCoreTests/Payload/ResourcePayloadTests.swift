@@ -40,7 +40,7 @@ class ResourcePayloadTests: XCTestCase {
             MockMetadata.createResourceRecord(key: DeviceResourceKey.timezone.rawValue, value: "GMT-3:00"),
 
             // session counter
-            MockMetadata.createResourceRecord(key: SessionPayloadBuilder.resourceName, value: "10"),
+            MockMetadata.createResourceRecord(key: SessionController.sessionNumberKey, value: "10"),
 
             // Random properties that should be used
             MockMetadata.createUserMetadata(key: "random_user_metadata_property", value: "value1"),

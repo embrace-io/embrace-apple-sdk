@@ -83,6 +83,6 @@ Examples/Benchmarks/Benchmarks.xcworkspace/xcuserdata
 !Examples/Embrace-tvOS-TestApp/*.xcodeproj
 !Examples/Embrace-watchOS-TestApp/*.xcodeproj
 
-## Claude
+# Claude
 .claude/
 claude/

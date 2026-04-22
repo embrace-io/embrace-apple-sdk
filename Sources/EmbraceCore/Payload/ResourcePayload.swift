@@ -41,7 +41,7 @@ struct ResourcePayload: Codable {
         DeviceResourceKey.locale.rawValue,
         DeviceResourceKey.timezone.rawValue,
         DeviceResourceKey.osDescription.rawValue,
-        SessionPayloadBuilder.resourceName
+        SessionController.sessionNumberKey
     ]
 
     enum CodingKeys: String, CodingKey, CaseIterable {

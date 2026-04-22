@@ -16,11 +16,4 @@
             }
         }
     }
-#else
-    extension WebViewCaptureService {
-        /// Class used to setup a WebViewCaptureService.
-        @objc(EMBWebViewCaptureServiceOptions)
-        public final class Options: NSObject {
-        }
-    }
 #endif

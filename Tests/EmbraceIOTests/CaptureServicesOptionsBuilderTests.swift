@@ -340,20 +340,22 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         XCTAssertEqual((options.customServices[0] as! FakeCaptureService).testValue, 9999)
     }
 
-    func test_customService_embraceType() throws {
-        // given a builder with default services
-        let builder = CaptureServicesOptionsBuilder()
-        builder.addDefaults()
+    #if canImport(UIKit) && !os(watchOS)
+        func test_customService_embraceType() throws {
+            // given a builder with default services
+            let builder = CaptureServicesOptionsBuilder()
+            builder.addDefaults()
 
-        // when adding a custom service of an embrace type
-        builder.add(TapCaptureService())
+            // when adding a custom service of an embrace type
+            builder.add(TapCaptureService())
 
-        // then the service will be added as a custom service
-        let options = builder.build()
+            // then the service will be added as a custom service
+            let options = builder.build()
 
-        XCTAssertEqual(options.customServices.count, 1)
-        XCTAssertTrue(options.customServices[0] is TapCaptureService)
-    }
+            XCTAssertEqual(options.customServices.count, 1)
+            XCTAssertTrue(options.customServices[0] is TapCaptureService)
+        }
+    #endif
 }
 
 class FakeCaptureService: CaptureService {

@@ -21,7 +21,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -52,13 +52,13 @@ jobs:
       env:
         MATRIX_XCODE_VERSION: ${{ matrix.xcode_version }}
 
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       timeout-minutes: 4
       with:
         persist-credentials: false
 
     - name: Build
-      uses: mxcl/xcodebuild@96d9ef9fd2ab35ddad713d320955eb31ca8d6d21 # 3.5.1
+      uses: mxcl/xcodebuild@d3ee9b419c1be9a988086c58fe0988f32d99cfc5 # v3.6.0
       with:
         action: build
         workspace: ".swiftpm/xcode/package.xcworkspace"

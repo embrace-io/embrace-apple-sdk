@@ -19,6 +19,7 @@ public class MockSession: EmbraceSession {
     public var coldStart: Bool
     public var cleanExit: Bool
     public var appTerminated: Bool
+    public var sessionNumber: Int
 
     public init(
         id: EmbraceIdentifier,
@@ -32,7 +33,8 @@ public class MockSession: EmbraceSession {
         crashReportId: String? = nil,
         coldStart: Bool = false,
         cleanExit: Bool = false,
-        appTerminated: Bool = false
+        appTerminated: Bool = false,
+        sessionNumber: Int = 0
     ) {
         self.id = id
         self.processId = processId
@@ -46,6 +48,7 @@ public class MockSession: EmbraceSession {
         self.coldStart = coldStart
         self.cleanExit = cleanExit
         self.appTerminated = appTerminated
+        self.sessionNumber = sessionNumber
     }
 }
 

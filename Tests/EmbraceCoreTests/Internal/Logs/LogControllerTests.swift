@@ -383,6 +383,7 @@ extension LogControllerTests {
         )
 
         sut.sdkStateProvider = sdkStateProvider
+        sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
     }
 
     fileprivate func givenLogController() {
@@ -394,6 +395,7 @@ extension LogControllerTests {
         )
 
         sut.sdkStateProvider = sdkStateProvider
+        sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
     }
 
     fileprivate func givenEmbraceLogUploader() {
