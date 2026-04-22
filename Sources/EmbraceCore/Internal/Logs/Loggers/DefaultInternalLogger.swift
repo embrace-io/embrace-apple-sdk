@@ -10,6 +10,7 @@ import OSLog
     import EmbraceStorageInternal
     import EmbraceConfigInternal
     import EmbraceConfiguration
+    import EmbraceSemantics
 #endif
 
 class DefaultInternalLogger: BaseInternalLogger {
@@ -43,7 +44,7 @@ class DefaultInternalLogger: BaseInternalLogger {
         super.init()
     }
 
-    override func output(_ message: String, level: LogLevel, customExport: Bool) {
+    override func output(_ message: String, level: EmbraceLogLevel, customExport: Bool) {
 
         if customExport {
             os_log(level.osLogType, log: customExportLogger, "%{public}@", message)
@@ -140,7 +141,7 @@ class DefaultInternalLogger: BaseInternalLogger {
     }
 }
 
-extension LogLevel {
+extension EmbraceLogLevel {
     var osLogType: OSLogType {
         switch self {
         case .trace, .debug:

@@ -15,7 +15,7 @@ extension MetadataHandler {
     /// Fetch the current set of persona tags.
     ///
     /// - Parameter completion: A closure that receives the list of persona tags.
-    public func getCurrentPersonas(completion: @escaping ([String]) -> Void) {
+    package func getCurrentPersonas(completion: @escaping ([String]) -> Void) {
         guard let storage = self.storage else {
             completion([])
             return
@@ -40,7 +40,7 @@ extension MetadataHandler {
     ///   - lifespan: The lifespan of the persona tag to add.
     /// - Throws: `MetadataError.invalidValue` if the value is longer than 32 characters.
     /// - Throws: `MetadataError.invalidSession` if a persona tag with a `.session` lifespan is added when there's no active session.
-    public func add(persona: String, lifespan: MetadataLifespan = .session) throws {
+    package func add(persona: String, lifespan: MetadataLifespan = .session) throws {
         guard persona.count <= Self.maxPersonaTagLength else {
             throw MetadataError.invalidValue(
                 "The persona tag length can not be greater than \(Self.maxPersonaTagLength)"
@@ -64,14 +64,14 @@ extension MetadataHandler {
     /// metadata that belongs to a session or process that has ended. If you remove a persona with a process
     /// lifespan and that persona has already been applied to a previous session within the process, that metadata
     /// will apply to that earlier session but will not apply to the currently active session.
-    public func remove(persona: String, lifespan: MetadataLifespan) throws {
+    package func remove(persona: String, lifespan: MetadataLifespan) throws {
         try remove(key: persona, type: .personaTag, lifespan: lifespan)
     }
 
     /// Removes all persona tags for the given lifespans. If no lifespans are passed, all persona tags are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
-    public func removeAllPersonas(lifespans: [MetadataLifespan] = [.permanent, .process, .session]) {
+    package func removeAllPersonas(lifespans: [MetadataLifespan] = [.permanent, .process, .session]) {
         removeAll(type: .personaTag, lifespans: lifespans)
     }
 }

@@ -5,7 +5,7 @@
 import Foundation
 
 /// Used to determine the end state of the previous app run.
-public enum LastRunEndState: Int {
+public enum EmbraceLastRunEndState: Int {
     /// Last end state can't be determined
     case unavailable
 

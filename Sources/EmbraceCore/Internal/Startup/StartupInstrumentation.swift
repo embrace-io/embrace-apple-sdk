@@ -10,7 +10,7 @@ import Foundation
     import EmbraceObjCUtilsInternal
 #endif
 
-public final class StartupInstrumentation {
+package final class StartupInstrumentation {
 
     var provider: StartupDataProvider
     var otel: EmbraceOTelSignalsHandler?

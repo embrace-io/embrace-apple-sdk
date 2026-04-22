@@ -8,14 +8,13 @@ import Foundation
     @_exported import EmbraceCore  // so users don't have to import EmbraceIO AND EmbraceCore
     import EmbraceCommonInternal
     import EmbraceOTelBridge
+    import EmbraceSemantics
 #endif
 
 /// Main class used to interact with the Embrace SDK.
 ///
-/// To start the SDK you first need to configure it using an `EmbraceIO.Options` instance passed in the `setup` static method.
-/// Once the SDK is setup, you can start it by calling the `EmbraceIO.shared.start()`
-///
-/// **Please note that even if you setup the SDK, an Embrace session will not begin until `start` is called. This means data may not be correctly attached to that session.**
+/// To start the SDK call `EmbraceIO.setup(options:)` passing an `EmbraceIO.Options` instance.
+/// The SDK is configured and started in a single step.
 ///
 /// Example:
 /// ```swift
@@ -23,7 +22,6 @@ import Foundation
 ///
 /// let options = EmbraceIO.Options(appId: "appId")
 /// try EmbraceIO.setup(options: options)
-/// try EmbraceIO.shared.start()
 /// ```
 public class EmbraceIO {
 
@@ -35,7 +33,7 @@ public class EmbraceIO {
     }
 
     /// Used to control the verbosity level of the Embrace SDK console logs.
-    public var logLevel: LogLevel = .error {
+    public var logLevel: EmbraceLogLevel = .error {
         didSet {
             Embrace.setLogLevel(logLevel)
         }
@@ -61,7 +59,7 @@ public class EmbraceIO {
         Embrace.client?.currentSessionId()
     }
 
-    /// Method used to configure the Embrace SDK.
+    /// Method used to configure and start the Embrace SDK.
     /// - Parameter options: `EmbraceIO.Options` to be used by the SDK.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Throws: `EmbraceSetupError.invalidAppId` if the provided `appId` is invalid.
@@ -94,12 +92,11 @@ public class EmbraceIO {
                 criticalResourceGroup: Embrace.client?.captureServicesGroup
             )
         }
+
+        try EmbraceIO.shared.start()
     }
 
-    /// Method used to start the Embrace SDK.
-    /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
-    /// - Note: This method won't do anything if the Embrace SDK was already started or if it was disabled via the remote configurations.
-    public func start() throws {
+    private func start() throws {
         try Embrace.client?.start()
     }
 

@@ -23,7 +23,7 @@ public enum MetadataLifespan: Int {
 }
 
 /// Class used to generate resources, properties and persona tags to be included in sessions and logs.
-public class MetadataHandler {
+package class MetadataHandler {
 
     static let maxKeyLength = 128
     static let maxValueLength = 1024
@@ -56,7 +56,7 @@ public class MetadataHandler {
     ///   - lifespan: The lifespan of the property to add.
     /// - Throws: `MetadataError.invalidKey` if the key is longer than 128 characters.
     /// - Throws: `MetadataError.invalidSession` if a property with a `.session` lifespan is added when there's no active session.
-    public func addProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
+    package func addProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
         try addMetadata(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
@@ -89,21 +89,12 @@ public class MetadataHandler {
         }
     }
 
-    /// Updates the value of a resource for a given key and lifespan.
-    /// - Parameters:
-    ///   - key: The key of the resource to update.
-    ///   - value: The value of the resource to update. Will be truncated if its longer than 1024 characters.
-    ///   - lifespan: The lifespan of the resource to update.
-    public func updateResource(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
-        try update(key: key, value: value, type: .resource, lifespan: lifespan)
-    }
-
     /// Updates the value of a property for a given key and lifespan.
     /// - Parameters:
     ///   - key: The key of the property to update.
     ///   - value: The value of the property to update. Will be truncated if its longer than 1024 characters.
     ///   - lifespan: The lifespan of the property to update.
-    public func updateProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
+    package func updateProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
         try update(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
@@ -125,19 +116,11 @@ public class MetadataHandler {
         }
     }
 
-    /// Removes the resource for the given key and lifespan.
-    /// - Parameters:
-    ///   - key: The key of the resource to remove.
-    ///   - lifespan: The lifespan of the resource to remove.
-    public func removeResource(key: String, lifespan: MetadataLifespan = .session) throws {
-        try remove(key: key, type: .resource, lifespan: lifespan)
-    }
-
     /// Removes the property for the given key and lifespan.
     /// - Parameters:
     ///   - key: The key of the property to remove.
     ///   - lifespan: The lifespan of the property to remove.
-    public func removeProperty(key: String, lifespan: MetadataLifespan = .session) throws {
+    package func removeProperty(key: String, lifespan: MetadataLifespan = .session) throws {
         try remove(key: key, type: .customProperty, lifespan: lifespan)
     }
 
@@ -160,17 +143,10 @@ public class MetadataHandler {
         }
     }
 
-    /// Removes all resources for the given lifespans. If no lifespans are passed, all resources are removed.
-    /// - Parameters:
-    ///   - lifespans: Array of lifespans.
-    public func removeAllResources(lifespans: [MetadataLifespan] = [.permanent, .process, .session]) {
-        removeAll(type: .resource, lifespans: lifespans)
-    }
-
     /// Removes all properties for the given lifespans. If no lifespans are passed, all properties are removed.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
-    public func removeAllProperties(lifespans: [MetadataLifespan]) {
+    package func removeAllProperties(lifespans: [MetadataLifespan]) {
         removeAll(type: .customProperty, lifespans: lifespans)
     }
 

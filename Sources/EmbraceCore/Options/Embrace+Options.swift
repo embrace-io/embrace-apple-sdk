@@ -9,59 +9,43 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceConfigInternal
     import EmbraceConfiguration
+    import EmbraceSemantics
 #endif
 
 extension Embrace {
 
-    /// Class used to setup the Embrace SDK.
-    public struct Options {
-        public let appId: String?
-        public let appGroupId: String?
-        public let platform: Platform
-        public let endpoints: Embrace.Endpoints?
-        public let services: [CaptureService]
-        public let crashReporter: CrashReporter?
-        public let logLevel: LogLevel
-        public let runtimeConfiguration: EmbraceConfigurable?
-        public let backtracer: Backtracer?
-        public let symbolicator: Symbolicator?
+    /// Internal options used to setup the Embrace SDK. Not part of the public API.
+    package struct Options {
+        package let appId: String?
+        package let appGroupId: String?
+        package let platform: EmbracePlatform
+        package let endpoints: EmbraceEndpoints?
+        package let services: [CaptureService]
+        package let crashReporter: CrashReporter?
+        package let logLevel: EmbraceLogLevel
+        package let runtimeConfiguration: EmbraceConfigurable?
+        package let backtracer: Backtracer?
+        package let symbolicator: Symbolicator?
 
         /// Optional OTel signal bridge. When provided, span/log lifecycle events from Core
         /// are forwarded into the OTel SDK pipeline and external OTel signals are fed back into Core.
         package var bridge: EmbraceOTelSignalBridge?
 
-        /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
-        ///
-        /// If you wish to use the default `CaptureServices`, please refer to the `Embrace.Options`
-        /// initializer found in the `EmbraceIO` target.
-        ///
-        /// - Parameters:
-        ///   - appId: The `appId` of the project.
-        ///   - appGroupId: The app group identifier used by the app, if any.
-        ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
-        ///   - endpoints: `Embrace.Endpoints` instance.
-        ///   - captureServices: The `CaptureServices` to be installed.
-        ///   - crashReporter: The `CrashReporter` to be installed.
-        ///   - logLevel: The `LogLevel` to use for console logs.
-        ///   - backtracer: Optional `Backtracer` to capture stack traces. Defaults to the
-        ///     built-in mechanism, which is sufficient for most apps.
-        ///   - symbolicator: Optional `Symbolicator` to resolve frames into symbols;
-        ///     without it, only raw addresses are shown.
-        public init(
+        package init(
             appId: String,
             appGroupId: String? = nil,
-            platform: Platform = .default,
-            endpoints: Embrace.Endpoints? = nil,
+            platform: EmbracePlatform = .default,
+            endpoints: EmbraceEndpoints? = nil,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
-            logLevel: LogLevel = .default,
+            logLevel: EmbraceLogLevel = .default,
             backtracer: Backtracer? = nil,
             symbolicator: Symbolicator? = nil
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
             self.platform = platform
-            self.endpoints = endpoints ?? .init(appId: appId)
+            self.endpoints = endpoints ?? EmbraceEndpoints(appId: appId)
             self.services = captureServices
             self.crashReporter = crashReporter
             self.logLevel = logLevel
@@ -70,23 +54,11 @@ extension Embrace {
             self.symbolicator = symbolicator
         }
 
-        /// Initializer for `Embrace.Options` that does not require an appId.
-        /// Use this initializer if you don't want the SDK to send data to Embrace's servers.
-        /// You must provide your own `OpenTelemetryExport`
-        ///
-        /// - Parameters:
-        ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
-        ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
-        ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
-        ///   - captureServices: The `CaptureServices` to be installed.
-        ///   - crashReporter: The `CrashReporter` to be installed.
-        ///   - logLevel: The `LogLevel` to use for console logs.
-        ///   - runtimeConfiguration: An object to control runtime behavior of the SDK itself.
-        public init(
-            platform: Platform = .default,
+        package init(
+            platform: EmbracePlatform = .default,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
-            logLevel: LogLevel = .default,
+            logLevel: EmbraceLogLevel = .default,
             runtimeConfiguration: EmbraceConfigurable = .default,
             backtracer: Backtracer? = nil,
             symbolicator: Symbolicator? = nil

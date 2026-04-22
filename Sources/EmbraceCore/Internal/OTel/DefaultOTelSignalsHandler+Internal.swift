@@ -11,7 +11,7 @@ import Foundation
 
 // MARK: InternalOTelSignalsHandler
 extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
-    public func _createSpan(
+    package func _createSpan(
         name: String,
         parentSpan: EmbraceSpan? = nil,
         type: EmbraceType,
@@ -99,7 +99,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         return span
     }
 
-    public func _addSessionEvent(
+    package func _addSessionEvent(
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
@@ -120,7 +120,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         )
     }
 
-    public func _log(
+    package func _log(
         _ message: String,
         severity: EmbraceLogSeverity = .info,
         type: EmbraceType,
@@ -153,7 +153,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
     }
 
     // ends all the cached auto-termination spans
-    public func autoTerminateSpans() {
+    func autoTerminateSpans() {
         cache.withLock {
             let now = Date()
 

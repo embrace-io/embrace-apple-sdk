@@ -66,7 +66,7 @@ extension NanosecondClock {
 
     /// Get a `Date` from the clock.
     @inlinable
-    public var date: Date {
+    var date: Date {
         Date(timeIntervalSince1970: realtime.seconds)
     }
 }
@@ -75,13 +75,13 @@ extension NanosecondClock.Nanoseconds {
 
     /// Convert nanoseconds to milliseconds
     @inlinable
-    public var milliseconds: UInt64 {
+    var milliseconds: UInt64 {
         self / 1_000_000
     }
 
     /// Convert nanoseconds to seconds
     @inlinable
-    public var seconds: Double {
+    var seconds: Double {
         Double(self) / 1_000_000_000.0
     }
 }

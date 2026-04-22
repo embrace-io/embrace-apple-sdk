@@ -15,16 +15,16 @@ import Foundation
 class BaseInternalLogger: InternalLogger {
 
     #if DEBUG
-        var level: LogLevel = .debug
+        var level: EmbraceLogLevel = .debug
     #else
-        var level: LogLevel = .error
+        var level: EmbraceLogLevel = .error
     #endif
 
     var otel: EmbraceOTelSignalsHandler?
 
     struct MutableState {
         var limits: InternalLogLimits = InternalLogLimits()
-        var counter: [LogLevel: Int] = [:]
+        var counter: [EmbraceLogLevel: Int] = [:]
         var currentSession: EmbraceSession?
     }
     private let state = EmbraceMutex(MutableState())
@@ -67,12 +67,12 @@ class BaseInternalLogger: InternalLogger {
         }
     }
 
-    func output(_ message: String, level: LogLevel, customExport: Bool) {
+    func output(_ message: String, level: EmbraceLogLevel, customExport: Bool) {
         print(message)
     }
 
     @discardableResult func log(
-        level: LogLevel,
+        level: EmbraceLogLevel,
         message: String,
         attributes: [String: String] = [:],
         customExport: Bool = false
@@ -139,7 +139,7 @@ class BaseInternalLogger: InternalLogger {
         return log(level: .critical, message: message, customExport: true)
     }
 
-    private func sendOTelLog(level: LogLevel, message: String, attributes: [String: String]) {
+    private func sendOTelLog(level: EmbraceLogLevel, message: String, attributes: [String: String]) {
 
         let (proceed, currentSession) = state.withLock {
             let limit = $0.limits.limit(for: level)
@@ -187,7 +187,7 @@ class BaseInternalLogger: InternalLogger {
 }
 
 extension InternalLogLimits {
-    func limit(for level: LogLevel) -> UInt {
+    func limit(for level: EmbraceLogLevel) -> UInt {
         switch level {
         case .trace: return trace
         case .debug: return debug

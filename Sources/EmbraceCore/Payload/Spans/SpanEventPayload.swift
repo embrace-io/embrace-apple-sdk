@@ -38,7 +38,7 @@ struct SpanEventPayload: Encodable {
 }
 
 extension SpanEventPayload: Equatable {
-    public static func == (lhs: SpanEventPayload, rhs: SpanEventPayload) -> Bool {
+    static func == (lhs: SpanEventPayload, rhs: SpanEventPayload) -> Bool {
         return
             lhs.name == rhs.name && lhs.timestamp == rhs.timestamp
     }
