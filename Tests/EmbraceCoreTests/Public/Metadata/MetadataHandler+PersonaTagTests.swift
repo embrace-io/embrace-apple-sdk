@@ -36,19 +36,14 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         let handler = MetadataHandler(storage: storage, sessionController: sessionController)
 
         // when adding a persona tag with invalid value
-        let expectation1 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.add(persona: Self.invalidLength)) { error in
+        handler.add(persona: Self.invalidLength)
 
-            // then it should error out as a MetadataError.invalidValue
-            switch error {
-            case MetadataError.invalidValue:
-                expectation1.fulfill()
-            default:
-                XCTAssert(false)
-            }
-        }
-
-        wait(for: [expectation1], timeout: .defaultTimeout)
+        // then no persona tag is stored
+        let metadata: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(
+            metadata.filter({ $0.typeRaw == MetadataRecordType.personaTag.rawValue }).count,
+            0
+        )
     }
 
     func test_limit_validation() throws {
@@ -61,7 +56,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         }
 
         // when adding a persona tag
-        try handler.add(persona: "test", lifespan: .session)
+        handler.add(persona: "test", lifespan: .session)
 
         let metadata: [MetadataRecord] = storage.fetchAll()
         XCTAssertEqual(
@@ -145,7 +140,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         )
 
         // when removing a persona tag
-        try handler.remove(persona: "session", lifespan: .session)
+        handler.remove(persona: "session", lifespan: .session)
 
         // then the persona tag is removed
         let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
@@ -184,7 +179,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         )
 
         // when removing a persona tag
-        try handler.remove(persona: "permanent", lifespan: .session)
+        handler.remove(persona: "permanent", lifespan: .session)
 
         // then the persona tag is removed
         let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
