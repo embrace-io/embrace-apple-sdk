@@ -11,38 +11,8 @@ import Foundation
 
 extension MetadataHandler {
 
-    /// Set a 'name' for the current user.
-    /// Will be set permanently until explicitly unset via the `clearUserProperties()` method.
-    /// - Note: No validation is done on the username. Be sure it matches or
-    ///         can be mapped to a record in your system
-    package var userName: String? {
-        get {
-            value(for: .name)
-        }
-        set {
-            synchronizationQueue.async {
-                self.update(key: .name, value: newValue)
-            }
-        }
-    }
-
-    /// Set an 'email' for the current user.
-    /// Will be set permanently  until explicitly unset via the `clearUserProperties()` method.
-    /// - Note: No validation is done on the email address. Be sure it matches or
-    ///         can be mapped to a record in your system
-    package var userEmail: String? {
-        get {
-            value(for: .email)
-        }
-        set {
-            synchronizationQueue.async {
-                self.update(key: .email, value: newValue)
-            }
-        }
-    }
-
     /// Set a 'identifier' for the current user.
-    /// Will be set permanently until explicitly unset via the `clearUserProperties()` method.
+    /// Pass nil to remove.
     /// - Note: No validation is done on the identifier. Be sure it matches or
     ///         can be mapped to a record in your system
     package var userIdentifier: String? {
@@ -53,14 +23,6 @@ extension MetadataHandler {
             synchronizationQueue.async {
                 self.update(key: .identifier, value: newValue)
             }
-        }
-    }
-
-    /// Clear all user properties.
-    /// This will clear all user properties set via the `userName`, `userEmail` and `userIdentifier` properties.
-    package func clearUserProperties() {
-        synchronizationQueue.async {
-            self.storage?.removeAllMetadata(keys: UserResourceKey.allValues, lifespan: .permanent)
         }
     }
 }
