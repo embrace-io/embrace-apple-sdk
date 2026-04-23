@@ -50,27 +50,29 @@ package class MetadataHandler {
 
     /// Adds a property with the given key, value and lifespan.
     /// If there are 2 properties with the same key but different lifespans, the one with a shorter lifespan will be used.
+    /// If the key is too long or no session is active for a `.session` lifespan, the property is dropped and a warning is logged.
     /// - Parameters:
     ///   - key: The key of the property to add. Can not be longer than 128 characters.
     ///   - value: The value of the property to add. Will be truncated if its longer than 1024 characters.
     ///   - lifespan: The lifespan of the property to add.
-    /// - Throws: `MetadataError.invalidKey` if the key is longer than 128 characters.
-    /// - Throws: `MetadataError.invalidSession` if a property with a `.session` lifespan is added when there's no active session.
-    package func addProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
-        try addMetadata(key: key, value: value, type: .customProperty, lifespan: lifespan)
+    package func addProperty(key: String, value: String, lifespan: MetadataLifespan = .session) {
+        addMetadata(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
-    func addMetadata(key: String, value: String, type: MetadataRecordType, lifespan: MetadataLifespan) throws {
+    func addMetadata(key: String, value: String, type: MetadataRecordType, lifespan: MetadataLifespan) {
         guard let storage = storage else {
             return
         }
 
         // validate key
         guard key.count <= Self.maxKeyLength else {
-            throw MetadataError.invalidKey("The key length can not be greater than \(Self.maxKeyLength)")
+            Embrace.logger.warning("Failed to add metadata: the key length can not be greater than \(Self.maxKeyLength)")
+            return
         }
 
-        let lifespanContext = try currentContext(for: lifespan.recordLifespan)
+        guard let lifespanContext = currentContext(for: lifespan.recordLifespan) else {
+            return
+        }
 
         synchronizationQueue.async {
             let record = storage.addMetadata(
@@ -90,12 +92,13 @@ package class MetadataHandler {
     }
 
     /// Updates the value of a property for a given key and lifespan.
+    /// If no session is active for a `.session` lifespan, the update is dropped and a warning is logged.
     /// - Parameters:
     ///   - key: The key of the property to update.
     ///   - value: The value of the property to update. Will be truncated if its longer than 1024 characters.
     ///   - lifespan: The lifespan of the property to update.
-    package func updateProperty(key: String, value: String, lifespan: MetadataLifespan = .session) throws {
-        try update(key: key, value: value, type: .customProperty, lifespan: lifespan)
+    package func updateProperty(key: String, value: String, lifespan: MetadataLifespan = .session) {
+        update(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
     private func update(
@@ -103,8 +106,10 @@ package class MetadataHandler {
         value: String,
         type: MetadataRecordType,
         lifespan: MetadataLifespan = .session
-    ) throws {
-        let lifespanId = try currentContext(for: lifespan.recordLifespan)
+    ) {
+        guard let lifespanId = currentContext(for: lifespan.recordLifespan) else {
+            return
+        }
         synchronizationQueue.async {
             self.storage?.updateMetadata(
                 key: key,
@@ -117,22 +122,24 @@ package class MetadataHandler {
     }
 
     /// Removes the property for the given key and lifespan.
+    /// If no session is active for a `.session` lifespan, the removal is dropped and a warning is logged.
     /// - Parameters:
     ///   - key: The key of the property to remove.
     ///   - lifespan: The lifespan of the property to remove.
-    package func removeProperty(key: String, lifespan: MetadataLifespan = .session) throws {
-        try remove(key: key, type: .customProperty, lifespan: lifespan)
+    package func removeProperty(key: String, lifespan: MetadataLifespan = .session) {
+        remove(key: key, type: .customProperty, lifespan: lifespan)
     }
 
     /// Removes the metadata for the given key, type and lifespan.
+    /// If no session is active for a `.session` lifespan, the removal is dropped and a warning is logged.
     /// - Parameters:
     ///  - key: The key of the metadata to remove.
     ///  - type: The type of the metadata to remove.
     ///  - lifespan: The lifespan of the metadata to remove.
-    ///
-    ///  - Throws: `MetadataError.invalidSession` if a metadata with a `.session` lifespan is removed when there's no active session.
-    func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .session) throws {
-        let lifespanId = try currentContext(for: lifespan.recordLifespan)
+    func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .session) {
+        guard let lifespanId = currentContext(for: lifespan.recordLifespan) else {
+            return
+        }
         synchronizationQueue.async {
             self.storage?.removeMetadata(
                 key: key,
@@ -172,10 +179,11 @@ extension MetadataHandler {
 }
 
 extension MetadataHandler {
-    private func currentContext(for lifespan: MetadataRecordLifespan) throws -> String {
+    private func currentContext(for lifespan: MetadataRecordLifespan) -> String? {
         if lifespan == .session {
             guard let sessionId = sessionController?.currentSession?.id.stringValue else {
-                throw MetadataError.invalidSession("Can't add a session property if there's no active session!")
+                Embrace.logger.warning("Can't modify a session metadata when there's no active session!")
+                return nil
             }
             return sessionId
         } else if lifespan == .process {
