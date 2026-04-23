@@ -11,31 +11,35 @@ import Foundation
 extension DefaultOTelSignalsHandler {
 
     /// Adds a Breadcrumb span event to the current Embrace session.
+    /// If no session is active or the event limit has been reached, the breadcrumb is dropped and a warning is logged.
     /// - Parameters:
     ///   - message: Message of the breadcrumb.
     ///   - timestamp: Timestamp of the breadcrumb.
     ///   - attributes: Attributes of the breadcrumb.
-    /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
-    /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
-    public func addBreadcrumb(
+    package func addBreadcrumb(
         _ message: String,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:]
-    ) throws {
+    ) {
 
         guard let span = sessionController?.currentSessionSpan else {
-            throw EmbraceOTelError.invalidSession
+            Embrace.logger.warning("Failed to add breadcrumb: \(EmbraceOTelError.invalidSession.localizedDescription)")
+            return
         }
 
-        try span.addSessionEvent(
-            name: SpanEventSemantics.Breadcrumb.name,
-            type: .breadcrumb,
-            timestamp: timestamp,
-            attributes: attributes,
-            internalAttributes: [
-                SpanEventSemantics.Breadcrumb.keyMessage: message
-            ],
-            isInternal: false
-        )
+        do {
+            try span.addSessionEvent(
+                name: SpanEventSemantics.Breadcrumb.name,
+                type: .breadcrumb,
+                timestamp: timestamp,
+                attributes: attributes,
+                internalAttributes: [
+                    SpanEventSemantics.Breadcrumb.keyMessage: message
+                ],
+                isInternal: false
+            )
+        } catch {
+            Embrace.logger.warning("Failed to add breadcrumb: \(error.localizedDescription)")
+        }
     }
 }
