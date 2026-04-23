@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 extension Embrace {
@@ -52,7 +53,7 @@ extension Embrace {
     /// - Parameters:
     ///   - key: The key for the attribute.
     ///   - value: The value associated with the given key.
-    public func appendCrashInfo(key: String, value: String) throws {
+    package func appendCrashInfo(key: String, value: String) throws {
         guard let crashReporter = captureServices.crashReporter else {
             throw EmbraceCrashReportError.noCrashReporterAvailable
         }
@@ -60,12 +61,12 @@ extension Embrace {
     }
 
     /// Returns the last run end state.
-    public func lastRunEndState() -> LastRunEndState {
+    package func lastRunEndState() -> EmbraceLastRunEndState {
         guard let crashReporterEndState = captureServices.crashReporter?.getLastRunState() else {
             return .unavailable
         }
 
-        return LastRunEndState(rawValue: crashReporterEndState.rawValue) ?? .unavailable
+        return EmbraceLastRunEndState(rawValue: crashReporterEndState.rawValue) ?? .unavailable
     }
 
 }

@@ -22,7 +22,7 @@ struct LogsBatch {
     }
 
     private let _logs: EmbraceMutex<[EmbraceLog]>
-    public var logs: [EmbraceLog] { _logs.withLock { $0 } }
+    var logs: [EmbraceLog] { _logs.withLock { $0 } }
 
     private let limits: LogBatchLimits
 

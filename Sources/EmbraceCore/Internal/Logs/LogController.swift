@@ -90,7 +90,7 @@ class LogController: LogBatcherDelegate {
         }
     }
 
-    public func createLog(
+    func createLog(
         _ message: String,
         severity: EmbraceLogSeverity,
         type: EmbraceType = .message,
@@ -218,7 +218,7 @@ class LogController: LogBatcherDelegate {
         }
     }
 
-    public func addLog(_ log: EmbraceLog) {
+    func addLog(_ log: EmbraceLog) {
         // save log
         storage?.saveLog(log)
 
@@ -448,11 +448,11 @@ extension LogController {
         case couldntCreatePayload(reason: String)
         case couldntAccessBatches(reason: String)
 
-        public static var errorDomain: String {
+        static var errorDomain: String {
             return "Embrace"
         }
 
-        public var errorCode: Int {
+        var errorCode: Int {
             switch self {
             case .couldntAccessStorageModule:
                 -1
@@ -467,7 +467,7 @@ extension LogController {
             }
         }
 
-        public var errorDescription: String? {
+        var errorDescription: String? {
             switch self {
             case .couldntAccessStorageModule:
                 "Couldn't access to the storage layer"
@@ -482,7 +482,7 @@ extension LogController {
             }
         }
 
-        public var localizedDescription: String {
+        var localizedDescription: String {
             return self.errorDescription ?? "No Matching Error"
         }
 

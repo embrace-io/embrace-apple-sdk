@@ -18,7 +18,7 @@ extension StartupInstrumentation {
     ///    - startTime: The start time of the span.
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: An `EmbraceSpan` or nil if the root span was not found.
-    public func createChildSpan(
+    package func createChildSpan(
         name: String,
         type: EmbraceType = .startup,
         startTime: Date = Date(),
@@ -50,7 +50,7 @@ extension StartupInstrumentation {
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     /// - Returns: A boolean indicating if the operation was succesful.
     @discardableResult
-    public func addAttributesToTrace(_ attributes: EmbraceAttributes) throws -> Bool {
+    package func addAttributesToTrace(_ attributes: EmbraceAttributes) throws -> Bool {
 
         return try state.withLock {
             guard let rootSpan = $0.rootSpan else {

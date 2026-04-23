@@ -10,29 +10,18 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceCrash
     import EmbraceKSCrashBacktraceSupport
+    import EmbraceSemantics
     import KSCrashDemangleFilter
 #endif
 
 extension Embrace.Options {
 
-    /// Convenience initializer for `Embrace.Options` that automatically includes the default `CaptureServices` and `CrashReporter`,
-    /// You can see list of platform service defaults in ``CaptureServiceBuilder.addDefaults``.
-    ///
-    /// If you wish to customize which `CaptureServices` and `CrashReporter` are installed, please refer to the `Embrace.Options`
-    /// initializer found in the `EmbraceCore` target.
-    ///
-    /// - Parameters:
-    ///   - appId: The `appId` of the project.
-    ///   - appGroupId: The app group identifier used by the app, if any.
-    ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
-    ///   - endpoints: `Embrace.Endpoints` instance.
-    ///   - logLevel: `LogLevel` for Embrace console logs
-    public init(
+    package init(
         appId: String,
         appGroupId: String? = nil,
-        platform: Platform = .default,
-        endpoints: Embrace.Endpoints? = nil,
-        logLevel: LogLevel = .default
+        platform: EmbracePlatform = .default,
+        endpoints: EmbraceEndpoints? = nil,
+        logLevel: EmbraceLogLevel = .default
     ) {
         self.init(
             appId: appId,
@@ -47,20 +36,10 @@ extension Embrace.Options {
         )
     }
 
-    /// Convenience initializer for `Embrace.Options` that automatically includes the default `CaptureServices` and `CrashReporter`,
-    /// You can see list of platform service defaults in ``CaptureServiceBuilder.addDefaults``.
-    ///
-    /// If you wish to customize which `CaptureServices` and `CrashReporter` are installed, please refer to the `Embrace.Options`
-    /// initializer found in the `EmbraceCore` target.
-    ///
-    /// - Parameters:
-    ///   - appId: The `appId` of the project.
-    ///   - appGroupId: The app group identifier used by the app, if any.
-    ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
-    public init(
+    package init(
         appId: String,
         appGroupId: String? = nil,
-        platform: Platform = .default
+        platform: EmbracePlatform = .default
     ) {
         self.init(
             appId: appId,

@@ -81,7 +81,7 @@ struct SpanPayload: Encodable {
 }
 
 extension SpanPayload: Equatable {
-    public static func == (lhs: SpanPayload, rhs: SpanPayload) -> Bool {
+    static func == (lhs: SpanPayload, rhs: SpanPayload) -> Bool {
         return
             lhs.traceId == rhs.traceId && lhs.spanId == rhs.spanId && lhs.parentSpanId == rhs.parentSpanId
             && lhs.name == rhs.name && lhs.status == rhs.status && lhs.endTime == rhs.endTime

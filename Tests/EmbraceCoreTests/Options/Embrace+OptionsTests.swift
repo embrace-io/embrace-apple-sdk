@@ -5,6 +5,7 @@
 import EmbraceConfigInternal
 import EmbraceConfiguration
 import EmbraceCore
+import EmbraceSemantics
 import TestSupport
 import XCTest
 
@@ -16,7 +17,7 @@ final class Embrace_OptionsTests: XCTestCase {
     }
 
     func test_init_withEndpoints_setsEndpoints() throws {
-        let endpoints = Embrace.Endpoints(baseURL: "base", configBaseURL: "config")
+        let endpoints = EmbraceEndpoints(baseURL: "base", configBaseURL: "config")
         let options = Embrace.Options(appId: "myApp", endpoints: endpoints, captureServices: [], crashReporter: nil)
 
         XCTAssertEqual(options.endpoints?.baseURL, endpoints.baseURL)

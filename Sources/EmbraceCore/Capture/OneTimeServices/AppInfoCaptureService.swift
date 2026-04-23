@@ -43,7 +43,7 @@ class AppInfoCaptureService: ResourceCaptureService {
             AppResourceKey.detailedEnvironment.rawValue: EMBDevice.environmentDetail,
 
             // framework
-            AppResourceKey.framework.rawValue: String(Embrace.client?.options.platform.frameworkId ?? -1),
+            AppResourceKey.framework.rawValue: String(Embrace.client?.options.platform.rawValue ?? -1),
 
             // process id
             AppResourceKey.processIdentifier.rawValue: ProcessIdentifier.current.stringValue,

@@ -35,7 +35,7 @@ struct SpanLinkPayload: Encodable {
 }
 
 extension SpanLinkPayload: Equatable {
-    public static func == (lhs: SpanLinkPayload, rhs: SpanLinkPayload) -> Bool {
+    static func == (lhs: SpanLinkPayload, rhs: SpanLinkPayload) -> Bool {
         return
             lhs.traceId == rhs.traceId && lhs.spanId == rhs.spanId
     }

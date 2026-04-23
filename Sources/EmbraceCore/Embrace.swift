@@ -13,65 +13,49 @@ import Foundation
     import EmbraceObjCUtilsInternal
 #endif
 
-/// Main class used to interact with the Embrace SDK.
+/// Internal class used to implement the Embrace SDK.
 ///
-/// To start the SDK you first need to configure it using an `Embrace.Options` instance passed in the `setup` static method.
-/// Once the SDK is setup, you can start it by calling the `start` instance method.
-///
-/// **Please note that even if you setup the SDK, an Embrace session will not begin until `start` is called. This means data may not be correctly attached to that session.**
-///
-/// Example:
-/// ```swift
-/// import EmbraceIO
-///
-/// let options = Embrace.Options(appId: "appId", platform: .iOS)
-/// try Embrace.setup(options: options)
-/// try Embrace.client?.start()
-/// ```
-public class Embrace {
+/// Not part of the public API. Use `EmbraceIO` as the entry point to interact with the SDK.
+package class Embrace {
 
-    /**
-     Returns the current `Embrace` client.
-    
-     This will be `nil` until the `setup` method is called, or if the setup process fails.
-     */
-    public internal(set) static var client: Embrace?
+    /// Returns the current `Embrace` client. Nil until `setup` is called, or if setup fails.
+    package internal(set) static var client: Embrace?
 
     /// The `Embrace.Options` that were used to configure the SDK.
-    public private(set) var options: Embrace.Options
+    package private(set) var options: Embrace.Options
 
     /// Returns the current state of the SDK.
-    public private(set) var state: EmbraceSDKState = .notInitialized
+    package private(set) var state: EmbraceSDKState = .notInitialized
 
     /// Returns the `DeviceIdentifier` used by Embrace for the current device.
-    public private(set) var deviceId: EmbraceIdentifier
+    package private(set) var deviceId: EmbraceIdentifier
 
     /// Used to control the verbosity level of the Embrace SDK console logs.
-    public var logLevel: LogLevel = .error {
+    package var logLevel: EmbraceLogLevel = .error {
         didSet {
             Embrace.logger.level = logLevel
         }
     }
 
     /// Returns true if the SDK is started and was not disabled through remote configurations.
-    public var isSDKEnabled: Bool {
+    package var isSDKEnabled: Bool {
         let remoteConfigEnabled = config.isSDKEnabled
         return state == .started && remoteConfigEnabled
     }
 
     /// Returns the version of the Embrace SDK.
-    public class var sdkVersion: String {
+    package class var sdkVersion: String {
         return EmbraceMeta.sdkVersion
     }
 
     /// Returns the current `EmbraceOTelSignalsHandler` used to generate spans and logs.
-    public let otel: DefaultOTelSignalsHandler
+    package let otel: DefaultOTelSignalsHandler
 
     /// Returns the current `MetadataHandler` used to store resources and session properties.
-    public let metadata: MetadataHandler
+    package let metadata: MetadataHandler
 
     /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
-    public let startupInstrumentation: StartupInstrumentation
+    package let startupInstrumentation: StartupInstrumentation
 
     let metricKit: MetricKitHandler
 
@@ -109,7 +93,7 @@ public class Embrace {
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
-    public static func setup(options: Embrace.Options) throws -> Embrace {
+    package static func setup(options: Embrace.Options) throws -> Embrace {
         return try setup(options: options, otelResources: nil)
     }
 
@@ -262,7 +246,7 @@ public class Embrace {
     /// - Note: This method won't do anything if the Embrace SDK was already started or if it was disabled via the remote configurations.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
-    public func start() throws -> Embrace {
+    package func start() throws -> Embrace {
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
         }
@@ -361,7 +345,7 @@ public class Embrace {
     /// - Note: The SDK can't be started again once stopped.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
-    public func stop() throws -> Embrace {
+    package func stop() throws -> Embrace {
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be stopped on the main thread")
         }
@@ -391,7 +375,7 @@ public class Embrace {
     }
 
     /// Returns the current session identifier, if any.
-    public func currentSessionId() -> String? {
+    package func currentSessionId() -> String? {
         guard isSDKEnabled else {
             return nil
         }
@@ -400,14 +384,14 @@ public class Embrace {
     }
 
     /// Returns the current device identifier.
-    public func currentDeviceId() -> String? {
+    package func currentDeviceId() -> String? {
         return deviceId.stringValue
     }
 
     /// Forces the Embrace SDK to start a new session.
     /// - Note: If there was a session running, it will be ended before starting a new one.
     /// - Note: This method won't do anything if the SDK is stopped.
-    public func startNewSession() {
+    package func startNewSession() {
         guard isSDKEnabled else {
             return
         }
@@ -419,7 +403,7 @@ public class Embrace {
 
     /// Forces the Embrace SDK to stop the current session, if any.
     /// - Note: This method won't do anything if the SDK is stopped.
-    public func endCurrentSession() {
+    package func endCurrentSession() {
         guard isSDKEnabled else {
             return
         }
@@ -430,7 +414,7 @@ public class Embrace {
     }
 
     /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
-    public func resetUploadCache() {
+    package func resetUploadCache() {
         Embrace.resetUploadCache = true
     }
 

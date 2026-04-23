@@ -4,12 +4,8 @@
 
 import Foundation
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceSemantics
-#endif
-
 /// Levels ordered by severity
-public enum LogLevel: Int {
+public enum EmbraceLogLevel: Int {
     case none
     case trace
     case debug
@@ -19,12 +15,12 @@ public enum LogLevel: Int {
     case critical
 
     #if DEBUG
-        public static let `default`: LogLevel = .debug
+        public static let `default`: EmbraceLogLevel = .debug
     #else
-        public static let `default`: LogLevel = .error
+        public static let `default`: EmbraceLogLevel = .error
     #endif
 
-    var severity: EmbraceLogSeverity {
+    package var severity: EmbraceLogSeverity {
         switch self {
         case .trace: return EmbraceLogSeverity.trace
         case .debug: return EmbraceLogSeverity.debug
