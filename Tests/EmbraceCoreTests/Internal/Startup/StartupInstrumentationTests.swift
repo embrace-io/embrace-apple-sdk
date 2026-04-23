@@ -195,7 +195,7 @@ class StartupInstrumentationTests: XCTestCase {
     func test_buildChildSpan() {
         instrumentation.buildMainSpans()
 
-        let span = instrumentation.createChildSpan(name: "test")
+        let span = instrumentation.createStartupChildSpan(name: "test")
         XCTAssertNotNil(span)
 
         let parent = otel.startedSpans.first(where: { $0.name == "emb-app-startup-cold" })
@@ -208,7 +208,7 @@ class StartupInstrumentationTests: XCTestCase {
         let startTime = Date(timeIntervalSince1970: 10)
         let endTime = Date(timeIntervalSince1970: 11)
 
-        let span = instrumentation.createChildSpan(name: "test", startTime: startTime, endTime: endTime)
+        let span = instrumentation.createStartupChildSpan(name: "test", startTime: startTime, endTime: endTime)
         XCTAssertNotNil(span)
         XCTAssertEqual(span!.startTime, startTime)
         XCTAssertEqual(span!.endTime, endTime)
@@ -221,7 +221,7 @@ class StartupInstrumentationTests: XCTestCase {
         provider.firstFrameTime = nil
         instrumentation.buildMainSpans()
 
-        let result = try! instrumentation.addAttributesToTrace(["key1": "value1", "key2": "value2"])
+        let result = instrumentation.addAttributesToStartupTrace(["key1": "value1", "key2": "value2"])
         XCTAssertTrue(result)
 
         provider.firstFrameTime = Date(timeIntervalSince1970: 15)
