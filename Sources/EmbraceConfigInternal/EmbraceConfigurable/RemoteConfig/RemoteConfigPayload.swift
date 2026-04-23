@@ -41,8 +41,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var internalLogsWarningLimit: Int
     var internalLogsErrorLimit: Int
 
+    var hangLimitsHangThreshold: TimeInterval
     var hangLimitsHangPerSession: UInt
-    var hangLimitsSamplesPerHang: UInt
     var hangLimitsReportsWatchdogEvents: Bool
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
@@ -99,8 +99,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         case hangLimits = "hang_limits"
         enum HangLimitsCodingKeys: String, CodingKey {
+            case hangThreshold = "hang_threshold"
             case hangPerSession = "hang_per_session"
-            case samplesPerHang = "samples_per_hang"
             case reportsWatchdogEvents = "reports_watchdog_events"
         }
 
@@ -249,17 +249,17 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 forKey: .hangLimits
             )
 
+            hangLimitsHangThreshold =
+                try hangLimitsContainer.decodeIfPresent(
+                    TimeInterval.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.hangThreshold
+                ) ?? defaultPayload.hangLimitsHangThreshold
+
             hangLimitsHangPerSession =
                 try hangLimitsContainer.decodeIfPresent(
                     UInt.self,
                     forKey: CodingKeys.HangLimitsCodingKeys.hangPerSession
                 ) ?? defaultPayload.hangLimitsHangPerSession
-
-            hangLimitsSamplesPerHang =
-                try hangLimitsContainer.decodeIfPresent(
-                    UInt.self,
-                    forKey: CodingKeys.HangLimitsCodingKeys.samplesPerHang
-                ) ?? defaultPayload.hangLimitsSamplesPerHang
 
             hangLimitsReportsWatchdogEvents =
                 try hangLimitsContainer.decodeIfPresent(
@@ -267,8 +267,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                     forKey: CodingKeys.HangLimitsCodingKeys.reportsWatchdogEvents
                 ) ?? defaultPayload.hangLimitsReportsWatchdogEvents
         } else {
+            hangLimitsHangThreshold = defaultPayload.hangLimitsHangThreshold
             hangLimitsHangPerSession = defaultPayload.hangLimitsHangPerSession
-            hangLimitsSamplesPerHang = defaultPayload.hangLimitsSamplesPerHang
             hangLimitsReportsWatchdogEvents = defaultPayload.hangLimitsReportsWatchdogEvents
         }
 
@@ -403,8 +403,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         internalLogsWarningLimit = 0
         internalLogsErrorLimit = 3
 
+        hangLimitsHangThreshold = 0.249
         hangLimitsHangPerSession = 200
-        hangLimitsSamplesPerHang = 0
         hangLimitsReportsWatchdogEvents = false
 
         networkPayloadCaptureRules = []

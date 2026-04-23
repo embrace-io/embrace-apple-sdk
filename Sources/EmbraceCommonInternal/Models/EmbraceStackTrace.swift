@@ -65,7 +65,7 @@ public struct EmbraceStackTrace: Equatable {
     private static func isValidStackFrameFormat(_ frame: String) -> Bool {
         /*
          Regular expression pattern breakdown:
-        
+
          ^\s*                   -> Allows optional leading spaces at the beginning
          (\d+)                  -> Captures the frame index (a sequence of digits)
          \s+                    -> One or more whitespaces

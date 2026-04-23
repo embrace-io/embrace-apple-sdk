@@ -62,7 +62,10 @@ import Foundation
         return PushNotificationCaptureService(options: options)
     }
 
-    static func hangWatchdog() -> HangCaptureService {
-        return HangCaptureService()
-    }
+    #if !os(watchOS)
+        @available(macOS 14.0, *)
+        static func hangWatchdog() -> HangCaptureService {
+            return HangCaptureService()
+        }
+    #endif
 }
