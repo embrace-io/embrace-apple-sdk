@@ -14,13 +14,11 @@ extension DefaultOTelSignalsHandler {
     /// - Parameters:
     ///   - message: Message of the breadcrumb.
     ///   - timestamp: Timestamp of the breadcrumb.
-    ///   - attributes: Attributes of the breadcrumb.
     /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
     /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
     public func addBreadcrumb(
         _ message: String,
-        timestamp: Date = Date(),
-        attributes: EmbraceAttributes = [:]
+        timestamp: Date = Date()
     ) throws {
 
         guard let span = sessionController?.currentSessionSpan else {
@@ -31,7 +29,6 @@ extension DefaultOTelSignalsHandler {
             name: SpanEventSemantics.Breadcrumb.name,
             type: .breadcrumb,
             timestamp: timestamp,
-            attributes: attributes,
             internalAttributes: [
                 SpanEventSemantics.Breadcrumb.keyMessage: message
             ],
