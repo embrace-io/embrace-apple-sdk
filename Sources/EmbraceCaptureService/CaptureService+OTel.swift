@@ -89,7 +89,7 @@ extension CaptureService {
     /// - Throws: `EmbraceOTelError.logLimitReached` if the log limit has been reached for the current Embrace session.
     public func log(
         _ message: String,
-        severity: EmbraceLogSeverity,
+        severity: EmbraceLogSeverity = .info,
         type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
