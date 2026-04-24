@@ -17,11 +17,13 @@
         /// enough for XCTest to report meaningful values.
         private static let walksPerIteration = 10_000
 
-        private func walkSuspendedThread(port: thread_t) -> Int {
+        private func walkSuspendedThread(port: thread_t,
+                                         stackBottom: UnsafeRawPointer,
+                                         stackTop: UnsafeRawPointer) -> Int {
             let maxFrames = 1024
             var frames = [UInt](repeating: 0, count: maxFrames)
             var count = 0
-            emb_stack_walk(port, &frames, maxFrames, &count)
+            emb_stack_walk(port, stackBottom, stackTop, &frames, maxFrames, &count)
             return count
         }
 
@@ -33,16 +35,23 @@
             defer { emb_test_thread_destroy(thread) }
             let port = emb_test_thread_get_port(thread)
 
+            // Resolve stack bounds before suspending.
+            let pth = pthread_from_mach_thread_np(port)!
+            let top = pthread_get_stackaddr_np(pth)
+            let size = pthread_get_stacksize_np(pth)
+            let stackBottom = UnsafeRawPointer(top - size)
+            let stackTop = UnsafeRawPointer(top)
+
             let kr = thread_suspend(port)
             XCTAssertEqual(kr, KERN_SUCCESS)
             defer { thread_resume(port) }
 
-            let frameCount = walkSuspendedThread(port: port)
+            let frameCount = walkSuspendedThread(port: port, stackBottom: stackBottom, stackTop: stackTop)
             print("\(label): \(frameCount) frames, \(Self.walksPerIteration) walks per iteration")
 
             measure {
                 for _ in 0..<Self.walksPerIteration {
-                    _ = self.walkSuspendedThread(port: port)
+                    _ = self.walkSuspendedThread(port: port, stackBottom: stackBottom, stackTop: stackTop)
                 }
             }
         }

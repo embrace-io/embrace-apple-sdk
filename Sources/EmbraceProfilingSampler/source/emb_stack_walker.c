@@ -7,7 +7,6 @@
 #if !TARGET_OS_WATCH
 
 #include <mach/mach.h>
-#include <pthread.h>
 #include <ptrauth.h>
 
 // Architecture-specific thread state access.
@@ -26,11 +25,15 @@
 #endif
 
 bool emb_stack_walk(thread_t thread,
+                    const void *stack_bottom,
+                    const void *stack_top,
                     uintptr_t *frames_out,
                     size_t max_frames,
                     size_t *count_out)
 {
-    if (frames_out == NULL || count_out == NULL || max_frames == 0) {
+    if (frames_out == NULL || count_out == NULL || max_frames == 0
+        || stack_bottom == NULL || stack_top == NULL
+        || stack_bottom >= stack_top) {
         return false;
     }
     *count_out = 0;
@@ -45,15 +48,6 @@ bool emb_stack_walk(thread_t thread,
         return false;
     }
 
-    // Determine the target thread's stack bounds for safe direct dereference.
-    pthread_t target_pthread = pthread_from_mach_thread_np(thread);
-    if (target_pthread == NULL) {
-        return false;
-    }
-    void *stack_top = pthread_get_stackaddr_np(target_pthread);
-    size_t stack_size = pthread_get_stacksize_np(target_pthread);
-    void *stack_bottom = (char *)stack_top - stack_size;
-
     void *pc = EMB_GET_PC(state);
     void *fp = EMB_GET_FP(state);
     size_t count = 0;
@@ -64,7 +58,10 @@ bool emb_stack_walk(thread_t thread,
 
     // Walk the frame pointer chain.
     // Each frame record is: [saved_fp, return_address]
-    while (count < max_frames && fp >= stack_bottom && fp < stack_top) {
+    // Frame pointers must be naturally aligned (16 bytes on arm64, 8 on x86_64).
+    const uintptr_t fp_align_mask = sizeof(void *) * 2 - 1;
+    while (count < max_frames && fp >= stack_bottom && fp < stack_top
+           && ((uintptr_t)fp & fp_align_mask) == 0) {
         void **record = (void **)fp;
         void *next_fp = record[0];
         void *ret_addr = ptrauth_strip(record[1], ptrauth_key_return_address);
