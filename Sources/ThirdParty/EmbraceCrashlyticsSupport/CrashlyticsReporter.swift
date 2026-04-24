@@ -9,7 +9,7 @@ import Foundation
 #endif
 
 /// Special `CrashReporter` implementation that captures crash data from Crashlytics reports.
-public final class CrashlyticsReporter: CrashReporter {
+package final class CrashlyticsReporter: CrashReporter {
 
     static let providerIdentifier = "crashlytics"
 

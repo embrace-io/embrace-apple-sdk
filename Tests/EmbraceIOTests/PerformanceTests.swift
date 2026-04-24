@@ -74,7 +74,7 @@ class PerformanceTests: XCTestCase {
         runStartup(
             Embrace.Options(
                 appId: randomAppName(),
-                captureServices: .automatic,
+                captureServices: EmbraceIO.CaptureServicesOptions.default().list,
                 crashReporter: KSCrashReporter()
             )
         )
@@ -97,7 +97,9 @@ class PerformanceBacktraceTests: XCTestCase {
 
     override class func setUp() {
         super.setUp()
-        _ = try? Embrace.setup(options: Embrace.Options(appId: "myApp")).start()
+        _ = try? Embrace.setup(
+            options: Embrace.Options(appId: "myApp", captureServices: [], crashReporter: nil)
+        ).start()
     }
 
     override class func tearDown() {
