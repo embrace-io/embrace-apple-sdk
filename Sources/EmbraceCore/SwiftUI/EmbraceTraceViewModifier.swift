@@ -44,23 +44,27 @@ import SwiftUI
 extension View {
     public func embraceTrace(
         _ viewName: String,
-        attributes: [String: String]? = nil
+        attributes: [String: String]? = nil,
+        trackBodyEvaluations: Bool = false
     ) -> some View {
         EmbraceTraceView(
             viewName,
-            attributes: attributes
+            attributes: attributes,
+            trackBodyEvaluations: trackBodyEvaluations
         ) { self }
     }
 
     public func embraceTrace<V: Equatable>(
         _ viewName: String,
         attributes: [String: String]? = nil,
-        contentComplete: V
+        contentComplete: V,
+        trackBodyEvaluations: Bool = false
     ) -> some View {
         EmbraceTraceView(
             viewName,
             attributes: attributes,
-            contentComplete: contentComplete
+            contentComplete: contentComplete,
+            trackBodyEvaluations: trackBodyEvaluations
         ) { self }
     }
 }

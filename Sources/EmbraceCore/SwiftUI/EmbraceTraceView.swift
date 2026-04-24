@@ -49,6 +49,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
     private let name: String
     private let attributes: [String: String]?
     private let contentCompleteValue: Value?
+    private let trackBodyEvaluations: Bool
 
     /// Creates a new `EmbraceTraceView` that wraps the given content for tracing.
     ///
@@ -61,12 +62,14 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
         _ viewName: String,
         attributes: [String: String]? = nil,
         contentComplete: Value? = nil,
+        trackBodyEvaluations: Bool = false,
         content: @escaping () -> Content
     ) {
         self.name = viewName
         self.attributes = attributes
         self.content = content
         self.contentCompleteValue = contentComplete
+        self.trackBodyEvaluations = trackBodyEvaluations
 
         // Ensure counters are updated
         if self.state.initialize == 0 {
@@ -83,12 +86,14 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
     public init(
         _ viewName: String,
         attributes: [String: String]? = nil,
+        trackBodyEvaluations: Bool = false,
         content: @escaping () -> Content
     ) where Value == Never {
         self.init(
             viewName,
             attributes: attributes,
             contentComplete: nil,
+            trackBodyEvaluations: trackBodyEvaluations,
             content: content
         )
     }
@@ -110,7 +115,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
         state.body += 1
 
         // If no _RenderLoop_ span exists for this render tick, create one.
-        if context.firstCycleSpan == nil {
+        if trackBodyEvaluations && context.firstCycleSpan == nil {
             context.firstCycleSpan = logger.cycledSpan(
                 name,
                 semantics: SpanSemantics.SwiftUIView.renderLoopName,
@@ -124,13 +129,13 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
         }
 
         // Start a span for this body evaluation
-        let bodySpan = logger.startSpan(
+        let bodySpan = trackBodyEvaluations ? logger.startSpan(
             name,
             semantics: SpanSemantics.SwiftUIView.bodyName,
             time: startTime,
             parent: context.firstCycleSpan,
             attributes: attributes
-        )
+        ) : nil
         defer {
             logger.endSpan(bodySpan)
         }
