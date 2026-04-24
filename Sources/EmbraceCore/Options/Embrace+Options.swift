@@ -24,8 +24,6 @@ extension Embrace {
         package let crashReporter: CrashReporter?
         package let logLevel: EmbraceLogLevel
         package let runtimeConfiguration: EmbraceConfigurable?
-        package let backtracer: Backtracer?
-        package let symbolicator: Symbolicator?
 
         /// Optional OTel signal bridge. When provided, span/log lifecycle events from Core
         /// are forwarded into the OTel SDK pipeline and external OTel signals are fed back into Core.
@@ -38,9 +36,7 @@ extension Embrace {
             endpoints: EmbraceEndpoints? = nil,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
-            logLevel: EmbraceLogLevel = .default,
-            backtracer: Backtracer? = nil,
-            symbolicator: Symbolicator? = nil
+            logLevel: EmbraceLogLevel = .default
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
@@ -50,8 +46,6 @@ extension Embrace {
             self.crashReporter = crashReporter
             self.logLevel = logLevel
             self.runtimeConfiguration = nil
-            self.backtracer = backtracer
-            self.symbolicator = symbolicator
         }
 
         package init(
@@ -59,9 +53,7 @@ extension Embrace {
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
             logLevel: EmbraceLogLevel = .default,
-            runtimeConfiguration: EmbraceConfigurable = .default,
-            backtracer: Backtracer? = nil,
-            symbolicator: Symbolicator? = nil
+            runtimeConfiguration: EmbraceConfigurable = .default
         ) {
             self.appId = nil
             self.appGroupId = nil
@@ -71,8 +63,6 @@ extension Embrace {
             self.crashReporter = crashReporter
             self.logLevel = logLevel
             self.runtimeConfiguration = runtimeConfiguration
-            self.backtracer = backtracer
-            self.symbolicator = symbolicator
         }
     }
 }

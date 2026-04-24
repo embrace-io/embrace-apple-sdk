@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceKSCrashBacktraceSupport
     import EmbraceSemantics
 #endif
 
@@ -161,7 +162,7 @@ extension EmbraceBacktraceFrame {
             return cached
         }
 
-        guard let result = Embrace.client?.options.symbolicator?.resolve(address: UInt(address)) else {
+        guard let result = KSCrashBacktracing().resolve(address: UInt(address)) else {
             return self
         }
 
@@ -215,10 +216,6 @@ extension EmbraceBacktrace {
 
     static func _takeSnapshot(of thread: pthread_t, threadIndex: Int = 0) -> [EmbraceBacktraceThread] {
 
-        guard let backtracer = Embrace.client?.options.backtracer else {
-            return []
-        }
-
         // get the mach thread to take the snapshot of
         let machThread = pthread_mach_thread_np(thread)
         let canSuspend = pthread_self() != thread
@@ -232,7 +229,7 @@ extension EmbraceBacktrace {
         }
 
         // Get the actual snapshot,
-        let backtraceAddresses = backtracer.backtrace(of: thread)
+        let backtraceAddresses = KSCrashBacktracing().backtrace(of: thread)
 
         // resume thread
         if canSuspend {
