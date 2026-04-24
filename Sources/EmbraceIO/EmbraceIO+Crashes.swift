@@ -15,13 +15,11 @@ extension EmbraceIO {
     /// crash that is reported during the lifetime of the process. This can be useful for adding context
     /// or debugging information that may help in analyzing the crash when exported.
     ///
-    /// - Important: Throws an exception if no proper `CrashReporter` is configured.
-    ///
     /// - Parameters:
     ///   - key: The key for the attribute.
     ///   - value: The value associated with the given key.
-    public func appendCrashInfo(key: String, value: String) throws {
-        try Embrace.client?.appendCrashInfo(key: key, value: value)
+    public func appendCrashInfo(key: String, value: String) {
+        Embrace.client?.appendCrashInfo(key: key, value: value)
     }
 
     /// Returns the last run end state.
