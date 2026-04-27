@@ -58,7 +58,8 @@ bool emb_stack_walk(thread_t thread,
 
     // Walk the frame pointer chain.
     // Each frame record is: [saved_fp, return_address]
-    // Frame pointers must be naturally aligned (16 bytes on arm64, 8 on x86_64).
+    // Frame pointers must be aligned to sizeof(void *) * 2 bytes
+    // (16 bytes on the supported 64-bit architectures).
     const uintptr_t fp_align_mask = sizeof(void *) * 2 - 1;
     while (count < max_frames && fp >= stack_bottom && fp < stack_top
            && ((uintptr_t)fp & fp_align_mask) == 0) {

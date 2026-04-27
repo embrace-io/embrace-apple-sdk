@@ -41,7 +41,7 @@ public struct ProfilingConfiguration: Sendable {
     }
 
     var isValid: Bool {
-        samplingIntervalMs > 0
+        samplingIntervalMs >= 10
             && minSamplingIntervalMs > 0
             && minSamplingIntervalMs < samplingIntervalMs / 2
             && maxFramesPerSample > 0
