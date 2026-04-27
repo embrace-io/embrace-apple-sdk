@@ -5,7 +5,6 @@
 #if !os(watchOS)
 
 import Darwin
-@testable import EmbraceProfiling
 import EmbraceProfilingSampler
 import EmbraceProfilingTestSupport
 import EmbraceProfilingTestSupportNoFP
@@ -23,7 +22,18 @@ import XCTest
 /// `-fomit-frame-pointer` takes effect on both arm64 and x86_64 with modern
 /// Clang. When frame pointers are omitted, both the FP walker and KSCrash's
 /// `captureBacktrace` lose most frames (both use FP chain walking internally).
-/// A DWARF-based unwinder would be needed for true frameless code support.
+///
+/// ## TODO: Update when KSCrash gains DWARF unwinding
+///
+/// KSCrash's DWARF-based unwinder (currently in beta) will be able to recover
+/// full stacks from frameless code. When that lands:
+///
+/// 1. `test_benchmark_kscrash_noFPStack`: add an assertion that KSCrash
+///    recovers at least `stackDepth` frames on frameless code, since DWARF
+///    unwinding does not depend on the FP chain.
+///
+/// 2. `test_benchmark_fpWalk_noFPStack`: the FP walker will still only get
+///    a few frames (it can never unwind frameless code). No change needed.
 final class FallbackBenchmarks: XCTestCase {
 
     private static let walksPerIteration = 10_000
@@ -32,10 +42,17 @@ final class FallbackBenchmarks: XCTestCase {
 
     // MARK: - Helpers
 
-    private func walkWithFP(port: thread_t) -> Int {
+    private func resolveStackBounds(port: thread_t) -> (bottom: UnsafeRawPointer, top: UnsafeRawPointer)? {
+        guard let pth = pthread_from_mach_thread_np(port) else { return nil }
+        let top = pthread_get_stackaddr_np(pth)
+        let size = pthread_get_stacksize_np(pth)
+        return (UnsafeRawPointer(top - size), UnsafeRawPointer(top))
+    }
+
+    private func walkWithFP(port: thread_t, stackBottom: UnsafeRawPointer, stackTop: UnsafeRawPointer) -> Int {
         var frames = [UInt](repeating: 0, count: Self.maxFrames)
         var count = 0
-        emb_stack_walk(port, &frames, Self.maxFrames, &count)
+        emb_stack_walk(port, stackBottom, stackTop, &frames, Self.maxFrames, &count)
         return count
     }
 
@@ -44,11 +61,6 @@ final class FallbackBenchmarks: XCTestCase {
         var frames = [UInt](repeating: 0, count: Self.maxFrames)
         let count = captureBacktrace(thread: pthread, addresses: &frames, count: Int32(Self.maxFrames))
         return Int(count)
-    }
-
-    private func walkWithFallback(port: thread_t) -> Int {
-        let result = captureStack(thread: port, maxFrames: Self.maxFrames)
-        return result.frames.count
     }
 
     // MARK: - Normal stack (with frame pointers)
@@ -61,16 +73,23 @@ final class FallbackBenchmarks: XCTestCase {
         defer { emb_test_thread_destroy(thread) }
         let port = emb_test_thread_get_port(thread)
 
+        guard let bounds = resolveStackBounds(port: port) else {
+            XCTFail("Failed to resolve stack bounds")
+            return
+        }
+
         let kr = thread_suspend(port)
         XCTAssertEqual(kr, KERN_SUCCESS)
         defer { thread_resume(port) }
 
-        let frameCount = walkWithFP(port: port)
+        let frameCount = walkWithFP(port: port, stackBottom: bounds.bottom, stackTop: bounds.top)
         print("FP walk (normal stack): \(frameCount) frames")
+        XCTAssertGreaterThanOrEqual(frameCount, Int(Self.stackDepth),
+            "FP walker should capture at least \(Self.stackDepth) frames on a normal stack")
 
         measure {
             for _ in 0..<Self.walksPerIteration {
-                _ = self.walkWithFP(port: port)
+                _ = self.walkWithFP(port: port, stackBottom: bounds.bottom, stackTop: bounds.top)
             }
         }
     }
@@ -89,6 +108,8 @@ final class FallbackBenchmarks: XCTestCase {
 
         let frameCount = walkWithKSCrash(port: port)
         print("KSCrash walk (normal stack): \(frameCount) frames")
+        XCTAssertGreaterThan(frameCount, 0,
+            "KSCrash walker should capture at least 1 frame on a normal stack")
 
         measure {
             for _ in 0..<Self.walksPerIteration {
@@ -107,20 +128,34 @@ final class FallbackBenchmarks: XCTestCase {
         defer { emb_test_thread_nofp_destroy(thread) }
         let port = emb_test_thread_nofp_get_port(thread)
 
+        guard let bounds = resolveStackBounds(port: port) else {
+            XCTFail("Failed to resolve stack bounds")
+            return
+        }
+
         let kr = thread_suspend(port)
         XCTAssertEqual(kr, KERN_SUCCESS)
         defer { thread_resume(port) }
 
-        let frameCount = walkWithFP(port: port)
-        print("FP walk (no-FP stack): \(frameCount) frames — on arm64 this should match the normal stack")
+        let frameCount = walkWithFP(port: port, stackBottom: bounds.bottom, stackTop: bounds.top)
+        print("FP walk (no-FP stack): \(frameCount) frames")
+        // Modern Clang honors -fomit-frame-pointer on all architectures
+        // (including arm64). Without frame pointers, the FP walker can only
+        // recover a few frames at the top of the stack. It should not crash
+        // and should return at least 1 frame.
+        XCTAssertGreaterThan(frameCount, 0,
+            "FP walker should capture at least the top frame even without FP chain")
 
         measure {
             for _ in 0..<Self.walksPerIteration {
-                _ = self.walkWithFP(port: port)
+                _ = self.walkWithFP(port: port, stackBottom: bounds.bottom, stackTop: bounds.top)
             }
         }
     }
 
+    /// TODO: When KSCrash gains DWARF unwinding, add an assertion here:
+    ///   XCTAssertGreaterThanOrEqual(frameCount, Int(Self.stackDepth),
+    ///       "KSCrash with DWARF unwinding should recover full stack from frameless code")
     func test_benchmark_kscrash_noFPStack() throws {
         guard let thread = emb_test_thread_nofp_create(Self.stackDepth) else {
             XCTFail("Failed to create no-FP test thread")
@@ -143,27 +178,6 @@ final class FallbackBenchmarks: XCTestCase {
         }
     }
 
-    func test_benchmark_fallback_noFPStack() throws {
-        guard let thread = emb_test_thread_nofp_create(Self.stackDepth) else {
-            XCTFail("Failed to create no-FP test thread")
-            return
-        }
-        defer { emb_test_thread_nofp_destroy(thread) }
-        let port = emb_test_thread_nofp_get_port(thread)
-
-        let kr = thread_suspend(port)
-        XCTAssertEqual(kr, KERN_SUCCESS)
-        defer { thread_resume(port) }
-
-        let frameCount = walkWithFallback(port: port)
-        print("Fallback (no-FP stack): \(frameCount) frames — tries FP first, falls back to KSCrash")
-
-        measure {
-            for _ in 0..<Self.walksPerIteration {
-                _ = self.walkWithFallback(port: port)
-            }
-        }
-    }
 }
 
 #endif
