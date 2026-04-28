@@ -98,7 +98,7 @@ package class DefaultOTelSignalsHandler {
     ///   - stackTraceBehavior: Behavior that detemines if a stack trace has to be generated for the log.
     package func log(
         _ message: String,
-        severity: EmbraceLogSeverity,
+        severity: EmbraceLogSeverity = .info,
         type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,

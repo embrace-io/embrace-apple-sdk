@@ -69,6 +69,7 @@ extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
             try span.addSessionEvent(
                 name: SpanEventSemantics.PushNotification.name,
                 type: .pushNotification,
+                timestamp: timestamp,
                 attributes: attributes,
                 internalAttributes: internalAttributes,
                 isInternal: false

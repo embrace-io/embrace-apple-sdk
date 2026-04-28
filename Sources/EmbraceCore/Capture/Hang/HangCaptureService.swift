@@ -47,7 +47,7 @@ public final class HangCaptureService: CaptureService {
 
     public override func onSessionWillEnd(_ session: any EmbraceSession) {
         let value = limitData.withLock { $0.hangsInSessionCount }
-        try? Embrace.client?.metadata.updateProperty(key: SpanSemantics.Hang.name, value: "\(value)")
+        Embrace.client?.metadata.updateProperty(key: SpanSemantics.Hang.name, value: "\(value)")
     }
 
     public override func onConfigUpdated(_ config: any EmbraceConfigurable) {

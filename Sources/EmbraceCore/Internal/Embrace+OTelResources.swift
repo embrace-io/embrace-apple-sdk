@@ -9,7 +9,7 @@ extension Embrace {
         }
 
         for (key, value) in otelResources {
-            try? metadata.addMetadata(key: key, value: value.description, type: .requiredResource, lifespan: .process)
+            metadata.addMetadata(key: key, value: value.description, type: .requiredResource, lifespan: .process)
         }
     }
 }
