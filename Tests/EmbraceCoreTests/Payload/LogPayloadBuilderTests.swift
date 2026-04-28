@@ -66,7 +66,7 @@ class LogPayloadBuilderTests: XCTestCase {
             lifespan: .permanent
         )
         storage.addMetadata(
-            key: UserResourceKey.name.rawValue,
+            key: UserResourceKey.identifier.rawValue,
             value: "test",
             type: .customProperty,
             lifespan: .session,
@@ -102,7 +102,7 @@ class LogPayloadBuilderTests: XCTestCase {
 
         // then the payload is correct
         XCTAssertEqual(payload.resource.appVersion, "1.0.0")
-        XCTAssertEqual(payload.metadata.username, "test")
+        XCTAssertEqual(payload.metadata.userId, "test")
         XCTAssertEqual(payload.metadata.personas, ["tag1", "tag2"])
 
         let logs = try XCTUnwrap(payload.data["logs"])
