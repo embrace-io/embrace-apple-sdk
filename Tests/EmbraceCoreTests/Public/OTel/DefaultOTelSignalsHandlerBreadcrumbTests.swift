@@ -66,7 +66,7 @@ class DefaultOTelSignalsHandlerBreadcrumbTests: XCTestCase {
         // given a handler with an active session
         // when adding a breadcrumb
         let timestamp = Date(timeIntervalSince1970: 5)
-        try handler.addBreadcrumb("hello world", timestamp: timestamp)
+        handler.addBreadcrumb("hello world", timestamp: timestamp)
 
         // then the event is added to the current session span with the correct values
         let span = sessionController.currentSessionSpan!
@@ -93,7 +93,7 @@ class DefaultOTelSignalsHandlerBreadcrumbTests: XCTestCase {
         // given a handler with an active session
         // when adding a breadcrumb without an explicit timestamp
         let before = Date()
-        try handler.addBreadcrumb("hello")
+        handler.addBreadcrumb("hello")
         let after = Date()
 
         // then the event timestamp falls within the call window
@@ -109,15 +109,11 @@ class DefaultOTelSignalsHandlerBreadcrumbTests: XCTestCase {
         sessionController.endSession()
 
         // when adding a breadcrumb
-        XCTAssertThrowsError(try handler.addBreadcrumb("hello")) { error in
+        handler.addBreadcrumb("hello")
 
-            // then it throws EmbraceOTelError.invalidSession
-            XCTAssertEqual(error as? EmbraceOTelError, .invalidSession)
-
-            // and no event is added to the (previous) session span
-            let span = storage.fetchSpan(id: spanId, traceId: traceId)
-            XCTAssertEqual(span!.events.count, 0)
-        }
+        // then no event is added to the (previous) session span
+        let span = storage.fetchSpan(id: spanId, traceId: traceId)
+        XCTAssertEqual(span!.events.count, 0)
     }
 
     func test_addBreadcrumb_limitReached_throws() throws {
@@ -125,15 +121,10 @@ class DefaultOTelSignalsHandlerBreadcrumbTests: XCTestCase {
         limiter.shouldAddSessionEventReturnValue = false
 
         // when adding a breadcrumb
-        XCTAssertThrowsError(try handler.addBreadcrumb("hello")) { error in
+        handler.addBreadcrumb("hello")
 
-            // then it throws a span-event limit error
-            XCTAssert(error is EmbraceOTelError)
-            XCTAssertEqual((error as! EmbraceOTelError).errorCode, -3)
-
-            // and no event is added to the session span
-            let span = sessionController.currentSessionSpan!
-            XCTAssertEqual(span.events.count, 0)
-        }
+        // then no event is added to the session span
+        let span = sessionController.currentSessionSpan!
+        XCTAssertEqual(span.events.count, 0)
     }
 }

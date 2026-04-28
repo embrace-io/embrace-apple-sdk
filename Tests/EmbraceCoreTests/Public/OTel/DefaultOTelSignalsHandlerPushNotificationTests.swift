@@ -103,7 +103,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
         // given a handler with an active session
         // when adding a push notification event with data capture enabled
         let timestamp = Date(timeIntervalSince1970: 5)
-        try handler.addPushNotificationEvent(
+        handler.addPushNotificationEvent(
             userInfo: fullPayload,
             timestamp: timestamp,
             attributes: ["key": "value"],
@@ -131,7 +131,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
     func test_addPushNotificationEvent_success_localizedAlert() throws {
         // given a handler with an active session
         // when adding a push notification event whose alert uses localized keys
-        try handler.addPushNotificationEvent(userInfo: localizedPayload, captureData: true)
+        handler.addPushNotificationEvent(userInfo: localizedPayload, captureData: true)
 
         // then the localized keys are picked up for title/subtitle/body
         let event = sessionController.currentSessionSpan!.events[0]
@@ -143,7 +143,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
     func test_addPushNotificationEvent_success_captureDataDisabled() throws {
         // given a handler with an active session
         // when adding a push notification event with data capture disabled
-        try handler.addPushNotificationEvent(userInfo: fullPayload, captureData: false)
+        handler.addPushNotificationEvent(userInfo: fullPayload, captureData: false)
 
         // then only the type attributes are set
         let event = sessionController.currentSessionSpan!.events[0]
@@ -159,7 +159,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
     func test_addPushNotificationEvent_success_silent() throws {
         // given a handler with an active session
         // when adding a silent push notification event
-        try handler.addPushNotificationEvent(userInfo: silentPayload, captureData: true)
+        handler.addPushNotificationEvent(userInfo: silentPayload, captureData: true)
 
         // then the notification type is reported as silent
         let event = sessionController.currentSessionSpan!.events[0]
@@ -170,7 +170,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
         // given a handler with an active session
         // when adding a push notification event without an explicit timestamp
         let before = Date()
-        try handler.addPushNotificationEvent(userInfo: fullPayload)
+        handler.addPushNotificationEvent(userInfo: fullPayload)
         let after = Date()
 
         // then the event timestamp falls within the call window
@@ -184,17 +184,10 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
     func test_addPushNotificationEvent_invalidPayload_throws() throws {
         // given a handler with an active session
         // when adding a push notification event with a payload missing the aps root
-        XCTAssertThrowsError(try handler.addPushNotificationEvent(userInfo: ["foo": "bar"])) { error in
+        handler.addPushNotificationEvent(userInfo: ["foo": "bar"])
 
-            // then it throws PushNotificationError.invalidPayload
-            guard case .invalidPayload = error as? PushNotificationError else {
-                XCTFail("Expected PushNotificationError.invalidPayload, got \(error)")
-                return
-            }
-
-            // and no event is added to the session span
-            XCTAssertEqual(self.sessionController.currentSessionSpan!.events.count, 0)
-        }
+        // then no event is added to the session span
+        XCTAssertEqual(self.sessionController.currentSessionSpan!.events.count, 0)
     }
 
     func test_addPushNotificationEvent_noSession_throws() throws {
@@ -204,15 +197,11 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
         sessionController.endSession()
 
         // when adding a push notification event
-        XCTAssertThrowsError(try handler.addPushNotificationEvent(userInfo: fullPayload)) { error in
+        handler.addPushNotificationEvent(userInfo: fullPayload)
 
-            // then it throws EmbraceOTelError.invalidSession
-            XCTAssertEqual(error as? EmbraceOTelError, .invalidSession)
-
-            // and no event is added to the (previous) session span
-            let span = storage.fetchSpan(id: spanId, traceId: traceId)
-            XCTAssertEqual(span!.events.count, 0)
-        }
+        // then no event is added to the (previous) session span
+        let span = storage.fetchSpan(id: spanId, traceId: traceId)
+        XCTAssertEqual(span!.events.count, 0)
     }
 
     func test_addPushNotificationEvent_limitReached_throws() throws {
@@ -220,15 +209,10 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
         limiter.shouldAddSessionEventReturnValue = false
 
         // when adding a push notification event
-        XCTAssertThrowsError(try handler.addPushNotificationEvent(userInfo: fullPayload)) { error in
+        handler.addPushNotificationEvent(userInfo: fullPayload)
 
-            // then it throws a span-event limit error
-            XCTAssert(error is EmbraceOTelError)
-            XCTAssertEqual((error as! EmbraceOTelError).errorCode, -3)
-
-            // and no event is added to the session span
-            XCTAssertEqual(self.sessionController.currentSessionSpan!.events.count, 0)
-        }
+        // then no event is added to the session span
+        XCTAssertEqual(self.sessionController.currentSessionSpan!.events.count, 0)
     }
 
     // MARK: attribute collisions
@@ -236,7 +220,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
     func test_addPushNotificationEvent_attributeCollision() throws {
         // given a handler with an active session
         // when adding a push notification event with attributes that collide with internal ones
-        try handler.addPushNotificationEvent(
+        handler.addPushNotificationEvent(
             userInfo: fullPayload,
             attributes: [
                 "emb.type": "test",

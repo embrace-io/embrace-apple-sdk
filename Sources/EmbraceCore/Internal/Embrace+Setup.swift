@@ -133,7 +133,7 @@ extension Embrace {
             status = .error
         }
 
-        let parent = try? otel.createSpan(
+        let parent = otel.createSpan(
             name: "emb-process-launch",
             status: status,
             startTime: startTime
@@ -143,7 +143,7 @@ extension Embrace {
         }
 
         // emb-sdk-start-process
-        let span = try? otel.createSpan(
+        let span = otel.createSpan(
             name: "emb-sdk-start-process",
             parentSpan: parent
         )

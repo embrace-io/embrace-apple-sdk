@@ -72,17 +72,18 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         let event = EmbraceSpanEvent(name: "event")
         let link = EmbraceSpanLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
 
-        let span = try handler.createSpan(
-            name: "test",
-            parentSpan: parent,
-            type: .performance,
-            status: .ok,
-            startTime: startTime,
-            endTime: endTime,
-            events: [event],
-            links: [link],
-            attributes: ["key": "value"]
-        )
+        let span = try XCTUnwrap(
+            handler.createSpan(
+                name: "test",
+                parentSpan: parent,
+                type: .performance,
+                status: .ok,
+                startTime: startTime,
+                endTime: endTime,
+                events: [event],
+                links: [link],
+                attributes: ["key": "value"]
+            ))
 
         // then the right calls are made
         XCTAssertEqual(limiter.shouldCreateCustomSpanCallCount, 1)
@@ -128,27 +129,23 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // when creating a span that would break the limit
         limiter.shouldCreateCustomSpanReturnValue = false
 
-        XCTAssertThrowsError(try handler.createSpan(name: "test")) { error in
+        // then nil is returned and no work is performed
+        XCTAssertNil(handler.createSpan(name: "test"))
+        XCTAssertEqual(limiter.shouldCreateCustomSpanCallCount, 1)
+        XCTAssertEqual(sanitizer.sanitizeSpanNameCallCount, 0)
+        XCTAssertEqual(sanitizer.sanitizeSpanAttributesCallCount, 0)
+        XCTAssertEqual(bridge.startSpanCallCount, 0)
 
-            // then the correct error is thrown
-            XCTAssert(error is EmbraceOTelError)
-            XCTAssertEqual((error as! EmbraceOTelError).errorCode, -2)
-            XCTAssertEqual(limiter.shouldCreateCustomSpanCallCount, 1)
-            XCTAssertEqual(sanitizer.sanitizeSpanNameCallCount, 0)
-            XCTAssertEqual(sanitizer.sanitizeSpanAttributesCallCount, 0)
-            XCTAssertEqual(bridge.startSpanCallCount, 0)
-
-            // and no span is added to the storage
-            let spans = storage.fetchSpans(for: sessionController.currentSession!)
-            XCTAssertEqual(spans.count, 0)
-        }
+        // and no span is added to the storage
+        let spans = storage.fetchSpans(for: sessionController.currentSession!)
+        XCTAssertEqual(spans.count, 0)
     }
 
     func test_createSpan_sanitizeName() throws {
         // given a handler
         // when creating a span with a name that has to be sanitized
         sanitizer.sanitizeSpanNameReturnValue = "sanitized"
-        let span = try handler.createSpan(name: "test")
+        let span = try XCTUnwrap(handler.createSpan(name: "test"))
 
         // then the name is sanitized
         XCTAssertEqual(span.name, "sanitized")
@@ -158,7 +155,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a span with attributes that have to be sanitized
         sanitizer.sanitizeSpanAttributesReturnValue = ["sanitizedKey": "sanitizedValue"]
-        let span = try handler.createSpan(name: "test", attributes: ["key": "value"])
+        let span = try XCTUnwrap(handler.createSpan(name: "test", attributes: ["key": "value"]))
 
         // then the attributes are sanitized
         XCTAssertNil(span.attributes["key"])
@@ -169,7 +166,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a span passing attributes
         // that would collide with internal ones
-        let span = try handler.createSpan(name: "test", attributes: ["session.id": "test", "emb.type": "test"])
+        let span = try XCTUnwrap(handler.createSpan(name: "test", attributes: ["session.id": "test", "emb.type": "test"]))
 
         // then the correct internal attributes are kept
         XCTAssertEqual(span.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
@@ -179,7 +176,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_createSpan_autoTermination() throws {
         // given a handler
         // when creating a span with an auto termination code
-        let span = try handler.createSpan(name: "test", autoTerminationCode: .userAbandon)
+        let span = try XCTUnwrap(handler.createSpan(name: "test", autoTerminationCode: .userAbandon))
 
         // when the session ends and the auto termination is triggered
         handler.autoTerminateSpans()
@@ -194,8 +191,8 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a parent span with an auto termination code
         // and a child span with no auto termination code
-        let parentSpan = try handler.createSpan(name: "parent", autoTerminationCode: .userAbandon)
-        let span = try handler.createSpan(name: "child", parentSpan: parentSpan)
+        let parentSpan = try XCTUnwrap(handler.createSpan(name: "parent", autoTerminationCode: .userAbandon))
+        let span = try XCTUnwrap(handler.createSpan(name: "child", parentSpan: parentSpan))
 
         // when the session ends and the auto termination is triggered
         handler.autoTerminateSpans()
@@ -215,7 +212,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when adding a new session event
         let timestamp = Date(timeIntervalSince1970: 5)
-        try handler.addSessionEvent(name: "test", type: .lowPower, timestamp: timestamp, attributes: ["key": "value"])
+        handler.addSessionEvent(name: "test", type: .lowPower, timestamp: timestamp, attributes: ["key": "value"])
 
         // then the right calls are made
         XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 1)
@@ -249,20 +246,17 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         let traceId = sessionController.currentSessionSpan!.context.traceId
         sessionController.endSession()
 
-        XCTAssertThrowsError(try handler.addSessionEvent(name: "test")) { error in
+        handler.addSessionEvent(name: "test")
 
-            // then the correct error is thrown
-            XCTAssert(error is EmbraceOTelError)
-            XCTAssertEqual((error as! EmbraceOTelError).errorCode, -1)
-            XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 0)
-            XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 0)
-            XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesCallCount, 0)
-            XCTAssertEqual(bridge.addSpanEventCallCount, 0)
+        // then no work is performed
+        XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 0)
+        XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 0)
+        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesCallCount, 0)
+        XCTAssertEqual(bridge.addSpanEventCallCount, 0)
 
-            // and no event is added to the storage
-            let span = storage.fetchSpan(id: spanId, traceId: traceId)
-            XCTAssertEqual(span!.events.count, 0)
-        }
+        // and no event is added to the storage
+        let span = storage.fetchSpan(id: spanId, traceId: traceId)
+        XCTAssertEqual(span!.events.count, 0)
     }
 
     func test_addSessionEvent_failure_limit() throws {
@@ -270,29 +264,26 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // when adding a new session event that would break the limit
         limiter.shouldAddSessionEventReturnValue = false
 
-        XCTAssertThrowsError(try handler.addSessionEvent(name: "test")) { error in
+        handler.addSessionEvent(name: "test")
 
-            // then the correct error is thrown
-            XCTAssert(error is EmbraceOTelError)
-            XCTAssertEqual((error as! EmbraceOTelError).errorCode, -3)
-            XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 1)
-            XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 0)
-            XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesCallCount, 0)
-            XCTAssertEqual(bridge.addSpanEventCallCount, 0)
+        // then the limit is checked but no work is performed
+        XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 1)
+        XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 0)
+        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesCallCount, 0)
+        XCTAssertEqual(bridge.addSpanEventCallCount, 0)
 
-            // and no event is added to the storage
-            let spanId = sessionController.currentSessionSpan!.context.spanId
-            let traceId = sessionController.currentSessionSpan!.context.traceId
-            let span = storage.fetchSpan(id: spanId, traceId: traceId)
-            XCTAssertEqual(span!.events.count, 0)
-        }
+        // and no event is added to the storage
+        let spanId = sessionController.currentSessionSpan!.context.spanId
+        let traceId = sessionController.currentSessionSpan!.context.traceId
+        let span = storage.fetchSpan(id: spanId, traceId: traceId)
+        XCTAssertEqual(span!.events.count, 0)
     }
 
     func test_addSessionEvent_sanitizeName() throws {
         // given a handler
         // when adding a new session event with a name that has to be sanitized
         sanitizer.sanitizeSpanEventNameReturnValue = "sanitized"
-        try handler.addSessionEvent(name: "test")
+        handler.addSessionEvent(name: "test")
 
         // then the name is sanitized
         let span = sessionController.currentSessionSpan!
@@ -303,7 +294,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when adding a new session event with attributes that have to be sanitized
         sanitizer.sanitizeSpanEventAttributesReturnValue = ["sanitizedKey": "sanitizedValue"]
-        try handler.addSessionEvent(name: "test", attributes: ["key": "value"])
+        handler.addSessionEvent(name: "test", attributes: ["key": "value"])
 
         // then the attributes are sanitized
         let span = sessionController.currentSessionSpan!
@@ -315,7 +306,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when adding a new session event span passing attributes
         // that would collide with internal ones
-        try handler.addSessionEvent(name: "test", type: .performance, attributes: ["emb.type": "test"])
+        handler.addSessionEvent(name: "test", type: .performance, attributes: ["emb.type": "test"])
 
         // then the correct internal attributes are kept
         let span = sessionController.currentSessionSpan!
@@ -327,7 +318,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a log
         let timestamp = Date(timeIntervalSince1970: 5)
-        try handler.log(
+        handler.log(
             "test",
             severity: .debug,
             type: .message,
@@ -363,29 +354,26 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // when creating a log that would break the limit
         limiter.shouldCreateLogReturnValue = false
 
-        XCTAssertThrowsError(try handler.log("test", severity: .info)) { error in
+        handler.log("test", severity: .info)
 
-            // then the correct error is thrown
-            XCTAssert(error is EmbraceOTelError)
-            XCTAssertEqual((error as! EmbraceOTelError).errorCode, -6)
-            XCTAssertEqual(limiter.shouldCreateLogCallCount, 1)
-            XCTAssertEqual(sanitizer.sanitizeLogAttributesCallCount, 0)
-            XCTAssertEqual(bridge.createLogCallCount, 0)
+        // then the limit is checked but no work is performed
+        XCTAssertEqual(limiter.shouldCreateLogCallCount, 1)
+        XCTAssertEqual(sanitizer.sanitizeLogAttributesCallCount, 0)
+        XCTAssertEqual(bridge.createLogCallCount, 0)
 
-            // and no log is created
-            wait(delay: .shortTimeout)
-            if let batch = logController.batcher.batch {
-                XCTAssertEqual(batch.logs.count, 0)
-            }
-            XCTAssertEqual(storage.fetchAllLogs().count, 0)
+        // and no log is created
+        wait(delay: .shortTimeout)
+        if let batch = logController.batcher.batch {
+            XCTAssertEqual(batch.logs.count, 0)
         }
+        XCTAssertEqual(storage.fetchAllLogs().count, 0)
     }
 
     func test_log_sanitizeAttributes() throws {
         // given a handler
         // when creating a log with attributes that have to be sanitized
         sanitizer.sanitizeLogAttributesReturnValue = ["sanitizedKey": "sanitizedValue"]
-        try handler.log("test", severity: .info, attributes: ["key": "value"])
+        handler.log("test", severity: .info, attributes: ["key": "value"])
 
         // then the attributes are sanitized
         // then the log is created correctly
@@ -400,7 +388,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a log passing attributes
         // that would collide with internal ones
-        try handler.log(
+        handler.log(
             "test", severity: .info,
             attributes: [
                 "emb.type": "test",
@@ -421,7 +409,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_log_embraceHostedAttachment_success() throws {
         // given a handler
         // when creating a log with an attachment (data)
-        try handler.log("test", severity: .info, attachment: EmbraceLogAttachment(data: TestConstants.data))
+        handler.log("test", severity: .info, attachment: EmbraceLogAttachment(data: TestConstants.data))
 
         // then the correct internal attributes are set
         wait(timeout: .defaultTimeout) {
@@ -435,7 +423,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a log with an attachment (data) that would break the limit
         sessionController.attachmentCount = 9999
-        try handler.log("test", severity: .info, attachment: EmbraceLogAttachment(data: TestConstants.data))
+        handler.log("test", severity: .info, attachment: EmbraceLogAttachment(data: TestConstants.data))
 
         // then the correct internal attributes are set
         wait(timeout: .defaultTimeout) {
@@ -454,7 +442,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
             str += "."
         }
 
-        try handler.log("test", severity: .info, attachment: EmbraceLogAttachment(data: str.data(using: .utf8)!))
+        handler.log("test", severity: .info, attachment: EmbraceLogAttachment(data: str.data(using: .utf8)!))
 
         // then the correct internal attributes are set
         wait(timeout: .defaultTimeout) {
@@ -469,7 +457,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a log with an attachment (data)
         let url = URL(string: "www.test.com")!
-        try handler.log("test", severity: .info, attachment: EmbraceLogAttachment(id: "test", url: url))
+        handler.log("test", severity: .info, attachment: EmbraceLogAttachment(id: "test", url: url))
 
         // then the correct internal attributes are set
         wait(timeout: .defaultTimeout) {
@@ -484,7 +472,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_log_defaultStackTrace() throws {
         // given a handler
         // when creating a non-warn/error log with default stack trace
-        try handler.log("test", severity: .info, stackTraceBehavior: .default)
+        handler.log("test", severity: .info, stackTraceBehavior: .default)
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
@@ -494,7 +482,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_warnLog_defaultStackTrace() throws {
         // given a handler
         // when creating a warn log with default stack trace
-        try handler.log("test", severity: .warn, stackTraceBehavior: .default)
+        handler.log("test", severity: .warn, stackTraceBehavior: .default)
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
@@ -504,7 +492,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_errorLog_defaultStackTrace() throws {
         // given a handler
         // when creating a error log with default stack trace
-        try handler.log("test", severity: .error, stackTraceBehavior: .default)
+        handler.log("test", severity: .error, stackTraceBehavior: .default)
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
@@ -520,7 +508,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a non-warn/error log with custom stack trace
         let stackTrace = try EmbraceStackTrace(frames: customFrames)
-        try handler.log("test", severity: .info, stackTraceBehavior: .custom(stackTrace))
+        handler.log("test", severity: .info, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
@@ -531,7 +519,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a warn log with custom stack trace
         let stackTrace = try EmbraceStackTrace(frames: customFrames)
-        try handler.log("test", severity: .warn, stackTraceBehavior: .custom(stackTrace))
+        handler.log("test", severity: .warn, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
@@ -542,7 +530,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a error log with custom stack trace
         let stackTrace = try EmbraceStackTrace(frames: customFrames)
-        try handler.log("test", severity: .error, stackTraceBehavior: .custom(stackTrace))
+        handler.log("test", severity: .error, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
@@ -552,7 +540,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_log_noStackTrace() throws {
         // given a handler
         // when creating a non-warn/error log with no stack trace
-        try handler.log("test", severity: .info, stackTraceBehavior: .notIncluded)
+        handler.log("test", severity: .info, stackTraceBehavior: .notIncluded)
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
@@ -562,7 +550,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_warnLog_noStackTrace() throws {
         // given a handler
         // when creating a warn log with no stack trace
-        try handler.log("test", severity: .warn, stackTraceBehavior: .notIncluded)
+        handler.log("test", severity: .warn, stackTraceBehavior: .notIncluded)
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
@@ -572,7 +560,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_errorLog_noStackTrace() throws {
         // given a handler
         // when creating a error log with no stack trace
-        try handler.log("test", severity: .error, stackTraceBehavior: .notIncluded)
+        handler.log("test", severity: .error, stackTraceBehavior: .notIncluded)
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)

@@ -4,7 +4,7 @@
 
 import Foundation
 
-public enum EmbraceOTelError: Error, Equatable {
+package enum EmbraceOTelError: Error, Equatable {
     case invalidSession
     case spanLimitReached
     case spanEventLimitReached(_ description: String)
@@ -15,11 +15,11 @@ public enum EmbraceOTelError: Error, Equatable {
 
 extension EmbraceOTelError: LocalizedError, CustomNSError {
 
-    public static var errorDomain: String {
+    package static var errorDomain: String {
         return "Embrace"
     }
 
-    public var errorCode: Int {
+    package var errorCode: Int {
         switch self {
         case .invalidSession: -1
         case .spanLimitReached: -2
@@ -30,7 +30,7 @@ extension EmbraceOTelError: LocalizedError, CustomNSError {
         }
     }
 
-    public var errorDescription: String? {
+    package var errorDescription: String? {
         switch self {
         case .invalidSession: "No active Embrace session!"
         case .spanLimitReached: "Span limit reached for the current Embrace session!"
@@ -41,7 +41,7 @@ extension EmbraceOTelError: LocalizedError, CustomNSError {
         }
     }
 
-    public var localizedDescription: String {
+    package var localizedDescription: String {
         return self.errorDescription ?? "No Matching Error"
     }
 }
