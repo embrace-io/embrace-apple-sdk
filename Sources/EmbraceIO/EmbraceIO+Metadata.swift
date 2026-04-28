@@ -5,32 +5,8 @@
 /// User QoL accessors
 extension EmbraceIO {
 
-    /// Set a 'name' for the current user.
-    /// Will be set permanently until explicitly unset via the `clearUserProperties()` method.
-    /// - Note: No validation is done on the identifier. Be sure it matches or can be mapped to a record in your system
-    public var userName: String? {
-        get {
-            Embrace.client?.metadata.userName
-        }
-        set {
-            Embrace.client?.metadata.userName = newValue
-        }
-    }
-
-    /// Set a 'email' for the current user.
-    /// Will be set permanently until explicitly unset via the `clearUserProperties()` method.
-    /// - Note: No validation is done on the username. Be sure it matches or can be mapped to a record in your system
-    public var userEmail: String? {
-        get {
-            Embrace.client?.metadata.userEmail
-        }
-        set {
-            Embrace.client?.metadata.userEmail = newValue
-        }
-    }
-
     /// Set an 'identifier' for the current user.
-    /// Will be set permanently  until explicitly unset via the `clearUserProperties()` method.
+    /// Pass nil to remove.
     /// - Note: No validation is done on the email address. Be sure it matches or can be mapped to a record in your system
     public var userIdentifier: String? {
         get {
@@ -39,12 +15,6 @@ extension EmbraceIO {
         set {
             Embrace.client?.metadata.userIdentifier = newValue
         }
-    }
-
-    /// Clear all user properties.
-    /// This will clear all user properties set via the `userName`, `userEmail` and `userIdentifier` properties.
-    public func clearUserProperties() {
-        Embrace.client?.metadata.clearUserProperties()
     }
 }
 
