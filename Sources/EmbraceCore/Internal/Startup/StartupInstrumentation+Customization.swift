@@ -14,13 +14,11 @@ extension StartupInstrumentation {
     /// Method used to build a span to be included as a child span to the startup instrumentation root span.
     /// - Parameters:
     ///    - name: The name of the span.
-    ///    - type: The type of the span. Will be set as the `emb.type` attribute.
     ///    - startTime: The start time of the span.
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: An `EmbraceSpan` or nil if the root span was not found.
-    package func createChildSpan(
+    package func createStartupChildSpan(
         name: String,
-        type: EmbraceType = .startup,
         startTime: Date = Date(),
         endTime: Date? = nil,
         attributes: EmbraceAttributes = [:]
@@ -37,7 +35,7 @@ extension StartupInstrumentation {
             return try? otel.createInternalSpan(
                 name: name,
                 parentSpan: rootSpan,
-                type: type,
+                type: .startup,
                 startTime: startTime,
                 endTime: endTime,
                 attributes: attributes
@@ -46,22 +44,29 @@ extension StartupInstrumentation {
     }
 
     /// Method used to add attributes to the startup instrumentation root span.
+    /// If the root span is not found or an attribute fails to be set, a warning is logged.
     /// - Parameters:
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     /// - Returns: A boolean indicating if the operation was succesful.
     @discardableResult
-    package func addAttributesToTrace(_ attributes: EmbraceAttributes) throws -> Bool {
+    package func addAttributesToStartupTrace(_ attributes: EmbraceAttributes) -> Bool {
 
-        return try state.withLock {
+        return state.withLock {
             guard let rootSpan = $0.rootSpan else {
                 return false
             }
 
-            try attributes.forEach {
-                try rootSpan.setAttribute(key: $0.key, value: $0.value)
+            var success = true
+            for (key, value) in attributes {
+                do {
+                    try rootSpan.setAttribute(key: key, value: value)
+                } catch {
+                    Embrace.logger.warning("Failed to add attribute '\(key)' to startup trace: \(error.localizedDescription)")
+                    success = false
+                }
             }
 
-            return true
+            return success
         }
     }
 }
