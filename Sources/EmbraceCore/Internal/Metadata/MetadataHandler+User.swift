@@ -36,21 +36,13 @@ extension MetadataHandler {
 
     private func update(key: UserResourceKey, value: String?) {
         if let value = value {
-            do {
-                try addProperty(key: key.rawValue, value: value, lifespan: .permanent)
-            } catch {
-                Embrace.logger.warning("Unable to update user metadata!")
-            }
+            addProperty(key: key.rawValue, value: value, lifespan: .permanent)
         } else {
             remove(key)
         }
     }
 
     private func remove(_ key: UserResourceKey) {
-        do {
-            try remove(key: key.rawValue, type: .customProperty, lifespan: .permanent)
-        } catch {
-            Embrace.logger.warning("An error occurred when removing this user resource key: \(key)")
-        }
+        remove(key: key.rawValue, type: .customProperty, lifespan: .permanent)
     }
 }
