@@ -3,65 +3,42 @@
 //
 
 import Foundation
+import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceSemantics
 #endif
 
-extension StartupInstrumentation {
+extension EmbraceIO {
 
     /// Method used to build a span to be included as a child span to the startup instrumentation root span.
     /// - Parameters:
     ///    - name: The name of the span.
-    ///    - type: The type of the span. Will be set as the `emb.type` attribute.
     ///    - startTime: The start time of the span.
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: An `EmbraceSpan` or nil if the root span was not found.
-    package func createChildSpan(
+    public func createStartupChildSpan(
         name: String,
-        type: EmbraceType = .startup,
         startTime: Date = Date(),
         endTime: Date? = nil,
         attributes: EmbraceAttributes = [:]
     ) -> EmbraceSpan? {
-        guard let otel = otel else {
-            return nil
-        }
-
-        return state.withLock {
-            guard let rootSpan = $0.rootSpan else {
-                return nil
-            }
-
-            return try? otel.createInternalSpan(
-                name: name,
-                parentSpan: rootSpan,
-                type: type,
-                startTime: startTime,
-                endTime: endTime,
-                attributes: attributes
-            )
-        }
+        return Embrace.client?.startupInstrumentation.createStartupChildSpan(
+            name: name,
+            startTime: startTime,
+            endTime: endTime,
+            attributes: attributes
+        )
     }
 
     /// Method used to add attributes to the startup instrumentation root span.
+    /// If the root span is not found or an attribute fails to be set, a warning is logged.
     /// - Parameters:
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     /// - Returns: A boolean indicating if the operation was succesful.
     @discardableResult
-    package func addAttributesToTrace(_ attributes: EmbraceAttributes) throws -> Bool {
-
-        return try state.withLock {
-            guard let rootSpan = $0.rootSpan else {
-                return false
-            }
-
-            try attributes.forEach {
-                try rootSpan.setAttribute(key: $0.key, value: $0.value)
-            }
-
-            return true
-        }
+    public func addAttributesToStartupTrace(_ attributes: EmbraceAttributes) -> Bool {
+        Embrace.client?.startupInstrumentation.addAttributesToStartupTrace(attributes) ?? false
     }
 }

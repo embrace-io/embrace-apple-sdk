@@ -13,7 +13,7 @@ import Foundation
 /// Class used to generate OTel signals and add them to the Embrace sessions.
 /// These signals will also be exported on the Embrace Tracer if the SDK is initialized with
 /// a custom OTel `SpanProcessor` or `SpanExporter`.
-public class DefaultOTelSignalsHandler {
+package class DefaultOTelSignalsHandler {
 
     /// Creates a new span to be included in the current Embrace session.
     /// - Parameters:
@@ -27,10 +27,9 @@ public class DefaultOTelSignalsHandler {
     ///   - links: Links for the span.
     ///   - attributes: Attributes of the span.
     ///   - autoTerminationCode: If a code is passed, the span will be automatically ended when the current Embrace session ends and will have a special attribute with the given code.
-    /// - Returns: The newly created `EmbraceSpan`.
-    /// - Throws: `EmbraceOTelError.spanLimitReached` if the span limit has been reached for the current Embrace session.
+    /// - Returns: The newly created `EmbraceSpan`, or `nil` if the span could not be created (e.g. the span limit was reached for the current Embrace session).
     @discardableResult
-    public func createSpan(
+    package func createSpan(
         name: String,
         parentSpan: EmbraceSpan? = nil,
         type: EmbraceType = .performance,
@@ -41,45 +40,54 @@ public class DefaultOTelSignalsHandler {
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil
-    ) throws -> EmbraceSpan {
-        return try _createSpan(
-            name: name,
-            parentSpan: parentSpan,
-            type: type,
-            status: status,
-            startTime: startTime,
-            endTime: endTime,
-            events: events,
-            links: links,
-            attributes: attributes,
-            autoTerminationCode: autoTerminationCode,
-            isInternal: false
-        )
+    ) -> EmbraceSpan? {
+        do {
+            return try _createSpan(
+                name: name,
+                parentSpan: parentSpan,
+                type: type,
+                status: status,
+                startTime: startTime,
+                endTime: endTime,
+                events: events,
+                links: links,
+                attributes: attributes,
+                autoTerminationCode: autoTerminationCode,
+                isInternal: false
+            )
+        } catch {
+            Embrace.logger.warning("Failed to create span '\(name)': \(error.localizedDescription)")
+            return nil
+        }
     }
 
     /// Adds the given `EmbraceSpanEvent` to the current Embrace session.
+    /// If no session is active or the event limit has been reached, the event is dropped and a warning is logged.
     /// - Parameter name: Name of the event.
     /// - Parameter type: Embrace specific type of the event, if any.
     /// - Parameter timestamp: Timestamp of the event.
     /// - Parameter attributes: Attributes of the event.
-    /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
-    /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
-    public func addSessionEvent(
+    package func addSessionEvent(
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:]
-    ) throws {
-        try _addSessionEvent(
-            name: name,
-            type: type,
-            timestamp: timestamp,
-            attributes: attributes,
-            isInternal: false
-        )
+    ) {
+        do {
+            try _addSessionEvent(
+                name: name,
+                type: type,
+                timestamp: timestamp,
+                attributes: attributes,
+                isInternal: false
+            )
+        } catch {
+            Embrace.logger.warning("Failed to add session event '\(name)': \(error.localizedDescription)")
+        }
     }
 
     /// Emits a new log.
+    /// If the log limit has been reached for the current Embrace session, the log is dropped and a warning is logged.
     /// - Parameters:
     ///   - message: Message of the log
     ///   - severity: Severity of the log
@@ -88,26 +96,29 @@ public class DefaultOTelSignalsHandler {
     ///   - attachment: Attachment data for the log
     ///   - attributes: Attributes of the log
     ///   - stackTraceBehavior: Behavior that detemines if a stack trace has to be generated for the log.
-    /// - Throws: `EmbraceOTelError.logLimitReached` if the log limit has been reached for the current Embrace session.
-    public func log(
+    package func log(
         _ message: String,
-        severity: EmbraceLogSeverity,
+        severity: EmbraceLogSeverity = .info,
         type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default
-    ) throws {
-        try _log(
-            message,
-            severity: severity,
-            type: type,
-            timestamp: timestamp,
-            attachment: attachment,
-            attributes: attributes,
-            stackTraceBehavior: stackTraceBehavior,
-            isInternal: false
-        )
+    ) {
+        do {
+            try _log(
+                message,
+                severity: severity,
+                type: type,
+                timestamp: timestamp,
+                attachment: attachment,
+                attributes: attributes,
+                stackTraceBehavior: stackTraceBehavior,
+                isInternal: false
+            )
+        } catch {
+            Embrace.logger.warning("Failed to emit log: \(error.localizedDescription)")
+        }
     }
 
     // MARK: Internal

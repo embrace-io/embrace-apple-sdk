@@ -5,15 +5,14 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
     import EmbraceSemantics
-    import EmbraceConfiguration
 #endif
 
-/// This extension provides functions to generate OTel data within a `CaptureService`.
-extension CaptureService {
+/// OTel signal generation
+extension EmbraceIO {
 
     /// Creates a new span to be included in the current Embrace session.
+    /// If the span limit has been reached or the SDK has not been set up, the span is dropped and a warning is logged.
     /// - Parameters:
     ///   - name: Name of the span.
     ///   - parentSpan: Parent of the span, if any.
@@ -25,8 +24,7 @@ extension CaptureService {
     ///   - links: Links for the span.
     ///   - attributes: Attributes of the span.
     ///   - autoTerminationCode: If a code is passed, the span will be automatically ended when the current Embrace session ends and will have a special attribute with the given code.
-    /// - Returns: The newly created `EmbraceSpan`.
-    /// - Throws: `EmbraceOTelError.spanLimitReached` if the span limit has been reached for the current Embrace session.
+    /// - Returns: The newly created `EmbraceSpan`, or `nil` if the span could not be created.
     @discardableResult
     public func createSpan(
         name: String,
@@ -39,8 +37,11 @@ extension CaptureService {
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil
-    ) throws -> EmbraceSpan? {
-        return try otel?._createSpan(
+    ) -> EmbraceSpan? {
+        guard let otel = Embrace.client?.otel else {
+            return nil
+        }
+        return otel.createSpan(
             name: name,
             parentSpan: parentSpan,
             type: type,
@@ -50,62 +51,58 @@ extension CaptureService {
             events: events,
             links: links,
             attributes: attributes,
-            autoTerminationCode: autoTerminationCode,
-            isInternal: false
+            autoTerminationCode: autoTerminationCode
         )
     }
 
     /// Adds the given `EmbraceSpanEvent` to the current Embrace session.
-    /// - Parameter name: Name of the event.
-    /// - Parameter type: Embrace specific type of the event, if any.
-    /// - Parameter timestamp: Timestamp of the event.
-    /// - Parameter attributes: Attributes of the event.
-    /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
-    /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
+    /// If no session is active or the event limit has been reached, the event is dropped and a warning is logged.
+    /// - Parameters:
+    ///   - name: Name of the event.
+    ///   - type: Embrace specific type of the event, if any.
+    ///   - timestamp: Timestamp of the event.
+    ///   - attributes: Attributes of the event.
     public func addSessionEvent(
         name: String,
-        type: EmbraceType?,
-        timestamp: Date,
-        attributes: EmbraceAttributes
-    ) throws {
-        try otel?._addSessionEvent(
+        type: EmbraceType? = nil,
+        timestamp: Date = Date(),
+        attributes: EmbraceAttributes = [:]
+    ) {
+        Embrace.client?.otel.addSessionEvent(
             name: name,
             type: type,
             timestamp: timestamp,
-            attributes: attributes,
-            isInternal: false
+            attributes: attributes
         )
     }
 
     /// Emits a new log.
+    /// If the log limit has been reached for the current Embrace session, the log is dropped and a warning is logged.
     /// - Parameters:
-    ///   - message: Message of the log
-    ///   - severity: Severity of the log
-    ///   - type: Type of the log
-    ///   - timestamp: Timestamp of the log
-    ///   - attachment: Attachment data for the log
-    ///   - attributes: Attributes of the log
-    ///   - stackTraceBehavior: Behavior that detemines if a stack trace has to be generated for the log.
-    /// - Throws: `EmbraceOTelError.logLimitReached` if the log limit has been reached for the current Embrace session.
+    ///   - message: Message of the log.
+    ///   - severity: Severity of the log.
+    ///   - type: Type of the log.
+    ///   - timestamp: Timestamp of the log.
+    ///   - attachment: Attachment data for the log.
+    ///   - attributes: Attributes of the log.
+    ///   - stackTraceBehavior: Behavior that determines if a stack trace has to be generated for the log.
     public func log(
         _ message: String,
-        severity: EmbraceLogSeverity = .info,
+        severity: EmbraceLogSeverity,
         type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default
-    ) throws {
-        try otel?._log(
+    ) {
+        Embrace.client?.otel.log(
             message,
             severity: severity,
             type: type,
             timestamp: timestamp,
             attachment: attachment,
             attributes: attributes,
-            stackTraceBehavior: stackTraceBehavior,
-            isInternal: false,
-            send: true
+            stackTraceBehavior: stackTraceBehavior
         )
     }
 }

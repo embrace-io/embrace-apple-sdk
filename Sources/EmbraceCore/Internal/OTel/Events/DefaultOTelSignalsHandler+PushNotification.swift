@@ -13,26 +13,24 @@ import UserNotifications
 extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
 
     /// Adds a PushNotification span event to the current Embrace session using the data from the given `UNNotification`.
+    /// If no session is active, the payload is invalid, or the event limit has been reached, the event is dropped and a warning is logged.
     /// - Parameters:
     ///   - notification: The `UNNotification` received by the app.
     ///   - timestamp: Timestamp of the event.
     ///   - attributes: Attributes of the event.
     ///   - captureData: Whether or not Embrace should parse the data inside the push notification.
-    /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
-    /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
-    /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    public func addPushNotificationEvent(
+    package func addPushNotificationEvent(
         notification: UNNotification,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
         captureData: Bool = true
-    ) throws {
+    ) {
         var userInfo: [AnyHashable: Any] = [:]
         #if !os(tvOS)
             userInfo = notification.request.content.userInfo
         #endif
 
-        try addPushNotificationEvent(
+        addPushNotificationEvent(
             userInfo: userInfo,
             timestamp: timestamp,
             attributes: attributes,
@@ -41,39 +39,44 @@ extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
     }
 
     /// Adds a PushNotification span event to the current Embrace session using the `userInfo` dictionary from a push notification.
+    /// If no session is active, the payload is invalid, or the event limit has been reached, the event is dropped and a warning is logged.
     /// - Parameters:
     ///   - userInfo: The `userInfo` dictionary from a push notification.
     ///   - timestamp: Timestamp of the event.
     ///   - attributes: Attributes of the event.
     ///   - captureData: Whether or not Embrace should parse the data inside the push notification.
-    /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
-    /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
-    /// - Throws: `PushNotificationError.invalidPayload` if the `aps` object is not present in the `userInfo` of the `UNNotification`.
-    public func addPushNotificationEvent(
+    package func addPushNotificationEvent(
         userInfo: [AnyHashable: Any],
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
         captureData: Bool = true
-    ) throws {
+    ) {
 
         guard let span = sessionController?.currentSessionSpan else {
-            throw EmbraceOTelError.invalidSession
+            Embrace.logger.warning("Failed to add push notification event: \(EmbraceOTelError.invalidSession.localizedDescription)")
+            return
         }
 
         // find aps key
         guard let apsDict = userInfo[Constants.apsRootKey] as? [AnyHashable: Any] else {
-            throw PushNotificationError.invalidPayload("Couldn't find aps object!")
+            Embrace.logger.warning("Failed to add push notification event: couldn't find aps object!")
+            return
         }
 
         let internalAttributes = Self.parse(apsDict: apsDict, captureData: captureData)
 
-        try span.addSessionEvent(
-            name: SpanEventSemantics.PushNotification.name,
-            type: .pushNotification,
-            attributes: attributes,
-            internalAttributes: internalAttributes,
-            isInternal: false
-        )
+        do {
+            try span.addSessionEvent(
+                name: SpanEventSemantics.PushNotification.name,
+                type: .pushNotification,
+                timestamp: timestamp,
+                attributes: attributes,
+                internalAttributes: internalAttributes,
+                isInternal: false
+            )
+        } catch {
+            Embrace.logger.warning("Failed to add push notification event: \(error.localizedDescription)")
+        }
     }
 
     // MARK: Internal
@@ -164,7 +167,7 @@ protocol PushNotificationSignalHandler {
         timestamp: Date,
         attributes: EmbraceAttributes,
         captureData: Bool
-    ) throws
+    )
 }
 
 extension EmbraceOTelSignalsHandler {
@@ -176,7 +179,7 @@ extension EmbraceOTelSignalsHandler {
             return
         }
 
-        try? handler.addPushNotificationEvent(
+        handler.addPushNotificationEvent(
             notification: notification,
             timestamp: Date(),
             attributes: [:],

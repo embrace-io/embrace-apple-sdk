@@ -38,7 +38,7 @@ final class MetadataHandlerTests: XCTestCase {
         )
 
         // when added
-        try handler.addProperty(key: "foo", value: "bar", lifespan: .session)
+        handler.addProperty(key: "foo", value: "bar", lifespan: .session)
 
         let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let item = firstFetch.first { record in
@@ -47,7 +47,7 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertNotNil(item)
 
         // When removed
-        try handler.removeProperty(key: "foo", lifespan: .session)
+        handler.removeProperty(key: "foo", lifespan: .session)
 
         let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let result = secondFetch.first { record in
@@ -65,7 +65,7 @@ final class MetadataHandlerTests: XCTestCase {
 
         let firstSessionId = sessionController.currentSession!.id
         // when added to first session
-        try handler.addProperty(key: "foo", value: "bar", lifespan: .session)
+        handler.addProperty(key: "foo", value: "bar", lifespan: .session)
 
         // start new session
         let newSession = sessionController.startSession(state: .foreground)
@@ -86,7 +86,7 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertNotNil(result1)
 
         // When removed
-        try handler.removeProperty(key: "foo", lifespan: .session)
+        handler.removeProperty(key: "foo", lifespan: .session)
 
         let fetch2 = storage.fetchCustomPropertiesForSessionId(secondSessionId)
         let result2 = fetch2.first { record in
@@ -109,7 +109,7 @@ final class MetadataHandlerTests: XCTestCase {
         )
 
         // when added
-        try handler.addProperty(key: "foo", value: "bar", lifespan: .process)
+        handler.addProperty(key: "foo", value: "bar", lifespan: .process)
 
         let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let item = firstFetch.first { record in
@@ -118,7 +118,7 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertNotNil(item)
 
         // When removed
-        try handler.removeProperty(key: "foo", lifespan: .process)
+        handler.removeProperty(key: "foo", lifespan: .process)
 
         let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let result = secondFetch.first { record in
@@ -155,7 +155,7 @@ final class MetadataHandlerTests: XCTestCase {
         )
 
         // When removed
-        try handler.removeProperty(key: "foo", lifespan: .process)
+        handler.removeProperty(key: "foo", lifespan: .process)
 
         // exists in other session
         let fetch1 = storage.fetchCustomPropertiesForSessionId(otherSessionId)
@@ -180,7 +180,7 @@ final class MetadataHandlerTests: XCTestCase {
         )
 
         // when added
-        try handler.addProperty(key: "foo", value: "bar", lifespan: .permanent)
+        handler.addProperty(key: "foo", value: "bar", lifespan: .permanent)
 
         let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let item = firstFetch.first { record in
@@ -189,7 +189,7 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertNotNil(item)
 
         // When removed
-        try handler.removeProperty(key: "foo", lifespan: .permanent)
+        handler.removeProperty(key: "foo", lifespan: .permanent)
 
         let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let result = secondFetch.first { record in
