@@ -73,4 +73,24 @@
         return records
     }
 
+    /// Wait for the C sampler to stop, polling at 1ms intervals.
+    func waitForSamplerToStop(timeout: TimeInterval = 2.0) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while emb_sampler_is_active() {
+            if Date() >= deadline { return false }
+            Thread.sleep(forTimeInterval: 0.001)
+        }
+        return true
+    }
+
+    /// Wait for the C sampler to reach RUNNING state, polling at 1ms intervals.
+    func waitForSamplerRunning(timeout: TimeInterval = 2.0) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while emb_sampler_get_state() != EMB_SAMPLER_RUNNING {
+            if Date() >= deadline { return false }
+            Thread.sleep(forTimeInterval: 0.001)
+        }
+        return true
+    }
+
 #endif

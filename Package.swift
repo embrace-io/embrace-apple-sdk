@@ -347,15 +347,17 @@ let package = Package(
             name: "EmbraceProfiling",
             dependencies: [
                 "EmbraceProfilingSampler",
-                .product(name: "Recording", package: "KSCrash")
+                "EmbraceAtomicsShim"
             ]
         ),
         .testTarget(
             name: "EmbraceProfilingTests",
             dependencies: [
                 "EmbraceProfiling",
+                "EmbraceProfilingSampler",
                 "EmbraceProfilingTestSupport",
-                "EmbraceProfilingTestSupportNoFP"
+                "EmbraceProfilingTestSupportNoFP",
+                .product(name: "Recording", package: "KSCrash")
             ]
         ),
         .target(
