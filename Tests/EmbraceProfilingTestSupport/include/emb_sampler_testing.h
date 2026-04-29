@@ -29,7 +29,8 @@ extern "C" {
 bool emb_sampler_reset_for_testing(void);
 
 /// TEST-ONLY: Force the sampler into FAULTED state with the given reason.
-/// The reason must have static storage duration (string literal).
+/// The reason is copied internally, so it does not need static storage duration.
+/// Pass NULL to use the default fault reason.
 void emb_sampler_inject_fault_for_testing(const char *reason);
 
 /// TEST-ONLY: Override the cached main thread ports.

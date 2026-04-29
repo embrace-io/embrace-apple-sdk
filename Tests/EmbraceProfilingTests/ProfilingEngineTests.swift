@@ -1179,7 +1179,7 @@
             XCTAssertEqual(engine.start(configuration: config), .started)
             XCTAssertTrue(waitForCapturing(true))
 
-            // Let it run very briefly at 1000 Hz.
+            // Let it run very briefly at 100 Hz.
             Thread.sleep(forTimeInterval: 0.05)
 
             engine.stop()
