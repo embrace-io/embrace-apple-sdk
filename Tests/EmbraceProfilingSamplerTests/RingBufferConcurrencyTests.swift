@@ -48,15 +48,13 @@
         // MARK: - Helpers
 
         /// Write-pattern sentinel: frame[j] of write-index `idx` = idx * 10_000 + j + 1.
-        /// This encodes the record identity into every frame so readers can verify integrity.
         private func makeFrames(writeIndex: Int, count: Int) -> [UInt] {
             let base = UInt(writeIndex) * 10_000
             return (0..<count).map { base + UInt($0) + 1 }
         }
 
         /// Verify a single record against the write pattern.
-        /// `intervalNs` is the ns step between consecutive write-index timestamps.
-        private func frameError(_ rec: emb_ring_record_t, intervalNs: UInt64) -> String? {
+        private func frameError(_ rec: TestRecord, intervalNs: UInt64) -> String? {
             guard intervalNs > 0 else { return nil }
             let idx = Int(rec.timestamp_ns / intervalNs)
             let base = UInt(idx) * 10_000
@@ -70,11 +68,10 @@
         }
 
         /// Spin up `readerCount` concurrent readers while `writerBlock` runs on the calling thread.
-        /// Each reader calls `validate` with every result it obtains.
         private func runWithReaders(
             buf: UnsafeMutablePointer<emb_ring_buffer_t>,
             readerCount: Int,
-            validate: @escaping (emb_ring_read_result_t, FailureCollector) -> Void,
+            validate: @escaping ([TestRecord], FailureCollector) -> Void,
             writerBlock: (FailureCollector) -> Void
         ) -> FailureCollector {
             let failures = FailureCollector()
@@ -82,13 +79,19 @@
             let group = DispatchGroup()
             let queue = DispatchQueue(label: "ring.test.readers", attributes: .concurrent)
 
+            let capacity = emb_ring_buffer_capacity(buf)
+
             for _ in 0..<readerCount {
                 group.enter()
                 queue.async {
+                    let output = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+                    defer { output.deallocate() }
+
                     while !stop.isSet {
-                        var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-                        validate(result, failures)
-                        emb_ring_read_result_free(&result)
+                        let result = emb_ring_buffer_read_range(
+                            buf, 0, UINT64_MAX, output, capacity)
+                        let records = parseRecords(output, result)
+                        validate(records, failures)
                     }
                     group.leave()
                 }
@@ -118,9 +121,9 @@
 
             let failures = runWithReaders(
                 buf: buf, readerCount: 4,
-                validate: { result, fc in
-                    for i in 0..<result.count {
-                        if let err = self.frameError(result.records[i], intervalNs: intervalNs) {
+                validate: { records, fc in
+                    for i in 0..<records.count {
+                        if let err = self.frameError(records[i], intervalNs: intervalNs) {
                             fc.record("Frame corruption: \(err)")
                         }
                     }
@@ -144,11 +147,11 @@
 
             let failures = runWithReaders(
                 buf: buf, readerCount: 4,
-                validate: { result, fc in
-                    guard result.count > 1 else { return }
-                    for i in 1..<result.count {
-                        let prev = result.records[i - 1].timestamp_ns
-                        let cur = result.records[i].timestamp_ns
+                validate: { records, fc in
+                    guard records.count > 1 else { return }
+                    for i in 1..<records.count {
+                        let prev = records[i - 1].timestamp_ns
+                        let cur = records[i].timestamp_ns
                         if cur <= prev {
                             fc.record("Non-ascending timestamps at index \(i): \(prev) >= \(cur)")
                         }
@@ -166,22 +169,18 @@
             assertNoFailures(failures)
         }
 
-        /// Every returned record must have believable frame_count (≤ 10 000) and
-        /// a non-nil frames pointer when frame_count > 0.
+        /// Every returned record must have believable frame_count (≤ 10 000).
         func test_periodicWriter_multipleReaders_recordStructureAlwaysValid() {
             let buf = emb_ring_buffer_create(1 * 1024 * 1024)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let failures = runWithReaders(
                 buf: buf, readerCount: 4,
-                validate: { result, fc in
-                    for i in 0..<result.count {
-                        let rec = result.records[i]
+                validate: { records, fc in
+                    for i in 0..<records.count {
+                        let rec = records[i]
                         if rec.frame_count > 10_000 {
                             fc.record("record[\(i)].frame_count=\(rec.frame_count) is impossibly large")
-                        }
-                        if rec.frame_count > 0 && rec.frames == nil {
-                            fc.record("record[\(i)] has frame_count=\(rec.frame_count) but nil frames pointer")
                         }
                     }
                 },
@@ -205,15 +204,14 @@
 
             let failures = runWithReaders(
                 buf: buf, readerCount: 4,
-                validate: { result, fc in
-                    for i in 0..<result.count {
-                        if result.records[i].frame_count > 10_000 {
+                validate: { records, fc in
+                    for i in 0..<records.count {
+                        if records[i].frame_count > 10_000 {
                             fc.record("wrap-around: record[\(i)].frame_count is corrupt")
                         }
                     }
                 },
                 writerBlock: { _ in
-                    // 60 writes with a one-page buffer forces many wrap-arounds.
                     for i in 0..<60 {
                         let fc = (i % 12) + 1
                         let f = self.makeFrames(writeIndex: i, count: fc)
@@ -233,16 +231,16 @@
 
             let failures = runWithReaders(
                 buf: buf, readerCount: 6,
-                validate: { result, fc in
-                    for i in 0..<result.count {
-                        if result.records[i].frame_count > 10_000 {
+                validate: { records, fc in
+                    for i in 0..<records.count {
+                        if records[i].frame_count > 10_000 {
                             fc.record("eviction: record[\(i)].frame_count corrupt")
                         }
                     }
-                    guard result.count > 1 else { return }
-                    for i in 1..<result.count {
-                        let prev = result.records[i - 1].timestamp_ns
-                        let cur = result.records[i].timestamp_ns
+                    guard records.count > 1 else { return }
+                    for i in 1..<records.count {
+                        let prev = records[i - 1].timestamp_ns
+                        let cur = records[i].timestamp_ns
                         if cur < prev {
                             fc.record("eviction: timestamp went backwards \(prev) → \(cur)")
                         }
@@ -261,12 +259,10 @@
         }
 
         /// Many concurrent readers all read simultaneously after a batch of writes.
-        /// All readers must get the same record count and identical timestamps.
         func test_simultaneousReaders_sameBuffer_consistentResults() {
             let buf = emb_ring_buffer_create(1 * 1024 * 1024)!
             defer { emb_ring_buffer_destroy(buf) }
 
-            // Pre-populate with 20 records.
             for i in 0..<20 {
                 let fc = (i % 5) + 1
                 let f = makeFrames(writeIndex: i, count: fc)
@@ -278,13 +274,17 @@
             var snapshots = [[UInt64]]()
             let group = DispatchGroup()
             let queue = DispatchQueue(label: "ring.simultaneous", attributes: .concurrent)
+            let capacity = emb_ring_buffer_capacity(buf)
 
             for _ in 0..<readerCount {
                 group.enter()
                 queue.async {
-                    var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-                    let ts = (0..<result.count).map { result.records[$0].timestamp_ns }
-                    emb_ring_read_result_free(&result)
+                    let output = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+                    defer { output.deallocate() }
+
+                    let result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX, output, capacity)
+                    let records = parseRecords(output, result)
+                    let ts = records.map { $0.timestamp_ns }
                     resultsLock.lock()
                     snapshots.append(ts)
                     resultsLock.unlock()
@@ -314,19 +314,24 @@
             let stop = StopFlag()
             let group = DispatchGroup()
             let queue = DispatchQueue(label: "ring.window.readers", attributes: .concurrent)
+            let capacity = emb_ring_buffer_capacity(buf)
 
             for _ in 0..<4 {
                 group.enter()
                 queue.async {
+                    let output = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+                    defer { output.deallocate() }
+
                     while !stop.isSet {
-                        var result = emb_ring_buffer_read_range(buf, windowStart, windowEnd)
-                        for i in 0..<result.count {
-                            let ts = result.records[i].timestamp_ns
+                        let result = emb_ring_buffer_read_range(
+                            buf, windowStart, windowEnd, output, capacity)
+                        let records = parseRecords(output, result)
+                        for i in 0..<records.count {
+                            let ts = records[i].timestamp_ns
                             if ts < windowStart || ts > windowEnd {
                                 failures.record("windowed read: ts=\(ts) outside [\(windowStart), \(windowEnd)]")
                             }
                         }
-                        emb_ring_read_result_free(&result)
                     }
                     group.leave()
                 }
@@ -344,39 +349,33 @@
         }
 
         /// Stress: 8 readers + high-frequency writer (no sleep between writes).
-        ///
-        /// This test intentionally violates the "1 ms periodic writer" invariant to
-        /// verify the buffer does not crash or deadlock under pathological write rates.
-        /// This should never happen under proper usage, but we test it anyway.
-        /// The implementation documents that a second torn read after retry is possible when
-        /// the writer is continuous; this test therefore only checks liveness (no crash /
-        /// no deadlock / no infinite loop), NOT frame-data correctness.
         func test_stress_highFrequencyWriter_manyReaders_noCrash() {
             let buf = emb_ring_buffer_create(2 * Int(getpagesize()))!
             defer { emb_ring_buffer_destroy(buf) }
 
-            // Threshold matches the implementation's own sanity limit (unbelievable_frame_count).
             let unbelievableFrameCount = 1_000_000
 
             let failures = FailureCollector()
             let stop = StopFlag()
             let group = DispatchGroup()
             let queue = DispatchQueue(label: "ring.stress.readers", attributes: .concurrent)
+            let capacity = emb_ring_buffer_capacity(buf)
 
             for _ in 0..<8 {
                 group.enter()
                 queue.async {
+                    let output = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+                    defer { output.deallocate() }
+
                     while !stop.isSet {
-                        var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-                        // Under continuous writes the implementation may deliver a record whose
-                        // frame_count was read mid-write. Accept anything below the
-                        // implementation's own unbelievable_frame_count sanity limit.
-                        for i in 0..<result.count {
-                            if result.records[i].frame_count > unbelievableFrameCount {
-                                failures.record("stress: frame_count \(result.records[i].frame_count) exceeds implementation limit")
+                        let result = emb_ring_buffer_read_range(
+                            buf, 0, UINT64_MAX, output, capacity)
+                        let records = parseRecords(output, result)
+                        for i in 0..<records.count {
+                            if records[i].frame_count > unbelievableFrameCount {
+                                failures.record("stress: frame_count \(records[i].frame_count) exceeds implementation limit")
                             }
                         }
-                        emb_ring_read_result_free(&result)
                     }
                     group.leave()
                 }
@@ -414,19 +413,24 @@
             let stop = StopFlag()
             let group = DispatchGroup()
             let queue = DispatchQueue(label: "ring.partition.readers", attributes: .concurrent)
+            let capacity = emb_ring_buffer_capacity(buf)
 
             for window in windows {
                 group.enter()
                 queue.async {
+                    let output = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+                    defer { output.deallocate() }
+
                     while !stop.isSet {
-                        var result = emb_ring_buffer_read_range(buf, window.start, window.end)
-                        for i in 0..<result.count {
-                            let ts = result.records[i].timestamp_ns
+                        let result = emb_ring_buffer_read_range(
+                            buf, window.start, window.end, output, capacity)
+                        let records = parseRecords(output, result)
+                        for i in 0..<records.count {
+                            let ts = records[i].timestamp_ns
                             if ts < window.start || ts > window.end {
                                 failures.record("partition violation: ts=\(ts) not in [\(window.start), \(window.end)]")
                             }
                         }
-                        emb_ring_read_result_free(&result)
                     }
                     group.leave()
                 }
@@ -439,6 +443,54 @@
             }
             stop.set()
             group.wait()
+
+            assertNoFailures(failures)
+        }
+
+        /// Small (1-page) buffer with high-frequency writer forcing wrap-around.
+        /// 4+ concurrent readers verify no frame corruption and ascending timestamps.
+        func test_smallBuffer_highFrequencyWrapAround_noCorruption() {
+            let buf = emb_ring_buffer_create(Int(getpagesize()))!
+            defer { emb_ring_buffer_destroy(buf) }
+
+            let writeCount = 500
+            let frameCount = 8
+
+            let failures = runWithReaders(
+                buf: buf, readerCount: 4,
+                validate: { records, fc in
+                    // Timestamps must be ascending.
+                    if records.count > 1 {
+                        for i in 1..<records.count {
+                            let prev = records[i - 1].timestamp_ns
+                            let cur = records[i].timestamp_ns
+                            if cur < prev {
+                                fc.record("wrap-around: timestamps went backwards \(prev) → \(cur)")
+                            }
+                        }
+                    }
+                    // Frame data must be internally consistent: frame[j] = idx * 10_000 + j + 1.
+                    for rec in records {
+                        let intervalNs: UInt64 = 1_000
+                        let idx = Int(rec.timestamp_ns / intervalNs)
+                        let base = UInt(idx) * 10_000
+                        for j in 0..<rec.frame_count {
+                            let expected = base + UInt(j) + 1
+                            if rec.frames[j] != expected {
+                                fc.record("wrap-around: ts=\(rec.timestamp_ns) frame[\(j)]: expected \(expected), got \(rec.frames[j])")
+                                break
+                            }
+                        }
+                    }
+                },
+                writerBlock: { _ in
+                    for i in 0..<writeCount {
+                        let f = self.makeFrames(writeIndex: i, count: frameCount)
+                        emb_ring_buffer_write(buf, UInt64(i) * 1_000, f, frameCount)
+                        // No sleep. Maximum write pressure to force rapid wrap-around.
+                    }
+                }
+            )
 
             assertNoFailures(failures)
         }
@@ -458,13 +510,17 @@
             var snapshots = [[UInt64]]()
             let group = DispatchGroup()
             let queue = DispatchQueue(label: "ring.stable.readers", attributes: .concurrent)
+            let capacity = emb_ring_buffer_capacity(buf)
 
             for _ in 0..<readerCount {
                 group.enter()
                 queue.async {
-                    var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-                    let ts = (0..<result.count).map { result.records[$0].timestamp_ns }
-                    emb_ring_read_result_free(&result)
+                    let output = UnsafeMutablePointer<UInt8>.allocate(capacity: capacity)
+                    defer { output.deallocate() }
+
+                    let result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX, output, capacity)
+                    let records = parseRecords(output, result)
+                    let ts = records.map { $0.timestamp_ns }
                     lock.lock()
                     snapshots.append(ts)
                     lock.unlock()

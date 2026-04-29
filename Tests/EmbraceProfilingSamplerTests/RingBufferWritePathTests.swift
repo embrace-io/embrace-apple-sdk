@@ -27,14 +27,13 @@
             let success = emb_ring_buffer_write(buf, timestamp, testFrames, testFrames.count)
             XCTAssertTrue(success, "write should succeed")
 
-            // Read back all records (from 0 to UINT64_MAX).
-            var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-            defer { emb_ring_read_result_free(&result) }
+            // Read back all records.
+            let records = testReadRange(buf, 0, UINT64_MAX)
 
-            XCTAssertEqual(result.count, 1, "should have 1 record")
-            guard result.count == 1 else { return }
+            XCTAssertEqual(records.count, 1, "should have 1 record")
+            guard records.count == 1 else { return }
 
-            let record = result.records[0]
+            let record = records[0]
             XCTAssertEqual(record.timestamp_ns, timestamp)
             XCTAssertEqual(record.frame_count, testFrames.count)
 
@@ -71,17 +70,16 @@
             }
 
             // Read back all records.
-            var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-            defer { emb_ring_read_result_free(&result) }
+            let records = testReadRange(buf, 0, UINT64_MAX)
 
-            XCTAssertEqual(result.count, recordCount)
+            XCTAssertEqual(records.count, recordCount)
 
-            for i in 0..<result.count {
-                let record = result.records[i]
+            for i in 0..<records.count {
+                let record = records[i]
                 XCTAssertEqual(record.timestamp_ns, expectedTimestamps[i])
 
                 let expectedFrameCount = (i % 5) + 1
-                XCTAssertEqual(Int(record.frame_count), expectedFrameCount)
+                XCTAssertEqual(record.frame_count, expectedFrameCount)
 
                 // Verify frame data.
                 for j in 0..<expectedFrameCount {
@@ -108,13 +106,12 @@
             XCTAssertTrue(success, "write should succeed")
 
             // Read back.
-            var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-            defer { emb_ring_read_result_free(&result) }
+            let records = testReadRange(buf, 0, UINT64_MAX)
 
-            XCTAssertEqual(result.count, 1)
-            guard result.count == 1 else { return }
+            XCTAssertEqual(records.count, 1)
+            guard records.count == 1 else { return }
 
-            let record = result.records[0]
+            let record = records[0]
             XCTAssertEqual(record.timestamp_ns, timestamp)
             XCTAssertEqual(record.frame_count, 0)
         }
@@ -146,15 +143,14 @@
             }
 
             // Read back.
-            var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-            defer { emb_ring_read_result_free(&result) }
+            let records = testReadRange(buf, 0, UINT64_MAX)
 
-            XCTAssertEqual(result.count, frameCounts.count)
+            XCTAssertEqual(records.count, frameCounts.count)
 
-            for i in 0..<result.count {
-                let record = result.records[i]
+            for i in 0..<records.count {
+                let record = records[i]
                 XCTAssertEqual(record.timestamp_ns, expectedData[i].timestamp)
-                XCTAssertEqual(Int(record.frame_count), expectedData[i].frameCount)
+                XCTAssertEqual(record.frame_count, expectedData[i].frameCount)
 
                 // Verify frames.
                 for j in 0..<expectedData[i].frameCount {
@@ -197,17 +193,16 @@
 
             // Read back. Should get only the records that fit in the buffer
             // (oldest records evicted).
-            var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-            defer { emb_ring_read_result_free(&result) }
+            let records = testReadRange(buf, 0, UINT64_MAX)
 
-            XCTAssertGreaterThan(result.count, 0, "should have some records")
-            XCTAssertLessThan(result.count, recordsToFill, "should have evicted old records")
+            XCTAssertGreaterThan(records.count, 0, "should have some records")
+            XCTAssertLessThan(records.count, recordsToFill, "should have evicted old records")
 
             // The timestamps should be from the most recent records.
-            let expectedStartIndex = recordsToFill - Int(result.count)
-            for i in 0..<result.count {
-                let record = result.records[i]
-                let expected = lastTimestamps[expectedStartIndex + Int(i)]
+            let expectedStartIndex = recordsToFill - records.count
+            for i in 0..<records.count {
+                let record = records[i]
+                let expected = lastTimestamps[expectedStartIndex + i]
                 XCTAssertEqual(
                     record.timestamp_ns, expected,
                     "record \(i) timestamp mismatch")
@@ -242,14 +237,13 @@
             }
 
             // Read back.
-            var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-            defer { emb_ring_read_result_free(&result) }
+            let records = testReadRange(buf, 0, UINT64_MAX)
 
             // Should not contain the first `overwriteCount` records.
-            XCTAssertGreaterThan(result.count, 0)
+            XCTAssertGreaterThan(records.count, 0)
 
-            if result.count > 0 {
-                let firstTimestamp = result.records[0].timestamp_ns
+            if records.count > 0 {
+                let firstTimestamp = records[0].timestamp_ns
                 XCTAssertGreaterThanOrEqual(
                     firstTimestamp, UInt64(overwriteCount),
                     "oldest records should be evicted")
@@ -276,10 +270,10 @@
             XCTAssertFalse(success)
         }
 
-        func test_readRange_withNil_returnsEmpty() {
-            let result = emb_ring_buffer_read_range(nil, 0, UINT64_MAX)
-            XCTAssertEqual(result.count, 0)
-            XCTAssertNil(result.records)
+        func test_readRange_withNilBuffer_returnsEmpty() {
+            var output = [UInt8](repeating: 0, count: 16)
+            let result = emb_ring_buffer_read_range(nil, 0, UINT64_MAX, &output, output.count)
+            XCTAssertEqual(result.record_count, 0)
         }
 
         func test_readRange_filtersOnTimestamp() {
@@ -299,14 +293,13 @@
             }
 
             // Read only records from 3000 to 7000 (inclusive).
-            var result = emb_ring_buffer_read_range(buf, 3000, 7000)
-            defer { emb_ring_read_result_free(&result) }
+            let records = testReadRange(buf, 3000, 7000)
 
             // Should get 5 records: timestamps 3000, 4000, 5000, 6000, 7000.
-            XCTAssertEqual(result.count, 5)
+            XCTAssertEqual(records.count, 5)
 
-            for i in 0..<result.count {
-                let record = result.records[i]
+            for i in 0..<records.count {
+                let record = records[i]
                 let expectedTimestamp = UInt64((i + 3) * 1000)
                 XCTAssertEqual(record.timestamp_ns, expectedTimestamp)
                 XCTAssertEqual(record.frame_count, 1)
@@ -321,15 +314,8 @@
             }
             defer { emb_ring_buffer_destroy(buf) }
 
-            var result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX)
-            defer { emb_ring_read_result_free(&result) }
-
-            XCTAssertEqual(result.count, 0)
-        }
-
-        func test_resultFree_withNil_doesNotCrash() {
-            var result = emb_ring_read_result_t(records: nil, count: 0)
-            emb_ring_read_result_free(&result)
+            let records = testReadRange(buf, 0, UINT64_MAX)
+            XCTAssertEqual(records.count, 0)
         }
     }
 
