@@ -1,5 +1,5 @@
 //
-//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
 /// How a stack trace was captured.
@@ -15,7 +15,7 @@ public enum StackUnwindMethod {
 }
 
 /// A single profiling sample containing a stack trace captured at a point in time.
-public struct ProfilingSample {
+public struct ProfilingSample: Equatable, Hashable, Sendable {
     /// `CLOCK_MONOTONIC_RAW` timestamp in nanoseconds when this sample was captured.
     public let timestamp: UInt64
 
