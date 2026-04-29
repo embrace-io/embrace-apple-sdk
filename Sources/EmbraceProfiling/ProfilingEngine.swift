@@ -186,10 +186,15 @@ public final class ProfilingEngine: @unchecked Sendable {
             }
             defer { releaseGate() }
 
-            guard !emb_sampler_is_active() else { return .alreadyActive }
+            let wasActive = emb_sampler_is_active()
 
+            // If the sampler is already active, skip buffer manipulation
+            // (the worker thread may be writing to it) and let
+            // emb_sampler_start() report the accurate state.
             let needsNewBuffer: Bool
-            if let existing = ringBuffer {
+            if wasActive {
+                needsNewBuffer = false
+            } else if let existing = ringBuffer {
                 if configuration.bufferCapacityBytes == activeConfiguration?.bufferCapacityBytes {
                     // Retry briefly: the Dekker protocol in reset can fail if a
                     // concurrent reader is briefly inside read_range. Under the
@@ -246,9 +251,13 @@ public final class ProfilingEngine: @unchecked Sendable {
             switch emb_sampler_start(ringBuffer, config) {
             case EMB_SAMPLER_START_OK:
                 activeConfiguration = configuration
-                return .started
+                return wasActive ? .alreadyActive : .started
             case EMB_SAMPLER_START_BUSY:
-                return .samplerBusy
+                // If the sampler was already active when we entered, BUSY means
+                // it's in a transitional active state (STARTING/STOPPING), report
+                // as already active. If it wasn't active, BUSY means a previous
+                // session is still being reaped, so report as busy.
+                return wasActive ? .alreadyActive : .samplerBusy
             case EMB_SAMPLER_START_CONFIG_MISMATCH:
                 return .configMismatch
             default:

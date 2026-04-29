@@ -94,6 +94,10 @@ extension ProfilingEngine {
                 usleep(1000)
             }
 
+            guard !emb_sampler_is_active() else {
+                preconditionFailure("resetForTesting: sampler still active after 5s timeout")
+            }
+
             // Best-effort gate acquisition: if it times out we still clean up
             // since we've already stopped the sampler.
             let gateAcquired = acquireGate()
