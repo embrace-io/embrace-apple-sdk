@@ -39,7 +39,7 @@ public struct CrashReporterInfoKey {
 /// 3. On next launch, call `getLastRunState()` to know whether the prior run crashed.
 /// 4. Use `fetchUnsentCrashReports(completion:)` to process and upload any pending reports.
 /// 5. After successful handling, call `deleteCrashReport(_:)` to remove a report from local storage.
-public protocol CrashReporter {
+package protocol CrashReporter {
 
     /// Installs crash handlers and initializes storage.
     ///
@@ -93,103 +93,4 @@ public protocol CrashReporter {
     ///
     /// - Note: Useful for debugging and diagnostics. Not all implementations persist to disk.
     var basePath: String? { get }
-}
-
-// MARK: - Backtracing
-
-/// Machine address type used for frame return/call sites.
-///
-/// - Note: This is pointer-sized (`UInt`), typically 64-bit on modern Apple platforms.
-public typealias FrameAddress = UInt
-
-/// Captures stack backtraces for threads.
-public protocol Backtracer {
-
-    /// Captures a backtrace for the provided thread.
-    ///
-    /// - Parameter thread: The target `pthread_t`. Callers are responsible for ensuring the thread is in a safe state
-    ///                     for backtracing (e.g., suspended or the current thread).
-    /// - Returns: An array of frame addresses representing the call stack, ordered from the top frame to the bottom.
-    ///
-    /// - Important: Many symbolication pipelines expect the *call site* rather than the *return address*.
-    ///   Implementations commonly transform the raw PC to a canonical call instruction (e.g., `returnAddress - 1` on ARM).
-    ///   See `SymbolicatedFrame.callInstruction`.
-    func backtrace(of thread: pthread_t) -> [FrameAddress]
-}
-
-// MARK: - Symbolication
-
-/// A single symbolicated frame describing where an address resolves within an image.
-public struct SymbolicatedFrame {
-
-    /// Program counter captured at the time of the backtrace (often a “return address”).
-    public let returnAddress: FrameAddress
-
-    /// Canonical call-site address used for symbol lookup (often `returnAddress - 1` on ARM).
-    ///
-    /// - Discussion: Subtracting 1 normalizes to the instruction that performed the call/jump so
-    ///   that lookups fall *within* the symbol’s range. Implementations should ensure this is correct
-    ///   for the target architecture and unwind source.
-    public let callInstruction: FrameAddress
-
-    /// The address of the symbol/function entry point.
-    public let symbolAddress: FrameAddress
-
-    /// Resolved demangled symbol name if available (e.g., `MyClass.myMethod(param:)`).
-    public let symbolName: String?
-
-    /// The filename of the binary image (e.g., `MyApp`, `UIKitCore`).
-    public let imageName: String?
-
-    /// The UUID of the binary image (Mach-O UUID), used to match dSYMs/symbol maps.
-    public let imageUUID: String?
-
-    /// The image’s preferred load address (Mach-O base / slide-adjusted).
-    public let imageAddress: FrameAddress
-
-    /// The size in bytes of the loaded image.
-    public let imageSize: UInt64
-
-    /// Designated initializer for a symbolicated frame.
-    ///
-    /// - Parameters:
-    ///   - returnAddress: Raw return/program-counter address captured from the backtrace.
-    ///   - callInstruction: Canonical call-site address for symbolication (often `returnAddress - 1`).
-    ///   - symbolAddress: Resolved symbol’s entry address.
-    ///   - symbolName: Optional demangled symbol name.
-    ///   - imageName: Optional Mach-O image name.
-    ///   - imageUUID: Optional UUID string used to match dSYMs.
-    ///   - imageAddress: The image base address (slide applied if appropriate).
-    ///   - imageSize: The image size in bytes.
-    public init(
-        returnAddress: FrameAddress,
-        callInstruction: FrameAddress,
-        symbolAddress: FrameAddress,
-        symbolName: String?,
-        imageName: String?,
-        imageUUID: String?,
-        imageAddress: FrameAddress,
-        imageSize: UInt64
-    ) {
-        self.returnAddress = returnAddress
-        self.callInstruction = callInstruction
-        self.symbolAddress = symbolAddress
-        self.symbolName = symbolName
-        self.imageName = imageName
-        self.imageUUID = imageUUID
-        self.imageAddress = imageAddress
-        self.imageSize = imageSize
-    }
-}
-
-/// Resolves raw addresses to human-readable symbols and image metadata.
-public protocol Symbolicator {
-
-    /// Resolves a single frame address to symbolic information.
-    ///
-    /// - Parameter address: A raw program-counter/call-site address. If you captured a return address,
-    ///                      consider normalizing (e.g., `addr - 1`) before calling.
-    /// - Returns: A `SymbolicatedFrame` on success, or `nil` if the address could not be resolved
-    ///            (e.g., missing symbols/dSYMs, unknown image).
-    func resolve(address: FrameAddress) -> SymbolicatedFrame?
 }

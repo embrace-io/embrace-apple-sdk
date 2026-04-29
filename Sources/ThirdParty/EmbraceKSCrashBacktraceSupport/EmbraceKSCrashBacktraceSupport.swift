@@ -4,10 +4,6 @@
 
 import Foundation
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
-#endif
-
 #if canImport(KSCrash)
     import KSCrash
 #else
@@ -15,7 +11,18 @@ import Foundation
     @_exported import KSCrashDemangleFilter
 #endif
 
-public class KSCrashBacktracing: Backtracer, Symbolicator {
+package struct SymbolicatedFrame {
+    package let returnAddress: UInt
+    package let callInstruction: UInt
+    package let symbolAddress: UInt
+    package let symbolName: String?
+    package let imageName: String?
+    package let imageUUID: String?
+    package let imageAddress: UInt
+    package let imageSize: UInt64
+}
+
+public class KSCrashBacktracing {
 
     public init() {}
 
@@ -37,7 +44,7 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
         return addresses
     }
 
-    public func resolve(address: UInt) -> SymbolicatedFrame? {
+    package func resolve(address: UInt) -> SymbolicatedFrame? {
 
         var result = SymbolInformation()
         guard symbolicate(address: UInt(address), result: &result) else {

@@ -36,9 +36,7 @@ let package = Package(
         .library(name: "EmbraceCore", targets: ["EmbraceCore", "EmbraceConfiguration"]),
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
         .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"]),
-        .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
-        .library(name: "EmbraceKSCrashBacktraceSupport", targets: ["EmbraceKSCrashBacktraceSupport"]),
-        .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"])
+        .library(name: "EmbraceKSCrashBacktraceSupport", targets: ["EmbraceKSCrashBacktraceSupport"])
     ],
     dependencies: [
         .package(
@@ -65,6 +63,7 @@ let package = Package(
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
                 "EmbraceCrash",
+                "EmbraceCrashlyticsSupport",
                 "EmbraceKSCrashBacktraceSupport",
                 "EmbraceOTelBridge"
             ],
@@ -89,6 +88,7 @@ let package = Package(
                 "EmbraceCommonInternal",
                 "EmbraceConfigInternal",
                 "EmbraceConfiguration",
+                "EmbraceKSCrashBacktraceSupport",
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",

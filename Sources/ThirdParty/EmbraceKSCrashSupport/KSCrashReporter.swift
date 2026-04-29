@@ -15,7 +15,7 @@ import Foundation
     import KSCrash
 #endif
 
-public final class KSCrashReporter: CrashReporter {
+package final class KSCrashReporter: CrashReporter {
 
     // KSCrash uses C callbacks. We can't capture Swift in them.
     // The workaround is to hold onto a private shared instance.
