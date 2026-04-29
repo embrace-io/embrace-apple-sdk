@@ -27,6 +27,13 @@ let stackDepth: size_t = 30
 
 // MARK: - Helpers
 
+func resolveStackBounds(port: thread_t) -> (bottom: UnsafeRawPointer, top: UnsafeRawPointer)? {
+    guard let pth = pthread_from_mach_thread_np(port) else { return nil }
+    let top = pthread_get_stackaddr_np(pth)
+    let size = pthread_get_stacksize_np(pth)
+    return (UnsafeRawPointer(top - size), UnsafeRawPointer(top))
+}
+
 func timeBlock(body: () -> Void) -> Double {
     // Warm up
     body()
@@ -42,10 +49,10 @@ func timeBlock(body: () -> Void) -> Double {
     return best
 }
 
-func walkFP(port: thread_t) -> Int {
+func walkFP(port: thread_t, stackBottom: UnsafeRawPointer, stackTop: UnsafeRawPointer) -> Int {
     var frames = [UInt](repeating: 0, count: maxFrames)
     var count = 0
-    emb_stack_walk(port, &frames, maxFrames, &count)
+    emb_stack_walk(port, stackBottom, stackTop, &frames, maxFrames, &count)
     return count
 }
 
@@ -63,11 +70,11 @@ struct BenchResult {
     let perWalkNs: Double
 }
 
-func benchmark(label: String, port: thread_t, walker: (thread_t) -> Int) -> BenchResult {
-    let frameCount = walker(port)
+func benchmark(label: String, port: thread_t, walker: () -> Int) -> BenchResult {
+    let frameCount = walker()
     let elapsed = timeBlock {
         for _ in 0..<iterations {
-            _ = walker(port)
+            _ = walker()
         }
     }
     let perWalk = (elapsed / Double(iterations)) * 1e9
@@ -108,11 +115,19 @@ guard let normalThread = emb_test_thread_create(stackDepth) else {
 }
 let normalPort = emb_test_thread_get_port(normalThread)
 
+guard let normalBounds = resolveStackBounds(port: normalPort) else {
+    fatalError("Failed to resolve stack bounds for normal thread")
+}
+
 var fpNormal: BenchResult!
 var ksNormal: BenchResult!
 withSuspendedThread(port: normalPort) {
-    fpNormal = benchmark(label: "FP walk", port: normalPort, walker: walkFP)
-    ksNormal = benchmark(label: "KSCrash captureBacktrace", port: normalPort, walker: walkKSCrash)
+    fpNormal = benchmark(label: "FP walk", port: normalPort) {
+        walkFP(port: normalPort, stackBottom: normalBounds.bottom, stackTop: normalBounds.top)
+    }
+    ksNormal = benchmark(label: "KSCrash captureBacktrace", port: normalPort) {
+        walkKSCrash(port: normalPort)
+    }
 }
 printResult(fpNormal)
 printResult(ksNormal)
@@ -127,11 +142,19 @@ guard let nofpThread = emb_test_thread_nofp_create(stackDepth) else {
 }
 let nofpPort = emb_test_thread_nofp_get_port(nofpThread)
 
+guard let nofpBounds = resolveStackBounds(port: nofpPort) else {
+    fatalError("Failed to resolve stack bounds for no-FP thread")
+}
+
 var fpNofp: BenchResult!
 var ksNofp: BenchResult!
 withSuspendedThread(port: nofpPort) {
-    fpNofp = benchmark(label: "FP walk", port: nofpPort, walker: walkFP)
-    ksNofp = benchmark(label: "KSCrash captureBacktrace", port: nofpPort, walker: walkKSCrash)
+    fpNofp = benchmark(label: "FP walk", port: nofpPort) {
+        walkFP(port: nofpPort, stackBottom: nofpBounds.bottom, stackTop: nofpBounds.top)
+    }
+    ksNofp = benchmark(label: "KSCrash captureBacktrace", port: nofpPort) {
+        walkKSCrash(port: nofpPort)
+    }
 }
 printResult(fpNofp)
 printResult(ksNofp)
