@@ -12,7 +12,7 @@ import Foundation
 package protocol EmbraceMetadataProvider: AnyObject {
 
     /// Returns the identifier for the current Embrace session, if any
-    var currentSessionId: EmbraceIdentifier { get }
+    var currentSessionId: EmbraceIdentifier? { get }
 
     /// Returns the identifier for the current process
     var currentProcessId: EmbraceIdentifier { get }
