@@ -12,7 +12,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
     var createEventCallCount: Int = 0
     var createEventError: Error?
     func createEvent(
-        for span: EmbraceSpan,
+        forSpanNamed spanName: String,
         name: String,
         type: EmbraceType?,
         timestamp: Date,
@@ -38,7 +38,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
     var createLinkCallCount: Int = 0
     var createLinkError: Error?
     func createLink(
-        for span: EmbraceSpan,
+        forSpanNamed spanName: String,
         spanId: String,
         traceId: String,
         attributes: EmbraceAttributes,

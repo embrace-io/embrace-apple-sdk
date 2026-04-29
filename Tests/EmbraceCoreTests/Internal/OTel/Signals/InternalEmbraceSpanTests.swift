@@ -51,7 +51,7 @@ class InternalEmbraceSpanTests: XCTestCase {
         let span = testSpan
 
         // when adding a new event
-        try span.addEvent(
+        span.addEvent(
             name: "newEvent",
             type: .performance,
             timestamp: Date(timeIntervalSince1970: 5),

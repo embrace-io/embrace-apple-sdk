@@ -55,25 +55,42 @@ extension CaptureService {
         )
     }
 
-    /// Adds the given `EmbraceSpanEvent` to the current Embrace session.
+    /// Adds an event to the current Embrace session and returns the stored, sanitized event.
+    /// If no session is active or the event limit has been reached, the event is dropped, a warning is logged, and `nil` is returned.
     /// - Parameter name: Name of the event.
     /// - Parameter type: Embrace specific type of the event, if any.
     /// - Parameter timestamp: Timestamp of the event.
     /// - Parameter attributes: Attributes of the event.
-    /// - Throws: `EmbraceOTelError.invalidSession` if there is not active Embrace session.
-    /// - Throws: `EmbraceOTelError.spanEventLimitReached` if the limit hass ben reached for the given span even type.
+    /// - Returns: The sanitized event that was recorded, or `nil` if no session is active or the limit was reached. The returned event may differ from your inputs because of name/attribute sanitization.
+    @discardableResult
     public func addSessionEvent(
         name: String,
         type: EmbraceType?,
         timestamp: Date,
         attributes: EmbraceAttributes
-    ) throws {
-        try otel?._addSessionEvent(
-            name: name,
-            type: type,
-            timestamp: timestamp,
-            attributes: attributes,
-            isInternal: false
+    ) -> EmbraceSpanEvent? {
+        do {
+            return try otel?._addSessionEvent(
+                name: name,
+                type: type,
+                timestamp: timestamp,
+                attributes: attributes,
+                isInternal: false
+            )
+        } catch {
+            return nil
+        }
+    }
+
+    /// Adds the given event to the current Embrace session. Adapter that destructures into the flat-arg form.
+    /// - Returns: The sanitized event that was recorded, or `nil` if no session is active or the limit was reached.
+    @discardableResult
+    public func addSessionEvent(_ event: EmbraceSpanEvent) -> EmbraceSpanEvent? {
+        return addSessionEvent(
+            name: event.name,
+            type: event.type,
+            timestamp: event.timestamp,
+            attributes: event.attributes
         )
     }
 

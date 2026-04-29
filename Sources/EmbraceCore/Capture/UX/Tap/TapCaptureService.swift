@@ -98,7 +98,7 @@
             }
 
             // create span event
-            try? otel?.addInternalSessionEvent(
+            _ = try? otel?.addInternalSessionEvent(
                 name: SpanEventSemantics.Tap.name,
                 type: .tap,
                 attributes: attributes

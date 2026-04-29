@@ -32,7 +32,7 @@ public final class LowMemoryWarningCaptureService: CaptureService {
             return
         }
 
-        try? otel?.addInternalSessionEvent(
+        _ = try? otel?.addInternalSessionEvent(
             name: SpanEventSemantics.LowMemory.name,
             type: .lowMemory
         )

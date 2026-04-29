@@ -5,7 +5,7 @@
 import Foundation
 
 /// Represents an OTel span link
-public class EmbraceSpanLink {
+public final class EmbraceSpanLink {
 
     /// Context of the linked span
     public let context: EmbraceSpanContext
@@ -17,7 +17,7 @@ public class EmbraceSpanLink {
     /// - Parameters:
     ///   - context: Span context of the link
     ///   - attributes: Attributes of the link
-    package init(context: EmbraceSpanContext, attributes: EmbraceAttributes = [:]) {
+    public init(context: EmbraceSpanContext, attributes: EmbraceAttributes = [:]) {
         self.context = context
         self.attributes = attributes
     }
@@ -27,7 +27,7 @@ public class EmbraceSpanLink {
     ///   - spanId: Span identifier of the link
     ///   - traceId: Trace identifier of the link
     ///   - attributes: Attributes of the link
-    package convenience init(spanId: String, traceId: String, attributes: EmbraceAttributes = [:]) {
+    public convenience init(spanId: String, traceId: String, attributes: EmbraceAttributes = [:]) {
         self.init(
             context: EmbraceSpanContext(spanId: spanId, traceId: traceId),
             attributes: attributes

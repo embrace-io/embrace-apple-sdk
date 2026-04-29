@@ -324,13 +324,13 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
     func test_createEvent_success() throws {
         // given a handler with limits
         sanitizer.sanitizeSpanEventNameReturnValue = "sanitized"
-        sanitizer.sanitizeSpanEventAttributesReturnValue = ["sanitizedKey": "sanitizedValue"]
+        sanitizer.sanitizeSpanEventAttributesProtectingReturnValue = ["sanitizedKey": "sanitizedValue"]
 
         // when creating an event
         let span = MockSpan(name: "test")
         let timestamp = Date()
         let event = try handler.createEvent(
-            for: span,
+            forSpanNamed: span.name,
             name: "event",
             type: .performance,
             timestamp: timestamp,
@@ -343,7 +343,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(limiter.shouldAddSpanEventCallCount, 1)
         XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 0)
         XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 1)
-        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesCallCount, 1)
+        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesProtectingCallCount, 1)
 
         // then the event is created correctly
         XCTAssertEqual(event.name, "sanitized")
@@ -365,7 +365,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         XCTAssertThrowsError(
             try handler.createEvent(
-                for: span,
+                forSpanNamed: span.name,
                 name: "event",
                 type: .performance,
                 timestamp: timestamp,
@@ -382,7 +382,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             XCTAssertEqual(limiter.shouldAddSpanEventCallCount, 1)
             XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 0)
             XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 0)
-            XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesCallCount, 0)
+            XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesProtectingCallCount, 0)
         }
     }
 
@@ -392,7 +392,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         let span = MockSpan(name: "test")
         let timestamp = Date()
         let event = try handler.createEvent(
-            for: span,
+            forSpanNamed: span.name,
             name: "event",
             type: .performance,
             timestamp: timestamp,
@@ -405,7 +405,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(limiter.shouldAddSpanEventCallCount, 1)
         XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 0)
         XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 1)
-        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesCallCount, 1)
+        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesProtectingCallCount, 1)
 
         // then the event is created correctly
         XCTAssertEqual(event.name, "event")
@@ -419,13 +419,13 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
     func test_createEvent_session_success() throws {
         // given a handler with limits
         sanitizer.sanitizeSpanEventNameReturnValue = "sanitized"
-        sanitizer.sanitizeSpanEventAttributesReturnValue = ["sanitizedKey": "sanitizedValue"]
+        sanitizer.sanitizeSpanEventAttributesProtectingReturnValue = ["sanitizedKey": "sanitizedValue"]
 
         // when creating a session event
         let span = MockSpan(name: "test")
         let timestamp = Date()
         let event = try handler.createEvent(
-            for: span,
+            forSpanNamed: span.name,
             name: "event",
             type: .performance,
             timestamp: timestamp,
@@ -439,7 +439,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(limiter.shouldAddSpanEventCallCount, 0)
         XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 1)
         XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 1)
-        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesCallCount, 1)
+        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesProtectingCallCount, 1)
 
         // then the event is created correctly
         XCTAssertEqual(event.name, "sanitized")
@@ -461,7 +461,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         XCTAssertThrowsError(
             try handler.createEvent(
-                for: span,
+                forSpanNamed: span.name,
                 name: "event",
                 type: .performance,
                 timestamp: timestamp,
@@ -479,7 +479,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             XCTAssertEqual(limiter.shouldAddSpanEventCallCount, 0)
             XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 1)
             XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 0)
-            XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesCallCount, 0)
+            XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesProtectingCallCount, 0)
         }
     }
 
@@ -490,7 +490,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         // when creating a link
         let span = MockSpan(name: "test")
         let link = try handler.createLink(
-            for: span,
+            forSpanNamed: span.name,
             spanId: TestConstants.spanId,
             traceId: TestConstants.traceId,
             attributes: ["key": "value"],
@@ -517,7 +517,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         XCTAssertThrowsError(
             try handler.createLink(
-                for: span,
+                forSpanNamed: span.name,
                 spanId: TestConstants.spanId,
                 traceId: TestConstants.traceId,
                 attributes: ["key": "value"],

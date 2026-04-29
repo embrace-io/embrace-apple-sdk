@@ -59,6 +59,13 @@ class MockOTelSignalsSanitizer: OTelSignalsSanitizer {
         return sanitizeSpanEventAttributesReturnValue ?? attributes
     }
 
+    var sanitizeSpanEventAttributesProtectingCallCount: Int = 0
+    var sanitizeSpanEventAttributesProtectingReturnValue: EmbraceAttributes?
+    func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes, protecting: Set<String>) -> EmbraceAttributes {
+        sanitizeSpanEventAttributesProtectingCallCount += 1
+        return sanitizeSpanEventAttributesProtectingReturnValue ?? attributes
+    }
+
     var sanitizeSpanLinkAttributesCallCount: Int = 0
     var sanitizeSpanLinkAttributesReturnValue: EmbraceAttributes?
     func sanitizeSpanLinkAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {

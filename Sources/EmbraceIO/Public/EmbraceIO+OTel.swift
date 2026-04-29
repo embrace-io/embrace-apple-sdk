@@ -55,24 +55,38 @@ extension EmbraceIO {
         )
     }
 
-    /// Adds the given `EmbraceSpanEvent` to the current Embrace session.
-    /// If no session is active or the event limit has been reached, the event is dropped and a warning is logged.
+    /// Adds an event to the current Embrace session and returns the stored, sanitized event.
+    /// If no session is active or the event limit has been reached, the event is dropped, a warning is logged, and `nil` is returned.
     /// - Parameters:
     ///   - name: Name of the event.
     ///   - type: Embrace specific type of the event, if any.
     ///   - timestamp: Timestamp of the event.
     ///   - attributes: Attributes of the event.
+    /// - Returns: The sanitized event that was recorded, or `nil` if the SDK is not initialized, no session is active, or the limit was reached. The returned event may differ from your inputs because of name/attribute sanitization.
+    @discardableResult
     public func addSessionEvent(
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:]
-    ) {
-        Embrace.client?.otel.addSessionEvent(
+    ) -> EmbraceSpanEvent? {
+        return Embrace.client?.otel.addSessionEvent(
             name: name,
             type: type,
             timestamp: timestamp,
             attributes: attributes
+        )
+    }
+
+    /// Adds the given event to the current Embrace session. Adapter that destructures into the flat-arg form.
+    /// - Returns: The sanitized event that was recorded, or `nil` if the SDK is not initialized, no session is active, or the limit was reached. The returned event may differ from your inputs because of name/attribute sanitization.
+    @discardableResult
+    public func addSessionEvent(_ event: EmbraceSpanEvent) -> EmbraceSpanEvent? {
+        return addSessionEvent(
+            name: event.name,
+            type: event.type,
+            timestamp: event.timestamp,
+            attributes: event.attributes
         )
     }
 

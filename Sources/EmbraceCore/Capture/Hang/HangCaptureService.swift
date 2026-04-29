@@ -200,7 +200,7 @@ extension HangCaptureService: HangObserver {
             return
         }
 
-        try? span.addEvent(
+        span.addEvent(
             name: SpanEventSemantics.Hang.name,
             type: .hang,
             timestamp: time,

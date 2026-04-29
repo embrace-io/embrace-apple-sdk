@@ -50,6 +50,49 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
 
         let finalAttributes = internalAttributes.merging(sanitizedAttributes) { (current, _) in current }
 
+        // sanitize initial events/links — only for non-internal spans, matching the
+        // `name`/`attributes` short-circuit above. Internal spans pass these through unchanged.
+        let finalEvents: [EmbraceSpanEvent]
+        let finalLinks: [EmbraceSpanLink]
+
+        if isInternal {
+            finalEvents = events
+            finalLinks = links
+        } else {
+            finalEvents = events.enumerated().compactMap { index, event in
+                do {
+                    return try createEvent(
+                        forSpanNamed: finalName,
+                        name: event.name,
+                        type: event.type,
+                        timestamp: event.timestamp,
+                        attributes: event.attributes,
+                        internalAttributes: [:],
+                        currentCount: index,
+                        isSessionEvent: false
+                    )
+                } catch {
+                    Embrace.logger.warning("Dropping initial span event '\(event.name)': \(error.localizedDescription)")
+                    return nil
+                }
+            }
+
+            finalLinks = links.enumerated().compactMap { index, link in
+                do {
+                    return try createLink(
+                        forSpanNamed: finalName,
+                        spanId: link.context.spanId,
+                        traceId: link.context.traceId,
+                        attributes: link.attributes,
+                        currentCount: index
+                    )
+                } catch {
+                    Embrace.logger.warning("Dropping initial span link: \(error.localizedDescription)")
+                    return nil
+                }
+            }
+        }
+
         // create span context
         let context = bridge.startSpan(
             name: finalName,
@@ -57,8 +100,8 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             status: status,
             startTime: startTime,
             endTime: endTime,
-            events: events,
-            links: links,
+            events: finalEvents,
+            links: finalLinks,
             attributes: finalAttributes
         )
 
@@ -77,8 +120,8 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             status: status,
             startTime: startTime,
             endTime: endTime,
-            events: events,
-            links: links,
+            events: finalEvents,
+            links: finalLinks,
             attributes: finalAttributes,
             internalAttributeCount: internalAttributes.count,
             sessionId: sessionId,
@@ -99,19 +142,20 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         return span
     }
 
+    @discardableResult
     package func _addSessionEvent(
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
         isInternal: Bool = true
-    ) throws {
+    ) throws -> EmbraceSpanEvent? {
 
         guard let span = sessionController?.currentSessionSpan else {
             throw EmbraceOTelError.invalidSession
         }
 
-        try span.addSessionEvent(
+        return try span.addSessionEvent(
             name: name,
             type: type,
             timestamp: timestamp,
@@ -278,7 +322,7 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
 // MARK: EmbraceSpanDataSource
 extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
     func createEvent(
-        for span: EmbraceSpan,
+        forSpanNamed spanName: String,
         name: String,
         type: EmbraceType?,
         timestamp: Date,
@@ -295,11 +339,14 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
             }
         } else {
             guard limiter.shouldAddSpanEvent(currentCount: currentCount) else {
-                throw EmbraceOTelError.spanEventLimitReached("Events limit reached for span \(span.name)")
+                throw EmbraceOTelError.spanEventLimitReached("Events limit reached for span \(spanName)")
             }
         }
 
-        let sanitizedAttributes = sanitizer.sanitizeSpanEventAttributes(attributes)
+        let sanitizedAttributes = sanitizer.sanitizeSpanEventAttributes(
+            attributes,
+            protecting: [SpanEventSemantics.keyEmbraceType]
+        )
         let finalAttributes = internalAttributes.merging(sanitizedAttributes) { (current, _) in current }
 
         return EmbraceSpanEvent(
@@ -311,7 +358,7 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
     }
 
     func createLink(
-        for span: EmbraceSpan,
+        forSpanNamed spanName: String,
         spanId: String,
         traceId: String,
         attributes: EmbraceAttributes,
@@ -320,7 +367,7 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
 
         // check limit
         guard limiter.shouldAddSpanLink(currentCount: currentCount) else {
-            throw EmbraceOTelError.spanLinkLimitReached("Links limit reached for span \(span.name)")
+            throw EmbraceOTelError.spanLinkLimitReached("Links limit reached for span \(spanName)")
         }
 
         return EmbraceSpanLink(
