@@ -1,5 +1,5 @@
 //
-//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
 #include "emb_ring_buffer.h"
@@ -111,7 +111,8 @@ emb_ring_buffer_t *emb_ring_buffer_create(size_t capacity_bytes)
 
     remap_succeeded = true;
 
-    // Sanity-check: VM_FLAGS_FIXED should guarantee the address didn't move.
+    // Sanity-check: with VM_FLAGS_FIXED | VM_FLAGS_OVERWRITE this branch is
+    // unreachable — the kernel must place the mapping at the requested address.
     if (second_half != region + half) {
         goto fail;
     }
@@ -219,7 +220,9 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
 
     // Current write position (monotonically increasing byte offset).
     uint64_t write_pos = atomic_load_explicit(&buf->write_pos, memory_order_relaxed);
-    uint64_t oldest_pos = atomic_load_explicit(&buf->oldest_pos, memory_order_acquire);
+    // relaxed: the writer is the only thread that advances oldest_pos, so no
+    // synchronisation is needed here — we only need our own prior stores.
+    uint64_t oldest_pos = atomic_load_explicit(&buf->oldest_pos, memory_order_relaxed);
 
     // Evict old records that would be overlapped by this write.
     // The loop condition: oldest_pos + capacity < write_pos + record_size
@@ -281,7 +284,7 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
     // Set seq to odd (writing). Release ordering ensures this store is visible
     // to readers before any subsequent data writes, which is necessary for
     // correct seqlock protocol on weakly-ordered architectures (ARM64).
-    atomic_store_explicit(&header->seq, buf->next_seq | 1, memory_order_release);
+    atomic_store_explicit(&header->seq, (uint32_t)(buf->next_seq | 1), memory_order_release);
 
     // Copy frame data into the buffer.
     uintptr_t *dest_frames = (uintptr_t *)(header + 1);
@@ -292,7 +295,7 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
     header->timestamp_ns = timestamp_ns;
 
     // Seal the seqlock (transition to even = stable).
-    atomic_store_explicit(&header->seq, buf->next_seq, memory_order_release);
+    atomic_store_explicit(&header->seq, (uint32_t)buf->next_seq, memory_order_release);
 
     // Advance write_pos by the actual record size.
     atomic_store_explicit(&buf->write_pos, write_pos + record_size(frame_count), memory_order_release);
