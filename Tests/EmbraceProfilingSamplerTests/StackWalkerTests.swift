@@ -1,5 +1,5 @@
 //
-//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
 #if !os(watchOS)
@@ -306,6 +306,47 @@
             XCTAssertFalse(result, "Should fail with null count_out")
 
             thread_resume(port)
+        }
+
+        // MARK: - Additional coverage
+
+        func test_stackWalk_terminatedThread_returnsFalse() {
+            guard let t = emb_test_thread_create(10) else {
+                XCTFail("Failed to create test thread")
+                return
+            }
+            let port = emb_test_thread_get_port(t)
+            guard let pth = pthread_from_mach_thread_np(port) else {
+                XCTFail("Failed to get pthread")
+                emb_test_thread_destroy(t)
+                return
+            }
+            let bounds = stackBounds(for: pth)
+            emb_test_thread_destroy(t)
+
+            var frames = [UInt](repeating: 0, count: 64)
+            var count = 0
+            let result = emb_stack_walk(port, bounds.bottom, bounds.top, &frames, 64, &count)
+            XCTAssertFalse(result, "Walk on a dead thread port should fail")
+            XCTAssertEqual(count, 0)
+        }
+
+        func test_stackWalk_frameAddresses_areRealistic() {
+            guard let t = emb_test_thread_create(10) else {
+                XCTFail("Failed to create test thread")
+                return
+            }
+            defer { emb_test_thread_destroy(t) }
+            let (success, count, frames) = walkTestThread(t)
+            XCTAssertTrue(success)
+            XCTAssertGreaterThan(count, 0)
+            let minPlausibleAddress: UInt = 0x1_0000
+            for (i, frame) in frames.enumerated() {
+                XCTAssertGreaterThan(
+                    frame, minPlausibleAddress,
+                    "Frame \(i) address 0x\(String(frame, radix: 16)) is implausibly low"
+                )
+            }
         }
     }
 

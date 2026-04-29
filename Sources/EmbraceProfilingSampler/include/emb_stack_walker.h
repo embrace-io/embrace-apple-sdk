@@ -1,5 +1,5 @@
 //
-//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
 /// Async-safe frame-pointer stack walker for suspended Mach threads.

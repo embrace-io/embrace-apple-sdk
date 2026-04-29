@@ -1,5 +1,5 @@
 //
-//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
 #if !os(watchOS)
@@ -35,15 +35,29 @@ func captureStack(thread: thread_t, maxFrames: Int = 512) -> (frames: [UInt], me
     var ksFrames = [UInt](repeating: 0, count: maxFrames)
     let pthread = pthread_from_mach_thread_np(thread)
 
+    // Resolve stack bounds before suspending — pthread APIs are not async-safe.
+    var stackBottom: UnsafeRawPointer? = nil
+    var stackTop: UnsafeRawPointer? = nil
+    if let pth = pthread {
+        let top = pthread_get_stackaddr_np(pth)
+        let size = pthread_get_stacksize_np(pth)
+        stackTop = UnsafeRawPointer(top)
+        stackBottom = UnsafeRawPointer(top - size)
+    }
+
     guard thread_suspend(thread) == KERN_SUCCESS else {
         return ([], .failed)
     }
 
-    // Only asyn-safe things allowed between suspend and resume.
+    // Only async-safe things allowed between suspend and resume.
 
     var fpCount = 0
-    // Common case: Frame pointer is available, so we can fast-walk the stack.
-    let fpSuccess = emb_stack_walk(thread, &fpFrames, maxFrames, &fpCount)
+    let fpSuccess: Bool
+    if let bottom = stackBottom, let top = stackTop {
+        fpSuccess = emb_stack_walk(thread, bottom, top, &fpFrames, maxFrames, &fpCount)
+    } else {
+        fpSuccess = false
+    }
 
     // Fall back to KSCrash's unwinder if FP walking didn't produce enough
     // frames.
