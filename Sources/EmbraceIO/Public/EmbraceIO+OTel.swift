@@ -78,8 +78,10 @@ extension EmbraceIO {
         )
     }
 
-    /// Adds the given event to the current Embrace session. Adapter that destructures into the flat-arg form.
-    /// - Returns: The sanitized event that was recorded, or `nil` if the SDK is not initialized, no session is active, or the limit was reached. The returned event may differ from your inputs because of name/attribute sanitization.
+    /// Adds an event to the current Embrace session and returns the stored, sanitized event.
+    /// If no session is active or the event limit has been reached, the event is dropped, a warning is logged, and `nil` is returned.
+    /// - Parameter event: The event to add.
+    /// - Returns: The sanitized event that was recorded, or `nil` if the SDK is not initialized, no session is active, or the limit was reached. The returned event may differ from your input because of name/attribute sanitization.
     @discardableResult
     public func addSessionEvent(_ event: EmbraceSpanEvent) -> EmbraceSpanEvent? {
         return addSessionEvent(
