@@ -20,12 +20,19 @@ import XCTest
 /// Benchmarks comparing FP-based stack walking vs KSCrash fallback on stacks
 /// compiled with and without frame pointers.
 ///
-/// `-fomit-frame-pointer` takes effect on both arm64 and x86_64 with modern
-/// Clang. When frame pointers are omitted the FP walker loses most frames.
-/// The KSCrash fallback currently also relies on FP chains, so it is not
-/// meaningfully better for fully frameless stacks right now — it is structured
-/// as a fallback in anticipation of KSCrash gaining DWARF-based unwinding
-/// (see TODO below), which will recover full stacks regardless of FP presence.
+/// `-fomit-frame-pointer` takes effect on x86_64, and Apple suppresses it on
+/// arm64, but there are other ways for the FP to be unavailable:
+/// - mid-prologue or mid-epilogue
+/// - in a leaf function before the frame is set up
+/// - hand written assembly
+/// - signal trampolines
+/// - objc_msgSend shenanigans
+/// - game engines, embedded VMs, Unity, Unreal, etc
+/// When frame pointers are omitted the FP walker loses most frames. The
+/// KSCrash fallback currently also relies on FP chains, so it is not
+/// meaningfully better for fully frameless stacks right now. it is structured
+/// as a fallback in anticipation of KSCrash gaining DWARF-based unwinding (see
+/// TODO below), which will recover full stacks regardless of FP presence.
 final class FallbackBenchmarks: XCTestCase {
 
     private static let walksPerIteration = 10_000
