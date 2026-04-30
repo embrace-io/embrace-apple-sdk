@@ -8,7 +8,7 @@ public enum StackUnwindMethod {
     case framePointer
     /// KSCrash's DWARF-based unwinder (slower, more robust fallback)
     case kscrash
-    /// Partial frame-pointer walk (below minFPFrames threshold, returned as last resort)
+    /// Partial frame-pointer walk (below minFPFrames threshold, returned as last resort if kscrash returned nothing)
     case framePointerPartial
     /// Stack capture failed entirely — no frames were obtained.
     case failed
