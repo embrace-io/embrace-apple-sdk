@@ -3,7 +3,7 @@
 //
 
 /// How a stack trace was captured.
-public enum StackUnwindMethod {
+public enum StackUnwindMethod: Equatable, Hashable, CaseIterable, Sendable {
     /// Frame-pointer based stack walking (fast, works when FP is available)
     case framePointer
     /// KSCrash's DWARF-based unwinder (slower, more robust fallback)
