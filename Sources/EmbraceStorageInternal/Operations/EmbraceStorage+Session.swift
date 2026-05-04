@@ -26,7 +26,7 @@ extension EmbraceStorage {
     ///   - completion: A block called when the sesson has been added to storage
     /// - Returns: The newly stored `SessionRecord`
     @discardableResult
-    public func addSession(
+    package func addSession(
         id: EmbraceIdentifier,
         processId: EmbraceIdentifier,
         state: SessionState,
@@ -40,6 +40,13 @@ extension EmbraceStorage {
         cleanExit: Bool = false,
         appTerminated: Bool = false,
         sessionNumber: EMBInt = 0,
+        userSessionId: EmbraceIdentifier? = nil,
+        userSessionStartTime: Date? = nil,
+        userSessionMaxDuration: TimeInterval? = nil,
+        userSessionInactivityTimeout: TimeInterval? = nil,
+        userSessionLastForegroundEnd: Date? = nil,
+        userSessionPartIndex: EMBInt = 0,
+        userSessionEndReason: String? = nil,
         completion: (() -> Void)? = nil
     ) -> EmbraceSession? {
 
@@ -68,7 +75,14 @@ extension EmbraceStorage {
                 coldStart: coldStart,
                 cleanExit: cleanExit,
                 appTerminated: appTerminated,
-                sessionNumber: sessionNumber
+                sessionNumber: sessionNumber,
+                userSessionId: userSessionId,
+                userSessionStartTime: userSessionStartTime,
+                userSessionMaxDuration: userSessionMaxDuration,
+                userSessionInactivityTimeout: userSessionInactivityTimeout,
+                userSessionLastForegroundEnd: userSessionLastForegroundEnd,
+                userSessionPartIndex: userSessionPartIndex,
+                userSessionEndReason: userSessionEndReason
             )
             guard created else {
                 logger.critical("Failed to create new session!")
@@ -91,7 +105,14 @@ extension EmbraceStorage {
             coldStart: coldStart,
             cleanExit: cleanExit,
             appTerminated: appTerminated,
-            sessionNumber: sessionNumber
+            sessionNumber: sessionNumber,
+            userSessionId: userSessionId,
+            userSessionStartTime: userSessionStartTime,
+            userSessionMaxDuration: userSessionMaxDuration,
+            userSessionInactivityTimeout: userSessionInactivityTimeout,
+            userSessionLastForegroundEnd: userSessionLastForegroundEnd,
+            userSessionPartIndex: userSessionPartIndex,
+            userSessionEndReason: userSessionEndReason
         )
     }
 
@@ -106,7 +127,7 @@ extension EmbraceStorage {
     /// - Parameters:
     ///   - id: Identifier of the session
     /// - Returns: Immutable copy of the stored `SessionRecord`, if any
-    public func fetchSession(id: EmbraceIdentifier) -> EmbraceSession? {
+    package func fetchSession(id: EmbraceIdentifier) -> EmbraceSession? {
 
         // fetch
         let request = fetchSessionRequest(id: id)
@@ -127,7 +148,7 @@ extension EmbraceStorage {
 
     /// Synchronously fetches the newest session in the storage, ignoring the current session if it exists.
     /// - Returns: Immutable copy of the newest stored `SessionRecord`, if any
-    public func fetchLatestSession(
+    package func fetchLatestSession(
         ignoringCurrentSessionId sessionId: EmbraceIdentifier? = nil
     ) -> EmbraceSession? {
         let request = SessionRecord.createFetchRequest()
@@ -149,7 +170,7 @@ extension EmbraceStorage {
     }
 
     /// Completion will be sent on an undefined queue.
-    public func fetchLatestSession(
+    package func fetchLatestSession(
         ignoringCurrentSessionId sessionId: EmbraceIdentifier? = nil,
         _ completion: @escaping (EmbraceSession?) -> Void
     ) {
@@ -178,7 +199,7 @@ extension EmbraceStorage {
 
     /// Synchronously fetches the oldest session in the storage, if any.
     /// - Returns: Immutable copy of the oldest stored `SessionRecord`, if any
-    public func fetchOldestSession(ignoringCurrentSessionId sessionId: EmbraceIdentifier? = nil) -> EmbraceSession? {
+    package func fetchOldestSession(ignoringCurrentSessionId sessionId: EmbraceIdentifier? = nil) -> EmbraceSession? {
         let request = SessionRecord.createFetchRequest()
         request.fetchLimit = 1
         request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
@@ -199,7 +220,7 @@ extension EmbraceStorage {
 
     /// Synchronously fetches all the sessions in the storage, if any
     /// - Returns: Immutable copies of all the stored sessions
-    public func fetchAllSessions() -> [EmbraceSession] {
+    package func fetchAllSessions() -> [EmbraceSession] {
         let request = SessionRecord.createFetchRequest()
 
         // fetch
@@ -217,14 +238,16 @@ extension EmbraceStorage {
     /// Updates values for the given session id
     /// - Returns: Immutable copy of the modified `SessionRecord`, if any
     @discardableResult
-    public func updateSession(
+    package func updateSession(
         session: EmbraceSession,
         state: SessionState? = nil,
         lastHeartbeatTime: Date? = nil,
         endTime: Date? = nil,
         cleanExit: Bool? = nil,
         appTerminated: Bool? = nil,
-        crashReportId: String? = nil
+        crashReportId: String? = nil,
+        userSessionLastForegroundEnd: Date? = nil,
+        userSessionEndReason: String? = nil
     ) -> EmbraceSession? {
 
         coreData.performAsyncOperation { [self] context in
@@ -259,6 +282,14 @@ extension EmbraceStorage {
                 fetchedSession.crashReportId = crashReportId
             }
 
+            if let userSessionLastForegroundEnd = userSessionLastForegroundEnd {
+                fetchedSession.userSessionLastForegroundEnd = userSessionLastForegroundEnd
+            }
+
+            if let userSessionEndReason = userSessionEndReason {
+                fetchedSession.userSessionEndReason = userSessionEndReason
+            }
+
             coreData.save()
         }
 
@@ -268,7 +299,9 @@ extension EmbraceStorage {
             endTime: endTime,
             cleanExit: cleanExit,
             appTerminated: appTerminated,
-            crashReportId: crashReportId
+            crashReportId: crashReportId,
+            userSessionLastForegroundEnd: userSessionLastForegroundEnd,
+            userSessionEndReason: userSessionEndReason
         )
     }
 }
@@ -280,7 +313,9 @@ extension EmbraceSession {
         endTime: Date? = nil,
         cleanExit: Bool? = nil,
         appTerminated: Bool? = nil,
-        crashReportId: String? = nil
+        crashReportId: String? = nil,
+        userSessionLastForegroundEnd: Date? = nil,
+        userSessionEndReason: String? = nil
     ) -> EmbraceSession {
 
         return ImmutableSessionRecord(
@@ -296,7 +331,14 @@ extension EmbraceSession {
             coldStart: coldStart,
             cleanExit: cleanExit ?? self.cleanExit,
             appTerminated: appTerminated ?? self.appTerminated,
-            sessionNumber: self.sessionNumber
+            sessionNumber: self.sessionNumber,
+            userSessionId: self.userSessionId,
+            userSessionStartTime: self.userSessionStartTime,
+            userSessionMaxDuration: self.userSessionMaxDuration,
+            userSessionInactivityTimeout: self.userSessionInactivityTimeout,
+            userSessionLastForegroundEnd: userSessionLastForegroundEnd ?? self.userSessionLastForegroundEnd,
+            userSessionPartIndex: self.userSessionPartIndex,
+            userSessionEndReason: userSessionEndReason ?? self.userSessionEndReason
         )
     }
 }
