@@ -2,6 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation
+
 public class DefaultConfig: EmbraceConfigurable {
     public var hangLimits: HangLimits = HangLimits()
 
@@ -44,6 +46,10 @@ public class DefaultConfig: EmbraceConfigurable {
     public let useLegacyUrlSessionProxy = false
 
     public let useNewStorageForSpanEvents = false
+
+    public let userSessionMaxDuration: TimeInterval = 12 * 3600
+
+    public let userSessionInactivityTimeout: TimeInterval = 30 * 60
 
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)

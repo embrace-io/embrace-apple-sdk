@@ -25,5 +25,7 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertEqual(config.logSeverityLimits, LogSeverityLimits())
         XCTAssertEqual(config.internalLogLimits, InternalLogLimits())
         XCTAssertTrue(config.networkPayloadCaptureRules.isEmpty)
+        XCTAssertEqual(config.userSessionMaxDuration, 12 * 3600)
+        XCTAssertEqual(config.userSessionInactivityTimeout, 30 * 60)
     }
 }
