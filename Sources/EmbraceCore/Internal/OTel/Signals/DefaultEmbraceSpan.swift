@@ -104,21 +104,29 @@ class DefaultEmbraceSpan: EmbraceSpan {
         handler?.onSpanStatusUpdated(self, status: status)
     }
 
+    @discardableResult
     open func addEvent(
         name: String,
         type: EmbraceType? = .performance,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:]
-    ) throws {
-        try _addEvent(
-            name: name,
-            type: type,
-            timestamp: timestamp,
-            attributes: attributes,
-            isInternal: false
-        )
+    ) -> EmbraceSpanEvent? {
+        do {
+            return try _addEvent(
+                name: name,
+                type: type,
+                timestamp: timestamp,
+                attributes: attributes,
+                isInternal: false
+            )
+        } catch {
+            // _addEvent throws only on limit overflow; no-handler returns nil silently.
+            Embrace.logger.warning("Failed to add event '\(name)': \(error.localizedDescription)")
+            return nil
+        }
     }
 
+    @discardableResult
     func _addEvent(
         name: String,
         type: EmbraceType? = .performance,
@@ -127,12 +135,12 @@ class DefaultEmbraceSpan: EmbraceSpan {
         internalAttributes: EmbraceAttributes = [:],
         isInternal: Bool,
         isSessionEvent: Bool = false
-    ) throws {
+    ) throws -> EmbraceSpanEvent? {
 
-        var event: EmbraceSpanEvent?
+        let event: EmbraceSpanEvent
 
-        // apply limits?
         if isInternal {
+            // Internal callers: skip limits; merge internalAttributes onto the user's attributes.
             event = EmbraceSpanEvent(
                 name: name,
                 type: type,
@@ -141,12 +149,16 @@ class DefaultEmbraceSpan: EmbraceSpan {
             )
 
         } else {
+            // No handler means the span was constructed without one (e.g. read-only adapter / record).
+            // Match today's silent skip — return nil.
+            guard let handler else { return nil }
+
             let currentCount = state.withLock {
                 $0.events.count - $0.internalEventCount
             }
 
-            event = try handler?.createEvent(
-                for: self,
+            event = try handler.createEvent(
+                forSpanNamed: self.name,
                 name: name,
                 type: type,
                 timestamp: timestamp,
@@ -155,10 +167,6 @@ class DefaultEmbraceSpan: EmbraceSpan {
                 currentCount: currentCount,
                 isSessionEvent: isSessionEvent
             )
-        }
-
-        guard let event else {
-            return
         }
 
         // add event
@@ -170,31 +178,39 @@ class DefaultEmbraceSpan: EmbraceSpan {
             }
         }
         handler?.onSpanEventAdded(self, event: event)
+        return event
     }
 
+    @discardableResult
     func addLink(
         spanId: String,
         traceId: String,
         attributes: EmbraceAttributes = [:]
-    ) throws {
+    ) -> EmbraceSpanLink? {
         guard let handler else {
-            return
+            return nil
         }
 
         let currentCount = state.withLock {
             $0.events.count - $0.internalEventCount
         }
 
-        let link = try handler.createLink(
-            for: self,
-            spanId: spanId,
-            traceId: traceId,
-            attributes: attributes,
-            currentCount: currentCount
-        )
+        do {
+            let link = try handler.createLink(
+                forSpanNamed: self.name,
+                spanId: spanId,
+                traceId: traceId,
+                attributes: attributes,
+                currentCount: currentCount
+            )
 
-        links.append(link)
-        handler.onSpanLinkAdded(self, link: link)
+            links.append(link)
+            handler.onSpanLinkAdded(self, link: link)
+            return link
+        } catch {
+            Embrace.logger.warning("Failed to add link to span '\(self.name)': \(error.localizedDescription)")
+            return nil
+        }
     }
 
     open func setAttribute(key: String, value: EmbraceAttributeValue?) throws {
@@ -277,6 +293,7 @@ extension EmbraceSpan {
 
 // MARK: Internal Session Events
 protocol EmbraceSpanSessionEvents {
+    @discardableResult
     func _addSessionEvent(
         name: String,
         type: EmbraceType?,
@@ -284,10 +301,11 @@ protocol EmbraceSpanSessionEvents {
         attributes: EmbraceAttributes,
         internalAttributes: EmbraceAttributes,
         isInternal: Bool
-    ) throws
+    ) throws -> EmbraceSpanEvent?
 }
 
 extension DefaultEmbraceSpan: EmbraceSpanSessionEvents {
+    @discardableResult
     func _addSessionEvent(
         name: String,
         type: EmbraceType? = .performance,
@@ -295,8 +313,8 @@ extension DefaultEmbraceSpan: EmbraceSpanSessionEvents {
         attributes: EmbraceAttributes = [:],
         internalAttributes: EmbraceAttributes = [:],
         isInternal: Bool
-    ) throws {
-        try _addEvent(
+    ) throws -> EmbraceSpanEvent? {
+        return try _addEvent(
             name: name,
             type: type,
             timestamp: timestamp,
@@ -309,6 +327,7 @@ extension DefaultEmbraceSpan: EmbraceSpanSessionEvents {
 }
 
 extension EmbraceSpan {
+    @discardableResult
     func addSessionEvent(
         name: String,
         type: EmbraceType? = .performance,
@@ -316,12 +335,12 @@ extension EmbraceSpan {
         attributes: EmbraceAttributes = [:],
         internalAttributes: EmbraceAttributes = [:],
         isInternal: Bool
-    ) throws {
+    ) throws -> EmbraceSpanEvent? {
         guard let span = self as? EmbraceSpanSessionEvents else {
-            return
+            return nil
         }
 
-        try span._addSessionEvent(
+        return try span._addSessionEvent(
             name: name,
             type: type,
             timestamp: timestamp,

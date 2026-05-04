@@ -67,12 +67,18 @@ public class MockSpan: EmbraceSpan {
         self._status = status
     }
 
-    public func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: EmbraceAttributes) throws {
-        events.append(EmbraceSpanEvent(name: name, type: type, timestamp: timestamp, attributes: attributes))
+    @discardableResult
+    public func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: EmbraceAttributes) -> EmbraceSpanEvent? {
+        let event = EmbraceSpanEvent(name: name, type: type, timestamp: timestamp, attributes: attributes)
+        events.append(event)
+        return event
     }
 
-    public func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) throws {
-        links.append(EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes))
+    @discardableResult
+    public func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) -> EmbraceSpanLink? {
+        let link = EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes)
+        links.append(link)
+        return link
     }
 
     public func end(endTime: Date) {
@@ -97,6 +103,7 @@ extension MockSpan: EmbraceSpanInternalAttributes {
 }
 
 extension MockSpan: EmbraceSpanSessionEvents {
+    @discardableResult
     public func _addSessionEvent(
         name: String,
         type: EmbraceType? = .performance,
@@ -104,8 +111,8 @@ extension MockSpan: EmbraceSpanSessionEvents {
         attributes: EmbraceAttributes = [:],
         internalAttributes: EmbraceAttributes = [:],
         isInternal: Bool
-    ) throws {
-        try addEvent(
+    ) throws -> EmbraceSpanEvent? {
+        return addEvent(
             name: name,
             type: type,
             timestamp: timestamp,

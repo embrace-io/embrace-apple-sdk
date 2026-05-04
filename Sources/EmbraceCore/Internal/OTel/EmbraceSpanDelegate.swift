@@ -20,7 +20,7 @@ protocol EmbraceSpanDelegate: AnyObject {
 
 protocol EmbraceSpanDataSource: AnyObject {
     func createEvent(
-        for span: EmbraceSpan,
+        forSpanNamed spanName: String,
         name: String,
         type: EmbraceType?,
         timestamp: Date,
@@ -31,7 +31,7 @@ protocol EmbraceSpanDataSource: AnyObject {
     ) throws -> EmbraceSpanEvent
 
     func createLink(
-        for span: EmbraceSpan,
+        forSpanNamed spanName: String,
         spanId: String,
         traceId: String,
         attributes: EmbraceAttributes,

@@ -94,7 +94,7 @@
                 attributes[SpanEventSemantics.WebView.keyErrorCode] = String(errorCode)
             }
 
-            try? otel?.addInternalSessionEvent(
+            _ = try? otel?.addInternalSessionEvent(
                 name: SpanEventSemantics.WebView.name,
                 type: .webView,
                 attributes: attributes

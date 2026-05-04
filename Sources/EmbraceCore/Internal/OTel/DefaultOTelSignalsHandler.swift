@@ -61,20 +61,22 @@ package class DefaultOTelSignalsHandler {
         }
     }
 
-    /// Adds the given `EmbraceSpanEvent` to the current Embrace session.
-    /// If no session is active or the event limit has been reached, the event is dropped and a warning is logged.
+    /// Adds an event to the current Embrace session and returns the stored, sanitized event.
+    /// If no session is active or the event limit has been reached, the event is dropped, a warning is logged, and `nil` is returned.
     /// - Parameter name: Name of the event.
     /// - Parameter type: Embrace specific type of the event, if any.
     /// - Parameter timestamp: Timestamp of the event.
     /// - Parameter attributes: Attributes of the event.
+    /// - Returns: The sanitized event that was recorded, or `nil` if no session is active or the limit was reached.
+    @discardableResult
     package func addSessionEvent(
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:]
-    ) {
+    ) -> EmbraceSpanEvent? {
         do {
-            try _addSessionEvent(
+            return try _addSessionEvent(
                 name: name,
                 type: type,
                 timestamp: timestamp,
@@ -83,7 +85,22 @@ package class DefaultOTelSignalsHandler {
             )
         } catch {
             Embrace.logger.warning("Failed to add session event '\(name)': \(error.localizedDescription)")
+            return nil
         }
+    }
+
+    /// Adds an event to the current Embrace session and returns the stored, sanitized event.
+    /// If no session is active or the event limit has been reached, the event is dropped, a warning is logged, and `nil` is returned.
+    /// - Parameter event: The event to add.
+    /// - Returns: The sanitized event that was recorded, or `nil` if no session is active or the limit was reached. The returned event may differ from your input because of name/attribute sanitization.
+    @discardableResult
+    package func addSessionEvent(_ event: EmbraceSpanEvent) -> EmbraceSpanEvent? {
+        return addSessionEvent(
+            name: event.name,
+            type: event.type,
+            timestamp: event.timestamp,
+            attributes: event.attributes
+        )
     }
 
     /// Emits a new log.

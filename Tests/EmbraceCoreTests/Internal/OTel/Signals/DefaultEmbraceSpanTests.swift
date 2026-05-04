@@ -89,7 +89,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         let span = testSpan
 
         // when adding a new event
-        try span.addEvent(
+        span.addEvent(
             name: "newEvent",
             type: .performance,
             timestamp: Date(timeIntervalSince1970: 5),
@@ -118,22 +118,18 @@ class DefaultEmbraceSpanTests: XCTestCase {
         // when adding a new event that would fail
         handler.createEventError = EmbraceOTelError.spanEventLimitReached("test")
 
-        XCTAssertThrowsError(
-            try span.addEvent(
-                name: "newEvent",
-                type: .performance,
-                timestamp: Date(timeIntervalSince1970: 5),
-                attributes: ["key": "value"]
-            )
-        ) { error in
+        let result = span.addEvent(
+            name: "newEvent",
+            type: .performance,
+            timestamp: Date(timeIntervalSince1970: 5),
+            attributes: ["key": "value"]
+        )
 
-            // then the correct error is thrown
-            XCTAssert(error is EmbraceOTelError)
-            XCTAssertEqual((error as! EmbraceOTelError).errorCode, -3)
-            XCTAssertEqual(span.state.safeValue.internalEventCount, 0)
-            XCTAssertEqual(handler.createEventCallCount, 1)
-            XCTAssertEqual(handler.onSpanEventAddedCallCount, 0)
-        }
+        // then nil is returned, the event isn't appended, and onSpanEventAdded isn't fired
+        XCTAssertNil(result)
+        XCTAssertEqual(span.state.safeValue.internalEventCount, 0)
+        XCTAssertEqual(handler.createEventCallCount, 1)
+        XCTAssertEqual(handler.onSpanEventAddedCallCount, 0)
     }
 
     func test_addSessionEvent_success() throws {
@@ -228,7 +224,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         let span = testSpan
 
         // when adding a new link
-        try span.addLink(
+        span.addLink(
             spanId: TestConstants.spanId,
             traceId: TestConstants.traceId,
             attributes: ["key": "value"]
@@ -250,24 +246,83 @@ class DefaultEmbraceSpanTests: XCTestCase {
         // given a span
         let span = testSpan
 
-        // when adding a new event that would fail
+        // when adding a new link that would fail
         handler.createLinkError = EmbraceOTelError.spanLinkLimitReached("test")
 
-        XCTAssertThrowsError(
-            try span.addLink(
-                spanId: TestConstants.spanId,
-                traceId: TestConstants.traceId,
-                attributes: ["key": "value"]
-            )
-        ) { error in
+        let result = span.addLink(
+            spanId: TestConstants.spanId,
+            traceId: TestConstants.traceId,
+            attributes: ["key": "value"]
+        )
 
-            // then the correct error is thrown
-            XCTAssert(error is EmbraceOTelError)
-            XCTAssertEqual((error as! EmbraceOTelError).errorCode, -4)
-            XCTAssertEqual(span.state.safeValue.internalLinkCount, 0)
-            XCTAssertEqual(handler.createLinkCallCount, 1)
-            XCTAssertEqual(handler.onSpanLinkAddedCallCount, 0)
-        }
+        // then nil is returned, the link isn't appended, and onSpanLinkAdded isn't fired
+        XCTAssertNil(result)
+        XCTAssertEqual(span.state.safeValue.internalLinkCount, 0)
+        XCTAssertEqual(handler.createLinkCallCount, 1)
+        XCTAssertEqual(handler.onSpanLinkAddedCallCount, 0)
+    }
+
+    // MARK: object overloads
+
+    func test_addEvent_object_returnsStoredEvent() throws {
+        let span = testSpan
+        let input = EmbraceSpanEvent(
+            name: "objectEvent",
+            type: .performance,
+            timestamp: Date(timeIntervalSince1970: 5),
+            attributes: ["k": "v"]
+        )
+
+        let stored = span.addEvent(input)
+
+        XCTAssertNotNil(stored)
+        XCTAssertEqual(stored?.name, "objectEvent")
+        XCTAssertEqual(span.events.count, 2)
+        XCTAssertEqual(handler.createEventCallCount, 1)
+        XCTAssertEqual(handler.onSpanEventAddedCallCount, 1)
+    }
+
+    func test_addEvent_object_returnsNil_whenLimitReached() throws {
+        let span = testSpan
+        handler.createEventError = EmbraceOTelError.spanEventLimitReached("test")
+
+        let input = EmbraceSpanEvent(name: "objectEvent", attributes: ["k": "v"])
+        let stored = span.addEvent(input)
+
+        XCTAssertNil(stored)
+        XCTAssertEqual(span.events.count, 1)  // unchanged
+        XCTAssertEqual(handler.createEventCallCount, 1)
+        XCTAssertEqual(handler.onSpanEventAddedCallCount, 0)
+    }
+
+    func test_addLink_object_returnsStoredLink() throws {
+        let span = testSpan
+        let input = EmbraceSpanLink(
+            spanId: TestConstants.spanId,
+            traceId: TestConstants.traceId,
+            attributes: ["k": "v"]
+        )
+
+        let stored = span.addLink(input)
+
+        XCTAssertNotNil(stored)
+        XCTAssertEqual(stored?.context.spanId, TestConstants.spanId)
+        XCTAssertEqual(span.links.count, 2)
+        XCTAssertEqual(handler.createLinkCallCount, 1)
+        XCTAssertEqual(handler.onSpanLinkAddedCallCount, 1)
+    }
+
+    func test_addLink_object_returnsNil_whenLimitReached() throws {
+        let span = testSpan
+        handler.createLinkError = EmbraceOTelError.spanLinkLimitReached("test")
+
+        let input = EmbraceSpanLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
+        let stored = span.addLink(input)
+
+        XCTAssertNil(stored)
+        XCTAssertEqual(span.links.count, 1)  // unchanged
+        XCTAssertEqual(handler.createLinkCallCount, 1)
+        XCTAssertEqual(handler.onSpanLinkAddedCallCount, 0)
     }
 
     func test_setAttribute_success() throws {

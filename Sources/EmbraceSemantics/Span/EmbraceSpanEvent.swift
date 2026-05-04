@@ -4,8 +4,14 @@
 
 import Foundation
 
-/// Represents an OTel span event
-open class EmbraceSpanEvent {
+/// Represents an OTel span event.
+///
+/// - Note: When `type` is non-nil, the initializer stamps a `SpanEventSemantics.keyEmbraceType`
+///   entry into the resulting `attributes` dictionary. Reading `event.attributes` therefore
+///   returns your input merged with that one Embrace-specific key — it is not a verbatim copy
+///   of what you passed in. The original dictionary you supplied is never mutated; this
+///   stamping happens during construction of the new event instance.
+public final class EmbraceSpanEvent {
 
     /// Name of the event
     public let name: String
@@ -25,7 +31,7 @@ open class EmbraceSpanEvent {
     ///   - type: Type of the event
     ///   - timestamp: Timestamp of the event
     ///   - attributes: Attributes of the event
-    package init(
+    public init(
         name: String,
         type: EmbraceType? = .performance,
         timestamp: Date = Date(),

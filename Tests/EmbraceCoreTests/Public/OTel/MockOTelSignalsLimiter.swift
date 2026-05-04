@@ -36,15 +36,23 @@ class MockOTelSignalsLimiter: OTelSignalsLimiter {
 
     var shouldAddSpanEventCallCount: Int = 0
     var shouldAddSpanEventReturnValue: Bool = true
+    var shouldAddSpanEventStub: ((Int) -> Bool)?
     func shouldAddSpanEvent(currentCount count: Int) -> Bool {
         shouldAddSpanEventCallCount += 1
+        if let shouldAddSpanEventStub {
+            return shouldAddSpanEventStub(count)
+        }
         return shouldAddSpanEventReturnValue
     }
 
     var shouldAddSpanLinkCallCount: Int = 0
     var shouldAddSpanLinkReturnValue: Bool = true
+    var shouldAddSpanLinkStub: ((Int) -> Bool)?
     func shouldAddSpanLink(currentCount count: Int) -> Bool {
         shouldAddSpanLinkCallCount += 1
+        if let shouldAddSpanLinkStub {
+            return shouldAddSpanLinkStub(count)
+        }
         return shouldAddSpanLinkReturnValue
     }
 

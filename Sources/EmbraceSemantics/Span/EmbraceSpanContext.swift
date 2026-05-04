@@ -17,7 +17,7 @@ public class EmbraceSpanContext {
     /// - Parameters:
     ///   - spanId: Span identifier of the context
     ///   - traceId: Trace identifier of the context
-    package init(spanId: String, traceId: String) {
+    public init(spanId: String, traceId: String) {
         self.spanId = spanId
         self.traceId = traceId
     }

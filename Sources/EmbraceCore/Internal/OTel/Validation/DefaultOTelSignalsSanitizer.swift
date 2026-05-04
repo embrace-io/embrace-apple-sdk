@@ -107,7 +107,22 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
     }
 
     func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
-        return sanitizeAttributes(attributes, limit: sessionLimits.events.attributeCount)
+        return sanitizeSpanEventAttributes(attributes, protecting: [])
+    }
+
+    func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes, protecting protectedKeys: Set<String>) -> EmbraceAttributes {
+        // Always include protected entries — they bypass truncation and count limits.
+        let protectedEntries = attributes.filter { protectedKeys.contains($0.key) }
+        let unprotected = attributes.filter { !protectedKeys.contains($0.key) }
+
+        var result = sanitizeAttributes(unprotected, limit: sessionLimits.events.attributeCount)
+
+        // Merge protected entries back on top so they always win.
+        for (key, value) in protectedEntries {
+            result[key] = value
+        }
+
+        return result
     }
 
     func sanitizeSpanLinkAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {

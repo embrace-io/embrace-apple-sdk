@@ -319,12 +319,14 @@ class ImmutableSpanRecord: EmbraceSpan {
         // no op
     }
 
-    func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: EmbraceAttributes) throws {
+    func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: EmbraceAttributes) -> EmbraceSpanEvent? {
         // no op
+        return nil
     }
 
-    func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) throws {
+    func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) -> EmbraceSpanLink? {
         // no op
+        return nil
     }
 
     func end(endTime: Date) {

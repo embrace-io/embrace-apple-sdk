@@ -61,13 +61,14 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         return span
     }
 
+    @discardableResult
     public func _addSessionEvent(
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
         isInternal: Bool = true
-    ) throws {
+    ) throws -> EmbraceSpanEvent? {
         let event = EmbraceSpanEvent(
             name: name,
             type: type,
@@ -75,6 +76,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
             attributes: attributes
         )
         events.append(event)
+        return event
     }
 
     public func _log(

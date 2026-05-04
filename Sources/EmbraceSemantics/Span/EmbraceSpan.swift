@@ -46,22 +46,33 @@ public protocol EmbraceSpan {
     /// Updates the status of the span
     func setStatus(_ status: EmbraceSpanStatus)
 
-    /// Adds an event to the span
-    /// Can fail if the event limit is reached.
+    /// Adds an event to the span and returns the stored, sanitized event.
+    ///
+    /// - Important: The returned event is **not** the same instance as the inputs you provided.
+    ///   Sanitization may have rewritten the name, truncated attribute keys/values, or capped
+    ///   the attribute count. Use the returned value to inspect what was actually recorded.
+    /// - Returns: The sanitized event that was appended to the span, or `nil` if the per-span
+    ///   event limit was reached and the event was dropped (a warning is logged in that case).
+    @discardableResult
     func addEvent(
         name: String,
         type: EmbraceType?,
         timestamp: Date,
         attributes: EmbraceAttributes
-    ) throws
+    ) -> EmbraceSpanEvent?
 
-    /// Adds a link to the span
-    /// Can fail if the link limit is reached.
+    /// Adds a link to the span and returns the stored, sanitized link.
+    ///
+    /// - Important: The returned link is **not** the same instance as the inputs you provided.
+    ///   Sanitization may have truncated attribute keys/values or capped the attribute count.
+    /// - Returns: The sanitized link that was appended to the span, or `nil` if the per-span
+    ///   link limit was reached and the link was dropped (a warning is logged in that case).
+    @discardableResult
     func addLink(
         spanId: String,
         traceId: String,
         attributes: EmbraceAttributes
-    ) throws
+    ) -> EmbraceSpanLink?
 
     /// Sets an attribute to the span
     /// Can fail if the attribute limit is reached.
@@ -77,12 +88,46 @@ public protocol EmbraceSpan {
 extension EmbraceSpan {
 
     /// Convenience method to add a span event at the current time.
-    /// Can fail if the event limit is reached.
+    @discardableResult
     public func addEvent(
         name: String,
         type: EmbraceType? = .performance,
         attributes: EmbraceAttributes
-    ) throws {
-        try addEvent(name: name, type: type, timestamp: Date(), attributes: attributes)
+    ) -> EmbraceSpanEvent? {
+        return addEvent(name: name, type: type, timestamp: Date(), attributes: attributes)
+    }
+
+    /// Adds the given event to the span and returns the stored, sanitized event.
+    ///
+    /// - Important: The returned event is **not** the same instance as `event`. Sanitization
+    ///   may have rewritten the name, truncated attribute keys/values, or capped the attribute
+    ///   count. To inspect what was actually recorded, use the returned value rather than the
+    ///   one you passed in — your `event` is left untouched.
+    /// - Returns: The sanitized event that was appended to the span, or `nil` if the per-span
+    ///   event limit was reached and the event was dropped.
+    @discardableResult
+    public func addEvent(_ event: EmbraceSpanEvent) -> EmbraceSpanEvent? {
+        return addEvent(
+            name: event.name,
+            type: event.type,
+            timestamp: event.timestamp,
+            attributes: event.attributes
+        )
+    }
+
+    /// Adds the given link to the span and returns the stored, sanitized link.
+    ///
+    /// - Important: The returned link is **not** the same instance as `link`. Sanitization
+    ///   may have truncated attribute keys/values or capped the attribute count. Inspect the
+    ///   returned value to see what was actually recorded; your `link` is left untouched.
+    /// - Returns: The sanitized link that was appended to the span, or `nil` if the per-span
+    ///   link limit was reached and the link was dropped.
+    @discardableResult
+    public func addLink(_ link: EmbraceSpanLink) -> EmbraceSpanLink? {
+        return addLink(
+            spanId: link.context.spanId,
+            traceId: link.context.traceId,
+            attributes: link.attributes
+        )
     }
 }

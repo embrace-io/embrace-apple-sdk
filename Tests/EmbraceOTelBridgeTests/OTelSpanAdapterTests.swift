@@ -185,8 +185,8 @@ final class OTelSpanAdapterTests: XCTestCase {
         let adapter = OTelSpanAdapter(span: readable, metadataProvider: mockMetadataProvider)
         // None of these should throw or change state
         adapter.setStatus(.ok)
-        try adapter.addEvent(name: "event", type: nil, timestamp: Date(), attributes: [:])
-        try adapter.addLink(spanId: "abc", traceId: "def", attributes: [:])
+        adapter.addEvent(name: "event", type: nil, timestamp: Date(), attributes: [:])
+        adapter.addLink(spanId: "abc", traceId: "def", attributes: [:])
         try adapter.setAttribute(key: "k", value: "v")
         adapter.end()
         // Status remains unset since mutation is a no-op

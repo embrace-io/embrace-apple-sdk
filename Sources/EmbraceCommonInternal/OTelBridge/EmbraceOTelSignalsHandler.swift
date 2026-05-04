@@ -26,13 +26,14 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
         isInternal: Bool
     ) throws -> EmbraceSpan
 
+    @discardableResult
     func _addSessionEvent(
         name: String,
         type: EmbraceType?,
         timestamp: Date,
         attributes: EmbraceAttributes,
         isInternal: Bool
-    ) throws
+    ) throws -> EmbraceSpanEvent?
 
     func _log(
         _ message: String,
@@ -75,13 +76,14 @@ extension EmbraceOTelSignalsHandler {
         )
     }
 
+    @discardableResult
     package func addInternalSessionEvent(
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:]
-    ) throws {
-        try _addSessionEvent(
+    ) throws -> EmbraceSpanEvent? {
+        return try _addSessionEvent(
             name: name,
             type: type,
             timestamp: timestamp,

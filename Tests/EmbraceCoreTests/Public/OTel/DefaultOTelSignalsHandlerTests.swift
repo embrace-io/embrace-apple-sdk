@@ -207,6 +207,134 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(span.attributes["emb.error_code"] as! String, "user_abandon")
     }
 
+    // MARK: createSpan — initial events/links sanitization (existing-bug fix)
+
+    func test_createSpan_initialEvents_areSanitized_forNonInternalSpan() throws {
+        // given a handler whose sanitizer rewrites event names and attributes
+        sanitizer.sanitizeSpanEventNameReturnValue = "sanitizedEventName"
+        sanitizer.sanitizeSpanEventAttributesProtectingReturnValue = ["sanitizedKey": "sanitizedValue"]
+
+        // when creating a non-internal span with initial events
+        let inputEvent = EmbraceSpanEvent(name: "raw", attributes: ["k": "v"])
+        let span = try XCTUnwrap(handler.createSpan(name: "test", events: [inputEvent]))
+
+        // then the initial event was sanitized — name and attributes both rewritten
+        XCTAssertEqual(span.events.count, 1)
+        XCTAssertEqual(span.events[0].name, "sanitizedEventName")
+        XCTAssertEqual(span.events[0].attributes["sanitizedKey"] as! String, "sanitizedValue")
+        // and the customer's input event is untouched
+        XCTAssertEqual(inputEvent.name, "raw")
+        XCTAssertEqual(inputEvent.attributes["k"] as! String, "v")
+        XCTAssertNil(inputEvent.attributes["sanitizedKey"])
+    }
+
+    func test_createSpan_initialLinks_areSanitized_forNonInternalSpan() throws {
+        // given a handler whose sanitizer rewrites link attributes
+        sanitizer.sanitizeSpanLinkAttributesReturnValue = ["sanitizedKey": "sanitizedValue"]
+
+        // when creating a non-internal span with initial links
+        let inputLink = EmbraceSpanLink(
+            spanId: TestConstants.spanId,
+            traceId: TestConstants.traceId,
+            attributes: ["k": "v"]
+        )
+        let span = try XCTUnwrap(handler.createSpan(name: "test", links: [inputLink]))
+
+        // then the link's attributes were sanitized
+        XCTAssertEqual(span.links.count, 1)
+        XCTAssertEqual(span.links[0].context.spanId, TestConstants.spanId)
+        XCTAssertEqual(span.links[0].context.traceId, TestConstants.traceId)
+        XCTAssertEqual(span.links[0].attributes["sanitizedKey"] as! String, "sanitizedValue")
+        // and the customer's input link is untouched
+        XCTAssertEqual(inputLink.attributes["k"] as! String, "v")
+        XCTAssertNil(inputLink.attributes["sanitizedKey"])
+    }
+
+    func test_createSpan_initialEventsExceedingPerSpanLimit_areTrimmed() throws {
+        // given a handler whose limiter rejects events past the second one
+        limiter.shouldAddSpanEventStub = { count in count < 2 }
+
+        // when creating a non-internal span with three initial events
+        let span = try XCTUnwrap(
+            handler.createSpan(
+                name: "test",
+                events: [
+                    EmbraceSpanEvent(name: "e1"),
+                    EmbraceSpanEvent(name: "e2"),
+                    EmbraceSpanEvent(name: "e3")
+                ]
+            ))
+
+        // then only the first two events are kept; the third is dropped
+        XCTAssertEqual(span.events.count, 2)
+        XCTAssertEqual(span.events[0].name, "e1")
+        XCTAssertEqual(span.events[1].name, "e2")
+    }
+
+    func test_createSpan_initialLinksExceedingPerSpanLimit_areTrimmed() throws {
+        // given a handler whose limiter rejects links past the second one
+        limiter.shouldAddSpanLinkStub = { count in count < 2 }
+
+        // when creating a non-internal span with three initial links
+        let span = try XCTUnwrap(
+            handler.createSpan(
+                name: "test",
+                links: [
+                    EmbraceSpanLink(spanId: "s1", traceId: "t1"),
+                    EmbraceSpanLink(spanId: "s2", traceId: "t2"),
+                    EmbraceSpanLink(spanId: "s3", traceId: "t3")
+                ]
+            ))
+
+        // then only the first two links are kept; the third is dropped
+        XCTAssertEqual(span.links.count, 2)
+        XCTAssertEqual(span.links[0].context.spanId, "s1")
+        XCTAssertEqual(span.links[1].context.spanId, "s2")
+    }
+
+    func test_createSpan_initialEvents_areNotSanitized_forInternalSpan() throws {
+        // given a handler whose sanitizer would rewrite if called
+        sanitizer.sanitizeSpanEventNameReturnValue = "shouldNotAppear"
+        sanitizer.sanitizeSpanEventAttributesProtectingReturnValue = ["shouldNotAppear": "x"]
+
+        // when creating an internal span with initial events
+        let inputEvent = EmbraceSpanEvent(name: "raw", attributes: ["k": "v"])
+        let span = try handler.createInternalSpan(
+            name: "test",
+            type: .performance,
+            events: [inputEvent]
+        )
+
+        // then the event passes through verbatim — sanitizer is never called for events
+        XCTAssertEqual(span.events.count, 1)
+        XCTAssertEqual(span.events[0].name, "raw")
+        XCTAssertEqual(span.events[0].attributes["k"] as! String, "v")
+        XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 0)
+        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesProtectingCallCount, 0)
+    }
+
+    func test_createSpan_initialLinks_areNotSanitized_forInternalSpan() throws {
+        // given a handler whose sanitizer would rewrite if called
+        sanitizer.sanitizeSpanLinkAttributesReturnValue = ["shouldNotAppear": "x"]
+
+        // when creating an internal span with initial links
+        let inputLink = EmbraceSpanLink(
+            spanId: TestConstants.spanId,
+            traceId: TestConstants.traceId,
+            attributes: ["k": "v"]
+        )
+        let span = try handler.createInternalSpan(
+            name: "test",
+            type: .performance,
+            links: [inputLink]
+        )
+
+        // then the link passes through verbatim — sanitizer is never called for links
+        XCTAssertEqual(span.links.count, 1)
+        XCTAssertEqual(span.links[0].attributes["k"] as! String, "v")
+        XCTAssertEqual(sanitizer.sanitizeSpanLinkAttributesCallCount, 0)
+    }
+
     // MARK: addSessionEvent
     func test_addSessionEvent_success() throws {
         // given a handler
@@ -217,7 +345,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // then the right calls are made
         XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 1)
         XCTAssertEqual(sanitizer.sanitizeSpanEventNameCallCount, 1)
-        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesCallCount, 1)
+        XCTAssertEqual(sanitizer.sanitizeSpanEventAttributesProtectingCallCount, 1)
         XCTAssertEqual(bridge.addSpanEventCallCount, 1)
 
         // then the event is added correctly
@@ -293,7 +421,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_addSessionEvent_sanitizeAttributes() throws {
         // given a handler
         // when adding a new session event with attributes that have to be sanitized
-        sanitizer.sanitizeSpanEventAttributesReturnValue = ["sanitizedKey": "sanitizedValue"]
+        sanitizer.sanitizeSpanEventAttributesProtectingReturnValue = ["sanitizedKey": "sanitizedValue"]
         handler.addSessionEvent(name: "test", attributes: ["key": "value"])
 
         // then the attributes are sanitized
