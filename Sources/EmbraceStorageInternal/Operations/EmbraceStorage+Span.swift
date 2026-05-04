@@ -308,7 +308,7 @@ extension EmbraceStorage {
     ///   - ignoreSessionSpans: Whether to ignore the session's (or any other session's) own span
     ///   - limit: Limit of the amount of spans to be retrieved
     /// - Returns: Array containing the immutable copies of the spans.
-    public func fetchSpans(
+    package func fetchSpans(
         for session: EmbraceSession,
         ignoreSessionSpans: Bool = true
     ) -> [EmbraceSpan] {
