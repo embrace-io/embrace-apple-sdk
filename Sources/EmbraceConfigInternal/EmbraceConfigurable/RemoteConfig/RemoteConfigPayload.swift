@@ -7,6 +7,7 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceConfiguration
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 public struct RemoteConfigPayload: Decodable, Equatable {
@@ -406,9 +407,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
     }
 
-    /// Validates the user-session config values
+    /// Validates the user-session config values.
     /// 1. Per-field range check: out-of-range falls back to the default for that field.
-    /// 2. Cross-field check: if `inactivity > max` after step 1, force `inactivity = 30 * 60`.
+    /// 2. Cross-field check: if `inactivity > max` after step 1, force `inactivity` to its default.
     static func validateUserSession(
         max: TimeInterval,
         inactivity: TimeInterval
@@ -418,8 +419,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         let inactivityRange: ClosedRange<TimeInterval> = 30...86400  // 30s–24h
 
         // defaults
-        let defaultMax: TimeInterval = 12 * 3600
-        let defaultInactivity: TimeInterval = 30 * 60
+        let defaultMax = UserSession.defaultMaxDurationSeconds
+        let defaultInactivity = UserSession.defaultInactivityTimeoutSeconds
 
         let validatedMax = maxRange.contains(max) ? max : defaultMax
         var validatedInactivity = inactivityRange.contains(inactivity) ? inactivity : defaultInactivity
@@ -472,7 +473,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         useLegacyUrlSessionProxy = false
         useNewStorageForSpanEvents = false
 
-        userSessionMaxDurationSeconds = 12 * 3600
-        userSessionInactivityTimeoutSeconds = 30 * 60
+        userSessionMaxDurationSeconds = UserSession.defaultMaxDurationSeconds
+        userSessionInactivityTimeoutSeconds = UserSession.defaultInactivityTimeoutSeconds
     }
 }
