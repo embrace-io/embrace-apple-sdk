@@ -406,7 +406,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
     }
 
-    /// Validates the user-session config values per spec §3.
+    /// Validates the user-session config values
     /// 1. Per-field range check: out-of-range falls back to the default for that field.
     /// 2. Cross-field check: if `inactivity > max` after step 1, force `inactivity = 30 * 60`.
     static func validateUserSession(
