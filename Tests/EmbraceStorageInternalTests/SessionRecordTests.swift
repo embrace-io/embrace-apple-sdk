@@ -181,7 +181,7 @@ class SessionRecordTests: XCTestCase {
         XCTAssertNil(session.userSessionInactivityTimeout)
         XCTAssertNil(session.userSessionLastForegroundEnd)
         XCTAssertEqual(session.userSessionPartIndex, 0)
-        XCTAssertNil(session.userSessionEndReason)
+        XCTAssertNil(session.userSessionTerminationReason)
     }
 
     func test_addSession_persistsUserSessionColumnsRoundTrip() throws {
@@ -205,7 +205,7 @@ class SessionRecordTests: XCTestCase {
             userSessionInactivityTimeout: 1800,
             userSessionLastForegroundEnd: lastFgEnd,
             userSessionPartIndex: 3,
-            userSessionEndReason: nil
+            userSessionTerminationReason: nil
         )
 
         // when fetching the part back
@@ -218,7 +218,7 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(session.userSessionInactivityTimeout, 1800)
         XCTAssertEqual(session.userSessionLastForegroundEnd, lastFgEnd)
         XCTAssertEqual(session.userSessionPartIndex, 3)
-        XCTAssertNil(session.userSessionEndReason)
+        XCTAssertNil(session.userSessionTerminationReason)
         XCTAssertEqual(session.sessionNumber, 42)
     }
 
@@ -259,11 +259,11 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(updated.userSessionMaxDuration, 43200)
         XCTAssertEqual(updated.userSessionInactivityTimeout, 1800)
         XCTAssertEqual(updated.userSessionPartIndex, 1)
-        XCTAssertNil(updated.userSessionEndReason)
+        XCTAssertNil(updated.userSessionTerminationReason)
         XCTAssertEqual(updated.sessionNumber, 7)
     }
 
-    func test_updateSession_setsUserSessionEndReason() throws {
+    func test_updateSession_setsUserSessionTerminationReason() throws {
         // given a part attached to a user session
         let partId = EmbraceIdentifier.random
         let original = try XCTUnwrap(
@@ -281,15 +281,15 @@ class SessionRecordTests: XCTestCase {
                 userSessionPartIndex: 1
             ))
 
-        // when stamping userSessionEndReason
+        // when stamping userSessionTerminationReason
         storage.updateSession(
             session: original,
-            userSessionEndReason: TerminationReason.maxDurationReached.rawValue
+            userSessionTerminationReason: TerminationReason.maxDurationReached.rawValue
         )
 
         // then the field is persisted
         let updated = try XCTUnwrap(storage.fetchSession(id: partId))
-        XCTAssertEqual(updated.userSessionEndReason, "max_duration_reached")
+        XCTAssertEqual(updated.userSessionTerminationReason, "max_duration_reached")
     }
 
     func test_fetchLatestSession_returnsLatestWithUserSessionColumns() throws {
@@ -348,6 +348,6 @@ class SessionRecordTests: XCTestCase {
         XCTAssertTrue(names.contains("userSessionInactivityTimeout"))
         XCTAssertTrue(names.contains("userSessionLastForegroundEnd"))
         XCTAssertTrue(names.contains("userSessionPartIndex"))
-        XCTAssertTrue(names.contains("userSessionEndReason"))
+        XCTAssertTrue(names.contains("userSessionTerminationReason"))
     }
 }

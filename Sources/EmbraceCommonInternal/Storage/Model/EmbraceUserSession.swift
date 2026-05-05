@@ -10,7 +10,7 @@ import Foundation
 
 /// Reason a user session was terminated.
 /// Stored as a `String?` on the **last** part of a terminated user session
-/// (column `userSessionEndReason` on `SessionRecord`), and emitted on the wire
+/// (column `userSessionTerminationReason` on `SessionRecord`), and emitted on the wire
 /// as the value of `emb.user_session_termination_reason`.
 public enum TerminationReason: String {
     case maxDurationReached = "max_duration_reached"
@@ -36,7 +36,7 @@ public protocol EmbraceUserSession {
     var userSessionNumber: EMBInt { get }
     var partIndex: EMBInt { get }
     var endTime: Date? { get }
-    var endReason: TerminationReason? { get }
+    var terminationReason: TerminationReason? { get }
 }
 
 /// Plain value-type `EmbraceUserSession` for in-memory use by `UserSessionController`.
@@ -49,7 +49,7 @@ public struct ImmutableUserSession: EmbraceUserSession {
     public let userSessionNumber: EMBInt
     public let partIndex: EMBInt
     public let endTime: Date?
-    public let endReason: TerminationReason?
+    public let terminationReason: TerminationReason?
 
     public init(
         id: EmbraceIdentifier,
@@ -60,7 +60,7 @@ public struct ImmutableUserSession: EmbraceUserSession {
         userSessionNumber: EMBInt,
         partIndex: EMBInt,
         endTime: Date? = nil,
-        endReason: TerminationReason? = nil
+        terminationReason: TerminationReason? = nil
     ) {
         self.id = id
         self.startTime = startTime
@@ -70,6 +70,6 @@ public struct ImmutableUserSession: EmbraceUserSession {
         self.userSessionNumber = userSessionNumber
         self.partIndex = partIndex
         self.endTime = endTime
-        self.endReason = endReason
+        self.terminationReason = terminationReason
     }
 }

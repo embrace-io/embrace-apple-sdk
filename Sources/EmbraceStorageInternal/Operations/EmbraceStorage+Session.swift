@@ -46,7 +46,7 @@ extension EmbraceStorage {
         userSessionInactivityTimeout: TimeInterval? = nil,
         userSessionLastForegroundEnd: Date? = nil,
         userSessionPartIndex: EMBInt = 0,
-        userSessionEndReason: String? = nil,
+        userSessionTerminationReason: String? = nil,
         completion: (() -> Void)? = nil
     ) -> EmbraceSession? {
 
@@ -82,7 +82,7 @@ extension EmbraceStorage {
                 userSessionInactivityTimeout: userSessionInactivityTimeout,
                 userSessionLastForegroundEnd: userSessionLastForegroundEnd,
                 userSessionPartIndex: userSessionPartIndex,
-                userSessionEndReason: userSessionEndReason
+                userSessionTerminationReason: userSessionTerminationReason
             )
             guard created else {
                 logger.critical("Failed to create new session!")
@@ -112,7 +112,7 @@ extension EmbraceStorage {
             userSessionInactivityTimeout: userSessionInactivityTimeout,
             userSessionLastForegroundEnd: userSessionLastForegroundEnd,
             userSessionPartIndex: userSessionPartIndex,
-            userSessionEndReason: userSessionEndReason
+            userSessionTerminationReason: userSessionTerminationReason
         )
     }
 
@@ -247,7 +247,7 @@ extension EmbraceStorage {
         appTerminated: Bool? = nil,
         crashReportId: String? = nil,
         userSessionLastForegroundEnd: Date? = nil,
-        userSessionEndReason: String? = nil
+        userSessionTerminationReason: String? = nil
     ) -> EmbraceSession? {
 
         coreData.performAsyncOperation { [self] context in
@@ -286,8 +286,8 @@ extension EmbraceStorage {
                 fetchedSession.userSessionLastForegroundEnd = userSessionLastForegroundEnd
             }
 
-            if let userSessionEndReason = userSessionEndReason {
-                fetchedSession.userSessionEndReason = userSessionEndReason
+            if let userSessionTerminationReason = userSessionTerminationReason {
+                fetchedSession.userSessionTerminationReason = userSessionTerminationReason
             }
 
             coreData.save()
@@ -301,7 +301,7 @@ extension EmbraceStorage {
             appTerminated: appTerminated,
             crashReportId: crashReportId,
             userSessionLastForegroundEnd: userSessionLastForegroundEnd,
-            userSessionEndReason: userSessionEndReason
+            userSessionTerminationReason: userSessionTerminationReason
         )
     }
 }
@@ -315,7 +315,7 @@ extension EmbraceSession {
         appTerminated: Bool? = nil,
         crashReportId: String? = nil,
         userSessionLastForegroundEnd: Date? = nil,
-        userSessionEndReason: String? = nil
+        userSessionTerminationReason: String? = nil
     ) -> EmbraceSession {
 
         return ImmutableSessionRecord(
@@ -338,7 +338,7 @@ extension EmbraceSession {
             userSessionInactivityTimeout: self.userSessionInactivityTimeout,
             userSessionLastForegroundEnd: userSessionLastForegroundEnd ?? self.userSessionLastForegroundEnd,
             userSessionPartIndex: self.userSessionPartIndex,
-            userSessionEndReason: userSessionEndReason ?? self.userSessionEndReason
+            userSessionTerminationReason: userSessionTerminationReason ?? self.userSessionTerminationReason
         )
     }
 }

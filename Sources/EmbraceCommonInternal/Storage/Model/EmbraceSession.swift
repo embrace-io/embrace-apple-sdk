@@ -51,5 +51,5 @@ package protocol EmbraceSession {
 
     /// Termination reason — set only on the **last** part of a terminated user session.
     /// Drives `emb.user_session_termination_reason` and `emb.is_final_session_part = 1`.
-    var userSessionEndReason: String? { get }
+    var userSessionTerminationReason: String? { get }
 }

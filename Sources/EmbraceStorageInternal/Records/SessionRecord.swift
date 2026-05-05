@@ -59,7 +59,7 @@ public class SessionRecord: NSManagedObject {
     @NSManaged public var userSessionPartIndex: EMBInt
 
     /// Termination reason — set only on the last part of a terminated user session.
-    @NSManaged public var userSessionEndReason: String?
+    @NSManaged public var userSessionTerminationReason: String?
 
     /// Note that this must be called within a `perform` on the CoreData context.
     class func create(
@@ -83,7 +83,7 @@ public class SessionRecord: NSManagedObject {
         userSessionInactivityTimeout: TimeInterval? = nil,
         userSessionLastForegroundEnd: Date? = nil,
         userSessionPartIndex: EMBInt = 0,
-        userSessionEndReason: String? = nil
+        userSessionTerminationReason: String? = nil
     ) -> Bool {
         guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
             return false
@@ -109,7 +109,7 @@ public class SessionRecord: NSManagedObject {
         record.userSessionInactivityTimeout = userSessionInactivityTimeout.map { NSNumber(value: $0) }
         record.userSessionLastForegroundEnd = userSessionLastForegroundEnd
         record.userSessionPartIndex = userSessionPartIndex
-        record.userSessionEndReason = userSessionEndReason
+        record.userSessionTerminationReason = userSessionTerminationReason
 
         return true
     }
@@ -139,7 +139,7 @@ public class SessionRecord: NSManagedObject {
             userSessionInactivityTimeout: userSessionInactivityTimeout?.doubleValue,
             userSessionLastForegroundEnd: userSessionLastForegroundEnd,
             userSessionPartIndex: userSessionPartIndex,
-            userSessionEndReason: userSessionEndReason
+            userSessionTerminationReason: userSessionTerminationReason
         )
     }
 }
@@ -239,10 +239,10 @@ extension SessionRecord: EmbraceStorageRecord {
         userSessionPartIndexAttribute.attributeType = .integer64AttributeType
         userSessionPartIndexAttribute.defaultValue = 0
 
-        let userSessionEndReasonAttribute = NSAttributeDescription()
-        userSessionEndReasonAttribute.name = "userSessionEndReason"
-        userSessionEndReasonAttribute.attributeType = .stringAttributeType
-        userSessionEndReasonAttribute.isOptional = true
+        let userSessionTerminationReasonAttribute = NSAttributeDescription()
+        userSessionTerminationReasonAttribute.name = "userSessionTerminationReason"
+        userSessionTerminationReasonAttribute.attributeType = .stringAttributeType
+        userSessionTerminationReasonAttribute.isOptional = true
 
         entity.properties = [
             idAttribute,
@@ -264,7 +264,7 @@ extension SessionRecord: EmbraceStorageRecord {
             userSessionInactivityTimeoutAttribute,
             userSessionLastForegroundEndAttribute,
             userSessionPartIndexAttribute,
-            userSessionEndReasonAttribute
+            userSessionTerminationReasonAttribute
         ]
 
         return entity
@@ -291,5 +291,5 @@ struct ImmutableSessionRecord: EmbraceSession {
     let userSessionInactivityTimeout: TimeInterval?
     let userSessionLastForegroundEnd: Date?
     let userSessionPartIndex: EMBInt
-    let userSessionEndReason: String?
+    let userSessionTerminationReason: String?
 }
