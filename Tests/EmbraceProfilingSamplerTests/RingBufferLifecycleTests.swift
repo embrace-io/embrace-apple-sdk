@@ -15,14 +15,14 @@
         // MARK: - Create / destroy lifecycle
 
         func test_create_returnsNonNil_withValidParams() {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             XCTAssertNotNil(buf)
             emb_ring_buffer_destroy(buf)
         }
 
         func test_create_capacityIsPageAligned() {
             // Requesting 1 byte should yield at least one full page.
-            let buf = emb_ring_buffer_create(1)
+            let buf = emb_ring_buffer_create(1, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
@@ -39,7 +39,7 @@
         }
 
         func test_create_dataPointerIsNonNil() {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
@@ -56,7 +56,7 @@
 
         func test_create_canBeCalledMultipleTimes() {
             for _ in 0..<4 {
-                let buf = emb_ring_buffer_create(512 * 1024)
+                let buf = emb_ring_buffer_create(512 * 1024, nil)
                 XCTAssertNotNil(buf)
                 emb_ring_buffer_destroy(buf)
             }
@@ -69,7 +69,7 @@
         /// are immediately visible at the start of the first mapping ([0, 3]).
         func test_doubleMapping_writeStraddle_wrapsToStart() {
             // Use a small capacity_bytes; it will be rounded up to one page.
-            let buf = emb_ring_buffer_create(1)
+            let buf = emb_ring_buffer_create(1, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
@@ -100,7 +100,7 @@
         /// Verifies the mirror in the other direction: writing to the start of the
         /// first mapping is immediately visible in the second mapping.
         func test_doubleMapping_writeAtStart_visibleBeyondCapacity() {
-            let buf = emb_ring_buffer_create(1)
+            let buf = emb_ring_buffer_create(1, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return

@@ -112,7 +112,7 @@
 
         /// 100 ms periodic writer, 4 readers: frame data must be internally consistent.
         func test_periodicWriter_multipleReaders_noFrameCorruption() {
-            let buf = emb_ring_buffer_create(1 * 1024 * 1024)!
+            let buf = emb_ring_buffer_create(1 * 1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let intervalNs: UInt64 = 100_000_000
@@ -142,7 +142,7 @@
 
         /// Each read result must have strictly ascending timestamps.
         func test_periodicWriter_multipleReaders_timestampsAscendingWithinResult() {
-            let buf = emb_ring_buffer_create(1 * 1024 * 1024)!
+            let buf = emb_ring_buffer_create(1 * 1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let failures = runWithReaders(
@@ -171,7 +171,7 @@
 
         /// Every returned record must have believable frame_count (≤ 10 000).
         func test_periodicWriter_multipleReaders_recordStructureAlwaysValid() {
-            let buf = emb_ring_buffer_create(1 * 1024 * 1024)!
+            let buf = emb_ring_buffer_create(1 * 1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let failures = runWithReaders(
@@ -197,9 +197,9 @@
             assertNoFailures(failures)
         }
 
-        /// Readers survive a one-page buffer wrapping many times.
+        /// Readers survive a four-page buffer wrapping many times.
         func test_periodicWriter_multipleReaders_wrapAroundNoCrash() {
-            let buf = emb_ring_buffer_create(4 * Int(getpagesize()))!
+            let buf = emb_ring_buffer_create(4 * Int(getpagesize()), nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let failures = runWithReaders(
@@ -226,7 +226,7 @@
 
         /// Readers survive evictions happening while they are mid-read.
         func test_periodicWriter_multipleReaders_evictionDuringRead() {
-            let buf = emb_ring_buffer_create(Int(getpagesize()))!
+            let buf = emb_ring_buffer_create(Int(getpagesize()), nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let failures = runWithReaders(
@@ -260,7 +260,7 @@
 
         /// Many concurrent readers all read simultaneously after a batch of writes.
         func test_simultaneousReaders_sameBuffer_consistentResults() {
-            let buf = emb_ring_buffer_create(1 * 1024 * 1024)!
+            let buf = emb_ring_buffer_create(1 * 1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for i in 0..<20 {
@@ -303,7 +303,7 @@
 
         /// Windowed readers must only ever see records inside their requested range.
         func test_periodicWriter_rangeReaders_onlySeeWindowedRecords() {
-            let buf = emb_ring_buffer_create(1 * 1024 * 1024)!
+            let buf = emb_ring_buffer_create(1 * 1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let intervalNs: UInt64 = 100_000_000
@@ -350,7 +350,7 @@
 
         /// Stress: 8 readers + high-frequency writer (no sleep between writes).
         func test_stress_highFrequencyWriter_manyReaders_noCrash() {
-            let buf = emb_ring_buffer_create(2 * Int(getpagesize()))!
+            let buf = emb_ring_buffer_create(2 * Int(getpagesize()), nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let unbelievableFrameCount = 1_000_000
@@ -399,7 +399,7 @@
 
         /// Three non-overlapping range readers: no reader ever sees a record outside its window.
         func test_periodicWriter_partitionedRangeReaders_noRangeViolation() {
-            let buf = emb_ring_buffer_create(1 * 1024 * 1024)!
+            let buf = emb_ring_buffer_create(1 * 1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let intervalNs: UInt64 = 100_000_000
@@ -450,7 +450,7 @@
         /// Small (1-page) buffer with high-frequency writer forcing wrap-around.
         /// 4+ concurrent readers verify no frame corruption and ascending timestamps.
         func test_smallBuffer_highFrequencyWrapAround_noCorruption() {
-            let buf = emb_ring_buffer_create(Int(getpagesize()))!
+            let buf = emb_ring_buffer_create(Int(getpagesize()), nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let writeCount = 500
@@ -497,7 +497,7 @@
 
         /// After the writer stops, 20 concurrent readers must all see identical data.
         func test_afterWriterStops_readsAreStable() {
-            let buf = emb_ring_buffer_create(1 * 1024 * 1024)!
+            let buf = emb_ring_buffer_create(1 * 1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for i in 0..<10 {

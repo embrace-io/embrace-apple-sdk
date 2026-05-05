@@ -14,7 +14,7 @@
         // MARK: - Basic write/read
 
         func test_writeRead_singleRecord() {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
@@ -24,8 +24,7 @@
             // Write a record.
             let testFrames: [UInt] = [0x1000, 0x2000, 0x3000]
             let timestamp: UInt64 = 123_456_789
-            let success = emb_ring_buffer_write(buf, timestamp, testFrames, testFrames.count)
-            XCTAssertTrue(success, "write should succeed")
+            XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, testFrames, testFrames.count), EMB_RING_WRITE_OK, "write should succeed")
 
             // Read back all records.
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -44,7 +43,7 @@
         }
 
         func test_writeRead_multipleRecords() {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
@@ -65,8 +64,7 @@
 
                 let timestamp = UInt64(100_000 * (i + 1))
                 expectedTimestamps.append(timestamp)
-                let success = emb_ring_buffer_write(buf, timestamp, frames, frameCount)
-                XCTAssertTrue(success, "write \(i) should succeed")
+                XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, frames, frameCount), EMB_RING_WRITE_OK, "write \(i) should succeed")
             }
 
             // Read back all records.
@@ -92,7 +90,7 @@
         // MARK: - Zero-frame records
 
         func test_writeRead_zeroFrames() {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
@@ -102,8 +100,7 @@
             // Write a zero-frame record.
             let timestamp: UInt64 = 999_999
             let frames: [UInt] = []
-            let success = emb_ring_buffer_write(buf, timestamp, frames, 0)
-            XCTAssertTrue(success, "write should succeed")
+            XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, frames, 0), EMB_RING_WRITE_OK, "write should succeed")
 
             // Read back.
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -119,7 +116,7 @@
         // MARK: - Variable-length records
 
         func test_writeRead_variableLengths() {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
@@ -138,8 +135,7 @@
 
                 let timestamp = UInt64(1_000_000 * (idx + 1))
                 expectedData.append((timestamp, frameCount))
-                let success = emb_ring_buffer_write(buf, timestamp, frames, frameCount)
-                XCTAssertTrue(success, "write \(idx) should succeed")
+                XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, frames, frameCount), EMB_RING_WRITE_OK, "write \(idx) should succeed")
             }
 
             // Read back.
@@ -165,7 +161,7 @@
         func test_writeRead_wrapAround() {
             // Use a small buffer to force wrap-around quickly.
             let pageSize = Int(getpagesize())
-            let buf = emb_ring_buffer_create(pageSize)
+            let buf = emb_ring_buffer_create(pageSize, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
@@ -187,8 +183,7 @@
 
                 let timestamp = UInt64(i + 1)
                 lastTimestamps.append(timestamp)
-                let success = emb_ring_buffer_write(buf, timestamp, frames, 10)
-                XCTAssertTrue(success, "write \(i) should succeed")
+                XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, frames, 10), EMB_RING_WRITE_OK, "write \(i) should succeed")
             }
 
             // Read back. Should get only the records that fit in the buffer
@@ -213,7 +208,7 @@
 
         func test_eviction_dropsOldRecords() {
             let pageSize = Int(getpagesize())
-            let buf = emb_ring_buffer_create(pageSize)
+            let buf = emb_ring_buffer_create(pageSize, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
@@ -232,8 +227,7 @@
                     frames.append(UInt(i * 100 + j))
                 }
 
-                let success = emb_ring_buffer_write(buf, UInt64(i), frames, 10)
-                XCTAssertTrue(success, "write \(i) should succeed")
+                XCTAssertEqual(emb_ring_buffer_write(buf, UInt64(i), frames, 10), EMB_RING_WRITE_OK, "write \(i) should succeed")
             }
 
             // Read back.
@@ -254,20 +248,18 @@
 
         func test_write_withNilBuffer_returnsFalse() {
             let frames: [UInt] = [0x1000, 0x2000]
-            let success = emb_ring_buffer_write(nil, 123, frames, 2)
-            XCTAssertFalse(success)
+            XCTAssertNotEqual(emb_ring_buffer_write(nil, 123, frames, 2), EMB_RING_WRITE_OK)
         }
 
         func test_write_withNilFrames_returnsFalse() {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
             }
             defer { emb_ring_buffer_destroy(buf) }
 
-            let success = emb_ring_buffer_write(buf, 123, nil, 10)
-            XCTAssertFalse(success)
+            XCTAssertNotEqual(emb_ring_buffer_write(buf, 123, nil, 10), EMB_RING_WRITE_OK)
         }
 
         func test_readRange_withNilBuffer_returnsEmpty() {
@@ -277,7 +269,7 @@
         }
 
         func test_readRange_filtersOnTimestamp() {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return
@@ -288,8 +280,7 @@
             for i in 0..<10 {
                 let frames: [UInt] = [UInt(i)]
                 let timestamp = UInt64((i + 1) * 1000)
-                let success = emb_ring_buffer_write(buf, timestamp, frames, 1)
-                XCTAssertTrue(success)
+                XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, frames, 1), EMB_RING_WRITE_OK)
             }
 
             // Read only records from 3000 to 7000 (inclusive).
@@ -307,7 +298,7 @@
         }
 
         func test_readAll_emptyBuffer_returnsEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             guard let buf = buf else {
                 XCTFail("emb_ring_buffer_create should succeed")
                 return

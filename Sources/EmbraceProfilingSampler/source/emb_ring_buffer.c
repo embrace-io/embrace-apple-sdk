@@ -63,10 +63,15 @@ static size_t round_size_up_to_page_boundary(size_t size)
     return (size + page - 1) & ~(page - 1);
 }
 
-emb_ring_buffer_t *emb_ring_buffer_create(size_t capacity_bytes)
+emb_ring_buffer_t *emb_ring_buffer_create(size_t capacity_bytes, kern_return_t *kr_out)
 {
+    kern_return_t kr_dummy;
+    if (kr_out == NULL) { kr_out = &kr_dummy; }
+    *kr_out = KERN_SUCCESS;
+
     const size_t capacity = round_size_up_to_page_boundary(capacity_bytes);
     if (capacity == 0) {
+        *kr_out = KERN_INVALID_ARGUMENT;
         return NULL;
     }
 
@@ -84,6 +89,7 @@ emb_ring_buffer_t *emb_ring_buffer_create(size_t capacity_bytes)
                                        region_size,
                                        VM_FLAGS_ANYWHERE);
     if (kr != KERN_SUCCESS) {
+        *kr_out = kr;
         return NULL;
     }
 
@@ -106,6 +112,7 @@ emb_ring_buffer_t *emb_ring_buffer_create(size_t capacity_bytes)
                       &max_prot,
                       VM_INHERIT_NONE);
     if (kr != KERN_SUCCESS) {
+        *kr_out = kr;
         goto fail;
     }
 
@@ -114,11 +121,13 @@ emb_ring_buffer_t *emb_ring_buffer_create(size_t capacity_bytes)
     // Sanity-check: with VM_FLAGS_FIXED | VM_FLAGS_OVERWRITE this branch is
     // unreachable — the kernel must place the mapping at the requested address.
     if (second_half != region + half) {
+        *kr_out = KERN_FAILURE;
         goto fail;
     }
 
     emb_ring_buffer_t *buf = calloc(1, sizeof(*buf));
     if (buf == NULL) {
+        *kr_out = KERN_RESOURCE_SHORTAGE;
         goto fail;
     }
 
@@ -196,18 +205,18 @@ size_t emb_ring_buffer_capacity(const emb_ring_buffer_t *buf)
     return buf->capacity;
 }
 
-bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
-                           uint64_t timestamp_ns,
-                           const uintptr_t *frames,
-                           size_t frame_count)
+emb_ring_write_status_t emb_ring_buffer_write(emb_ring_buffer_t *buf,
+                                               uint64_t timestamp_ns,
+                                               const uintptr_t *frames,
+                                               size_t frame_count)
 {
     if (buf == NULL || (frames == NULL && frame_count > 0)) {
-        return false;
+        return EMB_RING_WRITE_BAD_ARGS;
     }
 
     // The header stores frame_count as uint32_t.
     if (frame_count > UINT32_MAX) {
-        return false;
+        return EMB_RING_WRITE_BAD_ARGS;
     }
 
     // Record size for the requested frame count.
@@ -215,7 +224,7 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
 
     // A single record must fit within the buffer capacity.
     if (record_size_needed > buf->capacity) {
-        return false;
+        return EMB_RING_WRITE_RECORD_TOO_LARGE;
     }
 
     // Current write position (monotonically increasing byte offset).
@@ -227,6 +236,7 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
     // Evict old records that would be overlapped by this write.
     // The loop condition: oldest_pos + capacity < write_pos + record_size
     // This means the oldest record would be overwritten.
+    bool corruption_detected = false;
     while (oldest_pos + buf->capacity < write_pos + record_size_needed) {
         // Read the header of the oldest record to determine its size.
         // Safe: we're the single writer and this is our own committed record.
@@ -241,6 +251,7 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
         if (old_record_size > buf->capacity) {
             oldest_pos = write_pos;
             atomic_store_explicit(&buf->oldest_pos, oldest_pos, memory_order_release);
+            corruption_detected = true;
             break;
         }
 
@@ -249,6 +260,10 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
 
         // Publish the new oldest_pos.
         atomic_store_explicit(&buf->oldest_pos, oldest_pos, memory_order_release);
+    }
+
+    if (corruption_detected) {
+        return EMB_RING_WRITE_CORRUPTION_DETECTED;
     }
 
     // Full barrier: ensures the oldest_pos advance(s) above are globally visible
@@ -303,7 +318,7 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
     // Increment the seqlock counter for the next write.
     buf->next_seq += 2;
 
-    return true;
+    return EMB_RING_WRITE_OK;
 }
 
 /// Read a record header directly from the live ring buffer at the given
@@ -311,9 +326,13 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
 static inline emb_ring_record_header_t read_live_header(emb_ring_buffer_t *buf,
                                                          uint64_t absolute_pos) {
     size_t offset = (size_t)(absolute_pos % buf->capacity);
-    const emb_ring_record_header_t *hdr =
-        (const emb_ring_record_header_t *)(buf->data + offset);
-    return *hdr;
+    const emb_ring_write_header_t *whdr =
+        (const emb_ring_write_header_t *)(buf->data + offset);
+    emb_ring_record_header_t hdr;
+    hdr.seq          = atomic_load_explicit(&whdr->seq, memory_order_acquire);
+    hdr.frame_count  = whdr->frame_count;
+    hdr.timestamp_ns = whdr->timestamp_ns;
+    return hdr;
 }
 
 emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
@@ -323,8 +342,10 @@ emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
                                                    size_t output_size)
 {
     emb_ring_read_result_t result = {0};
+    result.status = EMB_RING_READ_OK;
 
     if (buf == NULL || output == NULL || output_size == 0) {
+        result.status = EMB_RING_READ_BAD_ARGS;
         return result;
     }
 
@@ -336,6 +357,7 @@ emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
     // ARM64 store-buffer reordering that could let both sides miss each other.
     if (atomic_load_explicit(&buf->resetting, memory_order_seq_cst)) {
         atomic_fetch_sub_explicit(&buf->active_readers, 1, memory_order_release);
+        result.status = EMB_RING_READ_RESETTING;
         return result;
     }
 
@@ -345,12 +367,14 @@ emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
 
     if (oldest_pos >= write_pos) {
         atomic_fetch_sub_explicit(&buf->active_readers, 1, memory_order_release);
+        result.status = EMB_RING_READ_EMPTY;
         return result;
     }
 
     const size_t total_data = (size_t)(write_pos - oldest_pos);
     if (total_data > buf->capacity) {
         atomic_fetch_sub_explicit(&buf->active_readers, 1, memory_order_release);
+        result.status = EMB_RING_READ_EMPTY;
         return result;
     }
 
@@ -495,6 +519,7 @@ emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
             }
             result.record_count = fitted_count;
             result.total_bytes = local_offset;
+            result.status = EMB_RING_READ_TRUNCATED;
         } else {
             result.record_count = scan_record_count;
             result.total_bytes = copy_size;

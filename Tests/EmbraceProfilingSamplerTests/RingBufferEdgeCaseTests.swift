@@ -27,12 +27,12 @@
         // MARK: - Lifecycle
 
         func test_create_zeroCapacity_returnsNil() {
-            let buf = emb_ring_buffer_create(0)
+            let buf = emb_ring_buffer_create(0, nil)
             XCTAssertNil(buf)
         }
 
         func test_create_oneByte_roundsUpToOnePage() {
-            let buf = emb_ring_buffer_create(1)
+            let buf = emb_ring_buffer_create(1, nil)
             guard let buf else { return XCTFail("create(1) should succeed") }
             defer { emb_ring_buffer_destroy(buf) }
 
@@ -42,7 +42,7 @@
 
         func test_create_exactlyOnePage_noRounding() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)
+            let buf = emb_ring_buffer_create(page, nil)
             guard let buf else { return XCTFail() }
             defer { emb_ring_buffer_destroy(buf) }
 
@@ -51,7 +51,7 @@
 
         func test_create_pagePlusOne_roundsUpToTwoPages() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page + 1)
+            let buf = emb_ring_buffer_create(page + 1, nil)
             guard let buf else { return XCTFail() }
             defer { emb_ring_buffer_destroy(buf) }
 
@@ -59,7 +59,7 @@
         }
 
         func test_create_largeCapacity_succeeds() {
-            let buf = emb_ring_buffer_create(16 * 1024 * 1024)
+            let buf = emb_ring_buffer_create(16 * 1024 * 1024, nil)
             guard let buf else { return XCTFail("16 MB buffer should succeed") }
             defer { emb_ring_buffer_destroy(buf) }
 
@@ -67,7 +67,7 @@
         }
 
         func test_create_freshBuffer_isEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             guard let buf else { return XCTFail() }
             defer { emb_ring_buffer_destroy(buf) }
 
@@ -86,7 +86,7 @@
         func test_create_destroy_repeatedCycles_noLeak() {
             for i in 1...8 {
                 let size = i * 64 * 1024
-                let buf = emb_ring_buffer_create(size)
+                let buf = emb_ring_buffer_create(size, nil)
                 XCTAssertNotNil(buf, "cycle \(i): create should succeed")
                 emb_ring_buffer_destroy(buf)
             }
@@ -95,13 +95,13 @@
         // MARK: - next_seq progression
 
         func test_nextSeq_startsAtZero() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
             XCTAssertEqual(buf.pointee.next_seq, 0)
         }
 
         func test_nextSeq_incrementsBy2PerSuccessfulWrite() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let frames: [UInt] = [0xCAFE]
@@ -114,7 +114,7 @@
         }
 
         func test_nextSeq_unchangedOnNilBufferWrite() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             emb_ring_buffer_write(nil, 1_000, [UInt(1)], 1)
@@ -122,7 +122,7 @@
         }
 
         func test_nextSeq_unchangedOnNilFramesWrite() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             emb_ring_buffer_write(buf, 1_000, nil, 5)
@@ -130,7 +130,7 @@
         }
 
         func test_nextSeq_incrementsForZeroFrameRecords() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let empty: [UInt] = []
@@ -140,19 +140,19 @@
 
         // MARK: - Write returns false on bad inputs
 
-        func test_write_nilBuffer_returnsFalse() {
+        func test_write_nilBuffer_returnsBadArgs() {
             let frames: [UInt] = [1, 2, 3]
-            XCTAssertFalse(emb_ring_buffer_write(nil, 1_000, frames, frames.count))
+            XCTAssertNotEqual(emb_ring_buffer_write(nil, 1_000, frames, frames.count), EMB_RING_WRITE_OK)
         }
 
-        func test_write_nilFrames_returnsFalse() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+        func test_write_nilFrames_returnsBadArgs() {
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
-            XCTAssertFalse(emb_ring_buffer_write(buf, 1_000, nil, 3))
+            XCTAssertNotEqual(emb_ring_buffer_write(buf, 1_000, nil, 3), EMB_RING_WRITE_OK)
         }
 
         func test_write_nilFrames_leavesBufferEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
             emb_ring_buffer_write(buf, 1_000, nil, 3)
 
@@ -163,7 +163,7 @@
         // MARK: - Frame data preservation
 
         func test_frameData_exactValuesPreserved() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let frames: [UInt] = [0xDEAD_BEEF, 0xCAFE_BABE, 0x1234_5678, 0xFFFF_FFFF]
@@ -179,7 +179,7 @@
         }
 
         func test_frameData_allZeros_preserved() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let frames = [UInt](repeating: 0, count: 8)
@@ -194,7 +194,7 @@
         }
 
         func test_frameData_allMaxValue_preserved() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let frames = [UInt](repeating: UInt.max, count: 8)
@@ -209,7 +209,7 @@
         }
 
         func test_frameData_largeFrameCount_preserved() {
-            let buf = emb_ring_buffer_create(4 * 1024 * 1024)!
+            let buf = emb_ring_buffer_create(4 * 1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let count = 512
@@ -226,7 +226,7 @@
         }
 
         func test_frameData_multipleRecords_eachCorrect() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let recordDefs: [(ts: UInt64, frames: [UInt])] = [
@@ -259,7 +259,7 @@
 
         func test_eviction_exactFit_noEviction() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let rSize = RingBufferEdgeCaseTests.recordSize(1)
@@ -279,7 +279,7 @@
 
         func test_eviction_onePastCapacity_evictsOldest() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let rSize = RingBufferEdgeCaseTests.recordSize(1)
@@ -304,7 +304,7 @@
 
         func test_eviction_largeRecordEvictsMultipleSmallOnes() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let smallCount = page / RingBufferEdgeCaseTests.recordSize(1)
@@ -337,7 +337,7 @@
 
         func test_eviction_zeroFrameRecords_evictedCorrectly() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let zeroSize = RingBufferEdgeCaseTests.headerSize
@@ -363,7 +363,7 @@
 
         func test_eviction_bufferRemainsFunctionalAfterManyPasses() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let rSize = RingBufferEdgeCaseTests.recordSize(10)
@@ -390,7 +390,7 @@
 
         func test_eviction_mixedSizes_oldestEvictedFirst() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             var ts: UInt64 = 0
@@ -437,7 +437,7 @@
 
         func test_eviction_evictedRecord_notVisibleInTimestampQuery() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let rSize = RingBufferEdgeCaseTests.recordSize(1)
@@ -455,7 +455,7 @@
         // MARK: - Prefix skip
 
         func test_readRange_skipsPrefix_returnsSuffix() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             // Monotonic timestamps; query skips the first two.
@@ -474,7 +474,7 @@
         // MARK: - Timestamp range edge cases
 
         func test_readRange_exactStartBoundary_included() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for ts: UInt64 in [100, 200, 300, 400, 500] {
@@ -491,7 +491,7 @@
         }
 
         func test_readRange_exactEndBoundary_included() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for ts: UInt64 in [100, 200, 300, 400, 500] {
@@ -508,7 +508,7 @@
         }
 
         func test_readRange_startEqualsEnd_matchingRecord_returnsOne() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for ts: UInt64 in [100, 200, 300] {
@@ -523,7 +523,7 @@
         }
 
         func test_readRange_startEqualsEnd_noMatchingRecord_returnsEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for ts: UInt64 in [100, 200, 300] {
@@ -536,7 +536,7 @@
         }
 
         func test_readRange_startGreaterThanEnd_returnsEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for ts: UInt64 in [100, 200, 300] {
@@ -549,7 +549,7 @@
         }
 
         func test_readRange_allRecordsBeforeStart_returnsEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for ts: UInt64 in [100, 200, 300] {
@@ -562,7 +562,7 @@
         }
 
         func test_readRange_allRecordsAfterEnd_returnsEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for ts: UInt64 in [400, 500, 600] {
@@ -575,7 +575,7 @@
         }
 
         func test_readRange_gapBetweenRecords_returnsEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for ts: UInt64 in [100, 300] {
@@ -588,7 +588,7 @@
         }
 
         func test_readRange_duplicateTimestamps_allReturned() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let sharedTS: UInt64 = 99_999
@@ -606,7 +606,7 @@
         }
 
         func test_readRange_timestampZero_matchedByZeroStart() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let f: [UInt] = [0xABCD]
@@ -620,7 +620,7 @@
         }
 
         func test_readRange_timestampMaxUInt64_matchedByMaxEnd() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let f: [UInt] = [0x1234]
@@ -633,7 +633,7 @@
         }
 
         func test_readRange_singleRecordInLargeSet() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for i in 1...20 {
@@ -655,7 +655,7 @@
         }
 
         func test_readRange_subsetInMiddle() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for i in 1...20 {
@@ -674,7 +674,7 @@
         // MARK: - Read result integrity
 
         func test_readResult_consecutiveCalls_identicalData() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for i in 1...5 {
@@ -698,7 +698,7 @@
         }
 
         func test_readResult_timestampsMonotonicallyIncreasing() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for i in 1...30 {
@@ -720,7 +720,7 @@
 
         func test_wrapAround_recordStraddlingCapacityBoundary_readableAndCorrect() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let capacity = Int(buf.pointee.capacity)
@@ -741,7 +741,7 @@
             ts += 1
             let straddle: [UInt] = [UInt(ts), UInt(ts + 1), UInt(ts + 2)]
             let ok = emb_ring_buffer_write(buf, ts, straddle, 3)
-            XCTAssertTrue(ok, "write straddling boundary must succeed")
+            XCTAssertEqual(ok, EMB_RING_WRITE_OK, "write straddling boundary must succeed")
 
             let records = testReadRange(buf, ts, ts)
 
@@ -751,13 +751,13 @@
                 XCTAssertEqual(records[0].frames[1], UInt(ts + 1))
                 XCTAssertEqual(records[0].frames[2], UInt(ts + 2))
             } else {
-                XCTAssertTrue(ok)
+                XCTAssertEqual(ok, EMB_RING_WRITE_OK)
             }
         }
 
         func test_wrapAround_multiplePasses_onlyRecentRecordsVisible() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let rSize = RingBufferEdgeCaseTests.recordSize(5)
@@ -791,7 +791,7 @@
         }
 
         func test_wrapAround_variableFrameCounts_frameDataCorrect() {
-            let buf = emb_ring_buffer_create(4 * Int(getpagesize()))!
+            let buf = emb_ring_buffer_create(4 * Int(getpagesize()), nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let n = 200
@@ -834,7 +834,7 @@
 
         func test_write_recordExceedingCapacity_returnsFalse() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             // A record needs header(16) + frameCount*8 bytes.
@@ -842,8 +842,7 @@
             let frameCount = (page / RingBufferEdgeCaseTests.frameSize) + 1
             let frames = [UInt](repeating: 0xDEAD, count: frameCount)
 
-            let success = emb_ring_buffer_write(buf, 1_000, frames, frameCount)
-            XCTAssertFalse(success,
+            XCTAssertNotEqual(emb_ring_buffer_write(buf, 1_000, frames, frameCount), EMB_RING_WRITE_OK,
                 "Write should fail when record size exceeds buffer capacity")
 
             // Buffer should remain empty and functional.
@@ -852,12 +851,12 @@
 
             // A smaller write should still succeed.
             let small: [UInt] = [1]
-            XCTAssertTrue(emb_ring_buffer_write(buf, 2_000, small, 1))
+            XCTAssertEqual(emb_ring_buffer_write(buf, 2_000, small, 1), EMB_RING_WRITE_OK)
         }
 
         func test_write_recordAtExactCapacity_succeeds() {
             let page = Int(getpagesize())
-            let buf = emb_ring_buffer_create(page)!
+            let buf = emb_ring_buffer_create(page, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             // Compute the frame count that makes record_size == capacity exactly.
@@ -866,8 +865,7 @@
                 / RingBufferEdgeCaseTests.frameSize
 
             let frames = (0..<frameCount).map { UInt($0 + 1) }
-            let success = emb_ring_buffer_write(buf, 42_000, frames, frameCount)
-            XCTAssertTrue(success,
+            XCTAssertEqual(emb_ring_buffer_write(buf, 42_000, frames, frameCount), EMB_RING_WRITE_OK,
                 "Write should succeed when record exactly fills buffer")
 
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -879,7 +877,7 @@
         // MARK: - Output buffer edge cases
 
         func test_readRange_smallOutputBuffer_doesNotCrash() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for i in 1...20 {
@@ -902,7 +900,7 @@
         }
 
         func test_readRange_smallOutputBuffer_recordsAreCorrect() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             for i in 1...20 {
@@ -942,7 +940,7 @@
         }
 
         func test_readRange_zeroSizeOutput_returnsEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let f: [UInt] = [1]
@@ -958,7 +956,7 @@
         }
 
         func test_readRange_nilOutput_returnsEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let f: [UInt] = [1]
@@ -978,13 +976,12 @@
         // MARK: - Write with NULL frames and zero frame_count
 
         func test_write_nilFramesZeroCount_succeeds() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             // The C guard is: frames == NULL && frame_count > 0 → false.
             // NULL frames with 0 count should succeed and produce a zero-frame record.
-            let success = emb_ring_buffer_write(buf, 42_000, nil, 0)
-            XCTAssertTrue(success,
+            XCTAssertEqual(emb_ring_buffer_write(buf, 42_000, nil, 0), EMB_RING_WRITE_OK,
                 "write with NULL frames and 0 frame_count should succeed")
 
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -996,7 +993,7 @@
         // MARK: - Reset with concurrent readers
 
         func test_reset_whileReadersActive_returnsFalse() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             // Fill with large records so reads take measurable time.
@@ -1063,7 +1060,7 @@
         }
 
         func test_reset_withConcurrentReaderStarts_noCorruption() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             // Fill buffer with data.
@@ -1148,7 +1145,7 @@
         // MARK: - Corruption guards
 
         func test_readRange_corruptedPositions_totalDataExceedsCapacity_returnsEmpty() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             // Write some valid data first.

@@ -33,10 +33,28 @@
 
 #if !TARGET_OS_WATCH
 
+#include <mach/kern_return.h>
 #include <stdbool.h>
 #include <stdatomic.h>
 #include <stddef.h>
 #include <stdint.h>
+
+/// Status codes returned by emb_ring_buffer_write.
+typedef enum {
+    EMB_RING_WRITE_OK                  = 0,
+    EMB_RING_WRITE_BAD_ARGS            = 1,
+    EMB_RING_WRITE_RECORD_TOO_LARGE    = 2,
+    EMB_RING_WRITE_CORRUPTION_DETECTED = 3,
+} emb_ring_write_status_t;
+
+/// Status codes returned in emb_ring_read_result_t.
+typedef enum {
+    EMB_RING_READ_OK        = 0,
+    EMB_RING_READ_BAD_ARGS  = 1,
+    EMB_RING_READ_RESETTING = 2,
+    EMB_RING_READ_EMPTY     = 3,
+    EMB_RING_READ_TRUNCATED = 4,
+} emb_ring_read_status_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,9 +102,10 @@ static inline size_t emb_ring_record_size(uint32_t frame_count) {
 
 /// Result from a read operation.
 typedef struct {
-    size_t records_offset; // Offset in bytes to the first matching record.
-    size_t record_count;   // Number of matching records written to the output buffer.
-    size_t total_bytes;    // Total size in bytes of the matching record set.
+    size_t records_offset;         // Offset in bytes to the first matching record.
+    size_t record_count;           // Number of matching records written to the output buffer.
+    size_t total_bytes;            // Total size in bytes of the matching record set.
+    emb_ring_read_status_t status; // Status code describing the outcome.
 } emb_ring_read_result_t;
 
 /// Create a ring buffer.
@@ -94,8 +113,9 @@ typedef struct {
 /// This function is NOT async-safe.
 ///
 /// @param capacity_bytes Minimum usable capacity; rounded up to a page boundary.
+/// @param kr_out  On failure, receives the kern_return_t that caused the error. May be NULL.
 /// @return A newly allocated buffer, or NULL on failure.
-emb_ring_buffer_t *emb_ring_buffer_create(size_t capacity_bytes);
+emb_ring_buffer_t *emb_ring_buffer_create(size_t capacity_bytes, kern_return_t *kr_out);
 
 /// Destroy a ring buffer and release all VM and heap resources.
 ///
@@ -138,11 +158,14 @@ size_t emb_ring_buffer_capacity(const emb_ring_buffer_t *buf);
 /// @param timestamp_ns Monotonic timestamp (nanoseconds).
 /// @param frames Array of frame addresses to copy.
 /// @param frame_count Number of frames in the array. Must not exceed UINT32_MAX.
-/// @return true if the write succeeded, false if buf or frames is NULL.
-bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
-                           uint64_t timestamp_ns,
-                           const uintptr_t *frames,
-                           size_t frame_count);
+/// @return EMB_RING_WRITE_OK on success; EMB_RING_WRITE_BAD_ARGS if buf or frames is NULL or
+///         frame_count exceeds UINT32_MAX; EMB_RING_WRITE_RECORD_TOO_LARGE if the record does
+///         not fit in the buffer; EMB_RING_WRITE_CORRUPTION_DETECTED if a corrupted header was
+///         found during eviction.
+emb_ring_write_status_t emb_ring_buffer_write(emb_ring_buffer_t *buf,
+                                               uint64_t timestamp_ns,
+                                               const uintptr_t *frames,
+                                               size_t frame_count);
 
 /// Read records from the ring buffer within a time range.
 ///
@@ -150,9 +173,9 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
 /// the matching records into the caller-provided output buffer. This avoids
 /// copying the entire ring buffer contents for small time ranges.
 ///
-/// Walk the results starting at `output + result.offset`, casting to
+/// Walk the results starting at `output + result.records_offset`, casting to
 /// `emb_ring_record_header_t *`, reading `frame_count`, advancing by
-/// `emb_ring_record_size(frame_count)`, and repeating for `result.count`
+/// `emb_ring_record_size(frame_count)`, and repeating for `result.record_count`
 /// records.
 ///
 /// The output buffer must be large enough to hold the matching records.
@@ -168,8 +191,9 @@ bool emb_ring_buffer_write(emb_ring_buffer_t *buf,
 /// @param end_ns End timestamp (inclusive, nanoseconds). Use UINT64_MAX for "up to now".
 /// @param output Caller-provided output buffer.
 /// @param output_size Size of the output buffer in bytes.
-/// @return Result containing count and total bytes written. count=0 if empty,
-///         out of range, buf is NULL, output is NULL, or a reset is in progress.
+/// @return Result containing count, total bytes written, and a status code.
+///         record_count=0 if empty, out of range, buf is NULL, output is NULL, or
+///         a reset is in progress. Check result.status for the specific reason.
 emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
                                                    uint64_t start_ns,
                                                    uint64_t end_ns,
