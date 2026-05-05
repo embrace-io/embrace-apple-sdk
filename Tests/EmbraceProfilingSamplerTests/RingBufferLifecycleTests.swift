@@ -97,6 +97,25 @@
             }
         }
 
+        // MARK: - kr_out error propagation
+
+        func test_create_withKrOut_setsKernSuccess_onSuccess() {
+            var kr = KERN_FAILURE  // pre-set to non-success to prove it is written
+            let buf = emb_ring_buffer_create(1024 * 1024, &kr)
+            XCTAssertNotNil(buf)
+            XCTAssertEqual(kr, KERN_SUCCESS)
+            emb_ring_buffer_destroy(buf)
+        }
+
+        func test_create_withKrOut_setsInvalidArgument_forZeroCapacity() {
+            var kr = KERN_SUCCESS  // pre-set to success to prove it is overwritten
+            let buf = emb_ring_buffer_create(0, &kr)
+            XCTAssertNil(buf)
+            XCTAssertEqual(kr, KERN_INVALID_ARGUMENT)
+        }
+
+        // MARK: - VM double-mapping
+
         /// Verifies the mirror in the other direction: writing to the start of the
         /// first mapping is immediately visible in the second mapping.
         func test_doubleMapping_writeAtStart_visibleBeyondCapacity() {

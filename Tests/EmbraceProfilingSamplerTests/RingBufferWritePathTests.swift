@@ -262,6 +262,43 @@
             XCTAssertNotEqual(emb_ring_buffer_write(buf, 123, nil, 10), EMB_RING_WRITE_OK)
         }
 
+        func test_write_recordTooLarge_returnsRecordTooLarge() {
+            // Minimum-size buffer (1 byte rounds up to one page).
+            // A record whose size exceeds capacity must be rejected.
+            let buf = emb_ring_buffer_create(1, nil)
+            guard let buf = buf else {
+                XCTFail("emb_ring_buffer_create should succeed")
+                return
+            }
+            defer { emb_ring_buffer_destroy(buf) }
+
+            // capacity / stride + 1 guarantees the record exceeds capacity
+            // regardless of per-record header overhead or page size.
+            let frameCount = buf.pointee.capacity / MemoryLayout<UInt>.stride + 1
+            let frames = [UInt](repeating: 0, count: frameCount)
+            XCTAssertEqual(
+                emb_ring_buffer_write(buf, 1, frames, frameCount),
+                EMB_RING_WRITE_RECORD_TOO_LARGE)
+        }
+
+        #if arch(arm64) || arch(x86_64)
+        func test_write_frameCountExceedsUInt32Max_returnsBadArgs() {
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
+            guard let buf = buf else {
+                XCTFail("emb_ring_buffer_create should succeed")
+                return
+            }
+            defer { emb_ring_buffer_destroy(buf) }
+
+            let frames: [UInt] = [0x1000]
+            // The guard fires before any buffer access, so the frames array
+            // size doesn't need to match the claimed count.
+            XCTAssertEqual(
+                emb_ring_buffer_write(buf, 1, frames, Int(UInt32.max) + 1),
+                EMB_RING_WRITE_BAD_ARGS)
+        }
+        #endif
+
         func test_readRange_withNilBuffer_returnsEmpty() {
             var output = [UInt8](repeating: 0, count: 16)
             let result = emb_ring_buffer_read_range(nil, 0, UINT64_MAX, &output, output.count)
