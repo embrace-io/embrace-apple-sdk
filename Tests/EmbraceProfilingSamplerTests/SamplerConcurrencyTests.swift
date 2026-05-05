@@ -31,7 +31,7 @@
         // MARK: - Concurrent start
 
         func test_concurrentStart_atMostOneSucceeds() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let config = emb_sampler_config_t(
@@ -81,7 +81,7 @@
         // MARK: - Rapid start/stop
 
         func test_rapidStartStop_noStateCorruption() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let config = emb_sampler_config_t(
@@ -121,7 +121,7 @@
         // MARK: - Concurrent start and stop
 
         func test_concurrentStartAndStop_noCrashOrFault() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let config = emb_sampler_config_t(
@@ -169,7 +169,7 @@
         // MARK: - Start while stopping
 
         func test_start_whileStopping_returnsBusyThenSucceeds() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let config = emb_sampler_config_t(

@@ -39,7 +39,7 @@
         // MARK: - Fallback invocation
 
         func test_fallbackWalker_invokedWhenBelowMinFrames() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             // min_frames=999 ensures the FP walker (which typically captures
@@ -80,7 +80,7 @@
         }
 
         func test_fallbackWalker_returningZero_writesNothing() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             let config = emb_sampler_config_t(
@@ -108,7 +108,7 @@
         }
 
         func test_fallbackWalker_returningNegative_writesNothing() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             // The C code clamps negative returns to 0: frame_count = result < 0 ? 0 : result
@@ -137,7 +137,7 @@
         }
 
         func test_fallbackWalker_notInvokedWhenAboveMinFrames() {
-            let buf = emb_ring_buffer_create(1024 * 1024)!
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
             // min_frames=1: the FP walker almost always returns >= 1 frame
