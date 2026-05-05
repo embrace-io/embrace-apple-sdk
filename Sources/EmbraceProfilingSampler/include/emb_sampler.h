@@ -75,6 +75,9 @@ extern "C" {
 ///   REAPING  -> STOPPED   (cleanup complete)
 ///   RUNNING  -> FAULTED   (thread_suspend/resume failure. terminal)
 ///   STOPPING -> FAULTED   (thread_suspend/resume failure. terminal)
+///   STOPPING -> STOPPED   (start setup failed; reverted via sampler_checked_transition)
+///   RUNNING  -> FAULTED   (ring buffer write failure)
+///   STARTING -> FAULTED   (unhandled state or state machine violation)
 /// Bit assignments are ordered so that the most common CAS target in
 /// multi-state masks has the lowest bit, allowing `sampler_cas_multi`
 /// (which iterates LSB-first) to succeed on the first attempt in the
@@ -115,7 +118,7 @@ typedef enum {
 /// @param frames_out    Output buffer for frame addresses.
 /// @param max_frames    Capacity of frames_out.
 /// @param is_truncated  Set to true if the stack exceeded max_frames.
-/// @return The number of frames captured, or 0 on failure. Must be positive.
+/// @return Number of frames captured (>0 on success); <=0 indicates failure or no frames found.
 typedef int (*emb_fallback_stack_walker_fn)(thread_t thread,
                                             uintptr_t *frames_out,
                                             int max_frames,
@@ -149,6 +152,11 @@ typedef enum {
 ///
 /// May be called from any thread. Main thread info is captured at load
 /// time via a constructor. If main thread is unavailable, returns ERROR.
+///
+/// If the library was loaded from a background thread (e.g. via dlopen) and
+/// ``start`` has never been called from the main thread, main thread info may be
+/// unavailable. In that case, call ``start`` at least once from the main thread
+/// to cache the main thread port; subsequent calls from any thread will succeed.
 ///
 /// The buffer is NOT owned by the sampler. The caller must ensure it
 /// outlives the sampler (i.e. do not destroy the buffer while

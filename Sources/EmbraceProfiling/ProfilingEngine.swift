@@ -31,7 +31,7 @@ public final class ProfilingEngine: @unchecked Sendable {
     public static let shared = ProfilingEngine()
 
     /// Result of calling ``start(configuration:)``.
-    public enum StartResult: Equatable {
+    public enum StartResult: Equatable, Sendable {
         /// Successfully started the sampler.
         case started
         /// Was already running.
@@ -56,7 +56,7 @@ public final class ProfilingEngine: @unchecked Sendable {
     }
 
     /// Result of calling ``retrieveSamples(from:through:)``.
-    public enum RetrieveResult {
+    public enum RetrieveResult: Equatable, Sendable {
         /// Samples were successfully retrieved (may be empty if none match the time range).
         case success(ProfilingResult)
         /// The engine has not been started (no buffers allocated).
@@ -80,10 +80,10 @@ public final class ProfilingEngine: @unchecked Sendable {
         private let gateIsAcquired: UnsafeMutablePointer<emb_atomic_bool_t>
     #endif
 
-    /// Sleep interval between gate acquisition attempts (microseconds).
-    private static let gateSleepUs: useconds_t = 100
+    /// Sleep interval between gate acquisition attempts (nanoseconds).
+    private static let gateSleepNs: UInt64 = 100_000
     /// Maximum cumulative actual uptime before giving up (nanoseconds). 10ms.
-    private static let gateMaxSleepNs: UInt64 = 10_000_000
+    private static let gateTimeoutNs: UInt64 = 10_000_000
 
     /// Returns `true` if the profiling engine is actively capturing stack traces.
     ///
@@ -106,6 +106,19 @@ public final class ProfilingEngine: @unchecked Sendable {
         #endif
     }
 
+    /// Returns `true` if the sampler is in any active state (STARTING, RUNNING, or STOPPING).
+    ///
+    /// While `isActive` returns `true`, the worker thread may still be writing to the ring buffer.
+    /// Use this (not ``isCapturing``) to determine when it is safe to destroy the ring buffer.
+    /// Polling `isActive` also triggers background cleanup (thread join) when the worker exits.
+    public var isActive: Bool {
+        #if os(watchOS)
+            return false
+        #else
+            return emb_sampler_is_active()
+        #endif
+    }
+
     /// Returns the fault reason if the sampler is faulted, or `nil` otherwise.
     public var faultReason: String? {
         #if os(watchOS)
@@ -125,10 +138,8 @@ public final class ProfilingEngine: @unchecked Sendable {
 
     #if !os(watchOS)
     /// Try to acquire the gate.
-    /// Sleeps ``gateSleepUs`` between attempts, up to ``gateMaxSleepNs``
-    /// cumulative actual elapsed time, then one final attempt (in case actual
-    /// sleeps were substantially longer than requested and we got fewer attempts
-    /// than expected).
+    /// Sleeps ``gateSleepNs`` between attempts, up to ``gateTimeoutNs``
+    /// cumulative actual elapsed time.
     ///
     /// Note: On iOS, timer coalescing may inflate `usleep(100)` to several
     /// milliseconds. Under contention, the effective behavior may be closer to
@@ -136,7 +147,7 @@ public final class ProfilingEngine: @unchecked Sendable {
     /// that the arithmetic suggests. This is acceptable because contention is
     /// expected to be extremely rare (only start/retrieve overlap).
     internal func acquireGate() -> Bool {
-        let deadlineNs = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + Self.gateMaxSleepNs
+        let deadlineNs = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + Self.gateTimeoutNs
         while true {
             var expected: Bool = false
             if emb_atomic_bool_compare_exchange(gateIsAcquired, &expected, true, .acquire, .relaxed) {
@@ -145,7 +156,7 @@ public final class ProfilingEngine: @unchecked Sendable {
             if clock_gettime_nsec_np(CLOCK_UPTIME_RAW) >= deadlineNs {
                 return false
             }
-            usleep(Self.gateSleepUs)
+            usleep(useconds_t(Self.gateSleepNs / 1_000))
         }
     }
 
@@ -225,7 +236,7 @@ public final class ProfilingEngine: @unchecked Sendable {
             }
 
             if needsNewBuffer {
-                guard let buffer = emb_ring_buffer_create(Int(configuration.bufferCapacityBytes)) else {
+                guard let buffer = emb_ring_buffer_create(Int(configuration.bufferCapacityBytes), nil) else {
                     return .bufferCreationFailed
                 }
                 ringBuffer = buffer
@@ -244,7 +255,7 @@ public final class ProfilingEngine: @unchecked Sendable {
                 sampling_interval_ms: configuration.samplingIntervalMs,
                 min_sampling_interval_ms: configuration.minSamplingIntervalMs,
                 max_frames: configuration.maxFramesPerSample,
-                min_frames: 0,
+                min_frames: configuration.minFramesPerSample,
                 fallback_walker: nil
             )
 
@@ -272,8 +283,9 @@ public final class ProfilingEngine: @unchecked Sendable {
     /// Request the profiling engine to stop.
     ///
     /// This is non-blocking: it signals the worker thread to exit and
-    /// returns immediately. Poll ``isCapturing`` to determine when the
-    /// worker has actually stopped.
+    /// returns immediately. To determine when it is safe to destroy the ring buffer (or when the worker
+    /// has fully exited), poll ``isActive`` until it returns `false`. ``isCapturing``
+    /// flips to `false` as soon as STOPPING begins and is not sufficient for this purpose.
     ///
     /// Samples captured before stopping remain available via ``retrieveSamples(from:through:)``.
     public func stop() {
@@ -287,7 +299,9 @@ public final class ProfilingEngine: @unchecked Sendable {
     /// Time values are in `CLOCK_MONOTONIC_RAW` nanoseconds, matching timekeeping used in EmbraceClock.swift.
     ///
     /// Samples are returned in chronological order. The engine does not need to be running.
-    /// Samples persist after ``stop()`` is called, but are cleared on ``start(configuration:)``.
+    /// Samples persist after ``stop()`` is called, and persist across calls to
+    /// ``start(configuration:)`` that reuse the same buffer. Samples are cleared
+    /// when ``start(configuration:)`` allocates a new buffer (different capacity or first start).
     ///
     /// - Note: This method acquires an internal gate using a sleep-based
     ///   spin loop (up to 10ms under contention). It is not suitable for
@@ -387,7 +401,6 @@ public final class ProfilingEngine: @unchecked Sendable {
     //      false (with a timeout to avoid unbounded blocking).
     //   2. Destroy the ring buffer: emb_ring_buffer_destroy(ringBuffer)
     //   3. Deallocate readBuffer: if let ptr = readBuffer { free(ptr) }
-    //   4. Deinitialize and deallocate the atomic gate:
-    //      emb_atomic_bool_deinit(gateIsAcquired)
+    //   4. Deallocate the atomic gate:
     //      gateIsAcquired.deallocate()
 }
