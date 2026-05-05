@@ -314,6 +314,20 @@
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_ERROR)
         }
 
+        func test_stop_whenFaulted_isNoOp() {
+            emb_sampler_inject_fault_for_testing("injected")
+            XCTAssertEqual(emb_sampler_get_state(), EMB_SAMPLER_FAULTED)
+            emb_sampler_stop()
+            XCTAssertEqual(emb_sampler_get_state(), EMB_SAMPLER_FAULTED,
+                "stop() on a faulted sampler must not change state")
+        }
+
+        func test_isCapturing_falseWhenFaulted() {
+            emb_sampler_inject_fault_for_testing("injected")
+            XCTAssertFalse(emb_sampler_is_active(),
+                "is_active() must return false for FAULTED state")
+        }
+
         func test_isActive_falseWhenFaulted() {
             emb_sampler_inject_fault_for_testing("injected")
             XCTAssertFalse(emb_sampler_is_active())
@@ -444,8 +458,8 @@
             XCTAssertGreaterThanOrEqual(records.count, 1,
                 "Should have captured at least 1 sample from the test thread")
             for record in records {
-                XCTAssertGreaterThan(record.frame_count, 0,
-                    "Samples should contain frames from the test thread stack")
+                XCTAssertGreaterThanOrEqual(record.frame_count, UInt32(15),
+                    "Samples redirected to the 20-deep test thread should have ≥15 frames")
             }
         }
 

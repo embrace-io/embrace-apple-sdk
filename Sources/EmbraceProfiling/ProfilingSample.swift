@@ -14,7 +14,7 @@ public struct ProfilingSample: Equatable, Hashable, Sendable {
     /// Index range into the shared frames array for this sample's return addresses.
     public let frameRange: Range<Int>
 
-    public init(timestamp: UInt64, frameRange: Range<Int>) {
+    init(timestamp: UInt64, frameRange: Range<Int>) {
         self.timestamp = timestamp
         self.frameRange = frameRange
     }
@@ -41,7 +41,7 @@ public struct ProfilingResult: Equatable, Hashable, Sendable {
         frames[sample.frameRange]
     }
 
-    public init(samples: [ProfilingSample], frames: [UInt]) {
+    init(samples: [ProfilingSample], frames: [UInt]) {
         self.samples = samples
         self.frames = frames
     }

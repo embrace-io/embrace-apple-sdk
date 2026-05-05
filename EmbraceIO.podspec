@@ -138,6 +138,7 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceProfiling' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceProfilingSampler"
+    subs.dependency "EmbraceIO/EmbraceAtomicsShim"
   end
 
   # External

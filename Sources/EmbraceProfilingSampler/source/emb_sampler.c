@@ -78,7 +78,7 @@ static inline int sampler_cas_state(emb_sampler_state_t expected, emb_sampler_st
     int e = expected;
     if (atomic_compare_exchange_strong_explicit(&g_state, &e, desired,
                                                 memory_order_release,
-                                                memory_order_relaxed)) {
+                                                memory_order_acquire)) {
         return CAS_SUCCESS;
     }
     return e;
@@ -138,7 +138,9 @@ static inline bool sampler_checked_transition(int valid_from_mask, emb_sampler_s
     }
     os_log_error(emb_profiling_log(),
                  "State violation: expected mask 0x%x, actual 0x%x", valid_from_mask, actual);
-    sampler_fault("state machine violation");
+    if (actual != EMB_SAMPLER_FAULTED) {
+        sampler_fault("state machine violation");
+    }
     return false;
 }
 
@@ -233,7 +235,12 @@ static void *sampler_thread_func(void *arg) {
         // validates that max_frames fits within the buffer capacity. A failure
         // here indicates a logic error (e.g. buffer was destroyed externally).
         if (frame_count > 0) {
-            if (!emb_ring_buffer_write(g_buffer, timestamp_ns, g_stack_frames, frame_count)) {
+            emb_ring_write_status_t ws =
+                emb_ring_buffer_write(g_buffer, timestamp_ns, g_stack_frames, frame_count);
+            if (ws == EMB_RING_WRITE_CORRUPTION_DETECTED) {
+                sampler_fault("ring buffer corruption detected");
+                return NULL;
+            } else if (ws != EMB_RING_WRITE_OK) {
                 sampler_fault("ring buffer write failed (buffer corrupt or misconfigured)");
                 return NULL;
             }
@@ -276,6 +283,14 @@ static void cleanup_previous_session(void) {
 }
 
 emb_sampler_start_result_t emb_sampler_start(emb_ring_buffer_t *buffer, emb_sampler_config_t config) {
+    // Clamp before any comparison so the idempotency check on the RUNNING path
+    // sees the same value that will be stored in g_config.
+    if (config.max_frames > EMB_MAX_STACK_FRAMES) {
+        os_log_debug(emb_profiling_log(),
+                     "Clamping max_frames from %u to %d", config.max_frames, EMB_MAX_STACK_FRAMES);
+        config.max_frames = EMB_MAX_STACK_FRAMES;
+    }
+
     // Reap any finished previous session.
     cleanup_previous_session();
 
@@ -316,12 +331,6 @@ emb_sampler_start_result_t emb_sampler_start(emb_ring_buffer_t *buffer, emb_samp
         os_log_debug(emb_profiling_log(), "emb_sampler_start failed: invalid config");
         sampler_checked_transition(EMB_SAMPLER_STARTING_OR_STOPPING_MASK, EMB_SAMPLER_STOPPED);
         return EMB_SAMPLER_START_ERROR;
-    }
-
-    if (config.max_frames > EMB_MAX_STACK_FRAMES) {
-        os_log_debug(emb_profiling_log(),
-                     "Clamping max_frames from %u to %d", config.max_frames, EMB_MAX_STACK_FRAMES);
-        config.max_frames = EMB_MAX_STACK_FRAMES;
     }
 
     // Resolve main thread info. The constructor caches it when loaded on main;
@@ -403,6 +412,10 @@ const char *emb_sampler_get_fault_reason(void) {
 // ---------------------------------------------------------------------------
 
 bool emb_sampler_reset_for_testing(void) {
+    // When resetting from FAULTED: the production leak philosophy intentionally
+    // skipped pthread_join and free(g_stack_frames) on fault. We accept those
+    // leaks here too — reset_for_testing is only called between test cases where
+    // isolation matters more than resource cleanup.
     emb_sampler_state_t state = sampler_get_state();
     if (state != EMB_SAMPLER_STOPPED && state != EMB_SAMPLER_FAULTED) {
         return false;

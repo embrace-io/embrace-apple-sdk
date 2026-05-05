@@ -6,7 +6,7 @@
 ///
 /// All properties have sensible defaults. Pass a custom configuration to
 /// ``ProfilingEngine/start(configuration:)`` to override.
-public struct ProfilingConfiguration: Sendable {
+public struct ProfilingConfiguration: Equatable, Hashable, Sendable {
     /// Sampling interval in milliseconds.
     /// Recommend: 100ms
     /// Minimum: 10ms
@@ -14,13 +14,22 @@ public struct ProfilingConfiguration: Sendable {
 
     /// Minimum sampling interval when recovering from drift (ms).
     /// Prevents back-to-back sampling from starving the main thread.
-    /// Recommend: around 10% of samplingIntervalMs
+    /// Must be less than 50% of samplingIntervalMs (the actual enforced constraint).
+    /// Recommend: around 10% of samplingIntervalMs.
     public let minSamplingIntervalMs: UInt32
 
     /// Maximum number of frames to capture per sample.
     /// The C layer enforces a hard cap of 1024.
     /// Recommend: 500
     public let maxFramesPerSample: UInt32
+
+    /// Minimum frame count before invoking the fallback stack walker (if configured).
+    /// If the primary frame-pointer walk yields fewer than this many frames, the fallback
+    /// walker is called while the thread is still suspended.
+    /// Set to 0 to disable the fallback walker entirely.
+    /// Must be ≤ maxFramesPerSample.
+    /// Recommend: 3
+    public let minFramesPerSample: UInt32
 
     /// Ring buffer capacity in bytes (rounded up to a page boundary).
     /// Less than 128k and you'll get massive churn.
@@ -32,11 +41,13 @@ public struct ProfilingConfiguration: Sendable {
         samplingIntervalMs: UInt32 = 100,
         minSamplingIntervalMs: UInt32 = 10,
         maxFramesPerSample: UInt32 = 500,
+        minFramesPerSample: UInt32 = 3,
         bufferCapacityBytes: UInt32 = 1024 * 1024
     ) {
         self.samplingIntervalMs = samplingIntervalMs
         self.minSamplingIntervalMs = minSamplingIntervalMs
         self.maxFramesPerSample = maxFramesPerSample
+        self.minFramesPerSample = minFramesPerSample
         self.bufferCapacityBytes = bufferCapacityBytes
     }
 
@@ -48,5 +59,6 @@ public struct ProfilingConfiguration: Sendable {
             && maxFramesPerSample <= 1024 // EMB_MAX_STACK_FRAMES
             && bufferCapacityBytes > 128 * 1024
             && bufferCapacityBytes <= 10_485_760 // 10 MB
+            && minFramesPerSample <= maxFramesPerSample
     }
 }
