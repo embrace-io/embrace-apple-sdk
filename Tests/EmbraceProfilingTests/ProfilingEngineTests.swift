@@ -1197,7 +1197,7 @@
         func test_start_minimumMaxFrames_succeeds() {
             let config = ProfilingConfiguration(
                 samplingIntervalMs: 100, minSamplingIntervalMs: 10,
-                maxFramesPerSample: 1)
+                maxFramesPerSample: 1, minFramesPerSample: 1)
             XCTAssertEqual(engine.start(configuration: config), .started)
             XCTAssertTrue(waitForCapturing(true))
 
