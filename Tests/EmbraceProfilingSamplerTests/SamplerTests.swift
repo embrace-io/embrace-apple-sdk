@@ -15,7 +15,7 @@
 
         /// Create a ring buffer suitable for testing. Caller must destroy.
         private func makeBuffer() -> UnsafeMutablePointer<emb_ring_buffer_t> {
-            let buf = emb_ring_buffer_create(1024 * 1024)
+            let buf = emb_ring_buffer_create(1024 * 1024, nil)
             XCTAssertNotNil(buf)
             return buf!
         }
@@ -458,7 +458,7 @@
             XCTAssertGreaterThanOrEqual(records.count, 1,
                 "Should have captured at least 1 sample from the test thread")
             for record in records {
-                XCTAssertGreaterThanOrEqual(record.frame_count, UInt32(15),
+                XCTAssertGreaterThanOrEqual(record.frame_count, 15,
                     "Samples redirected to the 20-deep test thread should have ≥15 frames")
             }
         }

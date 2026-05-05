@@ -42,7 +42,7 @@ extension ProfilingEngine {
             }
 
             if ringBuffer == nil {
-                guard let buffer = emb_ring_buffer_create(Int(configuration.bufferCapacityBytes)) else {
+                guard let buffer = emb_ring_buffer_create(Int(configuration.bufferCapacityBytes), nil) else {
                     return false
                 }
                 ringBuffer = buffer
@@ -74,7 +74,7 @@ extension ProfilingEngine {
             return frames.withUnsafeBufferPointer { buf in
                 guard let baseAddress = buf.baseAddress else { return false }
                 return baseAddress.withMemoryRebound(to: uintptr_t.self, capacity: frames.count) { ptr in
-                    emb_ring_buffer_write(ringBuffer, timestamp, ptr, frames.count)
+                    emb_ring_buffer_write(ringBuffer, timestamp, ptr, frames.count) == EMB_RING_WRITE_OK
                 }
             }
         #endif
