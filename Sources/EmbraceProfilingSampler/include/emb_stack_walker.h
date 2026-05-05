@@ -52,7 +52,7 @@ extern "C" {
 ///
 /// @param thread       Mach thread port (must be suspended).
 /// @param stack_bottom Lowest valid stack address.
-/// @param stack_top    Highest valid stack address (pthread_get_stackaddr_np).
+/// @param stack_top    First address past the top of the stack (treated exclusively); typically the value returned by `pthread_get_stackaddr_np`.
 /// @param frames_out   Output buffer for frame addresses.
 /// @param max_frames   Capacity of frames_out.
 /// @param count_out    On return, the number of frames captured.

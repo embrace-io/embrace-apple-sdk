@@ -24,7 +24,7 @@ private let minFPFrames = 3
 /// Tries fast frame-pointer walking first. If that yields fewer than ``minFPFrames``
 /// frames, falls back to KSCrash's `captureBacktrace` unwinder.
 ///
-/// Note: KSCrash will support walking a stack without a FP in the next release.
+/// Note: KSCrash 2.6.0 will support walking a stack without a FP.
 ///
 /// - Parameters:
 ///   - thread: The Mach thread port of the thread to capture.
