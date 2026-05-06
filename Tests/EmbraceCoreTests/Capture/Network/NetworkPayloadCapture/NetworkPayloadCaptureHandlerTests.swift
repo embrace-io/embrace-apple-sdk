@@ -64,7 +64,7 @@ class NetworkPayloadCaptureHandlerTests: XCTestCase {
             spanId: TestConstants.spanId,
             startTime: Date()
         )
-        let notification = Notification(name: .embraceSessionDidStart, object: session)
+        let notification = Notification(name: .embraceSessionPartDidStart, object: session)
         handler.onSessionStart(notification)
 
         // then the handler is activated,

@@ -68,6 +68,7 @@ package class Embrace {
     let logController: LogController
 
     let sessionController: SessionController
+    let userSessionController: UserSessionController
     let sessionLifecycle: SessionLifecycle
 
     let otelResources: EmbraceAttributes?
@@ -166,6 +167,18 @@ package class Embrace {
 
         // initialize session controller
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
+
+        // initialize user-session controller and reconstruct any persisted user-session state.
+        // MUST run before `sessionLifecycle.startSession()` AND before `UnsentDataHandler.sendUnsentData`
+        // — both are downstream consumers, and `sendUnsentData` may delete the source row.
+        self.userSessionController = UserSessionController(
+            storage: storage,
+            config: config.configurable
+        )
+        self.userSessionController.sessionController = sessionController
+        self.sessionController.userSessionController = userSessionController
+        self.userSessionController.bootstrap()
+
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
 
         // initialize log controller
