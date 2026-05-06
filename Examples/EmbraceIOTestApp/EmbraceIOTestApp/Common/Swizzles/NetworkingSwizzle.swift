@@ -4,10 +4,10 @@
 //
 //
 
+import EmbraceIO
 import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceCore
-import EmbraceOTelInternal
 import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
@@ -240,7 +240,7 @@ class NetworkingSwizzle: NSObject {
     }
 
     private func capturedExportedLog(_ logExporter: TestLogRecordExporter) {
-        guard let currentSessionId = Embrace.client?.currentSessionId() else {
+        guard let currentSessionId = EmbraceIO.shared.currentSessionId else {
             return
         }
 
