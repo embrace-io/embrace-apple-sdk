@@ -26,7 +26,7 @@ public class MockSession: EmbraceSession {
     public var userSessionInactivityTimeout: TimeInterval?
     public var userSessionLastForegroundEnd: Date?
     public var userSessionPartIndex: Int
-    public var userSessionTerminationReason: String?
+    public var userSessionTerminationReason: TerminationReason?
 
     public init(
         id: EmbraceIdentifier,
@@ -48,7 +48,7 @@ public class MockSession: EmbraceSession {
         userSessionInactivityTimeout: TimeInterval? = nil,
         userSessionLastForegroundEnd: Date? = nil,
         userSessionPartIndex: Int = 0,
-        userSessionTerminationReason: String? = nil
+        userSessionTerminationReason: TerminationReason? = nil
     ) {
         self.id = id
         self.processId = processId

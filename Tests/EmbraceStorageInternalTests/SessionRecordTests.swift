@@ -284,12 +284,12 @@ class SessionRecordTests: XCTestCase {
         // when stamping userSessionTerminationReason
         storage.updateSession(
             session: original,
-            userSessionTerminationReason: TerminationReason.maxDurationReached.rawValue
+            userSessionTerminationReason: .maxDurationReached
         )
 
         // then the field is persisted
         let updated = try XCTUnwrap(storage.fetchSession(id: partId))
-        XCTAssertEqual(updated.userSessionTerminationReason, "max_duration_reached")
+        XCTAssertEqual(updated.userSessionTerminationReason, .maxDurationReached)
     }
 
     func test_fetchLatestSession_returnsLatestWithUserSessionColumns() throws {

@@ -83,7 +83,7 @@ public class SessionRecord: NSManagedObject {
         userSessionInactivityTimeout: TimeInterval? = nil,
         userSessionLastForegroundEnd: Date? = nil,
         userSessionPartIndex: EMBInt = 0,
-        userSessionTerminationReason: String? = nil
+        userSessionTerminationReason: TerminationReason? = nil
     ) -> Bool {
         guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
             return false
@@ -109,7 +109,7 @@ public class SessionRecord: NSManagedObject {
         record.userSessionInactivityTimeout = userSessionInactivityTimeout.map { NSNumber(value: $0) }
         record.userSessionLastForegroundEnd = userSessionLastForegroundEnd
         record.userSessionPartIndex = userSessionPartIndex
-        record.userSessionTerminationReason = userSessionTerminationReason
+        record.userSessionTerminationReason = userSessionTerminationReason?.rawValue
 
         return true
     }
@@ -139,7 +139,7 @@ public class SessionRecord: NSManagedObject {
             userSessionInactivityTimeout: userSessionInactivityTimeout?.doubleValue,
             userSessionLastForegroundEnd: userSessionLastForegroundEnd,
             userSessionPartIndex: userSessionPartIndex,
-            userSessionTerminationReason: userSessionTerminationReason
+            userSessionTerminationReason: userSessionTerminationReason.flatMap { TerminationReason(rawValue: $0) }
         )
     }
 }
@@ -291,5 +291,5 @@ struct ImmutableSessionRecord: EmbraceSession {
     let userSessionInactivityTimeout: TimeInterval?
     let userSessionLastForegroundEnd: Date?
     let userSessionPartIndex: EMBInt
-    let userSessionTerminationReason: String?
+    let userSessionTerminationReason: TerminationReason?
 }
