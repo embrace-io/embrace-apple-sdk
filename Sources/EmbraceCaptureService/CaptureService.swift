@@ -100,13 +100,13 @@ open class CaptureService {
 
     /// This method is called by the Embrace SDK when a new session starts.
     /// You should override this method if your `CaptureService` needs to do something on a new session.
-    open func onSessionStart(_ session: EmbraceSession) {
+    open func onSessionStart() {
 
     }
 
     /// This method is called by the Embrace SDK when a session will end.
     /// You should override this method if your `CaptureService` needs to do something before a session ends.
-    open func onSessionWillEnd(_ session: EmbraceSession) {
+    open func onSessionWillEnd() {
 
     }
 

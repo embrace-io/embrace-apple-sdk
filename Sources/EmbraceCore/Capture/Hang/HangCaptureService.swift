@@ -41,11 +41,11 @@ public final class HangCaptureService: CaptureService {
         watchdog?.logger = logger
     }
 
-    public override func onSessionStart(_ session: any EmbraceSession) {
+    public override func onSessionStart() {
         limitData.withLock { $0.hangsInSessionCount = 0 }
     }
 
-    public override func onSessionWillEnd(_ session: any EmbraceSession) {
+    public override func onSessionWillEnd() {
         let value = limitData.withLock { $0.hangsInSessionCount }
         Embrace.client?.metadata.updateProperty(key: SpanSemantics.Hang.name, value: "\(value)")
     }

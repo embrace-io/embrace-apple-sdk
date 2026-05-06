@@ -807,7 +807,7 @@ extension UnsentDataHandlerTests {
 extension EmbraceStorage {
 
     @discardableResult
-    public func addSession(
+    func addSession(
         id: EmbraceIdentifier,
         processId: EmbraceIdentifier,
         state: SessionState,

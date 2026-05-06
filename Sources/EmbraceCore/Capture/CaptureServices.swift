@@ -169,14 +169,12 @@ final class CaptureServices {
     @objc func onSessionStart(notification: Notification) {
         if let session = notification.object as? EmbraceSession {
             crashReporter?.currentSessionId = session.id.stringValue
-            for service in services { service.onSessionStart(session) }
         }
+        for service in services { service.onSessionStart() }
     }
 
     @objc func onSessionWillEnd(notification: Notification) {
-        if let session = notification.object as? EmbraceSession {
-            for service in services { service.onSessionWillEnd(session) }
-        }
+        for service in services { service.onSessionWillEnd() }
     }
 
     @objc func onConfigUpdated(notification: Notification) {

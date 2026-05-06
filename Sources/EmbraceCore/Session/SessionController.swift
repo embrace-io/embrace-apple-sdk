@@ -151,6 +151,10 @@ class SessionController: SessionControllable {
             }
 
             // increment session counter and create session record
+            // TODO(Part 3): move this increment into UserSessionController.attachPart so it
+            // fires once per user-session creation rather than once per part. Per the v7 spec,
+            // sessionNumber on the part record is the user-session number — all parts of the
+            // same user session share the value.
             let sessionNumber = storage.incrementCountForPermanentResource(
                 key: SessionController.sessionNumberKey
             )
