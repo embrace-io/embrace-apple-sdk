@@ -755,6 +755,32 @@ class UnsentDataHandlerTests: XCTestCase {
         // then no log is sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
     }
+
+    func test_criticalLogs_orphanPendingFile_isDeleted() async throws {
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given upload module
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue)
+
+        // given a stranded pending-logs file from a prior run that didn't fire .critical
+        let pendingLogsFilePath = filePathProvider.fileURL(for: "UnsentDataHandlerTests", name: "pending-file")!
+        try "STARTUP-TRAIL".write(to: pendingLogsFilePath, atomically: true, encoding: .utf8)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: pendingLogsFilePath.path))
+
+        // when sending critical logs (no critical-logs file exists)
+        await UnsentDataHandler.sendCriticalLogs(
+            fileUrl: criticalLogsFilePath,
+            pendingFileUrl: pendingLogsFilePath,
+            upload: upload
+        )
+        wait(delay: .shortTimeout)
+
+        // then nothing is uploaded and the orphan is gone
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: pendingLogsFilePath.path))
+    }
 }
 
 extension UnsentDataHandlerTests {
