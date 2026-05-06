@@ -166,7 +166,7 @@ let package = Package(
         // config --------------------------------------------------------------------
         .target(
             name: "EmbraceConfiguration",
-            dependencies: []
+            dependencies: ["EmbraceSemantics"]
         ),
 
         .testTarget(

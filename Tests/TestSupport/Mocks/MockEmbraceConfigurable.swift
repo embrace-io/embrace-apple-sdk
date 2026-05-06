@@ -31,7 +31,9 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         updateCompletionParamError: Error? = nil,
         hangLimits: HangLimits = HangLimits(),
         useLegacyUrlSessionProxy: Bool = false,
-        useNewStorageForSpanEvents: Bool = false
+        useNewStorageForSpanEvents: Bool = false,
+        userSessionMaxDuration: TimeInterval = 12 * 3600,
+        userSessionInactivityTimeout: TimeInterval = 30 * 60
     ) {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -53,6 +55,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self._useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
         self._useNewStorageForSpanEvents = useNewStorageForSpanEvents
+        self._userSessionMaxDuration = userSessionMaxDuration
+        self._userSessionInactivityTimeout = userSessionInactivityTimeout
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
         self.updateCompletionParamError = updateCompletionParamError
     }
@@ -308,6 +312,32 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _useNewStorageForSpanEvents = newValue
+        }
+    }
+
+    private var _userSessionMaxDuration: TimeInterval
+    public let userSessionMaxDurationExpectation = XCTestExpectation(
+        description: "userSessionMaxDuration called")
+    public var userSessionMaxDuration: TimeInterval {
+        get {
+            userSessionMaxDurationExpectation.fulfill()
+            return _userSessionMaxDuration
+        }
+        set {
+            _userSessionMaxDuration = newValue
+        }
+    }
+
+    private var _userSessionInactivityTimeout: TimeInterval
+    public let userSessionInactivityTimeoutExpectation = XCTestExpectation(
+        description: "userSessionInactivityTimeout called")
+    public var userSessionInactivityTimeout: TimeInterval {
+        get {
+            userSessionInactivityTimeoutExpectation.fulfill()
+            return _userSessionInactivityTimeout
+        }
+        set {
+            _userSessionInactivityTimeout = newValue
         }
     }
 

@@ -159,6 +159,10 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var useNewStorageForSpanEvents: Bool { payload.useNewStorageForSpanEvents }
 
+    public var userSessionMaxDuration: TimeInterval { payload.userSessionMaxDurationSeconds }
+
+    public var userSessionInactivityTimeout: TimeInterval { payload.userSessionInactivityTimeoutSeconds }
+
     public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
         guard updating == false else {
             completion(false, nil)

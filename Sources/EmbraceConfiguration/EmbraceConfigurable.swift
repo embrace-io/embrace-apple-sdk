@@ -11,6 +11,17 @@ public protocol EmbraceConfigurable: AnyObject {
 
     var isBackgroundSessionEnabled: Bool { get }
 
+    /// Maximum duration of a user session, in seconds.
+    /// - Note: Snapshotted at user-session creation; not read continuously.
+    /// - Note: Valid range is `[3600, 86400]` (1h–24h). Out-of-range values fall back to `UserSession.defaultMaxDurationSeconds`.
+    var userSessionMaxDuration: TimeInterval { get }
+
+    /// Inactivity timeout (no foreground part) before the user session expires, in seconds.
+    /// - Note: Snapshotted at user-session creation; not read continuously.
+    /// - Note: Valid range is `[30, 86400]` (30s–24h), and must be `<= userSessionMaxDuration`.
+    /// Out-of-range or cross-field violations fall back to `UserSession.defaultInactivityTimeoutSeconds`.
+    var userSessionInactivityTimeout: TimeInterval { get }
+
     var isNetworkSpansForwardingEnabled: Bool { get }
 
     var isUiLoadInstrumentationEnabled: Bool { get }

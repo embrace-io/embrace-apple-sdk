@@ -3,6 +3,7 @@
 //
 
 import EmbraceConfiguration
+import Foundation
 
 public class EditableConfig: EmbraceConfigurable {
 
@@ -46,6 +47,10 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var useNewStorageForSpanEvents: Bool = false
 
+    public var userSessionMaxDuration: TimeInterval = 12 * 3600
+
+    public var userSessionInactivityTimeout: TimeInterval = 30 * 60
+
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)
     }
@@ -65,7 +70,9 @@ public class EditableConfig: EmbraceConfigurable {
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         hangLimits: HangLimits = HangLimits(),
         useLegacyUrlSessionProxy: Bool = false,
-        useNewStorageForSpanEvents: Bool = false
+        useNewStorageForSpanEvents: Bool = false,
+        userSessionMaxDuration: TimeInterval = 12 * 3600,
+        userSessionInactivityTimeout: TimeInterval = 30 * 60
     ) {
         self.isSDKEnabled = isSdkEnabled
         self.isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -82,6 +89,8 @@ public class EditableConfig: EmbraceConfigurable {
         self.hangLimits = hangLimits
         self.useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
         self.useNewStorageForSpanEvents = useNewStorageForSpanEvents
+        self.userSessionMaxDuration = userSessionMaxDuration
+        self.userSessionInactivityTimeout = userSessionInactivityTimeout
     }
 }
 
