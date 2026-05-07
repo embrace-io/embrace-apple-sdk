@@ -28,6 +28,7 @@
     final class FrameRateMonitor {
 
         /// Apple's own definition of a hang (≈ 250 ms).
+        /// See: https://developer.apple.com/documentation/xcode/understanding-hangs-in-your-app
         static let defaultAppleHangThreshold: TimeInterval = 0.249
 
         /// Minimum frame delay (seconds) that is reported as a hang.

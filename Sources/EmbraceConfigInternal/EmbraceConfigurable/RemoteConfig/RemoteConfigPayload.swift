@@ -97,7 +97,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case error
         }
 
-        case hangLimits = "hang_limits"
+        case hangLimits = "hang_limits_v2"
         enum HangLimitsCodingKeys: String, CodingKey {
             case hangThreshold = "hang_threshold"
             case hangPerSession = "hang_per_session"
