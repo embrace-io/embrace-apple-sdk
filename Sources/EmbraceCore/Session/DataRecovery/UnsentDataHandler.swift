@@ -375,11 +375,16 @@ class UnsentDataHandler {
         storage.cleanMetadata()
     }
 
-    static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?, completion: UnsentDataHandlerCompletion? = nil) {
-        // feature is only available on iOS 15+
-        if #unavailable(iOS 15.0, tvOS 15.0) {
-            completion?()
-            return
+    static func sendCriticalLogs(
+        fileUrl: URL?,
+        pendingFileUrl: URL? = nil,
+        upload: EmbraceUpload?,
+        completion: UnsentDataHandlerCompletion? = nil
+    ) {
+        // any pending-logs left over from a prior run that didn't fire a .critical
+        // is orphan staging data — by spec there's nothing to upload, just discard.
+        if let pendingFileUrl = pendingFileUrl {
+            try? FileManager.default.removeItem(at: pendingFileUrl)
         }
 
         guard let upload = upload,
@@ -450,9 +455,9 @@ extension UnsentDataHandler {
         }
     }
 
-    static func sendCriticalLogs(fileUrl: URL?, upload: EmbraceUpload?) async {
+    static func sendCriticalLogs(fileUrl: URL?, pendingFileUrl: URL? = nil, upload: EmbraceUpload?) async {
         await withCheckedContinuation { continuation in
-            sendCriticalLogs(fileUrl: fileUrl, upload: upload) {
+            sendCriticalLogs(fileUrl: fileUrl, pendingFileUrl: pendingFileUrl, upload: upload) {
                 continuation.resume()
             }
         }

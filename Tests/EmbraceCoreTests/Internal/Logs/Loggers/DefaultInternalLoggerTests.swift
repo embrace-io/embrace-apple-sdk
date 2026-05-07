@@ -6,164 +6,276 @@ import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceConfiguration
 import EmbraceStorageInternal
-import OSLog
 import OpenTelemetryApi
 import TestSupport
 import XCTest
 
 @testable import EmbraceCore
 
-@available(iOS 15.0, tvOS 15.0, watchOS 8.0, *)
 class DefaultInternalLoggerTests: XCTestCase {
 
     let fileProvider = TemporaryFilepathProvider()
-    var fileUrl: URL!
+    var pendingURL: URL!
+    var criticalURL: URL!
 
     override func setUpWithError() throws {
         try? FileManager.default.removeItem(at: fileProvider.tmpDirectory)
         try? FileManager.default.createDirectory(
-            at: fileProvider.directoryURL(for: "DefaultInternalLoggerTests")!, withIntermediateDirectories: true)
+            at: fileProvider.directoryURL(for: "DefaultInternalLoggerTests")!,
+            withIntermediateDirectories: true
+        )
+
+        let scope = "DefaultInternalLoggerTests"
+        pendingURL = fileProvider.fileURL(for: scope, name: "\(testName)-pending")!
+        criticalURL = fileProvider.fileURL(for: scope, name: "\(testName)-critical")!
     }
 
-    func skip_test_categories() throws {
-        // given a logger
-        fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
-        let category = "custom-export-\(testName)-\(UUID().withoutHyphen)"
-        let logger = DefaultInternalLogger(exportFilePath: fileUrl, exportCategory: category)
-        logger.level = .trace
-
-        // when creating logs
-        logger.trace("trace")
-        logger.debug("debug")
-        logger.info("info")
-        logger.warning("warning")
-        logger.error("error")
-        logger.startup("startup")
-        logger.critical("critical")
-
-        // then they are sent to the correct internal OSLog logger
-        let store = try OSLogStore(scope: .currentProcessIdentifier)
-        let position = store.position(timeIntervalSinceLatestBoot: 0)
-
-        let defaultEntries: [String] =
-            try store
-            .getEntries(at: position)
-            .compactMap { $0 as? OSLogEntryLog }
-            .filter { $0.subsystem == "com.embrace.logger" && $0.category == "internal" }
-            .map { $0.composedMessage }
-
-        XCTAssert(defaultEntries.contains("trace"))
-        XCTAssert(defaultEntries.contains("debug"))
-        XCTAssert(defaultEntries.contains("info"))
-        XCTAssert(defaultEntries.contains("warning"))
-        XCTAssert(defaultEntries.contains("error"))
-
-        let customExportEntries: [String] =
-            try store
-            .getEntries(at: position)
-            .compactMap { $0 as? OSLogEntryLog }
-            .filter { $0.subsystem == "com.embrace.logger" && $0.category == category }
-            .map { $0.composedMessage }
-
-        XCTAssert(customExportEntries.contains("startup"))
-        XCTAssert(customExportEntries.contains("critical"))
-    }
-
-    func test_export_withCriticalLogs() async throws {
-        // given a logger
-        fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
+    private func makeLogger(byteLimit: Int = 1000) -> DefaultInternalLogger {
         let logger = DefaultInternalLogger(
-            exportFilePath: fileUrl,
-            exportCategory: "custom-export-\(testName)-\(UUID().withoutHyphen)"
+            pendingFilePath: pendingURL,
+            criticalFilePath: criticalURL,
+            exportByCountLimit: byteLimit
         )
         logger.level = .trace
+        return logger
+    }
 
-        // when doing custom exportable logs without 0 critical logs
+    /// .startup-only run leaves the staging file on disk but never creates a critical-logs file.
+    func test_startupOnly_doesNotCreateCriticalFile() {
+        let logger = makeLogger()
+
         logger.startup("startup1")
         logger.startup("startup2")
         logger.startup("startup3")
-        logger.startup("startup4")
-        logger.startup("startup5")
-        logger.critical("critical")
 
-        await logger.waitForQueue()
+        XCTAssertTrue(FileManager.default.fileExists(atPath: pendingURL.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: criticalURL.path))
 
-        let log = try! String(contentsOf: self.fileUrl)
-        XCTAssert(log.contains("startup1"))
-        XCTAssert(log.contains("startup2"))
-        XCTAssert(log.contains("startup3"))
-        XCTAssert(log.contains("startup4"))
-        XCTAssert(log.contains("startup5"))
-        XCTAssert(log.contains("critical"))
+        let pending = try? String(contentsOf: pendingURL)
+        XCTAssertTrue(pending?.contains("startup1") ?? false)
+        XCTAssertTrue(pending?.contains("startup2") ?? false)
+        XCTAssertTrue(pending?.contains("startup3") ?? false)
     }
 
-    func test_export_withoutCriticalLog() async {
-        // given a logger
-        fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
-        let logger = DefaultInternalLogger(
-            exportFilePath: fileUrl,
-            exportCategory: "custom-export-\(testName)-\(UUID().withoutHyphen)"
-        )
-        logger.level = .trace
+    /// First .critical promotes the staging file to the upload path; pending is gone.
+    func test_firstCritical_promotesPendingToCritical() {
+        let logger = makeLogger()
 
-        // when doing custom exportable logs without 0 critical logs
         logger.startup("startup1")
         logger.startup("startup2")
-        logger.startup("startup3")
-        logger.startup("startup4")
-        logger.startup("startup5")
+        logger.critical("boom")
 
-        await logger.waitForQueue()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: pendingURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: criticalURL.path))
 
-        // then no custom export file is created
-        XCTAssertFalse(FileManager.default.fileExists(atPath: fileUrl.path))
+        let dump = try? String(contentsOf: criticalURL)
+        XCTAssertTrue(dump?.contains("startup1") ?? false)
+        XCTAssertTrue(dump?.contains("startup2") ?? false)
+        XCTAssertTrue(dump?.contains("boom") ?? false)
     }
 
-    func test_multiple_exports() async {
-        // given a logger
-        fileUrl = fileProvider.fileURL(for: "DefaultInternalLoggerTests", name: testName)!
-        let logger = DefaultInternalLogger(
-            exportFilePath: fileUrl,
-            exportCategory: "custom-export-\(testName)-\(UUID().withoutHyphen)"
-        )
-        logger.level = .trace
+    /// .critical without prior .startup writes directly to the upload path.
+    func test_criticalOnly_createsCriticalFileDirectly() {
+        let logger = makeLogger()
 
-        // when creating a critical log
-        logger.critical("critical1")
+        logger.critical("boom")
 
-        await logger.waitForQueue()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: pendingURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: criticalURL.path))
 
-        var log = try! String(contentsOf: self.fileUrl)
-        XCTAssert(log.contains("critical1"))
-
-        // when doing another critical log
-        logger.critical("critical2")
-
-        await logger.waitForQueue()
-
-        log = try! String(contentsOf: self.fileUrl)
-        XCTAssert(log.contains("critical1"))
-        XCTAssert(log.contains("critical2"))
-
-        // when doing another critical log
-        logger.critical("critical3")
-
-        await logger.waitForQueue()
-
-        log = try! String(contentsOf: self.fileUrl)
-        XCTAssert(log.contains("critical1"))
-        XCTAssert(log.contains("critical2"))
-        XCTAssert(log.contains("critical3"))
-
+        let dump = try? String(contentsOf: criticalURL)
+        XCTAssertTrue(dump?.contains("boom") ?? false)
     }
-}
 
-extension DefaultInternalLogger {
-    func waitForQueue() async {
-        await withCheckedContinuation { continuation in
-            queue.async {
-                continuation.resume()
+    /// Multiple .criticals all land in the critical file; promotion only happens once.
+    func test_multipleCriticals_promoteOnceAndAppend() {
+        let logger = makeLogger()
+
+        logger.critical("c1")
+        logger.critical("c2")
+        logger.critical("c3")
+
+        let dump = try? String(contentsOf: criticalURL)
+        XCTAssertTrue(dump?.contains("c1") ?? false)
+        XCTAssertTrue(dump?.contains("c2") ?? false)
+        XCTAssertTrue(dump?.contains("c3") ?? false)
+
+        // pending was never created (or was promoted); either way it must be gone now
+        XCTAssertFalse(FileManager.default.fileExists(atPath: pendingURL.path))
+    }
+
+    /// Startup lines logged after promotion also land in the critical file.
+    func test_startupAfterCritical_appendsToCriticalFile() {
+        let logger = makeLogger()
+
+        logger.critical("boom")
+        logger.startup("late-startup")
+
+        let dump = try? String(contentsOf: criticalURL)
+        XCTAssertTrue(dump?.contains("boom") ?? false)
+        XCTAssertTrue(dump?.contains("late-startup") ?? false)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: pendingURL.path))
+    }
+
+    /// Once the byte budget is exhausted, the boundary line is truncated and further
+    /// writes become no-ops — file size is bounded by the limit.
+    func test_byteCountLimit_capsFileSize() {
+        // small limit: ~one short line max
+        let logger = makeLogger(byteLimit: 80)
+
+        logger.critical("first-line-that-fits")
+        // these subsequent writes will be truncated/dropped to stay within the cap
+        logger.critical("second-line-might-be-partially-written")
+        logger.critical("third-line-must-be-fully-dropped")
+
+        let dump = (try? String(contentsOf: criticalURL)) ?? ""
+        XCTAssertTrue(dump.contains("first-line-that-fits"))
+        // the third line must not appear at all — we already hit the cap by then
+        XCTAssertFalse(dump.contains("third-line"))
+
+        let attrs = try? FileManager.default.attributesOfItem(atPath: criticalURL.path)
+        let size = (attrs?[.size] as? NSNumber)?.intValue ?? 0
+        XCTAssertLessThanOrEqual(size, 80)
+    }
+
+    /// A line that doesn't fit in the remaining budget is truncated to fit (not dropped),
+    /// so the file is filled exactly up to the cap.
+    func test_byteCountLimit_truncatesBoundaryLine() {
+        // Each line carries a ~27-byte timestamp prefix; pick a limit large enough that
+        // the truncated portion of the second line still includes a recognizable marker.
+        let limit = 200
+        let logger = makeLogger(byteLimit: limit)
+
+        let longBody = String(repeating: "a", count: 200)
+        logger.critical("first-line-that-fits")
+        logger.critical("second-line-truncated-marker-\(longBody)")
+
+        let attrs = try? FileManager.default.attributesOfItem(atPath: criticalURL.path)
+        let size = (attrs?[.size] as? NSNumber)?.intValue ?? 0
+        // file is filled exactly up to the cap (proves truncation, not drop, not overflow)
+        XCTAssertEqual(size, limit)
+
+        let dump = (try? String(contentsOf: criticalURL)) ?? ""
+        XCTAssertTrue(dump.contains("first-line-that-fits"))
+        // the second line is truncated — its leading marker appears, the trailing body does not
+        XCTAssertTrue(dump.contains("second-line-truncated-marker-"))
+        XCTAssertFalse(dump.contains(longBody))
+    }
+
+    /// After the cap is hit by truncation, further writes must not append anything.
+    func test_byteCountLimit_noWritesAfterCap() {
+        let limit = 200
+        let logger = makeLogger(byteLimit: limit)
+
+        let longBody = String(repeating: "a", count: 200)
+        logger.critical("first-line-that-fits")
+        logger.critical("second-line-truncated-marker-\(longBody)")
+
+        let sizeAfterCap: Int = {
+            let attrs = try? FileManager.default.attributesOfItem(atPath: criticalURL.path)
+            return (attrs?[.size] as? NSNumber)?.intValue ?? 0
+        }()
+
+        // a write after the cap should not change file size
+        logger.critical("third-line-should-be-dropped-entirely")
+        logger.startup("startup-after-cap")
+
+        let sizeAfterMoreWrites: Int = {
+            let attrs = try? FileManager.default.attributesOfItem(atPath: criticalURL.path)
+            return (attrs?[.size] as? NSNumber)?.intValue ?? 0
+        }()
+
+        XCTAssertEqual(sizeAfterMoreWrites, sizeAfterCap)
+    }
+
+    /// Non-customExport logs (info/warning/error) must not create any export file.
+    func test_nonCustomExportLevels_doNotCreateFile() {
+        let logger = makeLogger()
+
+        logger.trace("t")
+        logger.debug("d")
+        logger.info("i")
+        logger.warning("w")
+        logger.error("e")
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: pendingURL.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: criticalURL.path))
+    }
+
+    /// A stale critical-logs file from a prior run is overwritten on promotion.
+    func test_stalePreExistingCritical_isOverwrittenOnPromotion() throws {
+        try "STALE".write(to: criticalURL, atomically: true, encoding: .utf8)
+
+        let logger = makeLogger()
+        logger.startup("fresh-startup")
+        logger.critical("fresh-critical")
+
+        let dump = try String(contentsOf: criticalURL)
+        XCTAssertFalse(dump.contains("STALE"))
+        XCTAssertTrue(dump.contains("fresh-startup"))
+        XCTAssertTrue(dump.contains("fresh-critical"))
+    }
+
+    /// One log call produces exactly one line. Non-customExport calls produce zero lines.
+    func test_lineCount_matchesNumberOfCalls() {
+        let logger = makeLogger(byteLimit: 100_000)
+
+        // these must not contribute lines
+        logger.trace("t")
+        logger.debug("d")
+        logger.info("i")
+        logger.warning("w")
+        logger.error("e")
+
+        // these must contribute one line each
+        for i in 0..<3 { logger.startup("startup-\(i)") }
+        for i in 0..<5 { logger.critical("critical-\(i)") }
+
+        let dump = (try? String(contentsOf: criticalURL)) ?? ""
+        let lines = dump.split(separator: "\n", omittingEmptySubsequences: false)
+        // a well-formed file ends with \n, so split with omittingEmptySubsequences: false
+        // produces N+1 elements where the last is empty
+        XCTAssertEqual(lines.last, "")
+        XCTAssertEqual(lines.count - 1, 3 + 5)
+
+        // file ends with \n
+        XCTAssertTrue(dump.hasSuffix("\n"))
+    }
+
+    /// Concurrent log calls from many threads complete without crashing and produce
+    /// well-formed output (every line terminated with \n, every line maps to one input).
+    func test_threadSafety_concurrentLogs() {
+        let logger = makeLogger(byteLimit: 100_000)
+        let group = DispatchGroup()
+        let totalThreads = 16
+        let perThread = 25
+
+        for t in 0..<totalThreads {
+            DispatchQueue.global().async(group: group) {
+                for i in 0..<perThread {
+                    if i % 5 == 0 {
+                        logger.critical("c-\(t)-\(i)")
+                    } else {
+                        logger.startup("s-\(t)-\(i)")
+                    }
+                }
             }
+        }
+
+        group.wait()
+
+        // After at least one .critical the file must exist
+        XCTAssertTrue(FileManager.default.fileExists(atPath: criticalURL.path))
+
+        let dump = (try? String(contentsOf: criticalURL)) ?? ""
+        // every line must be terminated; trailing newline means split keeps empty element
+        let lines = dump.split(separator: "\n", omittingEmptySubsequences: true)
+        for line in lines {
+            // each line must contain one of our injected tokens
+            XCTAssertTrue(
+                line.contains("s-") || line.contains("c-"),
+                "Unexpected line: \(line)"
+            )
         }
     }
 }
