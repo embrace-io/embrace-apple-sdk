@@ -117,24 +117,75 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: pendingURL.path))
     }
 
-    /// Once the byte budget is exhausted, further writes are dropped — file size is bounded.
+    /// Once the byte budget is exhausted, the boundary line is truncated and further
+    /// writes become no-ops — file size is bounded by the limit.
     func test_byteCountLimit_capsFileSize() {
         // small limit: ~one short line max
         let logger = makeLogger(byteLimit: 80)
 
         logger.critical("first-line-that-fits")
-        // these subsequent writes should be dropped because they'd exceed the limit
-        logger.critical("second-line-must-be-dropped-because-too-large")
-        logger.critical("third-line-must-also-be-dropped-because-too-large")
+        // these subsequent writes will be truncated/dropped to stay within the cap
+        logger.critical("second-line-might-be-partially-written")
+        logger.critical("third-line-must-be-fully-dropped")
 
         let dump = (try? String(contentsOf: criticalURL)) ?? ""
         XCTAssertTrue(dump.contains("first-line-that-fits"))
-        XCTAssertFalse(dump.contains("second-line-must-be-dropped"))
-        XCTAssertFalse(dump.contains("third-line-must-also"))
+        // the third line must not appear at all — we already hit the cap by then
+        XCTAssertFalse(dump.contains("third-line"))
 
         let attrs = try? FileManager.default.attributesOfItem(atPath: criticalURL.path)
         let size = (attrs?[.size] as? NSNumber)?.intValue ?? 0
         XCTAssertLessThanOrEqual(size, 80)
+    }
+
+    /// A line that doesn't fit in the remaining budget is truncated to fit (not dropped),
+    /// so the file is filled exactly up to the cap.
+    func test_byteCountLimit_truncatesBoundaryLine() {
+        // Each line carries a ~27-byte timestamp prefix; pick a limit large enough that
+        // the truncated portion of the second line still includes a recognizable marker.
+        let limit = 200
+        let logger = makeLogger(byteLimit: limit)
+
+        let longBody = String(repeating: "a", count: 200)
+        logger.critical("first-line-that-fits")
+        logger.critical("second-line-truncated-marker-\(longBody)")
+
+        let attrs = try? FileManager.default.attributesOfItem(atPath: criticalURL.path)
+        let size = (attrs?[.size] as? NSNumber)?.intValue ?? 0
+        // file is filled exactly up to the cap (proves truncation, not drop, not overflow)
+        XCTAssertEqual(size, limit)
+
+        let dump = (try? String(contentsOf: criticalURL)) ?? ""
+        XCTAssertTrue(dump.contains("first-line-that-fits"))
+        // the second line is truncated — its leading marker appears, the trailing body does not
+        XCTAssertTrue(dump.contains("second-line-truncated-marker-"))
+        XCTAssertFalse(dump.contains(longBody))
+    }
+
+    /// After the cap is hit by truncation, further writes must not append anything.
+    func test_byteCountLimit_noWritesAfterCap() {
+        let limit = 200
+        let logger = makeLogger(byteLimit: limit)
+
+        let longBody = String(repeating: "a", count: 200)
+        logger.critical("first-line-that-fits")
+        logger.critical("second-line-truncated-marker-\(longBody)")
+
+        let sizeAfterCap: Int = {
+            let attrs = try? FileManager.default.attributesOfItem(atPath: criticalURL.path)
+            return (attrs?[.size] as? NSNumber)?.intValue ?? 0
+        }()
+
+        // a write after the cap should not change file size
+        logger.critical("third-line-should-be-dropped-entirely")
+        logger.startup("startup-after-cap")
+
+        let sizeAfterMoreWrites: Int = {
+            let attrs = try? FileManager.default.attributesOfItem(atPath: criticalURL.path)
+            return (attrs?[.size] as? NSNumber)?.intValue ?? 0
+        }()
+
+        XCTAssertEqual(sizeAfterMoreWrites, sizeAfterCap)
     }
 
     /// Non-customExport logs (info/warning/error) must not create any export file.
@@ -163,6 +214,32 @@ class DefaultInternalLoggerTests: XCTestCase {
         XCTAssertFalse(dump.contains("STALE"))
         XCTAssertTrue(dump.contains("fresh-startup"))
         XCTAssertTrue(dump.contains("fresh-critical"))
+    }
+
+    /// One log call produces exactly one line. Non-customExport calls produce zero lines.
+    func test_lineCount_matchesNumberOfCalls() {
+        let logger = makeLogger(byteLimit: 100_000)
+
+        // these must not contribute lines
+        logger.trace("t")
+        logger.debug("d")
+        logger.info("i")
+        logger.warning("w")
+        logger.error("e")
+
+        // these must contribute one line each
+        for i in 0..<3 { logger.startup("startup-\(i)") }
+        for i in 0..<5 { logger.critical("critical-\(i)") }
+
+        let dump = (try? String(contentsOf: criticalURL)) ?? ""
+        let lines = dump.split(separator: "\n", omittingEmptySubsequences: false)
+        // a well-formed file ends with \n, so split with omittingEmptySubsequences: false
+        // produces N+1 elements where the last is empty
+        XCTAssertEqual(lines.last, "")
+        XCTAssertEqual(lines.count - 1, 3 + 5)
+
+        // file ends with \n
+        XCTAssertTrue(dump.hasSuffix("\n"))
     }
 
     /// Concurrent log calls from many threads complete without crashing and produce
