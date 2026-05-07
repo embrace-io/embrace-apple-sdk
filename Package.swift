@@ -373,16 +373,6 @@ let package = Package(
             name: "EmbraceProfilingSamplerTests",
             dependencies: ["EmbraceProfilingSampler", "EmbraceProfilingTestSupport"]
         ),
-        .executableTarget(
-            name: "ProfilingBenchmarkRunner",
-            dependencies: [
-                "EmbraceProfilingSampler",
-                "EmbraceProfilingTestSupport",
-                "EmbraceProfilingTestSupportNoFP",
-                .product(name: "Recording", package: "KSCrash")
-            ],
-            path: "Tests/ProfilingBenchmarkRunner"
-        ),
 
         // test support --------------------------------------------------------------
         .target(
