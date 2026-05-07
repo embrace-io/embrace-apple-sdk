@@ -96,10 +96,13 @@ class DefaultInternalLogger: BaseInternalLogger {
             let fd = state.fileDescriptor
             guard fd >= 0 else { return }
 
-            guard state.bytesWritten + data.count <= customExportByteCountLimit else {
+  
+            let available = customExportByteCountLimit - state.bytesWritten
+            if available <= 0 {
                 state.limitReached = true
                 return
             }
+            let chunk = data.prefix(available)
 
             let written = data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) -> Int in
                 guard let base = buffer.baseAddress else { return -1 }
