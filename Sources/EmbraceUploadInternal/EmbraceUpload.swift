@@ -38,11 +38,6 @@ public class EmbraceUpload: EmbraceLogUploader {
         .spans: [], .log: [], .attachment: []
     ]
 
-    /// Weak references to the most recently enqueued upload operation for ordered types.
-    /// Used to chain new operations against their predecessor.
-    private weak var lastSpansOperation: Operation?
-    private weak var lastLogsOperation: Operation?
-
     private let urlSession: URLSession
     let cache: EmbraceUploadCache
     private var reachabilityMonitor: EmbraceReachabilityMonitor?
@@ -238,19 +233,6 @@ public class EmbraceUpload: EmbraceLogUploader {
                 data: record.data,
                 payloadTypes: record.payloadTypes
             )
-
-            // Chain for ordered types
-            if type == .spans {
-                if let last = lastSpansOperation, !last.isFinished {
-                    operation.addDependency(last)
-                }
-                lastSpansOperation = operation
-            } else if type == .log {
-                if let last = lastLogsOperation, !last.isFinished {
-                    operation.addDependency(last)
-                }
-                lastLogsOperation = operation
-            }
 
             inFlightIDs[type]?.insert(record.id)
             queue.addOperation(operation)
