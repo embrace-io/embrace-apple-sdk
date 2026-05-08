@@ -37,7 +37,7 @@
         func test_start_withNullBuffer_returnsFalse() {
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
             XCTAssertEqual(emb_sampler_start(nil, config), EMB_SAMPLER_START_ERROR)
         }
 
@@ -47,7 +47,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 0, min_sampling_interval_ms: 0,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_ERROR)
         }
 
@@ -57,7 +57,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 0, min_frames: 0, fallback_walker: nil)
+                max_frames: 0, min_frames: 0, fallback_walker: nil, start_paused: false)
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_ERROR)
         }
 
@@ -67,7 +67,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 200,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_ERROR)
         }
 
@@ -77,7 +77,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 0,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_ERROR)
         }
 
@@ -88,7 +88,7 @@
             // C layer clamps max_frames to EMB_MAX_STACK_FRAMES (1024).
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 2000, min_frames: 0, fallback_walker: nil)
+                max_frames: 2000, min_frames: 0, fallback_walker: nil, start_paused: false)
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
 
             // Stop before defer destroys the buffer while the worker is still running.
@@ -104,7 +104,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertFalse(emb_sampler_is_active())
 
@@ -122,7 +122,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
             XCTAssertTrue(waitForSamplerRunning(),
@@ -142,7 +142,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
             XCTAssertTrue(waitForSamplerRunning(),
@@ -151,7 +151,7 @@
             // Different config returns CONFIG_MISMATCH.
             let otherConfig = emb_sampler_config_t(
                 sampling_interval_ms: 200, min_sampling_interval_ms: 20,
-                max_frames: 64, min_frames: 0, fallback_walker: nil)
+                max_frames: 64, min_frames: 0, fallback_walker: nil, start_paused: false)
             XCTAssertEqual(emb_sampler_start(buf, otherConfig), EMB_SAMPLER_START_CONFIG_MISMATCH)
 
             emb_sampler_stop()
@@ -166,7 +166,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
             XCTAssertTrue(waitForSamplerRunning(),
@@ -191,7 +191,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 50, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
             XCTAssertTrue(waitForSamplerRunning())
@@ -235,7 +235,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             // Rapidly start then stop, trying to catch STARTING state.
             // The worker thread may be in STARTING when stop() is called,
@@ -271,7 +271,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
             XCTAssertTrue(waitForSamplerRunning())
@@ -310,7 +310,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_ERROR)
         }
 
@@ -350,7 +350,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 50, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
 
@@ -383,7 +383,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
 
             // Stop before defer destroys the buffer while the worker is still running.
@@ -412,7 +412,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
             XCTAssertTrue(waitForSamplerRunning())
@@ -444,7 +444,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 50, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
             Thread.sleep(forTimeInterval: 0.15)
@@ -472,7 +472,7 @@
             // 10 Hz sampling → expect ~10 samples in 1 second.
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
 
@@ -499,7 +499,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 50, min_sampling_interval_ms: 10,
-                max_frames: 64, min_frames: 0, fallback_walker: nil)
+                max_frames: 64, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             for _ in 0..<50 {
                 // start() may return BUSY if the previous session is still
@@ -528,7 +528,7 @@
             // Run at 20 Hz for 5 seconds → expect ~100 samples.
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 50, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
             Thread.sleep(forTimeInterval: 5.0)
@@ -568,7 +568,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 50, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             for cycle in 0..<5 {
                 // Reset the ring buffer between cycles so each starts clean.
@@ -631,7 +631,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             // Start from main thread should re-resolve and succeed.
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
@@ -656,7 +656,7 @@
 
             let config = emb_sampler_config_t(
                 sampling_interval_ms: 100, min_sampling_interval_ms: 10,
-                max_frames: 128, min_frames: 0, fallback_walker: nil)
+                max_frames: 128, min_frames: 0, fallback_walker: nil, start_paused: false)
 
             // Start from a background thread without cache should fail.
             let group = DispatchGroup()
@@ -670,6 +670,114 @@
 
             XCTAssertEqual(bgResult, EMB_SAMPLER_START_ERROR,
                 "Start from non-main thread without cached main thread should fail")
+        }
+
+        // MARK: - Pause/resume tests
+
+        func test_pause_beforeStart_returnsFalse() {
+            XCTAssertFalse(emb_sampler_pause())
+            XCTAssertFalse(emb_sampler_is_paused())
+        }
+
+        func test_resume_beforeStart_returnsFalse() {
+            XCTAssertFalse(emb_sampler_resume())
+        }
+
+        func test_pause_resume_whileRunning_togglesFlag() {
+            let buf = makeBuffer()
+            defer { emb_ring_buffer_destroy(buf) }
+
+            let config = emb_sampler_config_t(
+                sampling_interval_ms: 50, min_sampling_interval_ms: 10,
+                max_frames: 128, min_frames: 0, fallback_walker: nil,
+                start_paused: false)
+
+            XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
+            XCTAssertTrue(waitForSamplerRunning())
+            XCTAssertFalse(emb_sampler_is_paused())
+
+            XCTAssertTrue(emb_sampler_pause())
+            XCTAssertTrue(emb_sampler_is_paused())
+
+            XCTAssertTrue(emb_sampler_resume())
+            XCTAssertFalse(emb_sampler_is_paused())
+
+            emb_sampler_stop()
+            XCTAssertTrue(waitForSamplerToStop())
+        }
+
+        func test_startPaused_writesNoSamples() {
+            let buf = makeBuffer()
+            defer { emb_ring_buffer_destroy(buf) }
+
+            let config = emb_sampler_config_t(
+                sampling_interval_ms: 50, min_sampling_interval_ms: 10,
+                max_frames: 128, min_frames: 0, fallback_walker: nil,
+                start_paused: true)
+
+            XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
+            XCTAssertTrue(waitForSamplerRunning())
+            XCTAssertTrue(emb_sampler_is_paused())
+
+            // Wait long enough for many sample cycles.
+            Thread.sleep(forTimeInterval: 0.25)
+
+            let records = testReadRange(buf, 0, UInt64.max)
+            XCTAssertEqual(records.count, 0,
+                "No records should be written while start-paused")
+
+            emb_sampler_stop()
+            XCTAssertTrue(waitForSamplerToStop())
+        }
+
+        func test_pause_stopsSampleWrites() {
+            let buf = makeBuffer()
+            defer { emb_ring_buffer_destroy(buf) }
+
+            let config = emb_sampler_config_t(
+                sampling_interval_ms: 50, min_sampling_interval_ms: 10,
+                max_frames: 128, min_frames: 0, fallback_walker: nil,
+                start_paused: false)
+
+            XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
+            XCTAssertTrue(waitForSamplerRunning())
+            Thread.sleep(forTimeInterval: 0.2)
+
+            XCTAssertTrue(emb_sampler_pause())
+            // Wait one cycle for the worker to observe the pause flag.
+            Thread.sleep(forTimeInterval: 0.1)
+            let baseline = testReadRange(buf, 0, UInt64.max).count
+            XCTAssertGreaterThan(baseline, 0)
+
+            // Sample count must not grow while paused.
+            Thread.sleep(forTimeInterval: 0.25)
+            let afterPause = testReadRange(buf, 0, UInt64.max).count
+            XCTAssertEqual(afterPause, baseline,
+                "Sample count must not grow while paused")
+
+            emb_sampler_stop()
+            XCTAssertTrue(waitForSamplerToStop())
+        }
+
+        func test_resetForTesting_clearsPauseFlag() {
+            let buf = makeBuffer()
+            defer { emb_ring_buffer_destroy(buf) }
+
+            let config = emb_sampler_config_t(
+                sampling_interval_ms: 50, min_sampling_interval_ms: 10,
+                max_frames: 128, min_frames: 0, fallback_walker: nil,
+                start_paused: true)
+
+            XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
+            XCTAssertTrue(waitForSamplerRunning())
+            XCTAssertTrue(emb_sampler_is_paused())
+
+            emb_sampler_stop()
+            XCTAssertTrue(waitForSamplerToStop())
+
+            XCTAssertTrue(emb_sampler_reset_for_testing())
+            XCTAssertFalse(emb_sampler_is_paused(),
+                "reset_for_testing must clear the pause flag")
         }
     }
 

@@ -131,6 +131,12 @@ typedef int (*emb_fallback_stack_walker_fn)(thread_t thread,
 /// to catch up, but never below `min_sampling_interval_ms`. The min floor
 /// exists to prevent pathological cases where drift recovery degenerates
 /// into back-to-back sampling, starving the main thread of runtime.
+///
+/// **Maintenance note**: when adding, removing, or reordering fields here,
+/// you MUST update `sampler_configs_equal` in `emb_sampler.c`. A
+/// `_Static_assert` on `sizeof(emb_sampler_config_t)` next to that helper
+/// will catch most cases by triggering a build break, but it cannot catch
+/// a new field that fits in existing padding without changing the size.
 typedef struct {
     uint32_t sampling_interval_ms;                // Target interval between samples (ms). Must be > 0.
     uint32_t min_sampling_interval_ms;            // Minimum interval when recovering from drift (ms).
@@ -138,6 +144,10 @@ typedef struct {
     uint32_t max_frames;                          // Maximum frames per sample. Must be > 0.
     uint32_t min_frames;                          // Minimum frames before fallback to alternate stack walk (0 = no fallback).
     emb_fallback_stack_walker_fn fallback_walker; // Fallback stack walker (NULL = no fallback).
+    bool start_paused;                            // If true, sampler comes up in RUNNING state but skips
+                                                  // samples until emb_sampler_resume() is called. The worker
+                                                  // thread is alive and waking on cadence; only the
+                                                  // suspend+walk+write block is gated.
 } emb_sampler_config_t;
 
 /// Result of an emb_sampler_start() call.
@@ -185,6 +195,41 @@ emb_sampler_start_result_t emb_sampler_start(emb_ring_buffer_t *buffer, emb_samp
 /// Idempotent: safe to call when already stopped or already stopping.
 /// No-op if the sampler is not in RUNNING or STARTING state.
 void emb_sampler_stop(void);
+
+/// Pause the sampler.
+///
+/// The worker thread continues to wake at the configured sampling cadence,
+/// but skips the suspend+walk+write block until ``emb_sampler_resume`` is
+/// called. No new samples are added to the ring buffer; existing samples
+/// remain readable.
+///
+/// Pause/resume bypass the engine gate and use only an atomic store on a
+/// dedicated bool (separate from the state machine). They are safe to call
+/// from any thread at high frequency.
+///
+/// Observation latency: up to one sampling interval. The worker observes the
+/// pause flag at the top of each loop iteration, so a pause request mid-sleep
+/// will not take effect until the current `mach_wait_until` deadline fires.
+/// This bounds main-thread suspension frequency to the configured rate even
+/// under rapid pause/resume cycles.
+///
+/// Returns true if the request was applied (sampler was in RUNNING state).
+/// Returns false otherwise (no-op).
+bool emb_sampler_pause(void);
+
+/// Resume sampling after a pause.
+///
+/// Returns true if the request was applied (sampler was in RUNNING state).
+/// Returns false otherwise (no-op).
+bool emb_sampler_resume(void);
+
+/// Returns true if the sampler is currently paused.
+///
+/// This reflects the pause flag, not a separate state. The sampler must be
+/// in RUNNING state for the flag to have any effect; querying this in any
+/// other state returns the last value of the flag (which is reset to the
+/// `start_paused` config value on each `emb_sampler_start`).
+bool emb_sampler_is_paused(void);
 
 /// Returns true if the sampler is active (STARTING, RUNNING, or STOPPING).
 ///

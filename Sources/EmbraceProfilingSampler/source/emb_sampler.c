@@ -30,6 +30,9 @@ static const int EMB_SAMPLER_STARTING_OR_STOPPING_MASK = EMB_SAMPLER_STARTING | 
 static emb_ring_buffer_t *g_buffer;        // Note: owned by the caller, not us.
 static pthread_t g_worker;
 static _Atomic int g_state = EMB_SAMPLER_STOPPED;
+static _Atomic bool g_paused = false;      // When true (and state is RUNNING), worker skips
+                                           // sample capture but continues its wake cadence.
+                                           // Reset to config.start_paused on each start.
 static emb_sampler_config_t g_config;      // Config used to start the sampler.
 static uintptr_t *g_stack_frames;          // Pre-allocated frame buffer.
 static uint64_t g_interval_ticks;          // Target ticks between samples.
@@ -150,6 +153,33 @@ static inline uint64_t clamp_u64(uint64_t val, uint64_t min, uint64_t max) {
     return val;
 }
 
+/// Field-by-field equality check for emb_sampler_config_t.
+///
+/// memcmp is unsafe here because the struct contains trailing or interior
+/// padding (e.g. 7 bytes after the bool start_paused on 64-bit) that the
+/// caller may not have zero-initialized.
+///
+/// **Maintenance contract**: when adding a field to emb_sampler_config_t,
+/// add it to this function. The _Static_assert below catches the case where
+/// the struct's size changes without a corresponding update here.
+static inline bool sampler_configs_equal(const emb_sampler_config_t *a,
+                                         const emb_sampler_config_t *b) {
+    return a->sampling_interval_ms == b->sampling_interval_ms
+        && a->min_sampling_interval_ms == b->min_sampling_interval_ms
+        && a->max_frames == b->max_frames
+        && a->min_frames == b->min_frames
+        && a->fallback_walker == b->fallback_walker
+        && a->start_paused == b->start_paused;
+}
+
+// 4 + 4 + 4 + 4 + 8 (fn ptr) + 1 (bool) + 7 trailing padding = 32 on 64-bit.
+// All target platforms (iOS/tvOS/macOS/watchOS) are 64-bit on supported
+// hardware. If a maintainer adds a field and the size changes, this assert
+// triggers a build break that must be addressed by updating
+// sampler_configs_equal above.
+_Static_assert(sizeof(emb_sampler_config_t) == 32,
+    "emb_sampler_config_t size changed; update sampler_configs_equal.");
+
 static void *sampler_thread_func(void *arg) {
     (void)arg;
 
@@ -174,75 +204,83 @@ static void *sampler_thread_func(void *arg) {
     uint64_t next_deadline = mach_absolute_time();
 
     while (sampler_get_state() == EMB_SAMPLER_RUNNING) {
-        // Re-read stack bounds each cycle. pthread_get_stackaddr_np/stacksize_np
-        // are safe to call from any thread and read directly from the pthread
-        // struct. Done before thread_suspend so we're outside the async-safe section.
-        size_t stack_size = pthread_get_stacksize_np(g_main_pthread_cached);
-        void *stack_top = pthread_get_stackaddr_np(g_main_pthread_cached);
-        void *stack_bottom = (uint8_t *)stack_top - stack_size;
+        // Pause check: if paused, skip the suspend+walk+write block but
+        // continue the wake cadence. The worker stays in RUNNING state; the
+        // pause flag is orthogonal to the state machine. This bounds
+        // suspension frequency to the configured rate even under rapid
+        // pause/resume cycles. Relaxed load is sufficient: there's no data
+        // dependency between this flag and the sample buffer.
+        if (!atomic_load_explicit(&g_paused, memory_order_relaxed)) {
+            // Re-read stack bounds each cycle. pthread_get_stackaddr_np/stacksize_np
+            // are safe to call from any thread and read directly from the pthread
+            // struct. Done before thread_suspend so we're outside the async-safe section.
+            size_t stack_size = pthread_get_stacksize_np(g_main_pthread_cached);
+            void *stack_top = pthread_get_stackaddr_np(g_main_pthread_cached);
+            void *stack_bottom = (uint8_t *)stack_top - stack_size;
 
-        if (thread_suspend(g_main_thread) != KERN_SUCCESS) {
-            // The Mach port is dead/invalid (thread terminated or port recycled).
-            // We go directly to FAULTED, bypassing the normal STOPPING→ZOMBIE→
-            // REAPING→STOPPED path. The worker thread returns without being joined,
-            // and g_stack_frames is leaked. See sampler_fault() for rationale.
-            os_log_debug(emb_profiling_log(), "Worker thread exiting: thread_suspend failed");
-            sampler_fault("thread_suspend failed (target thread terminated or port invalid)");
-            return NULL;
-        }
-
-        // ====================================================================
-        // BEGIN ASYNC-SAFE SECTION
-        // - Do NOT call sampler_checked_transition
-        // - Do NOT emit logs
-        // - Do NOT allocate
-        // - Do NOT lock
-
-        uint64_t timestamp_ns = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
-
-        size_t frame_count = 0;
-        emb_stack_walk(g_main_thread,
-                       stack_bottom,
-                       stack_top,
-                       g_stack_frames,
-                       g_config.max_frames,
-                       &frame_count);
-
-        if (frame_count < g_config.min_frames && fallback_walker != NULL) {
-            bool is_truncated = false;
-            int result = fallback_walker(g_main_thread,
-                                         g_stack_frames,
-                                         (int)g_config.max_frames,
-                                         &is_truncated);
-            frame_count = result < 0 ? 0 : (size_t)result;
-        }
-
-        if (thread_resume(g_main_thread) != KERN_SUCCESS) {
-            // The Mach port is dead/invalid. The target thread is left
-            // suspended (if it still exists) because we have no valid port
-            // to resume it, and retrying would fail identically. Same fault
-            // path as thread_suspend: direct to FAULTED, worker thread and
-            // g_stack_frames are leaked. See sampler_fault() for rationale.
-            sampler_fault("thread_resume failed (target thread terminated or port invalid)");
-            return NULL;
-        }
-
-        // END ASYNC-SAFE SECTION
-        // ====================================================================
-
-        // Write the captured stack trace to the ring buffer.
-        // In normal operation this always succeeds because emb_sampler_start
-        // validates that max_frames fits within the buffer capacity. A failure
-        // here indicates a logic error (e.g. buffer was destroyed externally).
-        if (frame_count > 0) {
-            emb_ring_write_status_t ws =
-                emb_ring_buffer_write(g_buffer, timestamp_ns, g_stack_frames, frame_count);
-            if (ws == EMB_RING_WRITE_CORRUPTION_DETECTED) {
-                sampler_fault("ring buffer corruption detected");
+            if (thread_suspend(g_main_thread) != KERN_SUCCESS) {
+                // The Mach port is dead/invalid (thread terminated or port recycled).
+                // We go directly to FAULTED, bypassing the normal STOPPING→ZOMBIE→
+                // REAPING→STOPPED path. The worker thread returns without being joined,
+                // and g_stack_frames is leaked. See sampler_fault() for rationale.
+                os_log_debug(emb_profiling_log(), "Worker thread exiting: thread_suspend failed");
+                sampler_fault("thread_suspend failed (target thread terminated or port invalid)");
                 return NULL;
-            } else if (ws != EMB_RING_WRITE_OK) {
-                sampler_fault("ring buffer write failed (buffer corrupt or misconfigured)");
+            }
+
+            // ====================================================================
+            // BEGIN ASYNC-SAFE SECTION
+            // - Do NOT call sampler_checked_transition
+            // - Do NOT emit logs
+            // - Do NOT allocate
+            // - Do NOT lock
+
+            uint64_t timestamp_ns = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+
+            size_t frame_count = 0;
+            emb_stack_walk(g_main_thread,
+                           stack_bottom,
+                           stack_top,
+                           g_stack_frames,
+                           g_config.max_frames,
+                           &frame_count);
+
+            if (frame_count < g_config.min_frames && fallback_walker != NULL) {
+                bool is_truncated = false;
+                int result = fallback_walker(g_main_thread,
+                                             g_stack_frames,
+                                             (int)g_config.max_frames,
+                                             &is_truncated);
+                frame_count = result < 0 ? 0 : (size_t)result;
+            }
+
+            if (thread_resume(g_main_thread) != KERN_SUCCESS) {
+                // The Mach port is dead/invalid. The target thread is left
+                // suspended (if it still exists) because we have no valid port
+                // to resume it, and retrying would fail identically. Same fault
+                // path as thread_suspend: direct to FAULTED, worker thread and
+                // g_stack_frames are leaked. See sampler_fault() for rationale.
+                sampler_fault("thread_resume failed (target thread terminated or port invalid)");
                 return NULL;
+            }
+
+            // END ASYNC-SAFE SECTION
+            // ====================================================================
+
+            // Write the captured stack trace to the ring buffer.
+            // In normal operation this always succeeds because emb_sampler_start
+            // validates that max_frames fits within the buffer capacity. A failure
+            // here indicates a logic error (e.g. buffer was destroyed externally).
+            if (frame_count > 0) {
+                emb_ring_write_status_t ws =
+                    emb_ring_buffer_write(g_buffer, timestamp_ns, g_stack_frames, frame_count);
+                if (ws == EMB_RING_WRITE_CORRUPTION_DETECTED) {
+                    sampler_fault("ring buffer corruption detected");
+                    return NULL;
+                } else if (ws != EMB_RING_WRITE_OK) {
+                    sampler_fault("ring buffer write failed (buffer corrupt or misconfigured)");
+                    return NULL;
+                }
             }
         }
 
@@ -298,10 +336,20 @@ emb_sampler_start_result_t emb_sampler_start(emb_ring_buffer_t *buffer, emb_samp
     int state = sampler_cas_state(EMB_SAMPLER_STOPPED, EMB_SAMPLER_STARTING);
     switch (state) {
         case CAS_SUCCESS:          // We won the CAS race to STARTING.
+            // Initialize the pause flag immediately after winning the CAS to
+            // STARTING. emb_sampler_pause/resume accept STARTING (so callers
+            // can pause synchronously after start() returns without waiting
+            // for the worker to reach RUNNING). To avoid having such a call
+            // silently overwritten by start()'s initialization, this store
+            // is placed as close to the CAS as possible. The residual race
+            // (between the CAS publishing STARTING and this store) is
+            // bounded by a few CPU instructions and is not observable in
+            // practice — and even if it lost, the caller can re-invoke pause
+            // once the worker reaches RUNNING.
+            atomic_store_explicit(&g_paused, config.start_paused, memory_order_relaxed);
             break;
         case EMB_SAMPLER_RUNNING:  // Already running; check if config+buffer match.
-            if (buffer == g_buffer &&
-                memcmp(&config, &g_config, sizeof(config)) == 0) {
+            if (buffer == g_buffer && sampler_configs_equal(&config, &g_config)) {
                 return EMB_SAMPLER_START_OK;
             }
             return EMB_SAMPLER_START_CONFIG_MISMATCH;
@@ -366,6 +414,9 @@ emb_sampler_start_result_t emb_sampler_start(emb_ring_buffer_t *buffer, emb_samp
     g_config = config;
     g_main_thread = g_main_mach_thread_cached;
 
+    // Note: g_paused was initialized at the top of this function, immediately
+    // after the CAS to STARTING. See the comment there for rationale.
+
     // Worker thread will handle the transition to RUNNING.
     if (pthread_create(&g_worker, NULL, sampler_thread_func, NULL) != 0) {
         os_log_debug(emb_profiling_log(), "emb_sampler_start failed: thread creation failure");
@@ -380,6 +431,37 @@ emb_sampler_start_result_t emb_sampler_start(emb_ring_buffer_t *buffer, emb_samp
 
 void emb_sampler_stop(void) {
     sampler_cas_multi(EMB_SAMPLER_RUNNING | EMB_SAMPLER_STARTING,  EMB_SAMPLER_STOPPING);
+}
+
+bool emb_sampler_pause(void) {
+    // Accept both RUNNING and STARTING. STARTING is necessary so a caller
+    // doing start() then immediately pause() (synchronously, from the same
+    // thread) sees their pause take effect even if the worker thread hasn't
+    // yet won its STARTING→RUNNING CAS. The worker reads g_paused on its
+    // first loop iteration after winning the CAS, so a flag set during
+    // STARTING is observed.
+    emb_sampler_state_t state = sampler_get_state();
+    if (state != EMB_SAMPLER_RUNNING && state != EMB_SAMPLER_STARTING) {
+        return false;
+    }
+    atomic_store_explicit(&g_paused, true, memory_order_relaxed);
+    return true;
+}
+
+bool emb_sampler_resume(void) {
+    // Symmetric with pause: accept STARTING so a caller can resume
+    // immediately after start(startPaused: true) without waiting for the
+    // worker to reach RUNNING.
+    emb_sampler_state_t state = sampler_get_state();
+    if (state != EMB_SAMPLER_RUNNING && state != EMB_SAMPLER_STARTING) {
+        return false;
+    }
+    atomic_store_explicit(&g_paused, false, memory_order_relaxed);
+    return true;
+}
+
+bool emb_sampler_is_paused(void) {
+    return atomic_load_explicit(&g_paused, memory_order_relaxed);
 }
 
 bool emb_sampler_is_active(void) {
@@ -421,6 +503,7 @@ bool emb_sampler_reset_for_testing(void) {
         return false;
     }
     g_fault_reason = NULL;
+    atomic_store_explicit(&g_paused, false, memory_order_relaxed);
     atomic_store_explicit(&g_state, EMB_SAMPLER_STOPPED, memory_order_release);
     return true;
 }

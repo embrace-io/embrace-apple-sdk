@@ -37,18 +37,27 @@ public struct ProfilingConfiguration: Equatable, Hashable, Sendable {
     /// Recommend: 1-5 MB
     public let bufferCapacityBytes: UInt32
 
+    /// If `true`, the sampler comes up paused: the worker thread is alive and
+    /// waking on cadence, but the suspend+walk+write block is gated until
+    /// ``ProfilingEngine/resume()`` is called. Useful when sampling is driven
+    /// by external events (e.g. spans) and the engine should be ready to
+    /// resume immediately without paying start-up cost.
+    public let startPaused: Bool
+
     public init(
         samplingIntervalMs: UInt32 = 100,
         minSamplingIntervalMs: UInt32 = 10,
         maxFramesPerSample: UInt32 = 500,
         minFramesPerSample: UInt32 = 3,
-        bufferCapacityBytes: UInt32 = 1024 * 1024
+        bufferCapacityBytes: UInt32 = 1024 * 1024,
+        startPaused: Bool = false
     ) {
         self.samplingIntervalMs = samplingIntervalMs
         self.minSamplingIntervalMs = minSamplingIntervalMs
         self.maxFramesPerSample = maxFramesPerSample
         self.minFramesPerSample = minFramesPerSample
         self.bufferCapacityBytes = bufferCapacityBytes
+        self.startPaused = startPaused
     }
 
     var isValid: Bool {
