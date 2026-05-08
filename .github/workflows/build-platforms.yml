@@ -52,6 +52,16 @@ jobs:
       env:
         MATRIX_XCODE_VERSION: ${{ matrix.xcode_version }}
 
+    - name: Ensure the Platform is Downloaded
+      if: ${{ matrix.platform != 'macOS' && matrix.platform != 'mac-catalyst' }}
+      run: |
+        xcodebuild -runFirstLaunch
+        xcrun simctl list
+        xcodebuild -downloadPlatform ${MATRIX_PLATFORM}
+        xcodebuild -runFirstLaunch
+      env:
+        MATRIX_PLATFORM: ${{ matrix.platform }}
+
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       timeout-minutes: 4
       with:
