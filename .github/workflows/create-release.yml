@@ -157,8 +157,8 @@ jobs:
           git pull --rebase
           git push
 
-      - name: Select Xcode 16
-        run: sudo xcode-select -switch /Applications/Xcode_16.4.app
+      - name: Select Xcode 26
+        run: sudo xcode-select -switch /Applications/Xcode_26.0.app
 
       - name: Tag the release candidate version
         run: |
@@ -184,8 +184,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Select Xcode 16
-        run: sudo xcode-select -switch /Applications/Xcode_16.4.app
+      - name: Select Xcode 26
+        run: sudo xcode-select -switch /Applications/Xcode_26.0.app
 
       - name: Install Ruby dependencies
         run: bundle install
