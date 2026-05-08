@@ -29,6 +29,7 @@ extension URL {
 
 public class EmbraceHTTPMock: URLProtocol {
 
+    private static let lock = NSLock()
     private static var mockedResponses = [String: MockResponse]()
     private static var requests = [String: [URLRequest]]()
     private static var requestBodies = [String: [Data]]()
@@ -38,7 +39,7 @@ public class EmbraceHTTPMock: URLProtocol {
         url: URL,
         response: MockResponse
     ) {
-        mockedResponses[createKey(fromURL: url)] = response
+        lock.withLock { mockedResponses[createKey(fromURL: url)] = response }
     }
 
     /// Adds a succesful mocked response for the given url
@@ -48,11 +49,13 @@ public class EmbraceHTTPMock: URLProtocol {
         statusCode: Int = 200,
         headers: [String: String]? = nil
     ) {
-        mockedResponses[createKey(fromURL: url)] = MockResponse.withData(
-            data ?? Data(),
-            statusCode: statusCode,
-            headers: headers
-        )
+        lock.withLock {
+            mockedResponses[createKey(fromURL: url)] = MockResponse.withData(
+                data ?? Data(),
+                statusCode: statusCode,
+                headers: headers
+            )
+        }
     }
 
     /// Adds a mocked reponse with the given error, for the given url
@@ -61,7 +64,9 @@ public class EmbraceHTTPMock: URLProtocol {
         error: NSError,
         headers: [String: String]? = nil
     ) {
-        mockedResponses[createKey(fromURL: url)] = MockResponse.withError(error, headers: headers)
+        lock.withLock {
+            mockedResponses[createKey(fromURL: url)] = MockResponse.withError(error, headers: headers)
+        }
     }
 
     /// Adds a mocked response with an error with the given error code, for the given url
@@ -70,7 +75,9 @@ public class EmbraceHTTPMock: URLProtocol {
         errorCode: Int,
         headers: [String: String]? = nil
     ) {
-        mockedResponses[createKey(fromURL: url)] = MockResponse.withErrorCode(errorCode, headers: headers)
+        lock.withLock {
+            mockedResponses[createKey(fromURL: url)] = MockResponse.withErrorCode(errorCode, headers: headers)
+        }
     }
 
     private class func createKey(fromURL url: URL) -> String {
@@ -83,27 +90,30 @@ public class EmbraceHTTPMock: URLProtocol {
 
     /// Returns the executed requests for a given url, if any
     public class func requestsForUrl(_ url: URL) -> [URLRequest] {
-        return requests[createKey(fromURL: url)] ?? []
+        lock.withLock { requests[createKey(fromURL: url)] ?? [] }
     }
 
     /// Returns the captured request bodies for a given url, in order.
     /// URLProtocol strips httpBody from captured requests, so bodies are read from httpBodyStream at capture time.
     public class func requestBodiesForUrl(_ url: URL) -> [Data] {
-        return requestBodies[createKey(fromURL: url)] ?? []
+        lock.withLock { requestBodies[createKey(fromURL: url)] ?? [] }
     }
 
     /// Returns the total amount of requests that were executed.
     public class func totalRequestCount(_ testName: String = #function) -> Int {
-        return
+        lock.withLock {
             requests
-            .filter { $0.key.contains(testName) }
-            .values
-            .reduce(0) { $0 + $1.count }
+                .filter { $0.key.contains(testName) }
+                .values
+                .reduce(0) { $0 + $1.count }
+        }
     }
 
     public class func clearRequests() {
-        requests.removeAll()
-        requestBodies.removeAll()
+        lock.withLock {
+            requests.removeAll()
+            requestBodies.removeAll()
+        }
     }
 
     // MARK: - Internal
@@ -116,52 +126,58 @@ public class EmbraceHTTPMock: URLProtocol {
     }
 
     public override func startLoading() {
-        if let url = request.url {
-            let key = Self.createKey(fromURL: url)
-            if EmbraceHTTPMock.requests[key] == nil {
-                EmbraceHTTPMock.requests[key] = []
-            }
-            EmbraceHTTPMock.requests[key]?.append(request)
+        guard let url = request.url else {
+            client?.urlProtocolDidFinishLoading(self)
+            return
+        }
 
-            if EmbraceHTTPMock.requestBodies[key] == nil {
-                EmbraceHTTPMock.requestBodies[key] = []
-            }
-            if let body = request.httpBody {
-                EmbraceHTTPMock.requestBodies[key]?.append(body)
-            } else if let stream = request.httpBodyStream {
-                stream.open()
-                var data = Data()
-                let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 1024)
-                while stream.hasBytesAvailable {
-                    let read = stream.read(buffer, maxLength: 1024)
-                    if read > 0 {
-                        data.append(buffer, count: read)
-                    }
+        let key = Self.createKey(fromURL: url)
+
+        // Read body from request outside the lock — stream I/O doesn't touch shared state
+        var bodyData: Data?
+        if let body = request.httpBody {
+            bodyData = body
+        } else if let stream = request.httpBodyStream {
+            stream.open()
+            var data = Data()
+            let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 1024)
+            while stream.hasBytesAvailable {
+                let read = stream.read(buffer, maxLength: 1024)
+                if read > 0 {
+                    data.append(buffer, count: read)
                 }
-                buffer.deallocate()
-                stream.close()
-                EmbraceHTTPMock.requestBodies[key]?.append(data)
             }
+            buffer.deallocate()
+            stream.close()
+            bodyData = data
+        }
 
-            if let response = EmbraceHTTPMock.mockedResponses[key] {
-                if let data = response.data {
-                    client?.urlProtocol(self, didLoad: data)
+        let mockedResponse: MockResponse? = Self.lock.withLock {
+            EmbraceHTTPMock.requests[key, default: []].append(request)
+            if let data = bodyData {
+                EmbraceHTTPMock.requestBodies[key, default: []].append(data)
+            }
+            return EmbraceHTTPMock.mockedResponses[key]
+        }
 
-                    if let httpResponse = HTTPURLResponse(
-                        url: url,
-                        statusCode: response.statusCode,
-                        httpVersion: nil,
-                        headerFields: response.headers
-                    ) {
-                        client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .allowed)
-                    }
-                } else {
-                    let error = response.error ?? genericServerError
-                    client?.urlProtocol(self, didFailWithError: error)
+        // CFNetwork callbacks outside the lock — they can re-enter or hop threads
+        if let response = mockedResponse {
+            if let data = response.data {
+                client?.urlProtocol(self, didLoad: data)
+                if let httpResponse = HTTPURLResponse(
+                    url: url,
+                    statusCode: response.statusCode,
+                    httpVersion: nil,
+                    headerFields: response.headers
+                ) {
+                    client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .allowed)
                 }
             } else {
-                client?.urlProtocol(self, didFailWithError: genericServerError)
+                let error = response.error ?? genericServerError
+                client?.urlProtocol(self, didFailWithError: error)
             }
+        } else {
+            client?.urlProtocol(self, didFailWithError: genericServerError)
         }
 
         client?.urlProtocolDidFinishLoading(self)
