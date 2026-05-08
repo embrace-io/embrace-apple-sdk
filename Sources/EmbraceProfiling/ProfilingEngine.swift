@@ -87,13 +87,17 @@ public final class ProfilingEngine: @unchecked Sendable {
 
     /// Returns `true` if the profiling engine is actively capturing stack traces.
     ///
-    /// This checks for the `RUNNING` state specifically. It does not return
-    /// `true` during transient states like `STARTING` or `STOPPING`.
+    /// Equivalent to "the worker is in `RUNNING` and not paused". Returns
+    /// `false` during transient states (`STARTING`, `STOPPING`), in `FAULTED`,
+    /// when the engine has not been started, or when ``isPaused`` is `true`.
+    /// To check whether the worker thread is still alive (for resource lifecycle
+    /// purposes), use ``isActive``.
     public var isCapturing: Bool {
         #if os(watchOS)
             return false
         #else
             return emb_sampler_get_state() == EMB_SAMPLER_RUNNING
+                && !emb_sampler_is_paused()
         #endif
     }
 
@@ -256,7 +260,8 @@ public final class ProfilingEngine: @unchecked Sendable {
                 min_sampling_interval_ms: configuration.minSamplingIntervalMs,
                 max_frames: configuration.maxFramesPerSample,
                 min_frames: configuration.minFramesPerSample,
-                fallback_walker: nil
+                fallback_walker: nil,
+                start_paused: configuration.startPaused
             )
 
             switch emb_sampler_start(ringBuffer, config) {
@@ -291,6 +296,80 @@ public final class ProfilingEngine: @unchecked Sendable {
     public func stop() {
         #if !os(watchOS)
             emb_sampler_stop()
+        #endif
+    }
+
+    /// Pause the engine without tearing down the worker thread.
+    ///
+    /// While paused, the worker thread continues to wake on its configured
+    /// cadence but skips the main-thread suspend, stack walk, and ring buffer
+    /// write. Existing samples remain readable via
+    /// ``retrieveSamples(from:through:)``.
+    ///
+    /// Pause/resume bypass the engine gate, so they are safe to call at high
+    /// frequency (e.g. from span boundaries). The cost is a single relaxed
+    /// atomic store per call.
+    ///
+    /// Observation latency is bounded by the sampling interval: the worker
+    /// observes the pause flag at the top of each loop iteration. A pause
+    /// request mid-sleep takes effect at the next wake-up, which guarantees
+    /// the configured sampling interval is also a hard cap on main-thread
+    /// suspension frequency.
+    ///
+    /// Idempotent: pausing an already-paused engine returns `true`. Safe to
+    /// call synchronously after ``start(configuration:)`` (the underlying C
+    /// API accepts both `STARTING` and `RUNNING`).
+    ///
+    /// Nesting/refcounting (e.g. for overlapping spans) is the caller's
+    /// responsibility; pause and resume are simple toggles, not counters.
+    ///
+    /// - Returns: `true` if the pause flag was set (engine is in `STARTING`
+    ///   or `RUNNING`). `false` if the engine is not in a state where pause
+    ///   is meaningful (not started, stopping, or faulted).
+    @discardableResult
+    public func pause() -> Bool {
+        #if os(watchOS)
+            return false
+        #else
+            return emb_sampler_pause()
+        #endif
+    }
+
+    /// Resume sampling after a pause.
+    ///
+    /// See ``pause()`` for semantics. Resume is symmetric: a single relaxed
+    /// atomic store, gate-free, safe at high frequency. The next sample is
+    /// taken at the worker's next configured wake-up.
+    ///
+    /// Idempotent: resuming an already-running engine returns `true`. Safe
+    /// to call synchronously after `start(configuration:)` with
+    /// `startPaused: true`.
+    ///
+    /// - Returns: `true` if the pause flag was cleared (engine is in
+    ///   `STARTING` or `RUNNING`). `false` if the engine is not in a state
+    ///   where resume is meaningful.
+    @discardableResult
+    public func resume() -> Bool {
+        #if os(watchOS)
+            return false
+        #else
+            return emb_sampler_resume()
+        #endif
+    }
+
+    /// Returns `true` if the engine is currently paused.
+    ///
+    /// Gated on `RUNNING || STARTING` — the only states where the pause flag
+    /// has any effect on the worker. After `stop()` (or in `FAULTED`), this
+    /// returns `false` regardless of the underlying flag value, so the user
+    /// never sees a stale `true` on an inactive engine.
+    public var isPaused: Bool {
+        #if os(watchOS)
+            return false
+        #else
+            let state = emb_sampler_get_state()
+            return (state == EMB_SAMPLER_RUNNING || state == EMB_SAMPLER_STARTING)
+                && emb_sampler_is_paused()
         #endif
     }
 

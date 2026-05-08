@@ -39,7 +39,7 @@
                 min_sampling_interval_ms: 10,
                 max_frames: 128,
                 min_frames: 0,
-                fallback_walker: nil)
+                fallback_walker: nil, start_paused: false)
 
             let group = DispatchGroup()
             let queue = DispatchQueue(
@@ -89,7 +89,7 @@
                 min_sampling_interval_ms: 10,
                 max_frames: 64,
                 min_frames: 0,
-                fallback_walker: nil)
+                fallback_walker: nil, start_paused: false)
 
             // 100 rapid start→stop cycles, stopping before the worker
             // may even reach RUNNING. This exercises the STARTING→STOPPING
@@ -129,7 +129,7 @@
                 min_sampling_interval_ms: 10,
                 max_frames: 64,
                 min_frames: 0,
-                fallback_walker: nil)
+                fallback_walker: nil, start_paused: false)
 
             let group = DispatchGroup()
             let queue = DispatchQueue(
@@ -177,7 +177,7 @@
                 min_sampling_interval_ms: 10,
                 max_frames: 128,
                 min_frames: 0,
-                fallback_walker: nil)
+                fallback_walker: nil, start_paused: false)
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
             XCTAssertTrue(waitForSamplerRunning())

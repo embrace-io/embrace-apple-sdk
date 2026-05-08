@@ -55,7 +55,8 @@
                     guard let framesOut = framesOut, maxFrames > 0 else { return 0 }
                     framesOut[0] = gFallbackSentinel
                     return 1
-                }
+                },
+                start_paused: false
             )
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
@@ -91,7 +92,8 @@
                 fallback_walker: { _, _, _, _ in
                     gFallbackCallCount += 1
                     return 0  // Zero frames → sampler skips the write.
-                }
+                },
+                start_paused: false
             )
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
@@ -120,7 +122,8 @@
                 fallback_walker: { _, _, _, _ in
                     gFallbackCallCount += 1
                     return -1
-                }
+                },
+                start_paused: false
             )
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
@@ -150,7 +153,8 @@
                 fallback_walker: { _, _, _, _ in
                     gFallbackCallCount += 1
                     return 0
-                }
+                },
+                start_paused: false
             )
 
             XCTAssertEqual(emb_sampler_start(buf, config), EMB_SAMPLER_START_OK)
