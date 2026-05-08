@@ -86,6 +86,24 @@ jobs:
           arch: arm64
           sanitizer: ${{ matrix.sanitizer }}
 
+      # Dumps the human-readable failure summary and per-test failure tree
+      # (with file:line) into the job log so a failure can be diagnosed
+      # without downloading the ~75 MB xcresult artifact — especially
+      # relevant for TSan aborts.
+      - name: Surface failure summary from xcresult
+        if: failure()
+        run: |
+          if [ ! -d test.xcresult ]; then
+            echo "test.xcresult not found in $(pwd); skipping summary."
+            exit 0
+          fi
+          echo "::group::Test results summary"
+          xcrun xcresulttool get test-results summary --path test.xcresult || true
+          echo "::endgroup::"
+          echo "::group::Per-test failures (file:line)"
+          xcrun xcresulttool get test-results tests --path test.xcresult || true
+          echo "::endgroup::"
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5.5.3
         env:
