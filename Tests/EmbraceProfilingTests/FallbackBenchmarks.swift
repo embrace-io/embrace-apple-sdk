@@ -5,7 +5,6 @@
 #if !os(watchOS)
 
 import Darwin
-@testable import EmbraceProfiling
 import EmbraceProfilingSampler
 import EmbraceProfilingTestSupport
 import EmbraceProfilingTestSupportNoFP
@@ -62,11 +61,6 @@ final class FallbackBenchmarks: XCTestCase {
         return Int(count)
     }
 
-    private func walkWithFallback(port: thread_t) -> Int {
-        let result = captureStack(thread: port, maxFrames: Self.maxFrames)
-        return result.frames.count
-    }
-
     // MARK: - Normal stack (with frame pointers)
 
     func test_benchmark_fpWalk_normalStack() throws {
@@ -88,6 +82,8 @@ final class FallbackBenchmarks: XCTestCase {
 
         let frameCount = walkWithFP(port: port, stackBottom: bounds.bottom, stackTop: bounds.top)
         print("FP walk (normal stack): \(frameCount) frames")
+        XCTAssertGreaterThanOrEqual(frameCount, Int(Self.stackDepth),
+            "FP walker should capture at least \(Self.stackDepth) frames on a normal stack")
 
         measure {
             for _ in 0..<Self.walksPerIteration {
@@ -110,6 +106,8 @@ final class FallbackBenchmarks: XCTestCase {
 
         let frameCount = walkWithKSCrash(port: port)
         print("KSCrash walk (normal stack): \(frameCount) frames")
+        XCTAssertGreaterThan(frameCount, 0,
+            "KSCrash walker should capture at least 1 frame on a normal stack")
 
         measure {
             for _ in 0..<Self.walksPerIteration {
@@ -138,7 +136,13 @@ final class FallbackBenchmarks: XCTestCase {
         defer { thread_resume(port) }
 
         let frameCount = walkWithFP(port: port, stackBottom: bounds.bottom, stackTop: bounds.top)
-        print("FP walk (no-FP stack): \(frameCount) frames — on arm64 this should match the normal stack")
+        print("FP walk (no-FP stack): \(frameCount) frames")
+        // Modern Clang honors -fomit-frame-pointer on all architectures
+        // (including arm64). Without frame pointers, the FP walker can only
+        // recover a few frames at the top of the stack. It should not crash
+        // and should return at least 1 frame.
+        XCTAssertGreaterThan(frameCount, 0,
+            "FP walker should capture at least the top frame even without FP chain")
 
         measure {
             for _ in 0..<Self.walksPerIteration {
@@ -147,6 +151,9 @@ final class FallbackBenchmarks: XCTestCase {
         }
     }
 
+    /// TODO: When KSCrash gains DWARF unwinding, add an assertion here:
+    ///   XCTAssertGreaterThanOrEqual(frameCount, Int(Self.stackDepth),
+    ///       "KSCrash with DWARF unwinding should recover full stack from frameless code")
     func test_benchmark_kscrash_noFPStack() throws {
         guard let thread = emb_test_thread_nofp_create(Self.stackDepth) else {
             XCTFail("Failed to create no-FP test thread")
@@ -169,27 +176,6 @@ final class FallbackBenchmarks: XCTestCase {
         }
     }
 
-    func test_benchmark_fallback_noFPStack() throws {
-        guard let thread = emb_test_thread_nofp_create(Self.stackDepth) else {
-            XCTFail("Failed to create no-FP test thread")
-            return
-        }
-        defer { emb_test_thread_nofp_destroy(thread) }
-        let port = emb_test_thread_nofp_get_port(thread)
-
-        let kr = thread_suspend(port)
-        XCTAssertEqual(kr, KERN_SUCCESS)
-        defer { thread_resume(port) }
-
-        let frameCount = walkWithFallback(port: port)
-        print("Fallback (no-FP stack): \(frameCount) frames — tries FP first, falls back to KSCrash")
-
-        measure {
-            for _ in 0..<Self.walksPerIteration {
-                _ = self.walkWithFallback(port: port)
-            }
-        }
-    }
 }
 
 #endif
