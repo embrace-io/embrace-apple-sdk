@@ -69,3 +69,16 @@ jobs:
         code-coverage: false
         trust-plugins: false
         arch: arm64
+
+    # Dumps the xcresult build log into the job log so a compile error
+    # can be diagnosed without downloading the xcresult artifact.
+    - name: Surface failure summary from xcresult
+      if: failure()
+      run: |
+        if [ ! -d build.xcresult ]; then
+          echo "build.xcresult not found in $(pwd); skipping summary."
+          exit 0
+        fi
+        echo "::group::Build log"
+        xcrun xcresulttool get log --path build.xcresult --type build || true
+        echo "::endgroup::"
