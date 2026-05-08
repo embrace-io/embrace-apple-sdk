@@ -56,6 +56,7 @@ jobs:
       if: ${{ matrix.platform != 'macOS' && matrix.platform != 'mac-catalyst' }}
       run: |
         xcodebuild -runFirstLaunch
+        xcrun simctl list
         xcodebuild -downloadPlatform ${MATRIX_PLATFORM}
         xcodebuild -runFirstLaunch
       env:
