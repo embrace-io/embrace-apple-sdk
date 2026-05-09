@@ -112,9 +112,63 @@ runs:
           echo "No xcresult bundle at $RESULT_BUNDLE_PATH; skipping summary"
           exit 0
         fi
-        echo "::group::Test results summary"
-        xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE_PATH" || true
+
+        SUMMARY=$(xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE_PATH" 2>/dev/null || true)
+        if [[ -z "$SUMMARY" ]]; then
+          echo "xcresulttool returned no output; skipping summary"
+          exit 0
+        fi
+
+        passed=$(echo "$SUMMARY" | jq -r '.passedTests // 0')
+        failed=$(echo "$SUMMARY" | jq -r '.failedTests // 0')
+        skipped=$(echo "$SUMMARY" | jq -r '.skippedTests // 0')
+
+        # Detect schema drift: warn if xcresulttool summary gains top-level keys
+        # we don't handle, so new diagnostic sections aren't silently ignored.
+        known_keys='["devicesAndConfigurations","environmentDescription","expectedFailures","failedTests","finishTime","passedTests","result","skippedTests","startTime","statistics","testFailures","title","topInsights"]'
+        unknown_keys=$(echo "$SUMMARY" | jq -r --argjson known "$known_keys" \
+          '[to_entries[].key | select(. as $k | $known | index($k) | not)] | join(", ")')
+        if [[ -n "$unknown_keys" ]]; then
+          echo "::notice::xcresulttool summary has unrecognized keys: ${unknown_keys} — review for new diagnostic data"
+        fi
+
+        # Zero tests across all three counters is always a bug — either the
+        # xcresult is corrupt or xcresulttool's field names changed.
+        if [[ "$failed" -eq 0 && "$passed" -eq 0 && "$skipped" -eq 0 ]]; then
+          echo "::error::xcresulttool summary parsed no test counts — xcresult may be corrupt or schema changed. Raw output:"
+          echo "$SUMMARY"
+          exit 0
+        fi
+
+        echo "::group::Test results — ${failed} failed · ${passed} passed · ${skipped} skipped"
+
+        if [[ "$failed" -gt 0 ]]; then
+          echo "FAILURES:"
+          echo "$SUMMARY" | jq -r '.testFailures[]? | "  ✗ \(.testIdentifierString)\n    \(.failureText)"'
+          echo ""
+        fi
+
+        insights=$(echo "$SUMMARY" | jq -r '.topInsights[]? | "  • \(.title): \(.text)"')
+        if [[ -n "$insights" ]]; then
+          echo "INSIGHTS:"
+          echo "$insights"
+        fi
+
         echo "::endgroup::"
-        echo "::group::Per-test failure tree"
-        xcrun xcresulttool get test-results tests --path "$RESULT_BUNDLE_PATH" || true
-        echo "::endgroup::"
+
+        # Render a Markdown summary in the job's Summary tab.
+        {
+          if [[ "$failed" -gt 0 ]]; then
+            echo "### ❌ ${failed} failed · ${passed} passed · ${skipped} skipped"
+            echo ""
+            echo "| Target | Test | Failure |"
+            echo "|--------|------|---------|"
+            echo "$SUMMARY" | jq -r '.testFailures[]? | "| \(.targetName) | `\(.testName)` | \(.failureText) |"'
+          else
+            echo "### ✅ ${passed} passed · ${skipped} skipped"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        # Emit ::error:: annotations so failures appear in the PR checks sidebar.
+        echo "$SUMMARY" | jq -r \
+          '.testFailures[]? | "::error title=\(.testName)::\(.testIdentifierString) — \(.failureText)"'
