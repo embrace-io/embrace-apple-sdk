@@ -1,0 +1,120 @@
+name: Run xcodebuild
+description: >
+  Runs `xcodebuild build` or `xcodebuild test` against a workspace, with a
+  destination resolved from `platform`+`platform-version`, optional sanitizer
+  and code-coverage flags, output piped through xcbeautify, and an inline
+  xcresult summary on failure. Replaces mxcl/xcodebuild for Node-24 readiness.
+
+inputs:
+  workspace:
+    description: Path to the .xcworkspace.
+    required: true
+  scheme:
+    description: Scheme to build/test.
+    required: true
+  platform:
+    description: One of iOS, tvOS, watchOS, macOS, mac-catalyst, visionOS.
+    required: true
+  platform-version:
+    description: SDK/runtime version (e.g. 18.0). Defaults to the runner's latest.
+    required: false
+    default: latest
+  arch:
+    description: Architecture for macOS / Mac Catalyst destinations.
+    required: false
+    default: arm64
+  action:
+    description: xcodebuild action — `build` or `test`.
+    required: false
+    default: test
+  sanitizer:
+    description: Sanitizer to enable — `none`, `thread`, or `address`.
+    required: false
+    default: none
+  code-coverage:
+    description: Enable code coverage. Only meaningful when `action=test`.
+    required: false
+    default: 'false'
+  result-bundle-path:
+    description: Path passed to `-resultBundlePath`. Wiped before each run.
+    required: false
+    default: ./test.xcresult
+
+runs:
+  using: composite
+  steps:
+    - name: Run xcodebuild
+      shell: bash
+      env:
+        WORKSPACE: ${{ inputs.workspace }}
+        SCHEME: ${{ inputs.scheme }}
+        PLATFORM: ${{ inputs.platform }}
+        PLATFORM_VERSION: ${{ inputs.platform-version }}
+        ARCH: ${{ inputs.arch }}
+        XCODE_ACTION: ${{ inputs.action }}
+        SANITIZER: ${{ inputs.sanitizer }}
+        CODE_COVERAGE: ${{ inputs.code-coverage }}
+        RESULT_BUNDLE_PATH: ${{ inputs.result-bundle-path }}
+      run: |
+        set -euo pipefail
+
+        # An unset matrix field interpolates to empty string in the caller, which
+        # would land here as `OS=,name=...` — coerce empty back to `latest`.
+        PLATFORM_VERSION="${PLATFORM_VERSION:-latest}"
+
+        case "$PLATFORM" in
+          iOS)          DESTINATION="platform=iOS Simulator,OS=${PLATFORM_VERSION},name=iPhone 16" ;;
+          tvOS)         DESTINATION="platform=tvOS Simulator,OS=${PLATFORM_VERSION},name=Apple TV" ;;
+          watchOS)      DESTINATION="platform=watchOS Simulator,OS=${PLATFORM_VERSION},name=Apple Watch Series 10 (46mm)" ;;
+          visionOS)     DESTINATION="platform=visionOS Simulator,OS=${PLATFORM_VERSION},name=Apple Vision Pro" ;;
+          macOS)        DESTINATION="platform=macOS,arch=${ARCH}" ;;
+          mac-catalyst) DESTINATION="platform=macOS,variant=Mac Catalyst,arch=${ARCH}" ;;
+          *)            echo "::error::run-xcodebuild: unknown platform '$PLATFORM'"; exit 1 ;;
+        esac
+
+        ARGS=(
+          -workspace "$WORKSPACE"
+          -scheme "$SCHEME"
+          -destination "$DESTINATION"
+        )
+
+        if [[ "$XCODE_ACTION" == "test" ]]; then
+          rm -rf "$RESULT_BUNDLE_PATH"
+          ARGS+=(-resultBundlePath "$RESULT_BUNDLE_PATH")
+          if [[ "$CODE_COVERAGE" == "true" ]]; then
+            ARGS+=(-enableCodeCoverage YES)
+          fi
+        fi
+
+        case "$SANITIZER" in
+          thread)  ARGS+=(-enableThreadSanitizer YES) ;;
+          address) ARGS+=(-enableAddressSanitizer YES) ;;
+          none|"") ;;
+          *) echo "::error::run-xcodebuild: unknown sanitizer '$SANITIZER'"; exit 1 ;;
+        esac
+
+        echo "::group::xcodebuild invocation"
+        printf '%q ' xcodebuild "$XCODE_ACTION" "${ARGS[@]}"; echo
+        echo "::endgroup::"
+
+        # `set -o pipefail` is the load-bearing line: without it, xcbeautify's
+        # (always 0) exit code would mask xcodebuild failures.
+        set -o pipefail
+        xcodebuild "$XCODE_ACTION" "${ARGS[@]}" | xcbeautify --renderer github-actions
+
+    - name: Summarize xcresult
+      if: ${{ always() && inputs.action == 'test' }}
+      shell: bash
+      env:
+        RESULT_BUNDLE_PATH: ${{ inputs.result-bundle-path }}
+      run: |
+        if [[ ! -d "$RESULT_BUNDLE_PATH" ]]; then
+          echo "No xcresult bundle at $RESULT_BUNDLE_PATH; skipping summary"
+          exit 0
+        fi
+        echo "::group::Test results summary"
+        xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE_PATH" || true
+        echo "::endgroup::"
+        echo "::group::Per-test failure tree"
+        xcrun xcresulttool get test-results tests --path "$RESULT_BUNDLE_PATH" || true
+        echo "::endgroup::"
