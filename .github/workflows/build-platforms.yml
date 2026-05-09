@@ -67,6 +67,13 @@ jobs:
       with:
         persist-credentials: false
 
+    - name: Cache SwiftPM packages
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ~/Library/Developer/Xcode/DerivedData/embrace-apple-sdk-*/SourcePackages
+        key: swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+        restore-keys: swiftpm-${{ runner.os }}-
+
     - name: Build
       uses: mxcl/xcodebuild@d3ee9b419c1be9a988086c58fe0988f32d99cfc5 # v3.6.0
       with:
