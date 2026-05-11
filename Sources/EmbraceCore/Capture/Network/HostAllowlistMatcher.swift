@@ -14,8 +14,8 @@ internal enum HostAllowlistMatcher {
     ///   (`"api.test.com"` for entry `"test.com"`). Entries are expected to be
     ///   lowercase-normalized at Options-init time.
     static func matches(host: String?, allowlist: [String]) -> Bool {
-        guard let host else { return false }
         guard !allowlist.isEmpty else { return true }
+        guard let host else { return false }
 
         let lowerHost = host.lowercased()
         for entry in allowlist {

@@ -135,8 +135,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         // network span forwarding (new flat keys — old SDKs keep reading legacy nested key)
-        nsfThreshold = try rootContainer.decodeIfPresent(Float.self, forKey: .nsfThreshold)
-        traceparentInjectionThreshold = try rootContainer.decodeIfPresent(Float.self, forKey: .traceparentInjectionThreshold)
+        nsfThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .nsfThreshold)
+        traceparentInjectionThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .traceparentInjectionThreshold)
 
         // is wal mode enabled config
         walModeThreshold =

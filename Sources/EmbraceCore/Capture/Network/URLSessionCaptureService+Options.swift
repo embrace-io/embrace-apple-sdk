@@ -29,6 +29,7 @@ extension URLSessionCaptureService {
         }
 
         private static func validated(_ entries: [String]) -> [String] {
+            guard !entries.isEmpty else { return [] }
             var result: [String] = []
             for entry in entries {
                 if entry.isEmpty {
@@ -50,6 +51,11 @@ extension URLSessionCaptureService {
                 } else {
                     result.append(entry.lowercased())
                 }
+            }
+            if result.isEmpty {
+                Embrace.logger.warning(
+                    "all domains in allowedDomains are invalid. The resulting allowedDomains list is empty."
+                )
             }
             return result
         }
@@ -97,6 +103,7 @@ extension URLSessionCaptureService {
             self.requestsDataSource = requestsDataSource
             self.ignoredURLs = ignoredURLs
             self.traceparent = traceparent
+            Options.logDeprecatedInjectTracingHeaderOnce()
         }
 
         @objc public convenience override init() {
