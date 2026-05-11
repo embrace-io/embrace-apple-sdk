@@ -18,7 +18,7 @@ import Foundation
 
     public init(
         hangThreshold: TimeInterval = 0.249,
-        hangPerSession: UInt = 200,
+        hangPerSession: UInt = 20,
         reportsWatchdogEvents: Bool = false
     ) {
         self.hangThreshold = hangThreshold
