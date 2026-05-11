@@ -49,5 +49,10 @@
     ],
     "metrickit_v2_pct_enabled": 55,
     "metrickit_v2_reporters_enabled": "CRASH,HANG",
-    "metrickit_v2_crash_signals_enabled": "SIGKILL,SIGINT"
+    "metrickit_v2_crash_signals_enabled": "SIGKILL,SIGINT",
+    "hang_limits": {
+        "hang_threshold": 0.5,
+        "hang_per_session": 100,
+        "reports_watchdog_events": true
+    }
 }

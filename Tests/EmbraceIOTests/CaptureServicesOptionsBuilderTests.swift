@@ -33,6 +33,7 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         XCTAssertNil(options.pushNotification)
         XCTAssertTrue(options.lowMemoryWarning)
         XCTAssertTrue(options.lowPowerMode)
+        
         XCTAssertFalse(options.hang)
 
         XCTAssertEqual(options.customServices.count, 0)

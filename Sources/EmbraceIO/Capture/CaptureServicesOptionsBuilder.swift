@@ -186,6 +186,7 @@ public class CaptureServicesOptionsBuilder: NSObject {
 
     /// Adds a new `HangCaptureService`.
     /// - Note: If there was another `HangCaptureService` previously added, it will be replaced with the new one.
+    @available(macOS 14.0, *)
     @discardableResult
     public func addHangCaptureService() -> Self {
         map[.hang] = true
