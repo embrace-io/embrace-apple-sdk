@@ -404,7 +404,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         internalLogsErrorLimit = 3
 
         hangLimitsHangThreshold = 0.249
-        hangLimitsHangPerSession = 200
+        hangLimitsHangPerSession = 20
         hangLimitsReportsWatchdogEvents = false
 
         networkPayloadCaptureRules = []
