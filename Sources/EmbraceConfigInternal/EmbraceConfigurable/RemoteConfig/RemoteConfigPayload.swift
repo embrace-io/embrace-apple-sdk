@@ -384,8 +384,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         uiInstrumentationCaptureHostingControllers = false
         swiftUiViewInstrumentationEnabled = true
 
-        metricKitEnabledThreshold = 0.0
-        metricKitCrashCaptureEnabled = false
+        metricKitEnabledThreshold = 100.0
+        metricKitCrashCaptureEnabled = true
         metricKitCrashSignals = [CrashSignal.SIGKILL.stringValue]
         metricKitHangCaptureEnabled = false
         metricKitInternalMetricsCaptureEnabled = false
