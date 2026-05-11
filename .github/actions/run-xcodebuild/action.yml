@@ -108,13 +108,94 @@ runs:
       env:
         RESULT_BUNDLE_PATH: ${{ inputs.result-bundle-path }}
       run: |
+        set -euo pipefail
+
         if [[ ! -d "$RESULT_BUNDLE_PATH" ]]; then
           echo "No xcresult bundle at $RESULT_BUNDLE_PATH; skipping summary"
           exit 0
         fi
-        echo "::group::Test results summary"
-        xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE_PATH" || true
+
+        XCRESULT_STDERR=$(mktemp)
+        if ! SUMMARY=$(xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE_PATH" 2>"$XCRESULT_STDERR"); then
+          echo "::error::xcresulttool failed for bundle '$RESULT_BUNDLE_PATH'"
+          cat "$XCRESULT_STDERR"
+          rm -f "$XCRESULT_STDERR"
+          exit 1
+        fi
+        if [[ -s "$XCRESULT_STDERR" ]]; then
+          echo "::warning::xcresulttool stderr: $(cat "$XCRESULT_STDERR")"
+        fi
+        rm -f "$XCRESULT_STDERR"
+
+        if [[ -z "$SUMMARY" ]]; then
+          echo "xcresulttool returned no output; skipping summary"
+          exit 0
+        fi
+
+        # Pull counts and unknown-keys list from a single jq pass.
+        # `read` returns 1 at EOF even on success, so || true is load-bearing.
+        IFS=$'\t' read -r passed failed skipped unknown_keys < <(jq -r '
+          ["devicesAndConfigurations","environmentDescription","expectedFailures",
+           "failedTests","finishTime","passedTests","result","skippedTests",
+           "startTime","statistics","testFailures","title","topInsights",
+           "totalTestCount"] as $known
+          | [
+              .passedTests // 0,
+              .failedTests // 0,
+              .skippedTests // 0,
+              ([to_entries[].key | select(. as $k | $known | index($k) | not)] | join(", "))
+            ] | @tsv
+        ' <<<"$SUMMARY") || true
+
+        # Non-numeric counts mean jq failed or the schema changed.
+        if ! [[ "${passed:-}" =~ ^[0-9]+$ && "${failed:-}" =~ ^[0-9]+$ && "${skipped:-}" =~ ^[0-9]+$ ]]; then
+          echo "::error::xcresulttool summary schema changed — counts are not numeric. Raw output:"
+          echo "$SUMMARY"
+          exit 1
+        fi
+
+        if [[ -n "${unknown_keys:-}" ]]; then
+          echo "::notice::xcresulttool summary has unrecognized keys: ${unknown_keys} — review for new diagnostic data"
+        fi
+
+        # Zero tests across all three counters is always a bug — either the
+        # xcresult is corrupt or xcresulttool's field names changed.
+        # exit 0: the summary step is diagnostic-only; the test step already
+        # determined the job outcome. A second failing step adds noise, not signal.
+        if [[ "$failed" -eq 0 && "$passed" -eq 0 && "$skipped" -eq 0 ]]; then
+          echo "::error::xcresulttool summary parsed no test counts — xcresult may be corrupt or schema changed. Raw output:"
+          echo "$SUMMARY"
+          exit 0
+        fi
+
+        echo "::group::Test results — ${failed} failed · ${passed} passed · ${skipped} skipped"
+
+        if [[ "$failed" -gt 0 ]]; then
+          echo "FAILURES:"
+          jq -r '.testFailures[]? | "  ✗ \(.testIdentifierString // "unknown")\n    \(.failureText // "(no message)")"' <<<"$SUMMARY"
+          echo ""
+        fi
+
+        insights=$(jq -r '.topInsights[]? | "  • \(.category // "unknown"): \(.text // "")"' <<<"$SUMMARY")
+        if [[ -n "$insights" ]]; then
+          echo "INSIGHTS:"
+          echo "$insights"
+        fi
+
         echo "::endgroup::"
-        echo "::group::Per-test failure tree"
-        xcrun xcresulttool get test-results tests --path "$RESULT_BUNDLE_PATH" || true
-        echo "::endgroup::"
+
+        # Render a Markdown summary in the job's Summary tab.
+        {
+          if [[ "$failed" -gt 0 ]]; then
+            echo "### ❌ ${failed} failed · ${passed} passed · ${skipped} skipped"
+            echo ""
+            echo "| Target | Test | Failure |"
+            echo "|--------|------|---------|"
+            jq -r '.testFailures[]? | "| \(.targetName // "unknown") | `\(.testName // "unknown")` | \(.failureText // "(no message)" | gsub("\n";" ") | gsub("\\|";"\\|")) |"' <<<"$SUMMARY"
+          else
+            echo "### ✅ ${passed} passed · ${skipped} skipped"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        # Emit ::error:: annotations so failures appear in the PR checks sidebar.
+        jq -r '.testFailures[]? | "::error title=\(.testName // "unknown")::\(.testIdentifierString // "unknown") — \(.failureText // "(no message)")"' <<<"$SUMMARY"
