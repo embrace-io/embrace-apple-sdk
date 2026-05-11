@@ -106,7 +106,9 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isBackgroundSessionEnabled: Bool { isEnabled(threshold: payload.backgroundSessionThreshold) }
 
-    public var isNetworkSpansForwardingEnabled: Bool { isEnabled(threshold: payload.networkSpansForwardingThreshold) }
+    public var isNetworkSpansForwardingEnabled: Bool { isEnabled(threshold: payload.nsfThreshold ?? 0) }
+
+    public var traceparentInjectionEnabled: Bool { isEnabled(threshold: payload.traceparentInjectionThreshold ?? 0) }
 
     public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 

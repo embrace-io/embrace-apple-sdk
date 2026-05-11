@@ -79,18 +79,36 @@ final class RemoteConfigTests: XCTestCase {
         // given a config
         let config = RemoteConfig(options: options, logger: logger)
 
-        // then isNetworkSpansForwardingEnabled returns the correct values
-        config.payload.networkSpansForwardingThreshold = 100
+        // then isNetworkSpansForwardingEnabled returns the correct values based on nsf_pct_enabled
+        config.payload.nsfThreshold = 100
         XCTAssertTrue(config.isNetworkSpansForwardingEnabled)
 
-        config.payload.networkSpansForwardingThreshold = 0
+        config.payload.nsfThreshold = nil
         XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
 
-        config.payload.networkSpansForwardingThreshold = 51
+        config.payload.nsfThreshold = 51
         XCTAssertTrue(config.isNetworkSpansForwardingEnabled)
 
-        config.payload.networkSpansForwardingThreshold = 49
+        config.payload.nsfThreshold = 49
         XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
+    }
+
+    func test_traceparentInjectionEnabled() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        // then traceparentInjectionEnabled returns the correct values based on traceparent_injection_pct_enabled
+        config.payload.traceparentInjectionThreshold = 100
+        XCTAssertTrue(config.traceparentInjectionEnabled)
+
+        config.payload.traceparentInjectionThreshold = nil
+        XCTAssertFalse(config.traceparentInjectionEnabled)
+
+        config.payload.traceparentInjectionThreshold = 51
+        XCTAssertTrue(config.traceparentInjectionEnabled)
+
+        config.payload.traceparentInjectionThreshold = 49
+        XCTAssertFalse(config.traceparentInjectionEnabled)
     }
 
     func test_SpanEventsLimits() {
