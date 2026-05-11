@@ -33,11 +33,8 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         XCTAssertNil(options.pushNotification)
         XCTAssertTrue(options.lowMemoryWarning)
         XCTAssertTrue(options.lowPowerMode)
-        #if os(watchOS)
-            XCTAssertFalse(options.hang)
-        #else
-            XCTAssertTrue(options.hang)
-        #endif
+        
+        XCTAssertFalse(options.hang)
 
         XCTAssertEqual(options.customServices.count, 0)
     }
