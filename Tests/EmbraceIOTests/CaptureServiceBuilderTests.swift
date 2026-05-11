@@ -21,7 +21,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         // then the list contains all the default services
         let list = builder.build()
 
-        var count = 4
+        var count = 3
 
         XCTAssertNotNil(list.first(where: { $0 is URLSessionCaptureService }))
 
@@ -37,7 +37,7 @@ class CaptureServiceBuilderTests: XCTestCase {
 
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
-        XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
+        XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
 
         XCTAssertEqual(list.count, count)
 
@@ -60,12 +60,7 @@ class CaptureServiceBuilderTests: XCTestCase {
 
         var count = 3
 
-        #if os(watchOS)
-            XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
-        #else
-            count += 1
-            XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
-        #endif
+        XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
 
         #if canImport(UIKit) && !os(watchOS)
             count += 2
@@ -116,12 +111,7 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
 
-        #if os(watchOS)
-            XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
-        #else
-            count += 1
-            XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
-        #endif
+        XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
 
         XCTAssertEqual(list.count, count)
     }
