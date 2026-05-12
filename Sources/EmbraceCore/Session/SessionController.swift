@@ -34,7 +34,7 @@ extension Notification.Name {
 
 class SessionController: SessionControllable {
 
-    static let sessionNumberKey = "emb.session.upload_index"
+    static let sessionPartNumberKey = "emb.session_part_number"
 
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
@@ -159,10 +159,15 @@ class SessionController: SessionControllable {
             }
 
             // Resolve which user session this new part belongs to. The user-session controller
-            // decides whether to reuse the active user session or start a new one, owns the
-            // `emb.session.upload_index` increment when a new user session is created, and
-            // returns the snapshot we stamp onto the new part record.
+            // decides whether to reuse the active user session or start a new one, and returns
+            // the snapshot we stamp onto the new part record.
             let userSession = userSessionController?.attachPart(state: state, startTime: startTime)
+
+            // Permanent per-part counter — bumped on every new part record and stamped onto
+            // the part's `sessionNumber` column.
+            let sessionPartNumber = storage.incrementCountForPermanentResource(
+                key: SessionController.sessionPartNumberKey
+            )
 
             let session = storage.addSession(
                 id: newId,
@@ -172,7 +177,7 @@ class SessionController: SessionControllable {
                 spanId: span.context.spanId,
                 startTime: startTime,
                 coldStart: isColdStart,
-                sessionNumber: userSession?.userSessionNumber ?? 0,
+                sessionNumber: sessionPartNumber,
                 userSessionId: userSession?.id,
                 userSessionStartTime: userSession?.startTime,
                 userSessionMaxDuration: userSession?.maxDuration,

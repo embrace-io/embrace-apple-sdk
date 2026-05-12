@@ -108,7 +108,6 @@ final class UserSessionController {
             maxDuration: maxDuration,
             inactivityTimeout: inactivityTimeout,
             lastForegroundPartEnd: latest.userSessionLastForegroundEnd,
-            userSessionNumber: latest.sessionNumber,
             partIndex: max(latest.userSessionPartIndex, 1),
             endTime: nil,
             terminationReason: nil
@@ -130,10 +129,9 @@ final class UserSessionController {
     ///
     /// If there is no active user session, or the active one has expired (max duration reached,
     /// inactivity timeout exceeded, or device clock moved backward past the user-session start),
-    /// the active user session is terminated and a new one is created (incrementing the
-    /// user-session counter). Otherwise the part joins the active user session — its
-    /// `lastForegroundPartEnd` is cleared (no inactivity cutoff applies during a part) and
-    /// `partIndex` is bumped, with no counter increment.
+    /// the active user session is terminated and a new one is created. Otherwise the part joins
+    /// the active user session — its `lastForegroundPartEnd` is cleared (no inactivity cutoff
+    /// applies during a part) and `partIndex` is bumped.
     ///
     /// - Parameters:
     ///   - state: The state of the part being created (foreground/background).
@@ -213,22 +211,12 @@ final class UserSessionController {
         let maxDuration = config?.userSessionMaxDuration ?? UserSessionSemantics.defaultMaxDurationSeconds
         let inactivityTimeout = config?.userSessionInactivityTimeout ?? UserSessionSemantics.defaultInactivityTimeoutSeconds
 
-        // The shared user-session counter increments here — once per user-session creation.
-        // All parts that join an existing user session inherit the snapshot's value without
-        // re-incrementing, so the counter reflects "how many user sessions" rather than
-        // "how many parts."
-        let userSessionNumber: EMBInt =
-            storage?.incrementCountForPermanentResource(
-                key: SessionController.sessionNumberKey
-            ) ?? 0
-
         let snapshot = ImmutableUserSession(
             id: EmbraceIdentifier.random,
             startTime: startTime,
             maxDuration: maxDuration,
             inactivityTimeout: inactivityTimeout,
             lastForegroundPartEnd: nil,
-            userSessionNumber: userSessionNumber,
             partIndex: 1,
             endTime: nil,
             terminationReason: nil
@@ -287,7 +275,6 @@ extension ImmutableUserSession {
             maxDuration: maxDuration,
             inactivityTimeout: inactivityTimeout,
             lastForegroundPartEnd: nil,
-            userSessionNumber: userSessionNumber,
             partIndex: partIndex,
             endTime: endTime,
             terminationReason: terminationReason
@@ -301,7 +288,6 @@ extension ImmutableUserSession {
             maxDuration: maxDuration,
             inactivityTimeout: inactivityTimeout,
             lastForegroundPartEnd: lastForegroundPartEnd,
-            userSessionNumber: userSessionNumber,
             partIndex: partIndex,
             endTime: endTime,
             terminationReason: terminationReason
@@ -315,7 +301,6 @@ extension ImmutableUserSession {
             maxDuration: maxDuration,
             inactivityTimeout: inactivityTimeout,
             lastForegroundPartEnd: lastForegroundPartEnd,
-            userSessionNumber: userSessionNumber,
             partIndex: partIndex,
             endTime: endTime,
             terminationReason: reason

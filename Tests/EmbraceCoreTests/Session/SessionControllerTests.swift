@@ -458,47 +458,44 @@ final class SessionControllerTests: XCTestCase {
 
     // MARK: heartbeat
 
-    func test_startSession_underNewUserSession_incrementsCounter() throws {
-        // when starting a session with no active user session
+    func test_startSession_assignsSessionPartNumber() throws {
+        // when starting a session
         let session = controller.startSession(state: .foreground)
 
-        // then the part inherits the user-session number, and storage reflects the increment
+        // then sessionNumber == 1 and the permanent counter is at 1
         XCTAssertEqual(session?.sessionNumber, 1)
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
         XCTAssertEqual(resource?.value, "1")
     }
 
-    func test_startSession_joiningExistingUserSession_doesNotIncrementCounter() throws {
-        // given a started session under a fresh user session
+    func test_startSession_incrementsSessionPartNumberPerPart() throws {
+        // given two parts under the same user session
         let first = controller.startSession(state: .foreground)
         controller.endSession()
-
-        // when a second part starts within bounds (default config: 12h max / 30min inactivity)
         let second = controller.startSession(state: .foreground)
 
-        // then both parts share the same user-session number, and the counter only ticked once
+        // then each part has a unique, strictly-increasing sessionNumber
         XCTAssertEqual(first?.sessionNumber, 1)
-        XCTAssertEqual(second?.sessionNumber, 1)
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
-        XCTAssertEqual(resource?.value, "1")
+        XCTAssertEqual(second?.sessionNumber, 2)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
+        XCTAssertEqual(resource?.value, "2")
     }
 
     func test_startSession_continuesFromExistingCounter() throws {
         // given an existing counter value of 5
         storage.addMetadata(
-            key: SessionController.sessionNumberKey,
+            key: SessionController.sessionPartNumberKey,
             value: "5",
             type: .requiredResource,
             lifespan: .permanent
         )
 
-        // when starting a session (creates a new user session — counter increments)
+        // when starting a session, the per-part counter continues from 6
         let session = controller.startSession(state: .foreground)
 
-        // then sessionNumber continues from 6
         XCTAssertEqual(session?.sessionNumber, 6)
 
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
         XCTAssertEqual(resource?.value, "6")
     }
 

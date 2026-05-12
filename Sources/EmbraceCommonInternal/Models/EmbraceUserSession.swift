@@ -33,7 +33,6 @@ public protocol EmbraceUserSession {
     var maxDuration: TimeInterval { get }
     var inactivityTimeout: TimeInterval { get }
     var lastForegroundPartEnd: Date? { get }
-    var userSessionNumber: EMBInt { get }
     var partIndex: EMBInt { get }
     var endTime: Date? { get }
     var terminationReason: TerminationReason? { get }
@@ -46,7 +45,6 @@ public struct ImmutableUserSession: EmbraceUserSession {
     public let maxDuration: TimeInterval
     public let inactivityTimeout: TimeInterval
     public let lastForegroundPartEnd: Date?
-    public let userSessionNumber: EMBInt
     public let partIndex: EMBInt
     public let endTime: Date?
     public let terminationReason: TerminationReason?
@@ -57,7 +55,6 @@ public struct ImmutableUserSession: EmbraceUserSession {
         maxDuration: TimeInterval,
         inactivityTimeout: TimeInterval,
         lastForegroundPartEnd: Date? = nil,
-        userSessionNumber: EMBInt,
         partIndex: EMBInt,
         endTime: Date? = nil,
         terminationReason: TerminationReason? = nil
@@ -67,7 +64,6 @@ public struct ImmutableUserSession: EmbraceUserSession {
         self.maxDuration = maxDuration
         self.inactivityTimeout = inactivityTimeout
         self.lastForegroundPartEnd = lastForegroundPartEnd
-        self.userSessionNumber = userSessionNumber
         self.partIndex = partIndex
         self.endTime = endTime
         self.terminationReason = terminationReason

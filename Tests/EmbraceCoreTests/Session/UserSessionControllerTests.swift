@@ -56,11 +56,6 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertNil(snapshot.endTime)
         XCTAssertNil(snapshot.terminationReason)
 
-        // counter incremented exactly once
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
-        XCTAssertEqual(resource?.value, "1")
-        XCTAssertEqual(snapshot.userSessionNumber, 1)
-
         wait(for: [startNotification], timeout: 1)
     }
 
@@ -90,11 +85,6 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertEqual(second.partIndex, 2)
         XCTAssertNil(second.lastForegroundPartEnd, "Inactivity cutoff cleared at part start")
 
-        // Counter NOT incremented for the same user session.
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
-        XCTAssertEqual(resource?.value, "1")
-        XCTAssertEqual(second.userSessionNumber, 1)
-
         // Drain the main queue so async posts from both attachPart calls land before we count.
         let drained = expectation(description: "main queue drained")
         DispatchQueue.main.async { drained.fulfill() }
@@ -117,10 +107,6 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertEqual(second.partIndex, 1)
 
         wait(for: [endNotification], timeout: 1)
-
-        // counter incremented twice
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
-        XCTAssertEqual(resource?.value, "2")
     }
 
     func testAttachPart_expiredByInactivity_endsAndCreatesNew() {
@@ -166,10 +152,6 @@ final class UserSessionControllerTests: XCTestCase {
         }
 
         XCTAssertEqual(indices, [1, 2, 3, 4, 5])
-
-        // All parts share the same user session — one increment.
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
-        XCTAssertEqual(resource?.value, "1")
     }
 
     // MARK: - bootstrap
@@ -225,7 +207,6 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertEqual(snapshot?.startTime.timeIntervalSince1970 ?? 0, userSessionStart.timeIntervalSince1970, accuracy: 0.001)
         XCTAssertEqual(snapshot?.maxDuration, Self.defaultMax)
         XCTAssertEqual(snapshot?.inactivityTimeout, Self.defaultInactivity)
-        XCTAssertEqual(snapshot?.userSessionNumber, 7)
         XCTAssertEqual(snapshot?.partIndex, 3)
     }
 
