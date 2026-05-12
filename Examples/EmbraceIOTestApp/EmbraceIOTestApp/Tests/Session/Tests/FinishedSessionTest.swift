@@ -20,7 +20,7 @@ class FinishedSessionTest: PayloadTest {
     private var currentSession: String = ""
 
     func runTestPreparations() {
-        currentSession = Embrace.client?.currentSessionId() ?? ""
+        currentSession = EmbraceIO.shared.currentSessionId ?? ""
         if fakeAppState {
             NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
 

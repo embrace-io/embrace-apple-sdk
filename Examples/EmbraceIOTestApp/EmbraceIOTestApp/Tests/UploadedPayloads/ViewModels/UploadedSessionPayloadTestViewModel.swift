@@ -4,7 +4,7 @@
 //
 //
 
-import EmbraceCore
+import EmbraceIO
 import SwiftUI
 
 @Observable
@@ -38,23 +38,9 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         exportedAndPostedSessions.isEmpty
     }
 
-    var userInfoUsername: String = "" {
-        didSet {
-            Embrace.client?.metadata.userName = userInfoUsername.isEmpty ? nil : userInfoUsername
-            updatedUserInfo()
-        }
-    }
-
-    var userInfoEmail: String = "" {
-        didSet {
-            Embrace.client?.metadata.userEmail = userInfoEmail.isEmpty ? nil : userInfoEmail
-            updatedUserInfo()
-        }
-    }
-
     var userInfoIdentifier: String = "" {
         didSet {
-            Embrace.client?.metadata.userIdentifier = userInfoIdentifier.isEmpty ? nil : userInfoIdentifier
+            EmbraceIO.shared.userIdentifier = userInfoIdentifier.isEmpty ? nil : userInfoIdentifier
             updatedUserInfo()
         }
     }
@@ -64,7 +50,7 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         self.testObject = testObject
         self.selectedSessionId = ""
         super.init(dataModel: dataModel, payloadTestObject: testObject)
-        currentSessionId = Embrace.client?.currentSessionId()
+        currentSessionId = EmbraceIO.shared.currentSessionId
         readUserInfoFromEmbrace()
         updatedExportedSessions()
 
@@ -76,7 +62,7 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
 
         NotificationCenter.default.addObserver(forName: .embraceSessionDidStart, object: nil, queue: nil) {
             [weak self] _ in
-            self?.currentSessionId = Embrace.client?.currentSessionId()
+            self?.currentSessionId = EmbraceIO.shared.currentSessionId
         }
 
         NotificationCenter.default.addObserver(forName: .embraceSessionWillEnd, object: nil, queue: nil) {
@@ -88,7 +74,7 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
     func refresh() {
         updatedExportedSessions()
         readUserInfoFromEmbrace()
-        Embrace.client?.metadata.getCurrentPersonas { [weak self] (personas: [String]) in
+        EmbraceIO.shared.getCurrentPersonas { [weak self] (personas: [String]) in
             guard let self = self else { return }
             personas.forEach { persona in
                 self.addPersonaToCurrentSession(persona)
@@ -99,15 +85,13 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
     func clearAllUserInfo() {
         guard let currentSessionId = currentSessionId else { return }
 
-        Embrace.client?.metadata.clearUserProperties()
-        userInfoUsername = ""
-        userInfoEmail = ""
+        EmbraceIO.shared.removeAllProperties(lifespans: [])
         userInfoIdentifier = ""
         userInfoBySessionId[currentSessionId] = nil
     }
 
     func addedNewPersona(_ persona: String, lifespan: MetadataLifespan) {
-        try? Embrace.client?.metadata.add(persona: persona, lifespan: lifespan)
+        EmbraceIO.shared.addPersona(persona, lifespan: lifespan)
         addPersonaToCurrentSession(persona)
     }
 
@@ -117,29 +101,24 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
     }
 
     func removeAllPersonas() {
-        Embrace.client?.metadata.removeAllPersonas()
+        EmbraceIO.shared.removeAllPersonas(lifespans: [])
         guard let currentSessionId = currentSessionId else { return }
         personasBySessionId[currentSessionId] = []
     }
 
     private func readUserInfoFromEmbrace() {
         guard let currentSessionId = currentSessionId else { return }
-        let username = Embrace.client?.metadata.userName
-        let email = Embrace.client?.metadata.userEmail
-        let identifier = Embrace.client?.metadata.userIdentifier
+        let identifier = EmbraceIO.shared.userIdentifier
 
-        self.userInfoUsername = username ?? ""
-        self.userInfoEmail = email ?? ""
         self.userInfoIdentifier = identifier ?? ""
 
-        userInfoBySessionId[currentSessionId] = .init(username: username, email: email, identifier: identifier)
+        userInfoBySessionId[currentSessionId] = .init(identifier: identifier)
     }
 
     private func updatedUserInfo() {
         guard let currentSessionId = currentSessionId else { return }
 
-        userInfoBySessionId[currentSessionId] = .init(
-            username: userInfoUsername, email: userInfoEmail, identifier: userInfoIdentifier)
+        userInfoBySessionId[currentSessionId] = .init(identifier: userInfoIdentifier)
     }
 
     private func updatedExportedSessions() {

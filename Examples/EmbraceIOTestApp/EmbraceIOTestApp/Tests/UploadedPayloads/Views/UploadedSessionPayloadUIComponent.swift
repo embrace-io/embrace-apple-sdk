@@ -23,8 +23,6 @@ struct UploadedSessionPayloadUIComponent: View {
             VStack(alignment: .leading) {
                 Section("User Info") {
                     UploadedSessionPayloadTestUserInfoView(
-                        username: $viewModel.userInfoUsername,
-                        email: $viewModel.userInfoEmail,
                         identifier: $viewModel.userInfoIdentifier
                     ) {
                         viewModel.clearAllUserInfo()
