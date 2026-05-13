@@ -30,8 +30,6 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(urlTextField))
         urlTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: urlTextField)
-
         urlTextField.typeText(
             String(repeating: XCUIKeyboardKey.delete.rawValue, count: (urlTextField.value as? String ?? "").count))
 
@@ -44,8 +42,6 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         XCTAssertTrue(apiTextField.waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollUntilHittableElementVisible(apiTextField))
         apiTextField.tap()
-
-        _ = waitUntilElementHasFocus(element: apiTextField)
 
         apiTextField.typeText(
             String(repeating: XCUIKeyboardKey.delete.rawValue, count: (apiTextField.value as? String ?? "").count))
@@ -65,8 +61,6 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(bodyKeyTextField))
         bodyKeyTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: bodyKeyTextField)
-
         bodyKeyTextField.typeText(
             String(repeating: XCUIKeyboardKey.delete.rawValue, count: (bodyKeyTextField.value as? String ?? "").count))
 
@@ -77,8 +71,6 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         XCTAssertTrue(bodyValueTextField.waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollUntilHittableElementVisible(bodyValueTextField))
         bodyValueTextField.tap()
-
-        _ = waitUntilElementHasFocus(element: bodyValueTextField)
 
         bodyValueTextField.typeText(
             String(repeating: XCUIKeyboardKey.delete.rawValue, count: (bodyValueTextField.value as? String ?? "").count)

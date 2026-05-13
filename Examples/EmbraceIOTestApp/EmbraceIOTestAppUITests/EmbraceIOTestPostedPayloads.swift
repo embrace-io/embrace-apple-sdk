@@ -62,8 +62,6 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(usernameTextField))
         usernameTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: usernameTextField)
-
         usernameTextField.typeText("TestUsername123")
         usernameTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
@@ -73,8 +71,6 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(emailTextField))
         emailTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: emailTextField)
-
         emailTextField.typeText("Some@Email.com")
         emailTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
@@ -83,8 +79,6 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(identifierTextField.waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollUntilHittableElementVisible(identifierTextField))
         identifierTextField.tap()
-
-        _ = waitUntilElementHasFocus(element: identifierTextField)
 
         identifierTextField.typeText("ABCD1234")
         identifierTextField.typeText(XCUIKeyboardKey.return.rawValue)
