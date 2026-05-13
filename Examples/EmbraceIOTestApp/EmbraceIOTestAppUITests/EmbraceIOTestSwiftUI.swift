@@ -122,6 +122,8 @@ final class EmbraceIOTestSwiftUI: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(logMessageAttributeKeyTextField))
         logMessageAttributeKeyTextField.tap()
 
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+
         logMessageAttributeKeyTextField.typeText(
             String(
                 repeating: XCUIKeyboardKey.delete.rawValue,
@@ -134,6 +136,8 @@ final class EmbraceIOTestSwiftUI: XCTestCase {
         XCTAssertTrue(logMessageAttributeValueTextField.waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollUntilHittableElementVisible(logMessageAttributeValueTextField))
         logMessageAttributeValueTextField.tap()
+
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         logMessageAttributeValueTextField.typeText(
             String(

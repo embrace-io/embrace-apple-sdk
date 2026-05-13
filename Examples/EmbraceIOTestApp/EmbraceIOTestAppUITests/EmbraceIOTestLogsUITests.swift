@@ -26,6 +26,8 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(logMessageTextField))
         logMessageTextField.tap()
 
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+
         logMessageTextField.typeText(
             String(
                 repeating: XCUIKeyboardKey.delete.rawValue, count: (logMessageTextField.value as? String ?? "").count))
@@ -326,6 +328,8 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(logMessageAttributeKeyTextField))
         logMessageAttributeKeyTextField.tap()
 
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+
         logMessageAttributeKeyTextField.typeText(
             String(
                 repeating: XCUIKeyboardKey.delete.rawValue,
@@ -338,6 +342,8 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         XCTAssertTrue(logMessageAttributeValueTextField.waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollUntilHittableElementVisible(logMessageAttributeValueTextField))
         logMessageAttributeValueTextField.tap()
+
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         logMessageAttributeValueTextField.typeText(
             String(

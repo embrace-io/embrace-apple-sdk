@@ -62,6 +62,8 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(usernameTextField))
         usernameTextField.tap()
 
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+
         usernameTextField.typeText("TestUsername123")
         usernameTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
@@ -71,6 +73,8 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(emailTextField))
         emailTextField.tap()
 
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+
         emailTextField.typeText("Some@Email.com")
         emailTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
@@ -79,6 +83,8 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(identifierTextField.waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollUntilHittableElementVisible(identifierTextField))
         identifierTextField.tap()
+
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         identifierTextField.typeText("ABCD1234")
         identifierTextField.typeText(XCUIKeyboardKey.return.rawValue)
