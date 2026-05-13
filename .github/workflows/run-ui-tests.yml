@@ -10,9 +10,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run-ui-tests-app:
-    timeout-minutes: 60
+    timeout-minutes: 90
     runs-on: [macos-15]
     strategy:
       fail-fast: false
@@ -64,10 +68,21 @@ jobs:
         env:
           IS_XCTEST: true
         run: |
-          set -e && xcodebuild -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled NO test -retry-tests-on-failure -test-iterations 3 | xcbeautify && exit ${PIPESTATUS[0]}
+          set -o pipefail
+          mkdir -p build
+          xcodebuild -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled NO test -retry-tests-on-failure -test-iterations 3 2>&1 \
+            | tee >(awk '{ printf "[%s] %s\n", strftime("%H:%M:%S"), $0; fflush() }' > build/xcodebuild.log) \
+            | xcbeautify --renderer github-actions
+
+      - name: Upload xcodebuild log
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: xcodebuild_log
+          path: build/xcodebuild.log
 
       - name: Upload xcresult Bundle Manually
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: output_xcresult
