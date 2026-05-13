@@ -70,7 +70,17 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build
-          xcodebuild -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled NO test -retry-tests-on-failure -test-iterations 3 2>&1 \
+          xcodebuild \
+            -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" \
+            -scheme "EmbraceIOTestApp" \
+            -derivedDataPath "build/DerivedData" \
+            -resultBundlePath ".build/test/output" \
+            -destination "platform=iOS Simulator,name=${{ matrix.device }}" \
+            -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 60 \
+            -maximum-test-execution-time-allowance 180 \
+            test 2>&1 \
             | tee >(awk '{ printf "[%s] %s\n", strftime("%H:%M:%S"), $0; fflush() }' > build/xcodebuild.log) \
             | xcbeautify --renderer github-actions
 
