@@ -102,24 +102,15 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         evaluateTestResults(app)
     }
 
-    func testAllNetworkingCases() {
-        castTestGetRequest()
-        app.swipeDown()
-        castTestPostRequest()
-        app.swipeDown()
-        castTestPutRequest()
-        app.swipeDown()
-        castTestDeleteRequest()
-    }
 
-    func castTestGetRequest() {
+    func test_getRequest() {
         enterURL(embraceURL)
         selectRequestMethod(.get)
 
         runNetworkTest()
     }
 
-    func castTestPostRequest() {
+    func test_postRequest() {
         enterURL(reqresURL)
         enterAPI(reqresUsersAPI)
         selectRequestMethod(.post)
@@ -129,7 +120,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         runNetworkTest()
     }
 
-    func castTestPutRequest() {
+    func test_putRequest() {
         enterURL(reqresURL)
         enterAPI("\(reqresUsersAPI)/1234")
         selectRequestMethod(.put)
@@ -139,7 +130,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         runNetworkTest()
     }
 
-    func castTestDeleteRequest() {
+    func test_deleteRequest() {
         enterURL(reqresURL)
         enterAPI("\(reqresUsersAPI)/1234")
         selectRequestMethod(.delete)
