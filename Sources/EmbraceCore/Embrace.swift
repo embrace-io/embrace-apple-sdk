@@ -401,28 +401,20 @@ package class Embrace {
         return deviceId.stringValue
     }
 
-    /// Forces the Embrace SDK to start a new session.
-    /// - Note: If there was a session running, it will be ended before starting a new one.
-    /// - Note: This method won't do anything if the SDK is stopped.
-    package func startNewSession() {
+    /// Ends the active user session. The current part is closed and a new part of the same
+    /// state is started under a fresh user session. Rate-limited to one call per 5 seconds —
+    /// subsequent calls inside that window are ignored silently.
+    /// - Note: This method has no effect if the SDK is stopped.
+    package func endUserSession() {
         guard isSDKEnabled else {
             return
         }
 
-        processingQueue.async {
-            self.sessionLifecycle.startSession()
-        }
-    }
-
-    /// Forces the Embrace SDK to stop the current session, if any.
-    /// - Note: This method won't do anything if the SDK is stopped.
-    package func endCurrentSession() {
-        guard isSDKEnabled else {
-            return
-        }
-
-        processingQueue.async {
-            self.sessionLifecycle.endSession()
+        processingQueue.async { [weak self] in
+            guard let self = self else { return }
+            let now = Date()
+            guard self.userSessionController.canManuallyEnd(now: now) else { return }
+            self.sessionController.rollPartForUserSessionExpiry(reason: .manual, at: now)
         }
     }
 

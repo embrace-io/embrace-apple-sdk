@@ -21,6 +21,14 @@ class MockSessionController: SessionControllable {
     var didCallEndSession: Bool = false
     var didCallUpdateSession: Bool = false
 
+    /// Ordered log of every `startSession`/`endSession` call (and their timestamp) for tests
+    /// that verify the bg-split sequence in `iOSSessionLifecycle.appDidBecomeActive`.
+    enum Event: Equatable {
+        case startSession(state: SessionState, startTime: Date)
+        case endSession(at: Date)
+    }
+    var callLog: [Event] = []
+
     private var updateSessionCallback: ((EmbraceSession?, SessionState?, Bool?) -> Void)?
 
     weak var storage: EmbraceStorage?
@@ -42,6 +50,7 @@ class MockSessionController: SessionControllable {
         }
 
         didCallStartSession = true
+        callLog.append(.startSession(state: state, startTime: startTime))
 
         var session: EmbraceSession?
 
@@ -99,16 +108,22 @@ class MockSessionController: SessionControllable {
 
     @discardableResult
     func endSession() -> Date {
+        return endSession(at: Date())
+    }
+
+    @discardableResult
+    func endSession(at endTime: Date) -> Date {
         didCallEndSession = true
+        callLog.append(.endSession(at: endTime))
         currentSession = nil
 
         if let span = currentSessionSpan {
-            span.end()
+            span.end(endTime: endTime)
             storage?.upsertSpan(span)
         }
         currentSessionSpan = nil
 
-        return Date()
+        return endTime
     }
 
     func update(state: SessionState) {
