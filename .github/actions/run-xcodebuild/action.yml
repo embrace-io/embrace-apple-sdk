@@ -1,0 +1,201 @@
+name: Run xcodebuild
+description: >
+  Runs `xcodebuild build` or `xcodebuild test` against a workspace, with a
+  destination resolved from `platform`+`platform-version`, optional sanitizer
+  and code-coverage flags, output piped through xcbeautify, and an inline
+  xcresult summary on failure. Replaces mxcl/xcodebuild for Node-24 readiness.
+
+inputs:
+  workspace:
+    description: Path to the .xcworkspace.
+    required: true
+  scheme:
+    description: Scheme to build/test.
+    required: true
+  platform:
+    description: One of iOS, tvOS, watchOS, macOS, mac-catalyst, visionOS.
+    required: true
+  platform-version:
+    description: SDK/runtime version (e.g. 18.0). Defaults to the runner's latest.
+    required: false
+    default: latest
+  arch:
+    description: Architecture for macOS / Mac Catalyst destinations.
+    required: false
+    default: arm64
+  action:
+    description: xcodebuild action — `build` or `test`.
+    required: false
+    default: test
+  sanitizer:
+    description: Sanitizer to enable — `none`, `thread`, or `address`.
+    required: false
+    default: none
+  code-coverage:
+    description: Enable code coverage. Only meaningful when `action=test`.
+    required: false
+    default: 'false'
+  result-bundle-path:
+    description: Path passed to `-resultBundlePath`. Wiped before each run.
+    required: false
+    default: ./test.xcresult
+
+runs:
+  using: composite
+  steps:
+    - name: Run xcodebuild
+      shell: bash
+      env:
+        WORKSPACE: ${{ inputs.workspace }}
+        SCHEME: ${{ inputs.scheme }}
+        PLATFORM: ${{ inputs.platform }}
+        PLATFORM_VERSION: ${{ inputs.platform-version }}
+        ARCH: ${{ inputs.arch }}
+        XCODE_ACTION: ${{ inputs.action }}
+        SANITIZER: ${{ inputs.sanitizer }}
+        CODE_COVERAGE: ${{ inputs.code-coverage }}
+        RESULT_BUNDLE_PATH: ${{ inputs.result-bundle-path }}
+      run: |
+        set -euo pipefail
+
+        # An unset matrix field interpolates to empty string in the caller, which
+        # would land here as `OS=,name=...` — coerce empty back to `latest`.
+        PLATFORM_VERSION="${PLATFORM_VERSION:-latest}"
+
+        case "$PLATFORM" in
+          iOS)          DESTINATION="platform=iOS Simulator,OS=${PLATFORM_VERSION},name=iPhone 16" ;;
+          tvOS)         DESTINATION="platform=tvOS Simulator,OS=${PLATFORM_VERSION},name=Apple TV" ;;
+          watchOS)      DESTINATION="platform=watchOS Simulator,OS=${PLATFORM_VERSION},name=Apple Watch Series 10 (46mm)" ;;
+          visionOS)     DESTINATION="platform=visionOS Simulator,OS=${PLATFORM_VERSION},name=Apple Vision Pro" ;;
+          macOS)        DESTINATION="platform=macOS,arch=${ARCH}" ;;
+          mac-catalyst) DESTINATION="platform=macOS,variant=Mac Catalyst,arch=${ARCH}" ;;
+          *)            echo "::error::run-xcodebuild: unknown platform '$PLATFORM'"; exit 1 ;;
+        esac
+
+        ARGS=(
+          -workspace "$WORKSPACE"
+          -scheme "$SCHEME"
+          -destination "$DESTINATION"
+        )
+
+        if [[ "$XCODE_ACTION" == "test" ]]; then
+          rm -rf "$RESULT_BUNDLE_PATH"
+          ARGS+=(-resultBundlePath "$RESULT_BUNDLE_PATH")
+          if [[ "$CODE_COVERAGE" == "true" ]]; then
+            ARGS+=(-enableCodeCoverage YES)
+          fi
+        fi
+
+        case "$SANITIZER" in
+          thread)  ARGS+=(-enableThreadSanitizer YES) ;;
+          address) ARGS+=(-enableAddressSanitizer YES) ;;
+          none|"") ;;
+          *) echo "::error::run-xcodebuild: unknown sanitizer '$SANITIZER'"; exit 1 ;;
+        esac
+
+        echo "::group::xcodebuild invocation"
+        printf '%q ' xcodebuild "$XCODE_ACTION" "${ARGS[@]}"; echo
+        echo "::endgroup::"
+
+        # `set -o pipefail` is the load-bearing line: without it, xcbeautify's
+        # (always 0) exit code would mask xcodebuild failures.
+        set -o pipefail
+        xcodebuild "$XCODE_ACTION" "${ARGS[@]}" | xcbeautify --renderer github-actions
+
+    - name: Summarize xcresult
+      if: ${{ always() && inputs.action == 'test' }}
+      shell: bash
+      env:
+        RESULT_BUNDLE_PATH: ${{ inputs.result-bundle-path }}
+      run: |
+        set -euo pipefail
+
+        if [[ ! -d "$RESULT_BUNDLE_PATH" ]]; then
+          echo "No xcresult bundle at $RESULT_BUNDLE_PATH; skipping summary"
+          exit 0
+        fi
+
+        XCRESULT_STDERR=$(mktemp)
+        if ! SUMMARY=$(xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE_PATH" 2>"$XCRESULT_STDERR"); then
+          echo "::error::xcresulttool failed for bundle '$RESULT_BUNDLE_PATH'"
+          cat "$XCRESULT_STDERR"
+          rm -f "$XCRESULT_STDERR"
+          exit 1
+        fi
+        if [[ -s "$XCRESULT_STDERR" ]]; then
+          echo "::warning::xcresulttool stderr: $(cat "$XCRESULT_STDERR")"
+        fi
+        rm -f "$XCRESULT_STDERR"
+
+        if [[ -z "$SUMMARY" ]]; then
+          echo "xcresulttool returned no output; skipping summary"
+          exit 0
+        fi
+
+        # Pull counts and unknown-keys list from a single jq pass.
+        # `read` returns 1 at EOF even on success, so || true is load-bearing.
+        IFS=$'\t' read -r passed failed skipped unknown_keys < <(jq -r '
+          ["devicesAndConfigurations","environmentDescription","expectedFailures",
+           "failedTests","finishTime","passedTests","result","skippedTests",
+           "startTime","statistics","testFailures","title","topInsights",
+           "totalTestCount"] as $known
+          | [
+              .passedTests // 0,
+              .failedTests // 0,
+              .skippedTests // 0,
+              ([to_entries[].key | select(. as $k | $known | index($k) | not)] | join(", "))
+            ] | @tsv
+        ' <<<"$SUMMARY") || true
+
+        # Non-numeric counts mean jq failed or the schema changed.
+        if ! [[ "${passed:-}" =~ ^[0-9]+$ && "${failed:-}" =~ ^[0-9]+$ && "${skipped:-}" =~ ^[0-9]+$ ]]; then
+          echo "::error::xcresulttool summary schema changed — counts are not numeric. Raw output:"
+          echo "$SUMMARY"
+          exit 1
+        fi
+
+        if [[ -n "${unknown_keys:-}" ]]; then
+          echo "::notice::xcresulttool summary has unrecognized keys: ${unknown_keys} — review for new diagnostic data"
+        fi
+
+        # Zero tests across all three counters is always a bug — either the
+        # xcresult is corrupt or xcresulttool's field names changed.
+        # exit 0: the summary step is diagnostic-only; the test step already
+        # determined the job outcome. A second failing step adds noise, not signal.
+        if [[ "$failed" -eq 0 && "$passed" -eq 0 && "$skipped" -eq 0 ]]; then
+          echo "::error::xcresulttool summary parsed no test counts — xcresult may be corrupt or schema changed. Raw output:"
+          echo "$SUMMARY"
+          exit 0
+        fi
+
+        echo "::group::Test results — ${failed} failed · ${passed} passed · ${skipped} skipped"
+
+        if [[ "$failed" -gt 0 ]]; then
+          echo "FAILURES:"
+          jq -r '.testFailures[]? | "  ✗ \(.testIdentifierString // "unknown")\n    \(.failureText // "(no message)")"' <<<"$SUMMARY"
+          echo ""
+        fi
+
+        insights=$(jq -r '.topInsights[]? | "  • \(.category // "unknown"): \(.text // "")"' <<<"$SUMMARY")
+        if [[ -n "$insights" ]]; then
+          echo "INSIGHTS:"
+          echo "$insights"
+        fi
+
+        echo "::endgroup::"
+
+        # Render a Markdown summary in the job's Summary tab.
+        {
+          if [[ "$failed" -gt 0 ]]; then
+            echo "### ❌ ${failed} failed · ${passed} passed · ${skipped} skipped"
+            echo ""
+            echo "| Target | Test | Failure |"
+            echo "|--------|------|---------|"
+            jq -r '.testFailures[]? | "| \(.targetName // "unknown") | `\(.testName // "unknown")` | \(.failureText // "(no message)" | gsub("\n";" ") | gsub("\\|";"\\|")) |"' <<<"$SUMMARY"
+          else
+            echo "### ✅ ${passed} passed · ${skipped} skipped"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
+
+        # Emit ::error:: annotations so failures appear in the PR checks sidebar.
+        jq -r '.testFailures[]? | "::error title=\(.testName // "unknown")::\(.testIdentifierString // "unknown") — \(.failureText // "(no message)")"' <<<"$SUMMARY"
