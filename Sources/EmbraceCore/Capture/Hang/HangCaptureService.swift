@@ -14,12 +14,13 @@ import OpenTelemetryApi
     import EmbraceConfiguration
 #endif
 
-// CADisplayLink is not available on watchOS, so hang capture based on frame rate
-// is not supported on that platform. watchOS support will be revisited in the future.
-#if !os(watchOS)
+// CADisplayLink is unavailable on watchOS, and on macOS it can only be
+// obtained via NSView/NSWindow/NSScreen.displayLink(target:selector:)
+// rather than constructed standalone — so frame-rate based hang capture
+// is not supported on those platforms.
+#if !os(watchOS) && !os(macOS)
 
     /// Service that generates OpenTelemetry span events for hangs.
-    @available(macOS 14.0, *)
     @objc(EMBHangCaptureService)
     public final class HangCaptureService: CaptureService {
 

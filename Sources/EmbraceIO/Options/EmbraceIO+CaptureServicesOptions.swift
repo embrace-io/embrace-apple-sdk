@@ -153,8 +153,8 @@ extension EmbraceIO {
                 services.append(LowPowerModeCaptureService())
             }
 
-            #if !os(watchOS)
-                if hang, #available(macOS 14.0, *) {
+            #if !os(watchOS) && !os(macOS)
+                if hang {
                     services.append(HangCaptureService())
                 }
             #endif

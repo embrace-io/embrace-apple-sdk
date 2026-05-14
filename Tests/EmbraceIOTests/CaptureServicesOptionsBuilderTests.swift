@@ -269,32 +269,36 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         XCTAssertFalse(options.lowPowerMode)
     }
 
-    func test_hang() throws {
-        // given a builder
-        let builder = CaptureServicesOptionsBuilder()
+    #if !os(watchOS) && !os(macOS)
+        func test_hang() throws {
+            // given a builder
+            let builder = CaptureServicesOptionsBuilder()
 
-        // when adding hang
-        builder.addHangCaptureService()
+            // when adding hang
+            builder.addHangCaptureService()
 
-        // then the result contains the correct options
-        let options = builder.build()
+            // then the result contains the correct options
+            let options = builder.build()
 
-        XCTAssertTrue(options.hang)
-    }
+            XCTAssertTrue(options.hang)
+        }
+    #endif
 
-    func test_hang_remove() throws {
-        // given a builder with default services
-        let builder = CaptureServicesOptionsBuilder()
-        builder.addDefaults()
+    #if !os(watchOS) && !os(macOS)
+        func test_hang_remove() throws {
+            // given a builder with default services
+            let builder = CaptureServicesOptionsBuilder()
+            builder.addDefaults()
 
-        // when removing hang
-        builder.remove(embraceType: .hang)
+            // when removing hang
+            builder.remove(embraceType: .hang)
 
-        // then the result contains the correct options
-        let options = builder.build()
+            // then the result contains the correct options
+            let options = builder.build()
 
-        XCTAssertFalse(options.hang)
-    }
+            XCTAssertFalse(options.hang)
+        }
+    #endif
 
     func test_customService() throws {
         // given a builder
