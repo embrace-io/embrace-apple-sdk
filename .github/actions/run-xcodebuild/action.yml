@@ -55,6 +55,7 @@ runs:
         SANITIZER: ${{ inputs.sanitizer }}
         CODE_COVERAGE: ${{ inputs.code-coverage }}
         RESULT_BUNDLE_PATH: ${{ inputs.result-bundle-path }}
+        XCODEBUILD_LOG: ${{ runner.temp }}/xcodebuild.log
       run: |
         set -euo pipefail
 
@@ -72,10 +73,15 @@ runs:
           *)            echo "::error::run-xcodebuild: unknown platform '$PLATFORM'"; exit 1 ;;
         esac
 
+        # `-skip*Validation` flags suppress the interactive trust prompt for
+        # SwiftPM plugins and Swift macros, which would hang non-interactive CI.
+        # These are the local equivalent of mxcl/xcodebuild's `trust-plugins: false`.
         ARGS=(
           -workspace "$WORKSPACE"
           -scheme "$SCHEME"
           -destination "$DESTINATION"
+          -skipPackagePluginValidation
+          -skipMacroValidation
         )
 
         if [[ "$XCODE_ACTION" == "test" ]]; then
@@ -98,9 +104,68 @@ runs:
         echo "::endgroup::"
 
         # `set -o pipefail` is the load-bearing line: without it, xcbeautify's
-        # (always 0) exit code would mask xcodebuild failures.
+        # (always 0) exit code would mask xcodebuild failures. `tee` captures
+        # raw xcodebuild output so the next step can grep error: lines —
+        # xcbeautify swallows them into ::error:: annotations that don't show
+        # up in the log itself.
         set -o pipefail
-        xcodebuild "$XCODE_ACTION" "${ARGS[@]}" | xcbeautify --renderer github-actions
+        xcodebuild "$XCODE_ACTION" "${ARGS[@]}" 2>&1 \
+          | tee "$XCODEBUILD_LOG" \
+          | xcbeautify --renderer github-actions
+
+    - name: Summarize xcodebuild log
+      if: failure()
+      shell: bash
+      env:
+        XCODEBUILD_LOG: ${{ runner.temp }}/xcodebuild.log
+      run: |
+        set -euo pipefail
+
+        if [[ ! -r "$XCODEBUILD_LOG" ]]; then
+          echo "::warning::xcodebuild log not readable at $XCODEBUILD_LOG — failure summary unavailable"
+          ls -la "$(dirname "$XCODEBUILD_LOG")" 2>&1 || true
+          exit 0
+        fi
+
+        # `: error: ` is xcodebuild's diagnostic prefix and covers compile
+        # errors, linker (`ld: error: …`), driver (`clang: error: …`), and
+        # XCTest assertion failures (`Tests.swift:13: error: -[Suite t]…`).
+        # Dedup in build order (the first error is usually the root cause)
+        # and cap because a single bad type cascades into dozens of lines.
+        errors=$(grep -E ': error: ' "$XCODEBUILD_LOG" | awk '!seen[$0]++' | head -50)
+
+        if [[ -z "$errors" ]]; then
+          # Failures without `error:` lines (codesigning, install-time,
+          # simulator boot, etc.) — surface the tail so the contributor
+          # isn't stranded with only xcbeautify's filtered output.
+          echo "::group::No 'error:' lines matched — last 200 lines of xcodebuild log"
+          tail -n 200 "$XCODEBUILD_LOG"
+          echo "::endgroup::"
+          echo "### ⚠️ xcodebuild failed without matching \`error:\` lines — see job log" >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+
+        error_count=$(printf '%s\n' "$errors" | wc -l | tr -d ' ')
+        echo "::group::xcodebuild errors (${error_count}, first 50, deduplicated in build order)"
+        echo "$errors"
+        echo "::endgroup::"
+
+        {
+          echo "### ❌ xcodebuild errors (${error_count})"
+          echo ""
+          echo '```'
+          echo "$errors"
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload xcodebuild log on failure
+      if: failure()
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: xcodebuild-log-${{ inputs.platform }}-${{ inputs.action }}-${{ inputs.sanitizer }}
+        path: ${{ runner.temp }}/xcodebuild.log
+        if-no-files-found: ignore
+        retention-days: 7
 
     - name: Summarize xcresult
       if: ${{ always() && inputs.action == 'test' }}
