@@ -57,67 +57,48 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
         button.tap()
     }
 
-    func testAllWarmStartupCases() {
-        caseTestInitStartup_PreMain_Span()
-        app.swipeDown()
-        caseTestInitStartup_SDKSetup_Span()
-        app.swipeDown()
-        caseTestInitStartup_SDKSetart_Span()
-        app.swipeDown()
-        caseTestInitStartup_StartProcess_Span()
-        app.swipeDown()
-        caseTestInitStartup_StartState_Warm_Span()
-        app.swipeDown()
-        caseTestInitStartup_ProcessLaunch_Span()
-        app.swipeDown()
-        caseTestInitStartup_AppStartup_Span()
-        app.swipeDown()
-        caseTestInitStartup_FirstFrameCapture_Span()
-        app.swipeDown()
-        caseTestInitStartup_MetadataItems()
-    }
 
-    func caseTestInitStartup_PreMain_Span() {
+    func test_initStartup_PreMain_Span() {
         selectMetadataTest(.startProcess)
         evaluateTestResults(app)
     }
 
-    func caseTestInitStartup_SDKSetup_Span() {
+    func test_initStartup_SDKSetup_Span() {
         selectMetadataTest(.sdkSetup)
         evaluateTestResults(app)
     }
 
-    func caseTestInitStartup_SDKSetart_Span() {
+    func test_initStartup_SDKSetart_Span() {
         selectMetadataTest(.sdkStart)
         evaluateTestResults(app)
     }
 
-    func caseTestInitStartup_StartProcess_Span() {
+    func test_initStartup_StartProcess_Span() {
         selectMetadataTest(.startProcess)
         evaluateTestResults(app)
     }
 
-    func caseTestInitStartup_StartState_Warm_Span() {
+    func test_initStartup_StartState_Warm_Span() {
         selectMetadataTest(.startState)
         evaluateTestResults(app)
     }
 
-    func caseTestInitStartup_ProcessLaunch_Span() {
+    func test_initStartup_ProcessLaunch_Span() {
         selectMetadataTest(.processLaunch)
         evaluateTestResults(app)
     }
 
-    func caseTestInitStartup_AppStartup_Span() {
+    func test_initStartup_AppStartup_Span() {
         selectMetadataTest(.appStartup)
         evaluateTestResults(app)
     }
 
-    func caseTestInitStartup_FirstFrameCapture_Span() {
+    func test_initStartup_FirstFrameCapture_Span() {
         selectMetadataTest(.firstFrameCapture)
         evaluateTestResults(app)
     }
 
-    func caseTestInitStartup_MetadataItems() {
+    func test_initStartup_MetadataItems() {
         selectMetadataTest(.resourceMetadata)
         evaluateTestResults(app)
     }
