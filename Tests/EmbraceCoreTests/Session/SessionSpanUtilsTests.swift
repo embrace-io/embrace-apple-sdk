@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
@@ -30,12 +31,17 @@ final class SessionSpanUtilsTests: XCTestCase {
             coldStart: true
         )
 
-        // then the span is correct
+        // then the span is correct. The live attributes carry the part id under
+        // `emb.session_part_id`; the user-session id keys are stamped later (at payload-build
+        // time) because `attachPart` hasn't run yet when the session-part span is created.
         let span = otel.startedSpans[0]
         XCTAssertEqual(span.name, "emb-session")
         XCTAssertEqual(span.type, .session)
         XCTAssertEqual(span.startTime, TestConstants.date)
-        XCTAssertEqual(span.attributes["session.id"] as! String, TestConstants.sessionId.stringValue)
+        XCTAssertEqual(
+            span.attributes["emb.session_part_id"] as! String,
+            TestConstants.sessionId.stringValue
+        )
         XCTAssertEqual(span.attributes["emb.state"] as! String, SessionState.foreground.rawValue)
         XCTAssertEqual(span.attributes["emb.cold_start"] as! String, "true")
     }
@@ -99,9 +105,11 @@ final class SessionSpanUtilsTests: XCTestCase {
     }
 
     func test_payloadFromSesssion() throws {
-        // given a session record
+        // given a session record with a full user-session metadata bag
         let endTime = Date(timeIntervalSince1970: 60)
         let heartbeat = Date(timeIntervalSince1970: 58)
+        let userSessionId = EmbraceIdentifier.random
+        let userSessionStart = Date(timeIntervalSince1970: 10)
 
         let session = MockSession(
             id: TestConstants.sessionId,
@@ -115,13 +123,17 @@ final class SessionSpanUtilsTests: XCTestCase {
             crashReportId: "test",
             coldStart: true,
             cleanExit: false,
-            appTerminated: true
+            appTerminated: true,
+            sessionNumber: 100,
+            userSessionId: userSessionId,
+            userSessionStartTime: userSessionStart,
+            userSessionMaxDuration: 43200,
+            userSessionInactivityTimeout: 1800,
+            userSessionPartIndex: 3
         )
 
-        // when building the session span payload
-        let payload = SessionSpanUtils.payload(from: session, sessionNumber: 100)
+        let payload = SessionSpanUtils.payload(from: session)
 
-        // then the payload is correct
         XCTAssertEqual(payload.name, "emb-session")
         XCTAssertEqual(payload.traceId, TestConstants.traceId)
         XCTAssertEqual(payload.spanId, TestConstants.spanId)
@@ -132,50 +144,85 @@ final class SessionSpanUtilsTests: XCTestCase {
         XCTAssertEqual(payload.events.count, 0)
         XCTAssertEqual(payload.links.count, 0)
 
-        let typeAttribute = payload.attributes.first {
-            $0.key == "emb.type"
+        func attribute(_ key: String) -> String? {
+            payload.attributes.first { $0.key == key }?.value
         }
-        XCTAssertEqual(typeAttribute!.value, "ux.session")
 
-        let sessionAttribute = payload.attributes.first {
-            $0.key == "session.id"
-        }
-        XCTAssertEqual(sessionAttribute!.value, TestConstants.sessionId.stringValue)
+        XCTAssertEqual(attribute("emb.type"), "ux.session")
 
-        let stateAttribute = payload.attributes.first {
-            $0.key == "emb.state"
-        }
-        XCTAssertEqual(stateAttribute!.value, SessionState.foreground.rawValue)
+        // Identity: session.id is the user-session id (not the part id); emb.session_part_id is the part.
+        XCTAssertEqual(attribute("session.id"), userSessionId.stringValue)
+        XCTAssertEqual(attribute("emb.user_session_id"), userSessionId.stringValue)
+        XCTAssertEqual(attribute("emb.session_part_id"), TestConstants.sessionId.stringValue)
 
-        let coldStartAttribute = payload.attributes.first {
-            $0.key == "emb.cold_start"
-        }
-        XCTAssertEqual(coldStartAttribute!.value, "true")
+        XCTAssertEqual(attribute("emb.state"), SessionState.foreground.rawValue)
+        XCTAssertEqual(attribute("emb.cold_start"), "true")
+        XCTAssertEqual(attribute("emb.terminated"), "true")
+        XCTAssertEqual(attribute("emb.clean_exit"), "false")
+        XCTAssertEqual(attribute("emb.heartbeat_time_unix_nano"), String(heartbeat.nanosecondsSince1970Truncated))
 
-        let terminatedAttribute = payload.attributes.first {
-            $0.key == "emb.terminated"
-        }
-        XCTAssertEqual(terminatedAttribute!.value, "true")
+        // Counters
+        XCTAssertEqual(attribute("emb.session_part_number"), "100")
+        XCTAssertEqual(attribute("emb.user_session_part_index"), "3")
 
-        let cleanExitAttribute = payload.attributes.first {
-            $0.key == "emb.clean_exit"
-        }
-        XCTAssertEqual(cleanExitAttribute!.value, "false")
+        // User-session config snapshots
+        XCTAssertEqual(attribute("emb.user_session_start_ts"), String(userSessionStart.nanosecondsSince1970Truncated))
+        XCTAssertEqual(attribute("emb.user_session_max_duration_seconds"), "43200.0")
+        XCTAssertEqual(attribute("emb.user_session_inactivity_timeout_seconds"), "1800.0")
 
-        let heartbeatAttribute = payload.attributes.first {
-            $0.key == "emb.heartbeat_time_unix_nano"
-        }
-        XCTAssertEqual(heartbeatAttribute!.value, String(heartbeat.nanosecondsSince1970Truncated))
+        XCTAssertEqual(attribute("emb.crash_id"), "test")
 
-        let sessionNumberAttribute = payload.attributes.first {
-            $0.key == "emb.session_number"
-        }
-        XCTAssertEqual(sessionNumberAttribute!.value, "100")
+        // Old key gone, no termination-reason-related keys when not set.
+        XCTAssertNil(attribute("emb.session_number"))
+        XCTAssertNil(attribute("emb.user_session_termination_reason"))
+        XCTAssertNil(attribute("emb.is_final_session_part"))
+    }
 
-        let crashIdAttribute = payload.attributes.first {
-            $0.key == "emb.crash_id"
+    func test_payload_emitsTerminationReasonAndFinalPartFlagOnLastPart() throws {
+        let session = MockSession(
+            id: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: TestConstants.date,
+            sessionNumber: 5,
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: TestConstants.date,
+            userSessionMaxDuration: 43200,
+            userSessionInactivityTimeout: 1800,
+            userSessionPartIndex: 2,
+            userSessionTerminationReason: .manual
+        )
+
+        let payload = SessionSpanUtils.payload(from: session)
+
+        let terminationReason = payload.attributes.first { $0.key == "emb.user_session_termination_reason" }
+        let finalPartFlag = payload.attributes.first { $0.key == "emb.is_final_session_part" }
+        XCTAssertEqual(terminationReason?.value, "manual")
+        XCTAssertEqual(finalPartFlag?.value, "1")
+    }
+
+    func test_payload_legacySessionEmitsEmptyUserSessionId() throws {
+        // Pre-v7 row: no user-session columns set.
+        let session = MockSession(
+            id: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: TestConstants.date
+        )
+
+        let payload = SessionSpanUtils.payload(from: session)
+
+        func attribute(_ key: String) -> String? {
+            payload.attributes.first { $0.key == key }?.value
         }
-        XCTAssertEqual(crashIdAttribute!.value, "test")
+
+        XCTAssertEqual(attribute("session.id"), "")
+        XCTAssertEqual(attribute("emb.user_session_id"), "")
+        XCTAssertEqual(attribute("emb.session_part_id"), TestConstants.sessionId.stringValue)
     }
 
     func test_status() {
@@ -195,7 +242,7 @@ final class SessionSpanUtilsTests: XCTestCase {
             appTerminated: true
         )
 
-        var payload = SessionSpanUtils.payload(from: session, sessionNumber: 100)
+        var payload = SessionSpanUtils.payload(from: session)
         XCTAssertEqual(payload.status, "ok")
 
         // test error status
@@ -214,7 +261,7 @@ final class SessionSpanUtilsTests: XCTestCase {
             appTerminated: true
         )
 
-        payload = SessionSpanUtils.payload(from: session, sessionNumber: 100)
+        payload = SessionSpanUtils.payload(from: session)
         XCTAssertEqual(payload.status, "error")
     }
 
@@ -228,7 +275,7 @@ final class SessionSpanUtilsTests: XCTestCase {
         ]
 
         // when building the session span payload
-        let payload = SessionSpanUtils.payload(from: session, properties: properties, sessionNumber: 100)
+        let payload = SessionSpanUtils.payload(from: session, properties: properties)
 
         XCTAssertGreaterThanOrEqual(payload.attributes.count, 3)
         let permanentCustomProperty = payload.attributes.first {
@@ -273,7 +320,7 @@ final class SessionSpanUtilsTests: XCTestCase {
         )
 
         // when building the session span payload
-        let payload = SessionSpanUtils.payload(from: session, properties: properties, sessionNumber: 100)
+        let payload = SessionSpanUtils.payload(from: session, properties: properties)
 
         XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.username " }))
         XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.email" }))

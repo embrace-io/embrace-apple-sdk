@@ -119,11 +119,19 @@ class EmbraceSpanProcessor: SpanProcessor {
 
     /// Stamps external spans with required Embrace attributes before they reach child processors
     /// or the `EmbraceCore` delegate.
+    ///
+    /// Identity is stamped as three keys, always present (empty strings when unknown) so the
+    /// backend can correlate every signal back to a user session/part — `session.id` carries
+    /// the user-session UUID in v7, `emb.user_session_id` mirrors it, and `emb.session_part_id`
+    /// carries the part UUID (the value `session.id` had pre-v7).
     private func injectAttributes(_ span: ReadableSpan, delegate: EmbraceSpanProcessorDelegate) {
         span.setAttribute(key: SpanSemantics.keyEmbraceType, value: .string(EmbraceType.performance.rawValue))
         span.setAttribute(key: SpanSemantics.Session.keyState, value: .string(delegate.currentSessionState.rawValue))
-        if let sessionId = delegate.currentSessionId {
-            span.setAttribute(key: SpanSemantics.keySessionId, value: .string(sessionId.stringValue))
-        }
+
+        let userSessionId = delegate.currentUserSessionId?.stringValue ?? ""
+        let partId = delegate.currentSessionId?.stringValue ?? ""
+        span.setAttribute(key: SpanSemantics.keySessionId, value: .string(userSessionId))
+        span.setAttribute(key: SpanSemantics.Session.keyUserSessionId, value: .string(userSessionId))
+        span.setAttribute(key: SpanSemantics.Session.keyPartId, value: .string(partId))
     }
 }

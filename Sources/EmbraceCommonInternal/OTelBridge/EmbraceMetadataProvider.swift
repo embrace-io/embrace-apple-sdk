@@ -11,8 +11,14 @@ import Foundation
 /// Protocol used to provide Embrace specific information to 3rd party OTel implementations
 package protocol EmbraceMetadataProvider: AnyObject {
 
-    /// Returns the identifier for the current Embrace session, if any
+    /// Returns the identifier for the current Embrace session part, if any.
+    /// Stamped on spans/logs as `emb.session_part_id`.
     var currentSessionId: EmbraceIdentifier? { get }
+
+    /// Returns the identifier for the current user session, if any.
+    /// Stamped on spans/logs as both `session.id` (in v7, `session.id` represents the user
+    /// session, not the part) and `emb.user_session_id`.
+    var currentUserSessionId: EmbraceIdentifier? { get }
 
     /// Returns the identifier for the current process
     var currentProcessId: EmbraceIdentifier { get }

@@ -37,15 +37,26 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         var internalAttributes = [String: EmbraceAttributeValue]()
         internalAttributes.setEmbraceType(type)
 
-        // add session id if needed
+        // Resolve the part id used for the spans-to-parts storage association. The session
+        // part span itself carries its id via `keyPartId` in `attributes` (set by
+        // `SessionSpanUtils.span`); every other span inherits the active part from the
+        // session controller.
         var sessionId: EmbraceIdentifier?
         if type == .session {
-            if let value = internalAttributes[SpanSemantics.Session.keyId] as? String {
+            if let value = sanitizedAttributes[SpanSemantics.Session.keyPartId] as? String {
                 sessionId = EmbraceIdentifier(stringValue: value)
             }
         } else {
             sessionId = sessionController?.currentSession?.id
-            internalAttributes.setEmbraceSessionId(sessionId)
+
+            // Cross-cutting attribute stamping. Every non-session-part span carries the three
+            // identity keys so backend correlation works even on spans that started before
+            // an active session existed (in which case the values are empty strings, per the
+            // backend's "presence of `emb.session_part_id` means new SDK" detection).
+            internalAttributes.setSessionIdentity(
+                userSessionId: sessionController?.currentSession?.userSessionId?.stringValue ?? "",
+                partId: sessionId?.stringValue ?? ""
+            )
         }
 
         let finalAttributes = internalAttributes.merging(sanitizedAttributes) { (current, _) in current }
@@ -406,11 +417,14 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
 
     /// Attribute keys stamped by `EmbraceSpanProcessor.injectAttributes()` before the span
     /// reaches the delegate. These must always be preserved in storage regardless of the
-    /// attribute count limit.
+    /// attribute count limit. The three identity keys (`session.id`, `emb.user_session_id`,
+    /// `emb.session_part_id`) are protected so the cross-cutting stamping survives sanitization.
     static let bridgeProtectedKeys: Set<String> = [
         SpanSemantics.keyEmbraceType,
         SpanSemantics.Session.keyState,
-        SpanSemantics.keySessionId
+        SpanSemantics.keySessionId,
+        SpanSemantics.Session.keyUserSessionId,
+        SpanSemantics.Session.keyPartId
     ]
 
     public func onStartSpan(_ span: EmbraceSpan) {
