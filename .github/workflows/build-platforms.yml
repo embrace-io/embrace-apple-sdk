@@ -57,7 +57,15 @@ jobs:
       run: |
         xcodebuild -runFirstLaunch
         xcrun simctl list
-        xcodebuild -downloadPlatform ${MATRIX_PLATFORM}
+        for i in 1 2 3; do
+          xcodebuild -downloadPlatform "${MATRIX_PLATFORM}" && break
+          if [ "$i" -eq 3 ]; then
+            echo "::error title=downloadPlatform failed::all 3 attempts failed for ${MATRIX_PLATFORM}"
+            exit 1
+          fi
+          echo "::warning title=downloadPlatform retry::attempt $i failed for ${MATRIX_PLATFORM}; retrying in 15s"
+          sleep 15
+        done
         xcodebuild -runFirstLaunch
       env:
         MATRIX_PLATFORM: ${{ matrix.platform }}
