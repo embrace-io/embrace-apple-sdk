@@ -83,27 +83,11 @@ jobs:
         restore-keys: swiftpm-${{ runner.os }}-
 
     - name: Build
-      uses: mxcl/xcodebuild@d3ee9b419c1be9a988086c58fe0988f32d99cfc5 # v3.6.0
+      uses: ./.github/actions/run-xcodebuild
       with:
-        action: build
         workspace: ".swiftpm/xcode/package.xcworkspace"
         scheme: EmbraceIO-Package
         platform: ${{ matrix.platform }}
         platform-version: ${{ matrix.platform-version }}
-        upload-logs: always
-        code-coverage: false
-        trust-plugins: false
         arch: arm64
-
-    # Dumps the xcresult build log into the job log so a compile error
-    # can be diagnosed without downloading the xcresult artifact.
-    - name: Surface failure summary from xcresult
-      if: failure()
-      run: |
-        if [ ! -d build.xcresult ]; then
-          echo "build.xcresult not found in $(pwd); skipping summary."
-          exit 0
-        fi
-        echo "::group::Build log"
-        xcrun xcresulttool get log --path build.xcresult --type build || true
-        echo "::endgroup::"
+        action: build
