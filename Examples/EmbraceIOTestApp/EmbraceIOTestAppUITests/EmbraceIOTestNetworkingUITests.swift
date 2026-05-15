@@ -30,7 +30,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(urlTextField))
         urlTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: urlTextField)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         urlTextField.typeText(
             String(repeating: XCUIKeyboardKey.delete.rawValue, count: (urlTextField.value as? String ?? "").count))
@@ -45,7 +45,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(apiTextField))
         apiTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: apiTextField)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         apiTextField.typeText(
             String(repeating: XCUIKeyboardKey.delete.rawValue, count: (apiTextField.value as? String ?? "").count))
@@ -65,7 +65,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(bodyKeyTextField))
         bodyKeyTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: bodyKeyTextField)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         bodyKeyTextField.typeText(
             String(repeating: XCUIKeyboardKey.delete.rawValue, count: (bodyKeyTextField.value as? String ?? "").count))
@@ -78,7 +78,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(bodyValueTextField))
         bodyValueTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: bodyValueTextField)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         bodyValueTextField.typeText(
             String(repeating: XCUIKeyboardKey.delete.rawValue, count: (bodyValueTextField.value as? String ?? "").count)
@@ -102,24 +102,15 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         evaluateTestResults(app)
     }
 
-    func testAllNetworkingCases() {
-        castTestGetRequest()
-        app.swipeDown()
-        castTestPostRequest()
-        app.swipeDown()
-        castTestPutRequest()
-        app.swipeDown()
-        castTestDeleteRequest()
-    }
 
-    func castTestGetRequest() {
+    func test_getRequest() {
         enterURL(embraceURL)
         selectRequestMethod(.get)
 
         runNetworkTest()
     }
 
-    func castTestPostRequest() {
+    func test_postRequest() {
         enterURL(reqresURL)
         enterAPI(reqresUsersAPI)
         selectRequestMethod(.post)
@@ -129,7 +120,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         runNetworkTest()
     }
 
-    func castTestPutRequest() {
+    func test_putRequest() {
         enterURL(reqresURL)
         enterAPI("\(reqresUsersAPI)/1234")
         selectRequestMethod(.put)
@@ -139,7 +130,7 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         runNetworkTest()
     }
 
-    func castTestDeleteRequest() {
+    func test_deleteRequest() {
         enterURL(reqresURL)
         enterAPI("\(reqresUsersAPI)/1234")
         selectRequestMethod(.delete)
