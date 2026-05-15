@@ -20,38 +20,23 @@ final class EmbraceIOTestSwiftUI: XCTestCase {
 
     }
 
-    func testAllSwiftUICases() {
-        caseManualCapture()
-        app.swipeDown()
-        caseManualCapture_ContentComplete()
-        app.swipeDown()
-        caseManualCapture_AddProperty()
-        app.swipeDown()
-        caseMacroCapture()
-        app.swipeDown()
-        caseEmbraceTraceViewCapture()
-        app.swipeDown()
-        caseEmbraceTraceViewCapture_ContentComplete()
-        app.swipeDown()
-        caseEmbraceTraceViewCapture_AddProperty()
-    }
 
     /// Manual Capture
-    func caseManualCapture() {
+    func test_manualCapture() {
         toggle("manualCaptureContentComplete", value: false)
         runTest("swiftUIViewManualCaptureTestButton")
 
         evaluateTestResults(app)
     }
 
-    func caseManualCapture_ContentComplete() {
+    func test_manualCapture_ContentComplete() {
         toggle("manualCaptureContentComplete", value: true)
         runTest("swiftUIViewManualCaptureTestButton")
 
         evaluateTestResults(app)
     }
 
-    func caseManualCapture_AddProperty() {
+    func test_manualCapture_AddProperty() {
         addManualCaptureProperty(key: "someKey", value: "someValue")
         runTest("swiftUIViewManualCaptureTestButton")
 
@@ -60,28 +45,28 @@ final class EmbraceIOTestSwiftUI: XCTestCase {
 
     /// Macro Capture
 
-    func caseMacroCapture() {
+    func test_macroCapture() {
         runTest("swiftUIViewMacroCaptureTestButton")
 
         evaluateTestResults(app)
     }
 
     /// Embrace Trace View Capture
-    func caseEmbraceTraceViewCapture() {
+    func test_embraceTraceViewCapture() {
         toggle("embraceTraceViewCaptureContentComplete", value: false)
         runTest("swiftUIEmbraceTraceViewCaptureTestButton")
 
         evaluateTestResults(app)
     }
 
-    func caseEmbraceTraceViewCapture_ContentComplete() {
+    func test_embraceTraceViewCapture_ContentComplete() {
         toggle("embraceTraceViewCaptureContentComplete", value: true)
         runTest("swiftUIEmbraceTraceViewCaptureTestButton")
 
         evaluateTestResults(app)
     }
 
-    func caseEmbraceTraceViewCapture_AddProperty() {
+    func test_embraceTraceViewCapture_AddProperty() {
         addEmbraceTraceViewCaptureProperty(key: "someKey", value: "someValue")
         runTest("swiftUIEmbraceTraceViewCaptureTestButton")
 
