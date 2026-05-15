@@ -2,7 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !os(watchOS)
+#if !os(watchOS) && !os(macOS)
 
     import Foundation
     import QuartzCore
@@ -24,7 +24,6 @@
     /// `preferredFrameRateRange` transitions never produce false positives.
     /// `CADisplayLink` also pauses automatically in the background, so suspend
     /// gaps are excluded without any extra bookkeeping.
-    @available(macOS 14.0, *)
     final class FrameRateMonitor {
 
         /// Apple's own definition of a hang (≈ 250 ms).
@@ -132,4 +131,4 @@
         }
     }
 
-#endif  // !os(watchOS)
+#endif  // !os(watchOS) && !os(macOS)

@@ -37,7 +37,9 @@ class CaptureServiceBuilderTests: XCTestCase {
 
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
-        XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
+        #if !os(watchOS) && !os(macOS)
+            XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
+        #endif
 
         XCTAssertEqual(list.count, count)
 
@@ -60,7 +62,9 @@ class CaptureServiceBuilderTests: XCTestCase {
 
         var count = 3
 
-        XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
+        #if !os(watchOS) && !os(macOS)
+            XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
+        #endif
 
         #if canImport(UIKit) && !os(watchOS)
             count += 2
@@ -111,7 +115,9 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
         XCTAssertNotNil(list.first(where: { $0 is LowPowerModeCaptureService }))
 
-        XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
+        #if !os(watchOS) && !os(macOS)
+            XCTAssertNil(list.first(where: { $0 is HangCaptureService }))
+        #endif
 
         XCTAssertEqual(list.count, count)
     }
@@ -217,19 +223,21 @@ class CaptureServiceBuilderTests: XCTestCase {
         XCTAssertNotNil(list.first(where: { $0 is LowMemoryWarningCaptureService }))
     }
 
-    func test_addHangCaptureService() throws {
-        // given a builder
-        let builder = CaptureServiceBuilder()
+    #if !os(watchOS) && !os(macOS)
+        func test_addHangCaptureService() throws {
+            // given a builder
+            let builder = CaptureServiceBuilder()
 
-        // when adding a HangCaptureService
-        builder.add(.hangWatchdog())
+            // when adding a HangCaptureService
+            builder.add(.hangWatchdog())
 
-        // then the list contains the capture service
-        let list = builder.build()
+            // then the list contains the capture service
+            let list = builder.build()
 
-        XCTAssertEqual(list.count, 1)
-        XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
-    }
+            XCTAssertEqual(list.count, 1)
+            XCTAssertNotNil(list.first(where: { $0 is HangCaptureService }))
+        }
+    #endif
 
     func test_addLowPowerModeCaptureService() throws {
         // given a builder

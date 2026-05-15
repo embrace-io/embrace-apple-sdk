@@ -2,7 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !os(watchOS)
+#if !os(watchOS) && !os(macOS)
 
     import TestSupport
     import XCTest
@@ -145,4 +145,4 @@
         }
     }
 
-#endif  // !os(watchOS)
+#endif  // !os(watchOS) && !os(macOS)
