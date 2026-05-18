@@ -258,6 +258,9 @@ final class UserSessionController {
         if now < snapshot.startTime {
             return .clockAnomaly
         }
+        if let lastFgEnd = snapshot.lastForegroundPartEnd, now < lastFgEnd {
+            return .clockAnomaly
+        }
         if now >= snapshot.maxEnd {
             return .maxDurationReached
         }

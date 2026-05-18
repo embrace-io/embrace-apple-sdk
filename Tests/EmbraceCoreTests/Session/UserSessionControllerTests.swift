@@ -128,6 +128,28 @@ final class UserSessionControllerTests: XCTestCase {
         wait(for: [endNotification], timeout: 1)
     }
 
+    func testAttachPart_clockJumpedBackBetweenStartAndLastFgEnd_endsAndCreatesNew() {
+        // Sequence: user session starts at T0, foreground part ends at T0+5min (installing
+        // an inactivity cutoff at lastFgEnd = T0+5min), then the device clock jumps backward
+        // to T0+2min — still after `startTime` but BEFORE `lastForegroundPartEnd`. Without the
+        // lastForegroundPartEnd-in-future guard, the inactivity comparison (`now >= lastFgEnd
+        // + timeout`) is always false and the user session survives until max-duration fires.
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+        let lastFgEnd = now.addingTimeInterval(300)  // T0 + 5min
+        controller.markForegroundPartEnded(at: lastFgEnd)
+
+        let endNotification = expectation(forNotification: .embraceUserSessionDidEnd, object: nil)
+
+        // Clock jumps backward to T0 + 2min — past `startTime` but before `lastFgEnd`.
+        now = now.addingTimeInterval(120)
+        let second = controller.attachPart(state: .foreground, startTime: now)
+
+        XCTAssertNotEqual(second.id, first.id)
+        XCTAssertEqual(second.partIndex, 1)
+        wait(for: [endNotification], timeout: 1)
+    }
+
     func testAttachPart_partIndexMonotonic() {
         let controller = makeController()
         var indices: [EMBInt] = []
