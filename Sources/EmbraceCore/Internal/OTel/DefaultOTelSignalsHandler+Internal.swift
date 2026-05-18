@@ -51,8 +51,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
 
             // Cross-cutting attribute stamping. Every non-session-part span carries the three
             // identity keys so backend correlation works even on spans that started before
-            // an active session existed (in which case the values are empty strings, per the
-            // backend's "presence of `emb.session_part_id` means new SDK" detection).
+            // an active session existed .
             internalAttributes.setSessionIdentity(
                 userSessionId: sessionController?.currentSession?.userSessionId?.stringValue ?? "",
                 partId: sessionId?.stringValue ?? ""
