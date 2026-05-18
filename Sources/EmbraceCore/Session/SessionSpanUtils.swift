@@ -119,7 +119,7 @@ extension SpanPayload {
             ),
             Attribute(
                 key: SpanSemantics.Session.keyUserSessionInactivityTimeoutSeconds,
-                value: String(session.userSessionInactivityTimeout ?? 0)
+                value: String(Int(session.userSessionInactivityTimeout ?? 0))
             )
         ]
 
