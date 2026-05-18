@@ -22,7 +22,7 @@ extension Notification.Name {
     public static let embraceSessionPartWillEnd = Notification.Name("embrace.session.part.will_end")
 }
 
-/// The source of truth for session parts. A "part" is one contiguous foreground/background
+/// The source of truth for session parts. A "part" is one contiguous foreground or background
 /// interval; a user session groups one or more parts and is owned by `UserSessionController`.
 ///
 /// This class should not be interacted with directly, but by using a ``SessionListener``.
