@@ -268,6 +268,7 @@ class SessionController: SessionControllable {
             session: inProgressSession,
             endTime: now,
             cleanExit: true,
+            // nil will not overwrite previously-set userSessionLastForegroundEnd value
             userSessionLastForegroundEnd: isForeground ? now : nil
         )
 
