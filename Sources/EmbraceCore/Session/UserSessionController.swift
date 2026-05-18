@@ -152,7 +152,7 @@ final class UserSessionController {
                 return startNewUserSession(state: &state, at: startTime)
             }
 
-            // Active userr session still valid -> update
+            // Active user session still valid -> update
             let updated = snapshot.cleared(partIndex: snapshot.partIndex + 1)
             state.session = updated
             return updated
