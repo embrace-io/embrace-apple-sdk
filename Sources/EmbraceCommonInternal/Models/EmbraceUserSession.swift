@@ -31,6 +31,12 @@ public protocol EmbraceUserSession {
     var id: EmbraceIdentifier { get }
     var startTime: Date { get }
     var maxDuration: TimeInterval { get }
+
+    /// Wall-clock instant at which this user session reaches its max-duration cutoff,
+    /// i.e. `startTime + maxDuration`. Stored once at construction so the comparison is a
+    /// single field read on every part-start / heartbeat check.
+    var maxEnd: Date { get }
+
     var inactivityTimeout: TimeInterval { get }
     var lastForegroundPartEnd: Date? { get }
     var partIndex: EMBInt { get }
@@ -43,6 +49,7 @@ public struct ImmutableUserSession: EmbraceUserSession {
     public let id: EmbraceIdentifier
     public let startTime: Date
     public let maxDuration: TimeInterval
+    public let maxEnd: Date
     public let inactivityTimeout: TimeInterval
     public let lastForegroundPartEnd: Date?
     public let partIndex: EMBInt
@@ -62,6 +69,7 @@ public struct ImmutableUserSession: EmbraceUserSession {
         self.id = id
         self.startTime = startTime
         self.maxDuration = maxDuration
+        self.maxEnd = startTime.addingTimeInterval(maxDuration)
         self.inactivityTimeout = inactivityTimeout
         self.lastForegroundPartEnd = lastForegroundPartEnd
         self.partIndex = partIndex

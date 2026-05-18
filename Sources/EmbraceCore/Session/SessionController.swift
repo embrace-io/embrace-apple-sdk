@@ -106,8 +106,7 @@ class SessionController: SessionControllable {
             return
         }
 
-        let maxEnd = userSession.startTime.addingTimeInterval(userSession.maxDuration)
-        guard now >= maxEnd else { return }
+        guard now >= userSession.maxEnd else { return }
 
         queue.async { [weak self] in
             self?.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: now)
@@ -133,9 +132,8 @@ class SessionController: SessionControllable {
             return false
         }
 
-        let maxEnd = userSession.startTime.addingTimeInterval(userSession.maxDuration)
         let inactivityCutoff = userSession.lastForegroundPartEnd?.addingTimeInterval(userSession.inactivityTimeout)
-        guard let cutoff = [maxEnd, inactivityCutoff].compactMap({ $0 }).min(),
+        guard let cutoff = [userSession.maxEnd, inactivityCutoff].compactMap({ $0 }).min(),
             now >= cutoff,
             cutoff > prev.startTime
         else {
