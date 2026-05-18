@@ -3,9 +3,8 @@
         "threshold": 75
     },
     "threshold": 50,
-    "network_span_forwarding": {
-        "pct_enabled": 25
-    },
+    "nsf_pct_enabled": 25,
+    "traceparent_injection_pct_enabled": 10,
     "ui_load_instrumentation_enabled_v2": false,
     "ui_load_instrumentation_blocklist": "MyViewController,TestViewController",
     "ui_load_instrumentation_hosting_controller_capture": true,

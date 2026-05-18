@@ -14,7 +14,8 @@ import Foundation
 public struct RemoteConfigPayload: Decodable, Equatable {
     var sdkEnabledThreshold: Float
     var backgroundSessionThreshold: Float
-    var networkSpansForwardingThreshold: Float
+    var nsfThreshold: Float?
+    var traceparentInjectionThreshold: Float?
     var walModeThreshold: Float
 
     var uiLoadInstrumentationEnabled: Bool
@@ -59,10 +60,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case threshold
         }
 
-        case networkSpansForwarding = "network_span_forwarding"
-        enum NetworkSpansForwardingCodingKeys: String, CodingKey {
-            case threshold = "pct_enabled"
-        }
+        case nsfThreshold = "nsf_pct_enabled"
+        case traceparentInjectionThreshold = "traceparent_injection_pct_enabled"
 
         case walModeThreshold = "core_data_wal_mode_pct_enabled"
         case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled_v2"
@@ -135,20 +134,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             backgroundSessionThreshold = defaultPayload.backgroundSessionThreshold
         }
 
-        // network span forwarding
-        if rootContainer.contains(.networkSpansForwarding) {
-            let networkSpansForwardingContainer = try rootContainer.nestedContainer(
-                keyedBy: CodingKeys.NetworkSpansForwardingCodingKeys.self,
-                forKey: .networkSpansForwarding
-            )
-            networkSpansForwardingThreshold =
-                try networkSpansForwardingContainer.decodeIfPresent(
-                    Float.self,
-                    forKey: CodingKeys.NetworkSpansForwardingCodingKeys.threshold
-                ) ?? defaultPayload.networkSpansForwardingThreshold
-        } else {
-            networkSpansForwardingThreshold = defaultPayload.networkSpansForwardingThreshold
-        }
+        // network span forwarding (new flat keys — old SDKs keep reading legacy nested key)
+        nsfThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .nsfThreshold)
+        traceparentInjectionThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .traceparentInjectionThreshold)
 
         // is wal mode enabled config
         walModeThreshold =
@@ -376,7 +364,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     public init() {
         sdkEnabledThreshold = 100.0
         backgroundSessionThreshold = 0.0
-        networkSpansForwardingThreshold = 0.0
+        nsfThreshold = nil
+        traceparentInjectionThreshold = nil
         walModeThreshold = 100.0
 
         uiLoadInstrumentationEnabled = true

@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
@@ -79,14 +80,16 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
         }
     }
 
-    var injectTracingHeader: Bool {
-        // check remote config
-        guard Embrace.client?.config.isNetworkSpansForwardingEnabled == true else {
-            return false
-        }
+    func shouldInjectHeader(for request: URLRequest, span: Span) -> Bool {
+        guard HostAllowlistMatcher.matches(
+            host: request.url?.host,
+            allowlist: options.traceparent.allowedDomains
+        ) else { return false }
+        return Embrace.client?.config.traceparentInjectionEnabled == true
+    }
 
-        // check local config
-        return options.injectTracingHeader
+    var isNSFEligible: Bool {
+        Embrace.client?.config.isNetworkSpansForwardingEnabled == true
     }
 
     var requestsDataSource: URLSessionRequestsDataSource? {
