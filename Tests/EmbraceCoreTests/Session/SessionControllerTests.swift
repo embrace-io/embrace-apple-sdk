@@ -385,11 +385,7 @@ final class SessionControllerTests: XCTestCase {
         // Background part that begins before the cutoff and would normally span past it.
         splitController.startSession(state: .background, startTime: foregroundEnd.addingTimeInterval(0.1))
 
-        // Wait long enough for the cutoff to have passed.
-        Thread.sleep(forTimeInterval: 1.2)
-        let bgEnd = Date()
-        XCTAssertGreaterThan(bgEnd, cutoffExpected)
-
+        let bgEnd = foregroundEnd.addingTimeInterval(1.5) // past the 1s cutoff
         // Now transition to foreground: bg-split fires.
         splitController.startSession(state: .foreground, startTime: bgEnd)
 
