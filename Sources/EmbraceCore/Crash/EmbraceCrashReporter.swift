@@ -25,7 +25,11 @@ final class EmbraceCrashReporter {
     private let signalsBlockList: [CrashSignal]
 
     struct MutableData {
-        let internalKeys: [String] = [CrashReporterInfoKey.sdkVersion, CrashReporterInfoKey.sessionId]
+        let internalKeys: [String] = [
+            CrashReporterInfoKey.sdkVersion,
+            CrashReporterInfoKey.sessionId,
+            CrashReporterInfoKey.userSessionId
+        ]
         var allowsInternalDataChange: Bool = false
     }
     private let data = EmbraceMutex(MutableData())
@@ -35,7 +39,7 @@ final class EmbraceCrashReporter {
         return reporter.basePath
     }
 
-    /// Sets the current session identifier that will be included in a crash report.
+    /// Sets the current session-part identifier that will be included in a crash report (`emb-sid`).
     var currentSessionId: String? {
         get {
             getCrashInfo(key: CrashReporterInfoKey.sessionId)
@@ -46,6 +50,22 @@ final class EmbraceCrashReporter {
                 data.withLock { $0.allowsInternalDataChange = false }
             }
             appendCrashInfo(key: CrashReporterInfoKey.sessionId, value: newValue)
+        }
+    }
+
+    /// Sets the current user-session identifier that will be included in a crash report (`emb-usi`).
+    /// A user session groups one or more parts; the value is stable across foreground/background
+    /// transitions within a user session and rolls when a new user session begins.
+    var currentUserSessionId: String? {
+        get {
+            getCrashInfo(key: CrashReporterInfoKey.userSessionId)
+        }
+        set {
+            data.withLock { $0.allowsInternalDataChange = true }
+            defer {
+                data.withLock { $0.allowsInternalDataChange = false }
+            }
+            appendCrashInfo(key: CrashReporterInfoKey.userSessionId, value: newValue)
         }
     }
 
