@@ -69,12 +69,12 @@ jobs:
         run: pod install
 
       - name: Build BrandGame-CocoaPods
-        uses: mxcl/xcodebuild@d3ee9b419c1be9a988086c58fe0988f32d99cfc5 # v3.6.0
+        uses: ./.github/actions/run-xcodebuild
         with:
-          action: build
           workspace: Examples/BrandGame-CocoaPods/BrandGame.xcworkspace
           scheme: BrandGame
           platform: iOS
+          action: build
 
       - name: Lint Podspec
         id: lint
