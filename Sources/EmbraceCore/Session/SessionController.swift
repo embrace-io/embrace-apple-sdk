@@ -260,7 +260,7 @@ class SessionController: SessionControllable {
             // )
         }
 
-        // update session end time and clean exit. For foreground parts, also record the
+        // update session part end time and clean exit. For foreground parts, also record the
         // foreground-end timestamp on the part record AND on the in-memory user-session
         // snapshot so the next `attachPart` can compute the inactivity cutoff.
         let isForeground = inProgressSession.state == SessionState.foreground
