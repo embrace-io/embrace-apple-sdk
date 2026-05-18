@@ -99,17 +99,20 @@ class SessionController: SessionControllable {
     /// cutoff, schedules a part-roll on the upload coordination queue so the work doesn't stall
     /// the heartbeat thread. The roll closes the current part, ends the user session with
     /// `.maxDurationReached`, and starts a new part with the same state.
-    private func checkUserSessionMaxDurationExpiry(now: Date) {
-        guard let controller = userSessionController,
-            let userSession = controller.currentUserSession
-        else {
-            return
-        }
-
-        guard now >= userSession.maxEnd else { return }
-
+    ///
+    /// The expiry decision runs INSIDE the dispatched block — not before — so that two ticks
+    /// queued back-to-back can't both roll. The second block sees the state left by the first
+    /// (the freshly-rotated user session has a far-future `maxEnd`) and bails.
+    func checkUserSessionMaxDurationExpiry(now: Date) {
         queue.async { [weak self] in
-            self?.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: now)
+            guard let self = self,
+                let userSession = self.userSessionController?.currentUserSession,
+                now >= userSession.maxEnd,
+                self._session.safeValue.session != nil
+            else {
+                return
+            }
+            self.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: now)
         }
     }
 

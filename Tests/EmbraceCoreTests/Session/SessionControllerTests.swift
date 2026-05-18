@@ -284,6 +284,30 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNil(controller.currentSession)
     }
 
+    func test_checkUserSessionMaxDurationExpiry_doubleTick_rotatesOnce() throws {
+        // Two back-to-back heartbeat ticks against the same expired user session must enqueue
+        // two check-then-maybe-roll blocks. The second block, when it runs, sees the state
+        // left by the first (freshly-rotated user session with a far-future maxEnd) and bails.
+        // Without the in-block re-check, both blocks would call rollPart and we'd see two
+        // rotations.
+        controller.startSession(state: .foreground)
+        let userSessionStart = try XCTUnwrap(userSessionController.currentUserSession?.startTime)
+        let expired = userSessionStart.addingTimeInterval(13 * 3600)  // past 12h max default
+
+        controller.checkUserSessionMaxDurationExpiry(now: expired)
+        controller.checkUserSessionMaxDurationExpiry(now: expired)
+
+        let drained = expectation(description: "controller queue drained")
+        controller.queue.async { drained.fulfill() }
+        wait(for: [drained], timeout: 2)
+
+        // One rotation: original part (closed) + new part (active). Two rotations would be 3.
+        let stored: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(stored.count, 2)
+        XCTAssertEqual(stored.filter { $0.endTime != nil }.count, 1)
+        XCTAssertEqual(stored.filter { $0.endTime == nil }.count, 1)
+    }
+
     func test_rollPartForUserSessionExpiry_serializedThroughQueue_producesConsistentState() throws {
         // Two back-to-back rolls dispatched onto the same serial controller queue must run
         // atomically as a unit (end-old → end-user-session → start-new). Before this queue
