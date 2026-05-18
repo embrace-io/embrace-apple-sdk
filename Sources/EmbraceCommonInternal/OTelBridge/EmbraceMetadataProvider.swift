@@ -16,8 +16,7 @@ package protocol EmbraceMetadataProvider: AnyObject {
     var currentSessionId: EmbraceIdentifier? { get }
 
     /// Returns the identifier for the current user session, if any.
-    /// Stamped on spans/logs as both `session.id` (in v7, `session.id` represents the user
-    /// session, not the part) and `emb.user_session_id`.
+    /// Stamped on spans/logs as both `session.id`
     var currentUserSessionId: EmbraceIdentifier? { get }
 
     /// Returns the identifier for the current process
