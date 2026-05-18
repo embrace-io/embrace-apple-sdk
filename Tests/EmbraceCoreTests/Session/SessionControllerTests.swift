@@ -4,6 +4,7 @@
 
 import EmbraceCommonInternal
 import EmbraceConfigInternal
+import EmbraceConfiguration
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
@@ -15,6 +16,8 @@ final class SessionControllerTests: XCTestCase {
 
     var storage: EmbraceStorage!
     var controller: SessionController!
+    var userSessionController: UserSessionController!
+    var configurable: MockEmbraceConfigurable!
     var config: EmbraceConfig!
     var upload: EmbraceUpload!
     let sdkStateProvider = MockEmbraceSDKStateProvider()
@@ -55,6 +58,14 @@ final class SessionControllerTests: XCTestCase {
         controller = SessionController(storage: storage, upload: nil, config: nil)
         controller.sdkStateProvider = sdkStateProvider
         controller.otel = otel
+
+        // Every part-start in v7 routes through the user-session controller. The default
+        // mock config returns 12h max / 30min inactivity so back-to-back startSession calls
+        // in the same test stay within the same user session.
+        configurable = MockEmbraceConfigurable()
+        userSessionController = UserSessionController(storage: storage, config: configurable)
+        userSessionController.sessionController = controller
+        controller.userSessionController = userSessionController
     }
 
     override func tearDownWithError() throws {
@@ -99,7 +110,7 @@ final class SessionControllerTests: XCTestCase {
     // MARK: startSession
 
     func test_startSession_setsCurrentSession_andPostsDidStartNotification() throws {
-        let notificationExpectation = expectation(forNotification: .embraceSessionDidStart, object: nil)
+        let notificationExpectation = expectation(forNotification: .embraceSessionPartDidStart, object: nil)
 
         let session = controller.startSession(state: .foreground)!
         XCTAssertNotNil(session.startTime)
@@ -150,7 +161,7 @@ final class SessionControllerTests: XCTestCase {
     // MARK: endSession
 
     func test_endSession_setsCurrentSessionToNil_andPostsWillEndNotification() throws {
-        let notificationExpectation = expectation(forNotification: .embraceSessionWillEnd, object: nil)
+        let notificationExpectation = expectation(forNotification: .embraceSessionPartWillEnd, object: nil)
 
         let session = controller.startSession(state: .foreground)
         XCTAssertNotNil(controller.currentSessionSpan)
@@ -447,50 +458,59 @@ final class SessionControllerTests: XCTestCase {
 
     // MARK: heartbeat
 
-    func test_startSession_assignsSessionNumber() throws {
+    func test_startSession_assignsSessionPartNumber() throws {
         // when starting a session
         let session = controller.startSession(state: .foreground)
 
-        // then the session has sessionNumber 1
+        // then sessionNumber == 1 and the permanent counter is at 1
         XCTAssertEqual(session?.sessionNumber, 1)
-
-        // and the MetadataRecord counter was incremented to 1
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
         XCTAssertEqual(resource?.value, "1")
     }
 
-    func test_startSession_incrementsSessionNumberEachTime() throws {
-        // when starting and ending two sessions
+    func test_startSession_incrementsSessionPartNumberPerPart() throws {
+        // given two parts under the same user session
         let first = controller.startSession(state: .foreground)
         controller.endSession()
         let second = controller.startSession(state: .foreground)
 
-        // then each session has a distinct, incrementing sessionNumber
+        // then each part has a unique, strictly-increasing sessionNumber
         XCTAssertEqual(first?.sessionNumber, 1)
         XCTAssertEqual(second?.sessionNumber, 2)
-
-        // and the MetadataRecord reflects the final count
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
         XCTAssertEqual(resource?.value, "2")
     }
 
     func test_startSession_continuesFromExistingCounter() throws {
         // given an existing counter value of 5
         storage.addMetadata(
-            key: SessionController.sessionNumberKey,
+            key: SessionController.sessionPartNumberKey,
             value: "5",
             type: .requiredResource,
             lifespan: .permanent
         )
 
-        // when starting a session
+        // when starting a session, the per-part counter continues from 6
         let session = controller.startSession(state: .foreground)
 
-        // then sessionNumber continues from 6
         XCTAssertEqual(session?.sessionNumber, 6)
 
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
         XCTAssertEqual(resource?.value, "6")
+    }
+
+    func test_startSession_persistsUserSessionColumnsOnRecord() throws {
+        let session = controller.startSession(state: .foreground)
+        XCTAssertNotNil(session)
+
+        let stored: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(stored.count, 1)
+        let record = stored[0]
+        XCTAssertNotNil(record.userSessionIdRaw)
+        XCTAssertNotNil(record.userSessionStartTime)
+        XCTAssertEqual(record.userSessionMaxDuration?.doubleValue, configurable.userSessionMaxDuration)
+        XCTAssertEqual(record.userSessionInactivityTimeout?.doubleValue, configurable.userSessionInactivityTimeout)
+        XCTAssertEqual(record.userSessionPartIndex, 1)
     }
 
     func test_heartbeat() throws {

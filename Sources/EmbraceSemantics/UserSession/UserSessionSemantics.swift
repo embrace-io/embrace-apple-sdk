@@ -4,7 +4,7 @@
 
 import Foundation
 
-public struct UserSession {
+public struct UserSessionSemantics {
     /// Default maximum duration of a user session, in seconds (12 hours).
     public static let defaultMaxDurationSeconds: TimeInterval = 12 * 3600
 

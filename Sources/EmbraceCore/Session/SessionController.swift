@@ -13,21 +13,28 @@ import Foundation
 #endif
 
 extension Notification.Name {
-    public static let embraceSessionDidStart = Notification.Name("embrace.session.did_start")
-    public static let embraceSessionWillEnd = Notification.Name("embrace.session.will_end")
+    /// Posted just after a session part starts. The `object` is the newly-created `EmbraceSession`
+    /// (the part). For user-session lifecycle, listen to `embraceUserSessionDidStart` instead.
+    public static let embraceSessionPartDidStart = Notification.Name("embrace.session.part.did_start")
+
+    /// Posted just before a session part ends. The `object` is the `EmbraceSession` (the part)
+    /// that is about to end. For user-session lifecycle, listen to `embraceUserSessionDidEnd`.
+    public static let embraceSessionPartWillEnd = Notification.Name("embrace.session.part.will_end")
 }
 
-/// The source of truth for sessions. Provides the CRUD functionality for a given EmbraceSession
+/// The source of truth for session parts. A "part" is one contiguous foreground or background
+/// interval; a user session groups one or more parts and is owned by `UserSessionController`.
+///
 /// This class should not be interacted with directly, but by using a ``SessionListener``.
 ///
 /// This class will post notifications when:
-///     Just after a session starts. See ``Notification.Name.embraceSessionDidStart``
-///     Just before a session will end. See ``Notification.Name.embraceSessionWillEnd``
+///     Just after a part starts. See ``Notification.Name.embraceSessionPartDidStart``
+///     Just before a part will end. See ``Notification.Name.embraceSessionPartWillEnd``
 ///
 
 class SessionController: SessionControllable {
 
-    static let sessionNumberKey = "emb.session.upload_index"
+    static let sessionPartNumberKey = "emb.session_part_number"
 
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
@@ -40,6 +47,7 @@ class SessionController: SessionControllable {
     weak var config: EmbraceConfig?
     weak var sdkStateProvider: EmbraceSDKStateProvider?
     weak var otel: InternalOTelSignalsHandler?
+    weak var userSessionController: UserSessionController?
 
     private struct SessionInfo {
         var session: EmbraceSession? = nil
@@ -150,14 +158,17 @@ class SessionController: SessionControllable {
                 return (nil, nil)
             }
 
-            // increment session counter and create session record
-            // TODO(Part 3): move this increment into UserSessionController.attachPart so it
-            // fires once per user-session creation rather than once per part. Per the v7 spec,
-            // sessionNumber on the part record is the user-session number — all parts of the
-            // same user session share the value.
-            let sessionNumber = storage.incrementCountForPermanentResource(
-                key: SessionController.sessionNumberKey
+            // Resolve which user session this new part belongs to. The user-session controller
+            // decides whether to reuse the active user session or start a new one, and returns
+            // the snapshot we stamp onto the new part record.
+            let userSession = userSessionController?.attachPart(state: state, startTime: startTime)
+
+            // Permanent per-part counter — bumped on every new part record and stamped onto
+            // the part's `sessionNumber` column.
+            let sessionPartNumber = storage.incrementCountForPermanentResource(
+                key: SessionController.sessionPartNumberKey
             )
+
             let session = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,
@@ -166,7 +177,13 @@ class SessionController: SessionControllable {
                 spanId: span.context.spanId,
                 startTime: startTime,
                 coldStart: isColdStart,
-                sessionNumber: sessionNumber
+                sessionNumber: sessionPartNumber,
+                userSessionId: userSession?.id,
+                userSessionStartTime: userSession?.startTime,
+                userSessionMaxDuration: userSession?.maxDuration,
+                userSessionInactivityTimeout: userSession?.inactivityTimeout,
+                userSessionLastForegroundEnd: userSession?.lastForegroundPartEnd,
+                userSessionPartIndex: userSession?.partIndex ?? 0
             )
 
             // start heartbeat
@@ -185,7 +202,7 @@ class SessionController: SessionControllable {
 
         // post notification
         if let session = sessionInfo.session {
-            NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+            NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
         }
 
         return sessionInfo.session
@@ -224,7 +241,7 @@ class SessionController: SessionControllable {
         // This is behind a lock, this is a problem, so we move it to the main queue so it runs after this code.
         let mainQueueSession = inProgressSession
         DispatchQueue.main.async {
-            NotificationCenter.default.post(name: .embraceSessionWillEnd, object: mainQueueSession)
+            NotificationCenter.default.post(name: .embraceSessionPartWillEnd, object: mainQueueSession)
         }
 
         // end span
@@ -243,15 +260,24 @@ class SessionController: SessionControllable {
             // )
         }
 
-        // update session end time and clean exit
+        // update session part end time and clean exit. For foreground parts, also record the
+        // foreground-end timestamp on the part record AND on the in-memory user-session
+        // snapshot so the next `attachPart` can compute the inactivity cutoff.
+        let isForeground = inProgressSession.state == SessionState.foreground
         let sessionToUpload: EmbraceSession? = storage?.updateSession(
             session: inProgressSession,
             endTime: now,
-            cleanExit: true
+            cleanExit: true,
+            // nil will not overwrite previously-set userSessionLastForegroundEnd value
+            userSessionLastForegroundEnd: isForeground ? now : nil
         )
 
+        if isForeground {
+            userSessionController?.markForegroundPartEnded(at: now)
+        }
+
         // post internal notification
-        if inProgressSession.state == SessionState.foreground {
+        if isForeground {
             Embrace.notificationCenter.post(name: .embraceForegroundSessionDidEnd, object: now)
         }
 
@@ -351,6 +377,18 @@ class SessionController: SessionControllable {
 
     func increaseAttachmentCount() {
         _attachmentCount += 1
+    }
+
+    /// Stamps the given termination reason on the most recently closed part record.
+    ///
+    /// Called by `UserSessionController` when ending a user session — the part being stamped
+    /// is, by construction, the last part of that user session.
+    ///
+    /// - Note: Currently a no-op. The storage write (looking up the just-closed part record
+    ///   and calling `storage?.updateSession(..., userSessionTerminationReason: reason)`) lands
+    ///   alongside the other end-reason wiring once the heartbeat-driven max-duration detector
+    ///   and the manual-end API exist.
+    func backfillTerminationReasonOnLatestPart(_ reason: TerminationReason) {
     }
 }
 

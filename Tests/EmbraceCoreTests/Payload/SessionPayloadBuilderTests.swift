@@ -57,7 +57,7 @@ final class SessionPayloadBuilderTests: XCTestCase {
 
         // and the MetadataRecord counter was NOT touched
         let resource = storage.fetchMetadata(
-            key: SessionController.sessionNumberKey,
+            key: SessionController.sessionPartNumberKey,
             type: .requiredResource,
             lifespan: .permanent
         )
