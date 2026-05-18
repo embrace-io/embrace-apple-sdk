@@ -284,6 +284,52 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNil(controller.currentSession)
     }
 
+    func test_rollPartForUserSessionExpiry_serializedThroughQueue_producesConsistentState() throws {
+        // Two back-to-back rolls dispatched onto the same serial controller queue must run
+        // atomically as a unit (end-old → end-user-session → start-new). Before this queue
+        // routing, heartbeat-driven and manual-driven rolls each ran on their own queues and
+        // could interleave at the three sub-locks, producing a shadow part: the brand-new
+        // session opened by roll A would be immediately ended by roll B's `endSession` step,
+        // then re-opened, leaving a ~ms-lived part record in storage and an unbalanced
+        // pair of user-session start/end notifications.
+        let initial = controller.startSession(state: .foreground)
+
+        let firstRoll = Date()
+        let secondRoll = firstRoll.addingTimeInterval(0.001)
+
+        controller.queue.async {
+            self.controller.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: firstRoll)
+        }
+        controller.queue.async {
+            self.controller.rollPartForUserSessionExpiry(reason: .manual, at: secondRoll)
+        }
+
+        // Drain the controller queue.
+        let drained = expectation(description: "controller queue drained")
+        controller.queue.async {
+            drained.fulfill()
+        }
+        wait(for: [drained], timeout: 2)
+
+        // Three persisted parts (initial, post-roll-1, post-roll-2) — not four. A shadow part
+        // from interleaving would inflate this count.
+        let stored: [SessionRecord] = storage.fetchAll().sorted { $0.startTime < $1.startTime }
+        XCTAssertEqual(stored.count, 3, "exactly one part per rotation; no shadow part")
+
+        // The initial and the post-roll-1 parts are closed; the post-roll-2 part is active.
+        XCTAssertEqual(stored.filter { $0.endTime != nil }.count, 2)
+        XCTAssertEqual(stored.filter { $0.endTime == nil }.count, 1)
+
+        // The three parts each belong to a distinct user session.
+        let userSessionIds = Set(stored.compactMap { $0.userSessionIdRaw })
+        XCTAssertEqual(userSessionIds.count, 3, "three distinct user sessions for three rotations")
+
+        // The currently-active part is the one from roll 2 (last to be opened); it's a foreground
+        // part because the roll preserves the state of the original part.
+        XCTAssertEqual(controller.currentSession?.state, .foreground)
+        XCTAssertNotEqual(controller.currentSession?.id, initial?.id)
+    }
+
     func test_startSession_bgToFgPastUserSessionCutoff_splitsBackgroundPart() throws {
         // Build a controller whose userSessionInactivityTimeout is short so the cutoff is
         // crossed within a reasonable wall-clock window in the test. Also enable background

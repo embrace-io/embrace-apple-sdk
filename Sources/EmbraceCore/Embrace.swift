@@ -410,7 +410,9 @@ package class Embrace {
             return
         }
 
-        processingQueue.async { [weak self] in
+        // Dispatch onto the session-controller's serial queue so the manual roll cannot
+        // interleave with the heartbeat-driven max-duration roll, which uses the same queue.
+        sessionController.queue.async { [weak self] in
             guard let self = self else { return }
             let now = Date()
             guard self.userSessionController.canManuallyEnd(now: now) else { return }
