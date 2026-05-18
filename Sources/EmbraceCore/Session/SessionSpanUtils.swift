@@ -115,7 +115,7 @@ extension SpanPayload {
             ),
             Attribute(
                 key: SpanSemantics.Session.keyUserSessionMaxDurationSeconds,
-                value: String(session.userSessionMaxDuration ?? 0)
+                value: String(Int(session.userSessionMaxDuration ?? 0))
             ),
             Attribute(
                 key: SpanSemantics.Session.keyUserSessionInactivityTimeoutSeconds,
