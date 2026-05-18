@@ -12,9 +12,14 @@ import Foundation
 // MARK: - EmbraceMetadataProvider
 extension DefaultOTelSignalsHandler: EmbraceMetadataProvider {
 
-    /// Returns the identifier for the current Embrace session, or `nil` when no session is active.
+    /// Returns the identifier for the current Embrace session part, or `nil` when no part is active.
     package var currentSessionId: EmbraceIdentifier? {
         sessionController?.currentSession?.id
+    }
+
+    /// Returns the identifier for the current user session, or `nil` when no user session is active.
+    package var currentUserSessionId: EmbraceIdentifier? {
+        sessionController?.currentSession?.userSessionId
     }
 
     /// Returns the identifier for the current process.

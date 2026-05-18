@@ -102,14 +102,19 @@ class UnsentDataHandler {
 
             var session: EmbraceSession?
 
-            // link session with crash report if possible
+            // link session with crash report if possible. The linked part is, by construction,
+            // the last part of its user session — stamp `.crash` as the termination reason so
+            // the payload's `emb.user_session_termination_reason` reflects the crash. The
+            // stamp overrides any prior end-reason (e.g. `.maxDurationReached` set by the
+            // heartbeat detector) because the crash is the authoritative cause.
             if let rawId = report.sessionId {
                 let sessionId = EmbraceIdentifier(stringValue: rawId)
                 if let fetchedSession = storage.fetchSession(id: sessionId) {
                     session = storage.updateSession(
                         session: fetchedSession,
                         endTime: report.timestamp,
-                        crashReportId: report.id.uuidString
+                        crashReportId: report.id.uuidString,
+                        userSessionTerminationReason: .crash
                     )
                 }
             }

@@ -85,8 +85,7 @@ class SpansPayloadBuilder {
         return SessionSpanUtils.payload(
             from: session,
             span: sessionSpan,
-            properties: customProperties,
-            sessionNumber: session.sessionNumber
+            properties: customProperties
         )
     }
 }
