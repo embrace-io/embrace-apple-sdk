@@ -37,7 +37,15 @@ jobs:
         run: |
           xcodebuild -runFirstLaunch
           xcrun simctl list
-          xcodebuild -downloadPlatform iOS
+          for i in 1 2 3; do
+            xcodebuild -downloadPlatform iOS && break
+            if [ "$i" -eq 3 ]; then
+              echo "::error title=downloadPlatform failed::all 3 attempts failed for iOS"
+              exit 1
+            fi
+            echo "::warning title=downloadPlatform retry::attempt $i failed for iOS; retrying in 15s"
+            sleep 15
+          done
           xcodebuild -runFirstLaunch
 
       - name: Checkout PR
@@ -47,7 +55,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@4c56a21280b36d862b5fc31348f463d60bdc55d5 # v1.301.0
+        uses: ruby/setup-ruby@97ecb7b512899eb71ab1bf2310a624c6f1589ac6 # v1.308.0
         with:
           ruby-version: 3.2.2
 

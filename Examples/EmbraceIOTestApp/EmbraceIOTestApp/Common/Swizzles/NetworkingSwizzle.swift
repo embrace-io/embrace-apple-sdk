@@ -4,10 +4,10 @@
 //
 //
 
-import EmbraceIO
 import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceCore
+import EmbraceIO
 import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk

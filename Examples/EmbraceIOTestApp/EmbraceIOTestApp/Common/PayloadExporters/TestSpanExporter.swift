@@ -42,7 +42,7 @@ import SwiftUI
 
     func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
         latestExportedSpans = spans
-        
+
         for s in spans {
             _cachedSpans.removeAll { $0.spanId == s.spanId }
         }

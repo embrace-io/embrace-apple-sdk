@@ -52,20 +52,42 @@ jobs:
       env:
         MATRIX_XCODE_VERSION: ${{ matrix.xcode_version }}
 
+    - name: Ensure the Platform is Downloaded
+      if: ${{ matrix.platform != 'macOS' && matrix.platform != 'mac-catalyst' }}
+      run: |
+        xcodebuild -runFirstLaunch
+        xcrun simctl list
+        for i in 1 2 3; do
+          xcodebuild -downloadPlatform "${MATRIX_PLATFORM}" && break
+          if [ "$i" -eq 3 ]; then
+            echo "::error title=downloadPlatform failed::all 3 attempts failed for ${MATRIX_PLATFORM}"
+            exit 1
+          fi
+          echo "::warning title=downloadPlatform retry::attempt $i failed for ${MATRIX_PLATFORM}; retrying in 15s"
+          sleep 15
+        done
+        xcodebuild -runFirstLaunch
+      env:
+        MATRIX_PLATFORM: ${{ matrix.platform }}
+
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       timeout-minutes: 4
       with:
         persist-credentials: false
 
-    - name: Build
-      uses: mxcl/xcodebuild@d3ee9b419c1be9a988086c58fe0988f32d99cfc5 # v3.6.0
+    - name: Cache SwiftPM packages
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
-        action: build
+        path: ~/Library/Developer/Xcode/DerivedData/embrace-apple-sdk-*/SourcePackages
+        key: swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+        restore-keys: swiftpm-${{ runner.os }}-
+
+    - name: Build
+      uses: ./.github/actions/run-xcodebuild
+      with:
         workspace: ".swiftpm/xcode/package.xcworkspace"
         scheme: EmbraceIO-Package
         platform: ${{ matrix.platform }}
         platform-version: ${{ matrix.platform-version }}
-        upload-logs: always
-        code-coverage: false
-        trust-plugins: false
         arch: arm64
+        action: build

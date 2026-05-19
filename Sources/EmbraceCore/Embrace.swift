@@ -82,7 +82,10 @@ package class Embrace {
     private static let _syncLock = ReadWriteLock()
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
-    static var logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
+    static var logger: DefaultInternalLogger = DefaultInternalLogger(
+        pendingFilePath: EmbraceFileSystem.pendingLogsURL,
+        criticalFilePath: EmbraceFileSystem.criticalLogsURL
+    )
 
     /// Method used to configure the Embrace SDK.
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
@@ -158,8 +161,12 @@ package class Embrace {
         // initialize upload module
         self.upload = try Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
 
-        // send critical logs from previous session
-        UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
+        // send critical logs from previous session, and clean up any orphan pending-logs file
+        UnsentDataHandler.sendCriticalLogs(
+            fileUrl: EmbraceFileSystem.criticalLogsURL,
+            pendingFileUrl: EmbraceFileSystem.pendingLogsURL,
+            upload: upload
+        )
 
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options, configuration: config.configurable)

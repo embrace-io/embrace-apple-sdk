@@ -105,17 +105,21 @@ extension EmbraceInitScreen {
             let services = CaptureServicesOptionsBuilder()
                 .addDefaults()
                 .build()
-            try EmbraceIO.setup(options:
-                    .withAppId(viewModel.appId,
-                               endpoints: .init(baseURL: viewModel.baseURL,
-                                                configBaseURL: viewModel.configBaseURL),
-                               captureServices: services,
-                               crashReporter: .embrace,
-                               otel: .init(spanExporters: [dataCollector.spanExporter],
-                                           logExporters: [dataCollector.logExporter])
-                              )
+            try EmbraceIO.setup(
+                options:
+                    .withAppId(
+                        viewModel.appId,
+                        endpoints: .init(
+                            baseURL: viewModel.baseURL,
+                            configBaseURL: viewModel.configBaseURL),
+                        captureServices: services,
+                        crashReporter: .embrace,
+                        otel: .init(
+                            spanExporters: [dataCollector.spanExporter],
+                            logExporters: [dataCollector.logExporter])
+                    )
             )
-            
+
             viewModel.showProgressview = false
 
             // And now fake normal lifecycle notifications so startup instrumentation works.

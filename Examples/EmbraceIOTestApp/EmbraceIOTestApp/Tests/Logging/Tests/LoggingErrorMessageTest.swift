@@ -1,5 +1,5 @@
-import EmbraceSemantics
 import EmbraceIO
+import EmbraceSemantics
 //
 //  LoggingErrorMessageTest.swift
 //  EmbraceIOTestApp
