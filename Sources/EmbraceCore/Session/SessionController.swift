@@ -487,6 +487,18 @@ class SessionController: SessionControllable {
     /// is a no-op. This protects the bootstrap-driven expiry path from overwriting a reason
     /// the prior process recorded (e.g. `.manual` from a manual end that the process executed
     /// just before dying), and preserves the precedence rule that the first-set reason wins.
+    ///
+    /// **Lock contract:** this method MUST NOT acquire `SessionController.lock`. It is reached
+    /// from `UserSessionController.internalEndUserSession`, which itself runs under the
+    /// user-session controller's `_state` mutex (via `attachPart` and `endActiveUserSession`).
+    /// Holding `_state` while acquiring `lock` would create two failure modes:
+    ///   - When the caller is `SessionController.startSession`, `lock` is already held; trying
+    ///     to acquire it again from inside `_state` is a same-thread re-acquire of a
+    ///     non-reentrant `UnfairLock` (undefined behavior / hang).
+    ///   - Across threads, the chain `lock → _state` on one thread and `_state → lock` on
+    ///     another forms a classic lock-order inversion / deadlock.
+    /// Keep this method to storage-only writes. Storage has its own internal serialization
+    /// and does not interact with either lock.
     func backfillTerminationReasonOnLatestPart(_ reason: TerminationReason) {
         guard let storage = storage,
             let latest = storage.fetchLatestSession(),
