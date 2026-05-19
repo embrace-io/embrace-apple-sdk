@@ -589,6 +589,234 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertNil(controller.currentUserSession)
     }
 
+    func testBootstrap_storedDurationsWinOverConfig() {
+        // The record's stored max/inactivity values are an immutable snapshot of the user
+        // session's policy and must win over whatever the current config returns.
+        let userSessionStart = now.addingTimeInterval(-60)
+        let storedMax: TimeInterval = 99 * 3600
+        let storedInactivity: TimeInterval = 99 * 60
+        XCTAssertNotEqual(storedMax, config.userSessionMaxDuration)
+        XCTAssertNotEqual(storedInactivity, config.userSessionInactivityTimeout)
+
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: userSessionStart,
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: userSessionStart,
+            userSessionMaxDuration: storedMax,
+            userSessionInactivityTimeout: storedInactivity,
+            userSessionPartIndex: 1
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        let controller = makeController()
+        controller.bootstrap()
+
+        XCTAssertEqual(controller.currentUserSession?.maxDuration, storedMax)
+        XCTAssertEqual(controller.currentUserSession?.inactivityTimeout, storedInactivity)
+    }
+
+    func testBootstrap_fallsBackToConfigWhenStoredDurationsNil() {
+        // Defensive path: a record may have userSessionId/StartTime but missing duration columns.
+        // In that case the controller should fall back to the current config.
+        let userSessionStart = now.addingTimeInterval(-60)
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: userSessionStart,
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: userSessionStart,
+            // userSessionMaxDuration: nil
+            // userSessionInactivityTimeout: nil
+            userSessionPartIndex: 1
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        let controller = makeController()
+        controller.bootstrap()
+
+        XCTAssertEqual(controller.currentUserSession?.maxDuration, config.userSessionMaxDuration)
+        XCTAssertEqual(controller.currentUserSession?.inactivityTimeout, config.userSessionInactivityTimeout)
+    }
+
+    func testBootstrap_fallsBackToDefaultsWhenStoredAndConfigNil() {
+        // `config` is held weakly by UserSessionController. With no strong reference outside
+        // the controller, the weak ref nils out and the snapshot falls back to the semantics
+        // defaults.
+        let userSessionStart = now.addingTimeInterval(-60)
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: userSessionStart,
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: userSessionStart,
+            userSessionPartIndex: 1
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        func makeControllerWithEphemeralConfig() -> UserSessionController {
+            let tempConfig = MockEmbraceConfigurable(userSessionMaxDuration: 1, userSessionInactivityTimeout: 1)
+            return UserSessionController(storage: storage, config: tempConfig) { [unowned self] in self.now }
+        }
+        let controller = makeControllerWithEphemeralConfig()
+        XCTAssertNil(controller.config, "Precondition: weak config must have deallocated")
+
+        controller.bootstrap()
+
+        XCTAssertEqual(controller.currentUserSession?.maxDuration, UserSessionSemantics.defaultMaxDurationSeconds)
+        XCTAssertEqual(controller.currentUserSession?.inactivityTimeout, UserSessionSemantics.defaultInactivityTimeoutSeconds)
+    }
+
+    func testBootstrap_restoresLastForegroundPartEnd() {
+        // The fg-end timestamp persisted on the latest part must round-trip into the snapshot,
+        // so the next attachPart's inactivity math has the correct cutoff.
+        // fgEnd must be recent enough that the snapshot is not already expired by inactivity.
+        let userSessionStart = now.addingTimeInterval(-60)
+        let fgEnd = now.addingTimeInterval(-30)
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: userSessionStart,
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: userSessionStart,
+            userSessionMaxDuration: Self.defaultMax,
+            userSessionInactivityTimeout: Self.defaultInactivity,
+            userSessionLastForegroundEnd: fgEnd,
+            userSessionPartIndex: 1
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        let controller = makeController()
+        controller.bootstrap()
+
+        XCTAssertEqual(
+            controller.currentUserSession?.lastForegroundPartEnd?.timeIntervalSince1970 ?? 0,
+            fgEnd.timeIntervalSince1970,
+            accuracy: 0.001
+        )
+    }
+
+    func testBootstrap_partIndexZeroIsFlooredToOne() {
+        // `max(latest.userSessionPartIndex, 1)` protects against records that somehow stored 0.
+        let userSessionStart = now.addingTimeInterval(-60)
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: userSessionStart,
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: userSessionStart,
+            userSessionMaxDuration: Self.defaultMax,
+            userSessionInactivityTimeout: Self.defaultInactivity,
+            userSessionPartIndex: 0
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        let controller = makeController()
+        controller.bootstrap()
+
+        XCTAssertEqual(controller.currentUserSession?.partIndex, 1)
+    }
+
+    func testBootstrap_expiredByInactivity_backfillsInactivityReason() throws {
+        let sdkStateProvider = MockEmbraceSDKStateProvider()
+        let otel = MockOTelSignalsHandler()
+        let realSessionController = SessionController(storage: storage, upload: nil, config: nil)
+        realSessionController.sdkStateProvider = sdkStateProvider
+        realSessionController.otel = otel
+
+        // User session well under max but past its inactivity cutoff at bootstrap time.
+        let userSessionStart = now.addingTimeInterval(-3600)
+        let fgEnd = now.addingTimeInterval(-3000)  // 50min ago, > 30min default inactivity
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: userSessionStart,
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: userSessionStart,
+            userSessionMaxDuration: Self.defaultMax,
+            userSessionInactivityTimeout: Self.defaultInactivity,
+            userSessionLastForegroundEnd: fgEnd,
+            userSessionPartIndex: 1
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        let controller = makeController()
+        controller.sessionController = realSessionController
+        controller.bootstrap()
+
+        XCTAssertNil(controller.currentUserSession)
+
+        let drained = expectation(description: "backfill landed")
+        storage.coreData.performAsyncOperation { _ in drained.fulfill() }
+        wait(for: [drained], timeout: 1)
+
+        let stored = storage.fetchSession(id: TestConstants.sessionId)
+        XCTAssertEqual(stored?.userSessionTerminationReason, .inactivity)
+    }
+
+    func testBootstrap_expiredByClockAnomaly_backfillsClockAnomalyReason() throws {
+        let sdkStateProvider = MockEmbraceSDKStateProvider()
+        let otel = MockOTelSignalsHandler()
+        let realSessionController = SessionController(storage: storage, upload: nil, config: nil)
+        realSessionController.sdkStateProvider = sdkStateProvider
+        realSessionController.otel = otel
+
+        // Record's userSessionStartTime is in the future relative to `now` → clock anomaly.
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: now.addingTimeInterval(3600),
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: now.addingTimeInterval(3600),
+            userSessionMaxDuration: Self.defaultMax,
+            userSessionInactivityTimeout: Self.defaultInactivity,
+            userSessionPartIndex: 1
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        let controller = makeController()
+        controller.sessionController = realSessionController
+        controller.bootstrap()
+
+        XCTAssertNil(controller.currentUserSession)
+
+        let drained = expectation(description: "backfill landed")
+        storage.coreData.performAsyncOperation { _ in drained.fulfill() }
+        wait(for: [drained], timeout: 1)
+
+        let stored = storage.fetchSession(id: TestConstants.sessionId)
+        XCTAssertEqual(stored?.userSessionTerminationReason, .clockAnomaly)
+    }
+
     // MARK: - end / idempotency
 
     func testEndActiveUserSession_isIdempotent() {
