@@ -74,6 +74,57 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertNil(captured?.terminationReason)
     }
 
+    func testAttachPart_withinBounds_postsNoNotifications() {
+        // A within-bounds attach bumps `partIndex` on the same user session — it must NOT post
+        // either didStart or didEnd. (Single-didStart-per-user-session invariant.)
+        let controller = makeController()
+
+        // Drain the didStart fired by the first attach.
+        let firstStart = expectation(forNotification: .embraceUserSessionDidStart, object: nil) { _ in true }
+        let first = controller.attachPart(state: .foreground, startTime: now)
+        wait(for: [firstStart], timeout: 1)
+
+        let noStart = expectation(forNotification: .embraceUserSessionDidStart, object: nil) { notif in
+            (notif.object as? EmbraceUserSession)?.id == first.id
+        }
+        noStart.isInverted = true
+        let noEnd = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            (notif.object as? EmbraceUserSession)?.id == first.id
+        }
+        noEnd.isInverted = true
+
+        now = now.addingTimeInterval(60)
+        let second = controller.attachPart(state: .foreground, startTime: now)
+        XCTAssertEqual(second.id, first.id, "sanity: same user session")
+        XCTAssertEqual(second.partIndex, 2)
+
+        wait(for: [noStart, noEnd], timeout: 0.5)
+    }
+
+    func testAttachPart_expiredAndRolled_postsDidStartForNewUserSession() {
+        // Complement to the within-bounds invariant: when attachPart starts a new user session
+        // (after expiry), didStart IS posted for the new id with partIndex == 1.
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+
+        now = now.addingTimeInterval(13 * 3600)  // past 12h max
+
+        var capturedNewStart: EmbraceUserSession?
+        let newStart = expectation(forNotification: .embraceUserSessionDidStart, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id != first.id else { return false }
+            capturedNewStart = snap
+            return true
+        }
+
+        let second = controller.attachPart(state: .foreground, startTime: now)
+        XCTAssertNotEqual(second.id, first.id)
+
+        wait(for: [newStart], timeout: 1)
+        XCTAssertEqual(capturedNewStart?.id, second.id)
+        XCTAssertEqual(capturedNewStart?.partIndex, 1)
+        XCTAssertEqual(capturedNewStart?.startTime, now)
+    }
+
     func testAttachPart_activeWithinBounds_invalidatesInactivityCutoff() {
         let controller = makeController()
 
