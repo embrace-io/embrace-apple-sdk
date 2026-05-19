@@ -284,6 +284,57 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNil(controller.currentSession)
     }
 
+    func test_backfillTerminationReason_allReasons_roundTrip() throws {
+        // Every `TerminationReason` raw-value must round-trip through the
+        // `userSessionTerminationReason` column. `.crash` is otherwise never tested.
+        let reasons: [TerminationReason] = [.maxDurationReached, .inactivity, .manual, .clockAnomaly, .crash]
+        for reason in reasons {
+            let session = controller.startSession(state: .foreground)
+            controller.endSession()
+            controller.backfillTerminationReasonOnLatestPart(reason)
+
+            let stored = storage.fetchSession(id: session!.id)
+            XCTAssertEqual(stored?.userSessionTerminationReason, reason, "round-trip failed for \(reason)")
+        }
+    }
+
+    func test_rollPartForUserSessionExpiry_writesReasonToClosedPart_allReasons() throws {
+        // Each `TerminationReason` plumbed through `rollPart` must land on the closed part's
+        // `userSessionTerminationReason` column. The existing `endsOldStartsNewSameStateNewUserSession`
+        // test only checks `.maxDurationReached`.
+        let reasons: [TerminationReason] = [.maxDurationReached, .inactivity, .manual, .clockAnomaly]
+        for reason in reasons {
+            let started = controller.startSession(state: .foreground)
+            controller.rollPartForUserSessionExpiry(reason: reason, at: Date())
+
+            let closed = storage.fetchSession(id: started!.id)
+            XCTAssertEqual(closed?.userSessionTerminationReason, reason, "rollPart failed for \(reason)")
+        }
+    }
+
+    func test_rollPartForUserSessionExpiry_preservesBackgroundState() throws {
+        // The same-state guarantee on rollPart applies to bg parts too — the new part opened
+        // after the rotation must have state `.background`.
+        let bgConfig = EmbraceConfig(
+            configurable: EditableConfig(isBackgroundSessionEnabled: true),
+            options: .init(),
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
+        )
+        let bgController = SessionController(storage: storage, upload: nil, config: bgConfig)
+        bgController.sdkStateProvider = sdkStateProvider
+        bgController.otel = otel
+        let bgUserSessionController = UserSessionController(storage: storage, config: MockEmbraceConfigurable())
+        bgUserSessionController.sessionController = bgController
+        bgController.userSessionController = bgUserSessionController
+
+        let first = bgController.startSession(state: .background)
+        bgController.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: Date())
+
+        XCTAssertEqual(bgController.currentSession?.state, .background)
+        XCTAssertNotEqual(bgController.currentSession?.userSessionId, first?.userSessionId)
+    }
+
     func test_checkUserSessionMaxDurationExpiry_doubleTick_rotatesOnce() throws {
         // Two back-to-back heartbeat ticks against the same expired user session must enqueue
         // two check-then-maybe-roll blocks. The second block, when it runs, sees the state
