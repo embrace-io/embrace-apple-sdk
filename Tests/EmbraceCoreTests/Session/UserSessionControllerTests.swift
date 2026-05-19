@@ -45,8 +45,6 @@ final class UserSessionControllerTests: XCTestCase {
 
     func testAttachPart_noActiveUserSession_createsNewOne() {
         let controller = makeController()
-
-        let startNotification = expectation(forNotification: .embraceUserSessionDidStart, object: nil)
         let snapshot = controller.attachPart(state: .foreground, startTime: now)
 
         XCTAssertEqual(snapshot.partIndex, 1)
@@ -56,7 +54,24 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertNil(snapshot.endTime)
         XCTAssertNil(snapshot.terminationReason)
 
-        wait(for: [startNotification], timeout: 1)
+        // The notification is posted via DispatchQueue.main.async inside attachPart, so it's
+        // queued but not yet delivered when attachPart returns. The handler runs when wait()
+        // drives the runloop; filtering by snapshot.id avoids matching cross-test leakage.
+        var captured: EmbraceUserSession?
+        let startExp = expectation(forNotification: .embraceUserSessionDidStart, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == snapshot.id else { return false }
+            captured = snap
+            return true
+        }
+        wait(for: [startExp], timeout: 1)
+
+        XCTAssertEqual(captured?.partIndex, 1)
+        XCTAssertEqual(captured?.maxDuration, Self.defaultMax)
+        XCTAssertEqual(captured?.inactivityTimeout, Self.defaultInactivity)
+        XCTAssertEqual(captured?.startTime, now)
+        XCTAssertNil(captured?.lastForegroundPartEnd)
+        XCTAssertNil(captured?.endTime)
+        XCTAssertNil(captured?.terminationReason)
     }
 
     func testAttachPart_activeWithinBounds_invalidatesInactivityCutoff() {
@@ -83,7 +98,12 @@ final class UserSessionControllerTests: XCTestCase {
         let controller = makeController()
         let first = controller.attachPart(state: .foreground, startTime: now)
 
-        let endNotification = expectation(forNotification: .embraceUserSessionDidEnd, object: nil)
+        var captured: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured = snap
+            return true
+        }
 
         // jump 13h — past 12h max duration
         now = now.addingTimeInterval(13 * 3600)
@@ -92,7 +112,11 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertNotEqual(second.id, first.id)
         XCTAssertEqual(second.partIndex, 1)
 
-        wait(for: [endNotification], timeout: 1)
+        wait(for: [endExp], timeout: 1)
+
+        XCTAssertEqual(captured?.id, first.id)
+        XCTAssertEqual(captured?.terminationReason, .maxDurationReached)
+        XCTAssertEqual(captured?.endTime, now)
     }
 
     func testAttachPart_expiredByInactivity_endsAndCreatesNew() {
@@ -102,7 +126,12 @@ final class UserSessionControllerTests: XCTestCase {
         // foreground part ended at +5min
         controller.markForegroundPartEnded(at: now.addingTimeInterval(300))
 
-        let endNotification = expectation(forNotification: .embraceUserSessionDidEnd, object: nil)
+        var captured: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured = snap
+            return true
+        }
 
         // next part start is 31min after the foreground end → past 30min inactivity timeout
         now = now.addingTimeInterval(300 + 31 * 60)
@@ -110,14 +139,23 @@ final class UserSessionControllerTests: XCTestCase {
 
         XCTAssertNotEqual(second.id, first.id)
         XCTAssertEqual(second.partIndex, 1)
-        wait(for: [endNotification], timeout: 1)
+        wait(for: [endExp], timeout: 1)
+
+        XCTAssertEqual(captured?.id, first.id)
+        XCTAssertEqual(captured?.terminationReason, .inactivity)
+        XCTAssertEqual(captured?.endTime, now)
     }
 
     func testAttachPart_clockAnomaly_endsAndCreatesNew() {
         let controller = makeController()
         let first = controller.attachPart(state: .foreground, startTime: now)
 
-        let endNotification = expectation(forNotification: .embraceUserSessionDidEnd, object: nil)
+        var captured: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured = snap
+            return true
+        }
 
         // device clock moves backward
         now = now.addingTimeInterval(-3600)
@@ -125,7 +163,11 @@ final class UserSessionControllerTests: XCTestCase {
 
         XCTAssertNotEqual(second.id, first.id)
         XCTAssertEqual(second.partIndex, 1)
-        wait(for: [endNotification], timeout: 1)
+        wait(for: [endExp], timeout: 1)
+
+        XCTAssertEqual(captured?.id, first.id)
+        XCTAssertEqual(captured?.terminationReason, .clockAnomaly)
+        XCTAssertEqual(captured?.endTime, now)
     }
 
     func testAttachPart_clockJumpedBackBetweenStartAndLastFgEnd_endsAndCreatesNew() {
@@ -139,7 +181,12 @@ final class UserSessionControllerTests: XCTestCase {
         let lastFgEnd = now.addingTimeInterval(300)  // T0 + 5min
         controller.markForegroundPartEnded(at: lastFgEnd)
 
-        let endNotification = expectation(forNotification: .embraceUserSessionDidEnd, object: nil)
+        var captured: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured = snap
+            return true
+        }
 
         // Clock jumps backward to T0 + 2min — past `startTime` but before `lastFgEnd`.
         now = now.addingTimeInterval(120)
@@ -147,7 +194,11 @@ final class UserSessionControllerTests: XCTestCase {
 
         XCTAssertNotEqual(second.id, first.id)
         XCTAssertEqual(second.partIndex, 1)
-        wait(for: [endNotification], timeout: 1)
+        wait(for: [endExp], timeout: 1)
+
+        XCTAssertEqual(captured?.id, first.id)
+        XCTAssertEqual(captured?.terminationReason, .clockAnomaly)
+        XCTAssertEqual(captured?.endTime, now)
     }
 
     func testAttachPart_partIndexMonotonic() {
@@ -344,17 +395,28 @@ final class UserSessionControllerTests: XCTestCase {
 
     func testEndActiveUserSession_isIdempotent() {
         let controller = makeController()
-        _ = controller.attachPart(state: .foreground, startTime: now)
+        let first = controller.attachPart(state: .foreground, startTime: now)
 
-        let notification = expectation(forNotification: .embraceUserSessionDidEnd, object: nil)
-        notification.expectedFulfillmentCount = 1
-        notification.assertForOverFulfill = true
+        // Handler keeps returning true for every match. If a second end actually fired (i.e.
+        // the second call wasn't a no-op), assertForOverFulfill would trip.
+        var captured: [EmbraceUserSession] = []
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured.append(snap)
+            return true
+        }
+        endExp.assertForOverFulfill = true
 
         controller.endActiveUserSession(reason: .manual, at: now)
         controller.endActiveUserSession(reason: .manual, at: now)  // no-op
 
         XCTAssertNil(controller.currentUserSession)
-        wait(for: [notification], timeout: 1)
+        wait(for: [endExp], timeout: 1)
+
+        XCTAssertEqual(captured.count, 1)
+        XCTAssertEqual(captured.first?.id, first.id)
+        XCTAssertEqual(captured.first?.terminationReason, .manual)
+        XCTAssertEqual(captured.first?.endTime, now)
     }
 
     func testEndActiveUserSession_resetsPartIndexOnNextAttach() {
