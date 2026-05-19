@@ -482,9 +482,15 @@ class SessionController: SessionControllable {
     /// is, by construction, the last part of that user session. Looks up the latest persisted
     /// part record via storage so the call works after `endSession` has already cleared the
     /// in-memory snapshot.
+    ///
+    /// Idempotent: if the latest part already has a `userSessionTerminationReason`, the call
+    /// is a no-op. This protects the bootstrap-driven expiry path from overwriting a reason
+    /// the prior process recorded (e.g. `.manual` from a manual end that the process executed
+    /// just before dying), and preserves the precedence rule that the first-set reason wins.
     func backfillTerminationReasonOnLatestPart(_ reason: TerminationReason) {
         guard let storage = storage,
-            let latest = storage.fetchLatestSession()
+            let latest = storage.fetchLatestSession(),
+            latest.userSessionTerminationReason == nil
         else {
             return
         }
