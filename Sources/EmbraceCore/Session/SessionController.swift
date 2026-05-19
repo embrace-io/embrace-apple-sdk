@@ -22,7 +22,7 @@ extension Notification.Name {
     public static let embraceSessionPartWillEnd = Notification.Name("embrace.session.part.will_end")
 }
 
-/// The source of truth for session parts. A "part" is one contiguous foreground/background
+/// The source of truth for session parts. A "part" is one contiguous foreground or background
 /// interval; a user session groups one or more parts and is owned by `UserSessionController`.
 ///
 /// This class should not be interacted with directly, but by using a ``SessionListener``.
@@ -346,7 +346,7 @@ class SessionController: SessionControllable {
             // )
         }
 
-        // update session end time and clean exit. For foreground parts, also record the
+        // update session part end time and clean exit. For foreground parts, also record the
         // foreground-end timestamp on the part record AND on the in-memory user-session
         // snapshot so the next `attachPart` can compute the inactivity cutoff.
         let isForeground = inProgressSession.state == SessionState.foreground
@@ -354,6 +354,7 @@ class SessionController: SessionControllable {
             session: inProgressSession,
             endTime: now,
             cleanExit: true,
+            // nil will not overwrite previously-set userSessionLastForegroundEnd value
             userSessionLastForegroundEnd: isForeground ? now : nil
         )
 
