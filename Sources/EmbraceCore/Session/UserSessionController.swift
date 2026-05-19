@@ -43,6 +43,10 @@ extension Notification.Name {
 ///   deleted first, the snapshot is lost and a fresh user session starts on the next part.
 final class UserSessionController {
 
+    /// Minimum interval between accepted manual end-user-session calls. Prevents customers from
+    /// overwhelming the backend by calling the manual end API in a tight loop.
+    private static let manualEndMinInterval: TimeInterval = 5.0
+
     /// Combined state held under a single mutex. Splitting these would force two locks for the
     /// invariants (snapshot vs counters) to stay consistent across an `attachPart` decision.
     private struct State {
@@ -204,13 +208,12 @@ final class UserSessionController {
 
     // MARK: - Manual-end rate limit
 
-    /// Returns `true` if a manual end-user-session call is allowed at `now` (i.e., at least 5s
-    /// have elapsed since the last allowed manual end). Records `now` as the last allowed call
-    /// when it returns `true`. The 5-second window prevents customers from overwhelming the
-    /// backend by calling the manual end API in a tight loop.
+    /// Returns `true` if a manual end-user-session call is allowed at `now` (i.e., at least
+    /// `manualEndMinInterval` has elapsed since the last allowed manual end). Records `now` as
+    /// the last allowed call when it returns `true`.
     func canManuallyEnd(now: Date) -> Bool {
         _state.withLock { state in
-            if let last = state.lastManualEnd, now.timeIntervalSince(last) < 5.0 {
+            if let last = state.lastManualEnd, now.timeIntervalSince(last) < Self.manualEndMinInterval {
                 return false
             }
             state.lastManualEnd = now
