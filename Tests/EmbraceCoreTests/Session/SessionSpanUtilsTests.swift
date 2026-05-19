@@ -167,8 +167,8 @@ final class SessionSpanUtilsTests: XCTestCase {
 
         // User-session config snapshots
         XCTAssertEqual(attribute("emb.user_session_start_ts"), String(userSessionStart.nanosecondsSince1970Truncated))
-        XCTAssertEqual(attribute("emb.user_session_max_duration_seconds"), "43200.0")
-        XCTAssertEqual(attribute("emb.user_session_inactivity_timeout_seconds"), "1800.0")
+        XCTAssertEqual(attribute("emb.user_session_max_duration_seconds"), "43200")
+        XCTAssertEqual(attribute("emb.user_session_inactivity_timeout_seconds"), "1800")
 
         XCTAssertEqual(attribute("emb.crash_id"), "test")
 
