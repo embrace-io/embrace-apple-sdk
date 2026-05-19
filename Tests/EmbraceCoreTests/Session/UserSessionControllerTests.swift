@@ -303,6 +303,102 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertEqual(captured?.endTime, now)
     }
 
+    func testAttachPart_atExactMaxEndBoundary_expires() {
+        // `expiryReason` uses `now >= maxEnd` (inclusive). A part starting exactly at the
+        // max-duration cutoff must terminate the user session.
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+
+        var captured: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured = snap
+            return true
+        }
+
+        // Exactly at maxEnd.
+        now = now.addingTimeInterval(Self.defaultMax)
+        let second = controller.attachPart(state: .foreground, startTime: now)
+
+        XCTAssertNotEqual(second.id, first.id)
+        wait(for: [endExp], timeout: 1)
+        XCTAssertEqual(captured?.terminationReason, .maxDurationReached)
+    }
+
+    func testAttachPart_justInsideMaxEnd_doesNotExpire() {
+        // 1ms before maxEnd: user session must survive.
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+
+        now = now.addingTimeInterval(Self.defaultMax - 0.001)
+        let second = controller.attachPart(state: .foreground, startTime: now)
+
+        XCTAssertEqual(second.id, first.id)
+        XCTAssertEqual(second.partIndex, 2)
+    }
+
+    func testAttachPart_atExactInactivityBoundary_expires() {
+        // `now >= lastFgEnd + inactivityTimeout` (inclusive). A part starting exactly at the
+        // inactivity cutoff must terminate the user session.
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+        let fgEnd = now.addingTimeInterval(60)
+        controller.markForegroundPartEnded(at: fgEnd)
+
+        var captured: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured = snap
+            return true
+        }
+
+        // Exactly at lastFgEnd + inactivityTimeout.
+        now = fgEnd.addingTimeInterval(Self.defaultInactivity)
+        let second = controller.attachPart(state: .foreground, startTime: now)
+
+        XCTAssertNotEqual(second.id, first.id)
+        wait(for: [endExp], timeout: 1)
+        XCTAssertEqual(captured?.terminationReason, .inactivity)
+    }
+
+    func testAttachPart_justInsideInactivityCutoff_doesNotExpire() {
+        // 1ms before the inactivity cutoff: user session must survive.
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+        let fgEnd = now.addingTimeInterval(60)
+        controller.markForegroundPartEnded(at: fgEnd)
+
+        now = fgEnd.addingTimeInterval(Self.defaultInactivity - 0.001)
+        let second = controller.attachPart(state: .foreground, startTime: now)
+
+        XCTAssertEqual(second.id, first.id)
+        XCTAssertEqual(second.partIndex, 2)
+    }
+
+    func testAttachPart_maxAndInactivityBothCrossed_maxWins() {
+        // When both `maxEnd` and `inactivityCutoff` are crossed, `expiryReason` checks `maxEnd`
+        // first → `.maxDurationReached` wins. (Clock-anomaly precedence cannot be tested against
+        // these because `now < startTime` / `now < lastFgEnd` precludes `now >= maxEnd` and
+        // `now >= inactivityCutoff` by construction.)
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+        controller.markForegroundPartEnded(at: now.addingTimeInterval(60))  // inactivity cutoff at T0+60+30min
+
+        var captured: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured = snap
+            return true
+        }
+
+        // 13h: past both maxEnd (12h) and inactivityCutoff (~31min).
+        now = now.addingTimeInterval(13 * 3600)
+        _ = controller.attachPart(state: .foreground, startTime: now)
+
+        wait(for: [endExp], timeout: 1)
+        XCTAssertEqual(captured?.terminationReason, .maxDurationReached, "max wins over inactivity")
+    }
+
     func testAttachPart_partIndexMonotonic() {
         let controller = makeController()
         var indices: [EMBInt] = []
