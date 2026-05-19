@@ -169,8 +169,6 @@ package class Embrace {
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
 
         // initialize user-session controller and reconstruct any persisted user-session state.
-        // MUST run before `sessionLifecycle.startSession()` AND before `UnsentDataHandler.sendUnsentData`
-        // — both are downstream consumers, and `sendUnsentData` may delete the source row.
         self.userSessionController = UserSessionController(
             storage: storage,
             config: config.configurable
@@ -409,15 +407,7 @@ package class Embrace {
         guard isSDKEnabled else {
             return
         }
-
-        // Dispatch onto the session-controller's serial queue so the manual roll cannot
-        // interleave with the heartbeat-driven max-duration roll, which uses the same queue.
-        sessionController.queue.async { [weak self] in
-            guard let self = self else { return }
-            let now = Date()
-            guard self.userSessionController.canManuallyEnd(now: now) else { return }
-            self.sessionController.rollPartForUserSessionExpiry(reason: .manual, at: now)
-        }
+        userSessionController.endUserSessionManually()
     }
 
     /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.

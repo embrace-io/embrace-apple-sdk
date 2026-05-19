@@ -194,6 +194,21 @@ final class UserSessionController {
         }
     }
 
+    // MARK: - Manual end (customer-facing entry point)
+
+    /// Dispatches a manual end-user-session request onto the session controller's serial queue
+    /// so the resulting roll can't interleave with the heartbeat-driven max-duration roll
+    /// (which uses the same queue). Rate-limited via `canManuallyEnd` — calls within 5 seconds
+    /// of the previous allowed call are ignored silently.
+    func endUserSessionManually() {
+        sessionController?.queue.async { [weak self] in
+            guard let self = self else { return }
+            let now = self.dateProvider()
+            guard self.canManuallyEnd(now: now) else { return }
+            self.sessionController?.rollPartForUserSessionExpiry(reason: .manual, at: now)
+        }
+    }
+
     // MARK: - Manual-end rate limit
 
     /// Returns `true` if a manual end-user-session call is allowed at `now` (i.e., at least 5s
