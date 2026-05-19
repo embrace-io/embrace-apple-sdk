@@ -99,16 +99,21 @@ class MockSessionController: SessionControllable {
 
     @discardableResult
     func endSession() -> Date {
+        return endSession(at: Date())
+    }
+
+    @discardableResult
+    func endSession(at endTime: Date) -> Date {
         didCallEndSession = true
         currentSession = nil
 
         if let span = currentSessionSpan {
-            span.end()
+            span.end(endTime: endTime)
             storage?.upsertSpan(span)
         }
         currentSessionSpan = nil
 
-        return Date()
+        return endTime
     }
 
     func update(state: SessionState) {

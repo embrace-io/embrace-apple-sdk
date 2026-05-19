@@ -138,23 +138,29 @@ final class UserSessionController {
     ///   - startTime: The wall-clock start time of the new part.
     /// - Returns: The user-session snapshot the new part will belong to.
     @discardableResult
-    func attachPart(state: SessionState, startTime: Date) -> EmbraceUserSession {
-        return _state.withLock { state in
+    func attachPart(state newPartState: SessionState, startTime: Date) -> EmbraceUserSession {
+        return _state.withLock { mutableState in
 
             // No active user session -> start new one
-            guard let snapshot = state.session else {
-                return startNewUserSession(state: &state, at: startTime)
+            guard let snapshot = mutableState.session else {
+                return startNewUserSession(state: &mutableState, at: startTime)
             }
 
             // Active user session should be terminated -> end current and start new one
             if let reason = Self.expiryReason(snapshot: snapshot, at: startTime) {
                 internalEndUserSession(snapshot: snapshot, reason: reason, at: startTime)
-                return startNewUserSession(state: &state, at: startTime)
+                return startNewUserSession(state: &mutableState, at: startTime)
             }
 
-            // Active user session still valid -> update
-            let updated = snapshot.cleared(partIndex: snapshot.partIndex + 1)
-            state.session = updated
+            // Active user session still valid -> bump part index. Only foreground parts clear
+            // the inactivity cutoff (`lastForegroundPartEnd`) — background parts must preserve
+            // it so the next foreground transition can still apply the bg-split cutoff math.
+            let nextIndex = snapshot.partIndex + 1
+            let updated =
+                newPartState == .foreground
+                ? snapshot.cleared(partIndex: nextIndex)
+                : snapshot.bumping(partIndex: nextIndex)
+            mutableState.session = updated
             return updated
         }
     }
@@ -244,18 +250,23 @@ final class UserSessionController {
     }
 
     /// Returns the termination reason if the snapshot has expired at `now`, else `nil`.
+    /// The cutoff boundaries are inclusive — a part starting exactly at the cutoff is treated
+    /// as expired so the bg-split path (which starts a synthetic part *at* the cutoff) cleanly
+    /// rolls into a new user session.
     /// Inactivity cutoff is only applicable when there is a `lastForegroundPartEnd`.
     private static func expiryReason(snapshot: ImmutableUserSession, at now: Date) -> TerminationReason? {
         if now < snapshot.startTime {
             return .clockAnomaly
         }
-        let maxEnd = snapshot.startTime.addingTimeInterval(snapshot.maxDuration)
-        if now > maxEnd {
+        if let lastFgEnd = snapshot.lastForegroundPartEnd, now < lastFgEnd {
+            return .clockAnomaly
+        }
+        if now >= snapshot.maxEnd {
             return .maxDurationReached
         }
         if let lastFgEnd = snapshot.lastForegroundPartEnd {
             let inactivityCutoff = lastFgEnd.addingTimeInterval(snapshot.inactivityTimeout)
-            if now > inactivityCutoff {
+            if now >= inactivityCutoff {
                 return .inactivity
             }
         }
@@ -264,8 +275,24 @@ final class UserSessionController {
 }
 
 extension ImmutableUserSession {
-    /// Clears `lastForegroundPartEnd` and bumps `partIndex`. Used when a new part joins an
-    /// existing user session: the new part start invalidates any pending inactivity cutoff
+    /// Bumps `partIndex` without touching `lastForegroundPartEnd`. Used when a background
+    /// part joins an existing user session — the inactivity cutoff must persist across the
+    /// bg interval so the next foreground-transition's split math still has it.
+    fileprivate func bumping(partIndex: EMBInt) -> ImmutableUserSession {
+        return ImmutableUserSession(
+            id: id,
+            startTime: startTime,
+            maxDuration: maxDuration,
+            inactivityTimeout: inactivityTimeout,
+            lastForegroundPartEnd: lastForegroundPartEnd,
+            partIndex: partIndex,
+            endTime: endTime,
+            terminationReason: terminationReason
+        )
+    }
+
+    /// Clears `lastForegroundPartEnd` and bumps `partIndex`. Used when a foreground part joins
+    /// an existing user session: an active fg part invalidates any pending inactivity cutoff
     /// (the cutoff only applies between foreground parts, not while one is active), and the
     /// new index reflects the part being attached.
     fileprivate func cleared(partIndex: EMBInt) -> ImmutableUserSession {

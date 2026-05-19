@@ -88,9 +88,79 @@ class SessionController: SessionControllable {
 
         self.heartbeat.callback = { [weak self] in
             let span = EmbraceMetricKitSpan.begin(name: "heartbeat")
-            self?.update(heartbeat: Date())
+            let now = Date()
+            self?.update(heartbeat: now)
+            self?.checkUserSessionMaxDurationExpiry(now: now)
             span.end()
         }
+    }
+
+    /// Triggered each heartbeat tick. If the active user session has crossed its max-duration
+    /// cutoff, schedules a part-roll on the upload coordination queue so the work doesn't stall
+    /// the heartbeat thread. The roll closes the current part, ends the user session with
+    /// `.maxDurationReached`, and starts a new part with the same state.
+    ///
+    /// The expiry decision runs INSIDE the dispatched block — not before — so that two ticks
+    /// queued back-to-back can't both roll. The second block sees the state left by the first
+    /// (the freshly-rotated user session has a far-future `maxEnd`) and bails.
+    func checkUserSessionMaxDurationExpiry(now: Date) {
+        queue.async { [weak self] in
+            guard let self = self,
+                let userSession = self.userSessionController?.currentUserSession,
+                now >= userSession.maxEnd,
+                self._session.safeValue.session != nil
+            else {
+                return
+            }
+            self.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: now)
+        }
+    }
+
+    /// If a foreground part is about to start after a background part whose user session
+    /// crossed its `maxDuration` or `inactivityTimeout` cutoff, slice the bg part at the
+    /// cutoff and synthesize a bg part `[cutoff, now]`. Returns `true` when the split was
+    /// applied — the caller must skip its own "end previous part" step because the prev part
+    /// is already closed.
+    @discardableResult
+    private func applyBackgroundSplitIfNeeded(
+        prev: EmbraceSession?,
+        newState: SessionState,
+        now: Date
+    ) -> Bool {
+        guard newState == .foreground,
+            let prev = prev,
+            prev.state == .background,
+            let userSession = userSessionController?.currentUserSession
+        else {
+            return false
+        }
+
+        let inactivityCutoff = userSession.lastForegroundPartEnd?.addingTimeInterval(userSession.inactivityTimeout)
+        guard let cutoff = [userSession.maxEnd, inactivityCutoff].compactMap({ $0 }).min(),
+            now >= cutoff,
+            cutoff > prev.startTime
+        else {
+            return false
+        }
+
+        endSession(at: cutoff)
+        startSession(state: .background, startTime: cutoff)
+        endSession(at: now)
+        return true
+    }
+
+    /// Closes the current part at `now`, ends the user session with the given reason, then
+    /// starts a new part with the same `SessionState`. Used by the heartbeat-driven max-duration
+    /// detector and the manual `endUserSession()` API. The order — end-part → end-user-session
+    /// → start-part — guarantees that `attachPart` for the new part sees no active user session.
+    func rollPartForUserSessionExpiry(reason: TerminationReason, at now: Date) {
+        let info = _session.safeValue
+        let currentState = info.session?.state ?? .unknown
+        guard info.session != nil else { return }
+
+        endSession(at: now)
+        userSessionController?.endActiveUserSession(reason: reason, at: now)
+        startSession(state: currentState, startTime: now)
     }
 
     deinit {
@@ -110,10 +180,22 @@ class SessionController: SessionControllable {
     func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession? {
         // we lock after end session to avoid a deadlock
         let inProgressSessionInfo = _session.safeValue
+
+        // Background-to-foreground transition that crosses a user-session cutoff during the
+        // bg interval: slice the bg part at the cutoff and insert a synthetic bg part
+        // [cutoff, now] so the tail is attributed to a fresh user session rather than dragging
+        // the old one into the foreground. The synthetic part runs through `attachPart`, which
+        // expires the old user session and creates a new one before the actual fg part starts.
+        let bgSplitFired = applyBackgroundSplitIfNeeded(
+            prev: inProgressSessionInfo.session,
+            newState: state,
+            now: startTime
+        )
+
         let sessionInfo: (session: EmbraceSession?, span: EmbraceSpan?) = lock.locked {
 
-            // end current session first
-            if inProgressSessionInfo.session != nil {
+            // end current session first (skipped if bg-split already closed the prev part)
+            if !bgSplitFired, inProgressSessionInfo.session != nil {
                 endSessionNoLock(inProgressSessionInfo.session, inProgressSessionInfo.sessionSpan)
             }
 
@@ -210,15 +292,19 @@ class SessionController: SessionControllable {
 
     /// Ends the session session taking into account that the lock is held externally
     @discardableResult
-    private func endSessionNoLock(_ inProgressSession: EmbraceSession?, _ inProgressSessionSpan: EmbraceSpan?) -> Date {
+    private func endSessionNoLock(
+        _ inProgressSession: EmbraceSession?,
+        _ inProgressSessionSpan: EmbraceSpan?,
+        endTime: Date? = nil
+    ) -> Date {
 
         guard let inProgressSession else {
-            return Date()
+            return endTime ?? Date()
         }
 
         // stop heartbeat
         heartbeat.stop()
-        let now = Date()
+        let now = endTime ?? Date()
 
         guard sdkStateProvider?.isEnabled == true else {
             deleteNoLock(inProgressSession)
@@ -303,6 +389,17 @@ class SessionController: SessionControllable {
         }
     }
 
+    /// Ends the session using the supplied `endTime` rather than `Date()`. Used when splitting
+    /// a background part along a user-session cutoff: the part record must close exactly at the
+    /// cutoff timestamp so the subsequent (synthetic) bg part can begin from the same instant.
+    @discardableResult
+    func endSession(at endTime: Date) -> Date {
+        let sessionInfo = _session.safeValue
+        return lock.locked {
+            endSessionNoLock(sessionInfo.session, sessionInfo.sessionSpan, endTime: endTime)
+        }
+    }
+
     func update(state: SessionState) {
         let sessionInfo = _session.safeValue
         lock.locked {
@@ -382,13 +479,16 @@ class SessionController: SessionControllable {
     /// Stamps the given termination reason on the most recently closed part record.
     ///
     /// Called by `UserSessionController` when ending a user session — the part being stamped
-    /// is, by construction, the last part of that user session.
-    ///
-    /// - Note: Currently a no-op. The storage write (looking up the just-closed part record
-    ///   and calling `storage?.updateSession(..., userSessionTerminationReason: reason)`) lands
-    ///   alongside the other end-reason wiring once the heartbeat-driven max-duration detector
-    ///   and the manual-end API exist.
+    /// is, by construction, the last part of that user session. Looks up the latest persisted
+    /// part record via storage so the call works after `endSession` has already cleared the
+    /// in-memory snapshot.
     func backfillTerminationReasonOnLatestPart(_ reason: TerminationReason) {
+        guard let storage = storage,
+            let latest = storage.fetchLatestSession()
+        else {
+            return
+        }
+        storage.updateSession(session: latest, userSessionTerminationReason: reason)
     }
 }
 

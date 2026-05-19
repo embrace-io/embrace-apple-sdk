@@ -425,11 +425,80 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
         XCTAssertEqual(otel.logs[0].body, "")
         XCTAssertEqual(otel.logs[0].severity, .fatal)
-        XCTAssertEqual(otel.logs[0].attributes["session.id"] as! String, TestConstants.sessionId.stringValue)
+        XCTAssertEqual(
+            otel.logs[0].attributes["emb.session_part_id"] as! String,
+            TestConstants.sessionId.stringValue
+        )
         XCTAssertEqual(otel.logs[0].attributes["emb.state"] as! String, SessionState.foreground.rawValue)
         XCTAssertEqual(otel.logs[0].attributes["log.record.uid"] as! String, report.id.withoutHyphen)
         XCTAssertEqual(otel.logs[0].attributes["emb.provider"] as! String, report.provider)
         XCTAssertEqual(otel.logs[0].attributes["emb.payload"] as! String, report.payload)
+    }
+
+    func test_sendCrashReports_stampsCrashTerminationReasonOnLinkedSession() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on watchOS")
+
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let otel = MockOTelSignalsHandler()
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+
+        // and a finished session in storage that the crash report will link to
+        await storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60),
+            endTime: Date()
+        )
+
+        // The session is deleted by `sendUnsentData`'s session-uploader path at the end of
+        // the flow, so observe the in-flight update via a Core Data listener — it captures
+        // the moment `updateSession` writes the new fields.
+        let listener = CoreDataListener()
+        let didStamp = XCTestExpectation()
+        listener.onUpdatedObjects = { records in
+            for record in records {
+                if let session = record as? SessionRecord,
+                    session.crashReportId != nil,
+                    session.userSessionTerminationReason == TerminationReason.crash.rawValue
+                {
+                    didStamp.fulfill()
+                    return
+                }
+            }
+        }
+
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: nil, otel: otel, crashReporter: embraceReporter
+        )
+
+        await fulfillment(of: [didStamp], timeout: .defaultTimeout)
+        _ = listener  // keep alive for the duration of the test
+    }
+
+    func test_sendCrashReports_unlinkedReport_doesNotCrash() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on watchOS")
+
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let otel = MockOTelSignalsHandler()
+        // Crash report points at a session id that doesn't exist in storage.
+        let crashReporter = CrashReporterMock(crashSessionId: EmbraceIdentifier.random.stringValue)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+
+        // no exception expected; storage stays empty
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: nil, otel: otel, crashReporter: embraceReporter
+        )
+        wait(delay: .shortTimeout)
+
+        XCTAssertEqual((storage.fetchAll() as [SessionRecord]).count, 0)
     }
 
     func test_spanCleanUp_sendUnsentData() async throws {

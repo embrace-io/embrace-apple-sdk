@@ -108,17 +108,13 @@ public class EmbraceIO {
         try Embrace.client?.stop()
     }
 
-    /// Forces the Embrace SDK to start a new session.
-    /// - Note: If there was a session running, it will be ended before starting a new one.
-    /// - Note: This method won't do anything if the SDK is stopped.
-    public func startNewSession() {
-        Embrace.client?.startNewSession()
-    }
-
-    /// Forces the Embrace SDK to stop the current session, if any.
-    /// - Note: This method won't do anything if the SDK is stopped.
-    public func endCurrentSession() {
-        Embrace.client?.endCurrentSession()
+    /// Ends the current user session immediately. The current part is closed and a new part
+    /// (with the same foreground/background state) is started under a fresh user session.
+    /// - Note: This call is rate-limited to once per 5 seconds. Calls within 5 seconds of the
+    ///   previous one are ignored silently.
+    /// - Note: This method has no effect if the SDK is stopped.
+    public func endUserSession() {
+        Embrace.client?.endUserSession()
     }
 
     /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
