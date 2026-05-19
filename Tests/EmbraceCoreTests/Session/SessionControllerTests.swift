@@ -385,7 +385,7 @@ final class SessionControllerTests: XCTestCase {
         // Background part that begins before the cutoff and would normally span past it.
         splitController.startSession(state: .background, startTime: foregroundEnd.addingTimeInterval(0.1))
 
-        let bgEnd = foregroundEnd.addingTimeInterval(1.5) // past the 1s cutoff
+        let bgEnd = foregroundEnd.addingTimeInterval(1.5)  // past the 1s cutoff
         // Now transition to foreground: bg-split fires.
         splitController.startSession(state: .foreground, startTime: bgEnd)
 
@@ -784,6 +784,76 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(record.userSessionMaxDuration?.doubleValue, configurable.userSessionMaxDuration)
         XCTAssertEqual(record.userSessionInactivityTimeout?.doubleValue, configurable.userSessionInactivityTimeout)
         XCTAssertEqual(record.userSessionPartIndex, 1)
+    }
+
+    func test_startSession_backgroundPartIncrementsSessionNumber() throws {
+        // `sessionNumber` is the global per-part counter and must bump regardless of state.
+        let bgConfig = EmbraceConfig(
+            configurable: EditableConfig(isBackgroundSessionEnabled: true),
+            options: .init(),
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
+        )
+        let bgController = SessionController(storage: storage, upload: nil, config: bgConfig)
+        bgController.sdkStateProvider = sdkStateProvider
+        bgController.otel = otel
+        let bgUserSessionController = UserSessionController(storage: storage, config: MockEmbraceConfigurable())
+        bgUserSessionController.sessionController = bgController
+        bgController.userSessionController = bgUserSessionController
+
+        let bg = bgController.startSession(state: .background)
+        XCTAssertEqual(bg?.sessionNumber, 1)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
+        XCTAssertEqual(resource?.value, "1")
+    }
+
+    func test_sessionNumberAndPartIndex_independentAcrossUserSessionRollover() throws {
+        // After a user-session rollover, `userSessionPartIndex` resets to 1 while the global
+        // `sessionNumber` keeps incrementing. The two counters are independent.
+        controller.startSession(state: .foreground)
+        controller.endSession()
+        controller.startSession(state: .foreground)
+
+        // Force a user-session rollover.
+        controller.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: Date())
+
+        let stored: [SessionRecord] = storage.fetchAll().sorted { $0.sessionNumber < $1.sessionNumber }
+        XCTAssertEqual(stored.count, 3)
+        XCTAssertEqual(stored.map { $0.sessionNumber }, [1, 2, 3], "sessionNumber strictly increasing across rollover")
+        XCTAssertEqual(stored[0].userSessionPartIndex, 1)
+        XCTAssertEqual(stored[1].userSessionPartIndex, 2)
+        XCTAssertEqual(stored[2].userSessionPartIndex, 1, "partIndex resets to 1 in the new user session")
+
+        // First two parts belong to the same user session; the third is a new one.
+        XCTAssertEqual(stored[0].userSessionIdRaw, stored[1].userSessionIdRaw)
+        XCTAssertNotEqual(stored[1].userSessionIdRaw, stored[2].userSessionIdRaw)
+    }
+
+    func test_partsOfSameUserSession_shareUserSessionFields() throws {
+        // Parts 1, 2, 3 of one user session share id/startTime/maxDuration/inactivityTimeout;
+        // only partIndex differs.
+        controller.startSession(state: .foreground)
+        controller.endSession()
+        controller.startSession(state: .foreground)
+        controller.endSession()
+        controller.startSession(state: .foreground)
+
+        let stored: [SessionRecord] = storage.fetchAll().sorted { $0.sessionNumber < $1.sessionNumber }
+        XCTAssertEqual(stored.count, 3)
+
+        let firstId = stored[0].userSessionIdRaw
+        let firstStart = stored[0].userSessionStartTime
+        let firstMax = stored[0].userSessionMaxDuration
+        let firstInactivity = stored[0].userSessionInactivityTimeout
+
+        for record in stored {
+            XCTAssertEqual(record.userSessionIdRaw, firstId)
+            XCTAssertEqual(record.userSessionStartTime, firstStart)
+            XCTAssertEqual(record.userSessionMaxDuration, firstMax)
+            XCTAssertEqual(record.userSessionInactivityTimeout, firstInactivity)
+        }
+
+        XCTAssertEqual(stored.map { $0.userSessionPartIndex }, [1, 2, 3])
     }
 
     func test_heartbeat() throws {

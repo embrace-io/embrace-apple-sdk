@@ -411,6 +411,39 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertEqual(indices, [1, 2, 3, 4, 5])
     }
 
+    func testAttachPart_mixedForegroundBackgroundSequence_partIndexAccumulates() {
+        // `partIndex` bumps regardless of state. `lastForegroundPartEnd` survives across a bg
+        // part (`bumping` path) and is cleared on the next fg part (`cleared` path).
+        let controller = makeController()
+        let userSession = controller.attachPart(state: .foreground, startTime: now)
+        XCTAssertEqual(userSession.partIndex, 1)
+
+        // fg ends at +60s — installs the inactivity cutoff.
+        let fgEnd = now.addingTimeInterval(60)
+        controller.markForegroundPartEnded(at: fgEnd)
+
+        // bg part bumps to 2 and preserves lastForegroundPartEnd.
+        now = now.addingTimeInterval(120)
+        let bg1 = controller.attachPart(state: .background, startTime: now)
+        XCTAssertEqual(bg1.id, userSession.id)
+        XCTAssertEqual(bg1.partIndex, 2)
+        XCTAssertEqual(bg1.lastForegroundPartEnd, fgEnd)
+
+        // fg part bumps to 3 and clears lastForegroundPartEnd.
+        now = now.addingTimeInterval(60)
+        let fg2 = controller.attachPart(state: .foreground, startTime: now)
+        XCTAssertEqual(fg2.id, userSession.id)
+        XCTAssertEqual(fg2.partIndex, 3)
+        XCTAssertNil(fg2.lastForegroundPartEnd)
+
+        // bg part bumps to 4 and preserves the (now-nil) lastForegroundPartEnd.
+        now = now.addingTimeInterval(60)
+        let bg2 = controller.attachPart(state: .background, startTime: now)
+        XCTAssertEqual(bg2.id, userSession.id)
+        XCTAssertEqual(bg2.partIndex, 4)
+        XCTAssertNil(bg2.lastForegroundPartEnd)
+    }
+
     // MARK: - bootstrap
 
     func testBootstrap_emptyStorage_leavesNoActiveUserSession() {
