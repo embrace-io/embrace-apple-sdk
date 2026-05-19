@@ -94,6 +94,108 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertNil(second.lastForegroundPartEnd, "Inactivity cutoff cleared at part start")
     }
 
+    func testAttachPart_backgroundJoiningActiveUserSession_preservesLastForegroundPartEnd() {
+        // Background parts must preserve `lastForegroundPartEnd` so the next foreground
+        // transition can still apply the bg-split cutoff math. This is the `bumping(partIndex:)`
+        // path, versus `cleared(partIndex:)` for foreground.
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+        let fgEnd = now.addingTimeInterval(60)
+        controller.markForegroundPartEnded(at: fgEnd)
+        XCTAssertEqual(controller.currentUserSession?.lastForegroundPartEnd, fgEnd)
+
+        now = now.addingTimeInterval(120)
+        let second = controller.attachPart(state: .background, startTime: now)
+
+        XCTAssertEqual(second.id, first.id)
+        XCTAssertEqual(second.partIndex, 2)
+        XCTAssertEqual(second.lastForegroundPartEnd, fgEnd, "bg part must preserve fg cutoff")
+        XCTAssertEqual(controller.currentUserSession?.lastForegroundPartEnd, fgEnd)
+    }
+
+    func testAttachPart_backgroundAsFirstPartOfNewUserSession() {
+        // When no user session is active, a bg part still starts a brand-new user session
+        // with partIndex == 1 and no inactivity cutoff.
+        let controller = makeController()
+        let snapshot = controller.attachPart(state: .background, startTime: now)
+
+        XCTAssertEqual(snapshot.partIndex, 1)
+        XCTAssertNil(snapshot.lastForegroundPartEnd)
+        XCTAssertEqual(snapshot.startTime, now)
+        XCTAssertNil(snapshot.endTime)
+        XCTAssertNil(snapshot.terminationReason)
+    }
+
+    func testAttachPart_backgroundExpiredByMaxDuration_endsAndCreatesNew() {
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+
+        var captured: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured = snap
+            return true
+        }
+
+        // jump 13h — past 12h max duration; next part is background
+        now = now.addingTimeInterval(13 * 3600)
+        let second = controller.attachPart(state: .background, startTime: now)
+
+        XCTAssertNotEqual(second.id, first.id)
+        XCTAssertEqual(second.partIndex, 1)
+
+        wait(for: [endExp], timeout: 1)
+        XCTAssertEqual(captured?.terminationReason, .maxDurationReached)
+        XCTAssertEqual(captured?.endTime, now)
+    }
+
+    func testAttachPart_backgroundExpiredByInactivity_endsAndCreatesNew() {
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+        controller.markForegroundPartEnded(at: now.addingTimeInterval(300))
+
+        var captured: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured = snap
+            return true
+        }
+
+        // next part is bg, 31min after fg-end → past 30min inactivity timeout
+        now = now.addingTimeInterval(300 + 31 * 60)
+        let second = controller.attachPart(state: .background, startTime: now)
+
+        XCTAssertNotEqual(second.id, first.id)
+        XCTAssertEqual(second.partIndex, 1)
+
+        wait(for: [endExp], timeout: 1)
+        XCTAssertEqual(captured?.terminationReason, .inactivity)
+        XCTAssertEqual(captured?.endTime, now)
+    }
+
+    func testAttachPart_backgroundClockAnomaly_endsAndCreatesNew() {
+        let controller = makeController()
+        let first = controller.attachPart(state: .foreground, startTime: now)
+
+        var captured: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == first.id else { return false }
+            captured = snap
+            return true
+        }
+
+        // device clock moves backward; next part is bg
+        now = now.addingTimeInterval(-3600)
+        let second = controller.attachPart(state: .background, startTime: now)
+
+        XCTAssertNotEqual(second.id, first.id)
+        XCTAssertEqual(second.partIndex, 1)
+
+        wait(for: [endExp], timeout: 1)
+        XCTAssertEqual(captured?.terminationReason, .clockAnomaly)
+        XCTAssertEqual(captured?.endTime, now)
+    }
+
     func testAttachPart_expiredByMaxDuration_endsAndCreatesNew() {
         let controller = makeController()
         let first = controller.attachPart(state: .foreground, startTime: now)
