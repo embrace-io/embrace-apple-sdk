@@ -240,6 +240,81 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertNil(controller.currentUserSession)
     }
 
+    func testBootstrap_expiredSnapshot_backfillsTerminationReasonOnLatestPart() throws {
+        // Need a SessionController wired in so backfillTerminationReasonOnLatestPart can write
+        // through to storage. The mock config keeps default cutoffs (12h/30min).
+        let realSessionController = SessionController(storage: storage, upload: nil, config: nil)
+        realSessionController.sdkStateProvider = MockEmbraceSDKStateProvider()
+        realSessionController.otel = MockOTelSignalsHandler()
+
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: now.addingTimeInterval(-13 * 3600),
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: now.addingTimeInterval(-13 * 3600),
+            userSessionMaxDuration: Self.defaultMax,
+            userSessionInactivityTimeout: Self.defaultInactivity,
+            userSessionPartIndex: 1
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        let controller = makeController()
+        controller.sessionController = realSessionController
+        controller.bootstrap()
+
+        XCTAssertNil(controller.currentUserSession)
+
+        // Wait for the async backfill to land.
+        let drained = expectation(description: "backfill landed")
+        storage.coreData.performAsyncOperation { _ in drained.fulfill() }
+        wait(for: [drained], timeout: 1)
+
+        let stored = storage.fetchSession(id: TestConstants.sessionId)
+        XCTAssertEqual(stored?.userSessionTerminationReason, .maxDurationReached)
+    }
+
+    func testBootstrap_expiredSnapshot_doesNotOverwriteExistingTerminationReason() throws {
+        let realSessionController = SessionController(storage: storage, upload: nil, config: nil)
+        realSessionController.sdkStateProvider = MockEmbraceSDKStateProvider()
+        realSessionController.otel = MockOTelSignalsHandler()
+
+        // Prior process recorded `.manual` on the last part before dying.
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: now.addingTimeInterval(-13 * 3600),
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: now.addingTimeInterval(-13 * 3600),
+            userSessionMaxDuration: Self.defaultMax,
+            userSessionInactivityTimeout: Self.defaultInactivity,
+            userSessionPartIndex: 1,
+            userSessionTerminationReason: .manual
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        let controller = makeController()
+        controller.sessionController = realSessionController
+        controller.bootstrap()
+
+        // Drain.
+        let drained = expectation(description: "drained")
+        storage.coreData.performAsyncOperation { _ in drained.fulfill() }
+        wait(for: [drained], timeout: 1)
+
+        // .manual stands; bootstrap's .maxDurationReached did not overwrite it.
+        let stored = storage.fetchSession(id: TestConstants.sessionId)
+        XCTAssertEqual(stored?.userSessionTerminationReason, .manual)
+    }
+
     func testBootstrap_clockAnomaly_dropsSnapshot() {
         let exp = expectation(description: "addSession")
         storage.addSession(
