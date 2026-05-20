@@ -2,8 +2,11 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceSemantics
 import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
 
 extension Dictionary where Key == String, Value == EmbraceAttributeValue {
 
