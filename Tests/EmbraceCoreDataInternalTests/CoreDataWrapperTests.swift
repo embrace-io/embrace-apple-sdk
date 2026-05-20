@@ -42,8 +42,16 @@ class CoreDataWrapperTests: XCTestCase {
     }
 
     func test_init_throwsOnFailingCreation() {
-        let url = URL(fileURLWithPath: "/var/root")
-        let storageMechanism: StorageMechanism = .onDisk(name: testName, baseURL: url, journalMode: .delete)
+        // Place a regular file at `blocker`, then pass `blocker/inner` as baseURL.
+        // CoreDataWrapper calls createDirectory(at: baseURL, withIntermediateDirectories: true),
+        // which fails immediately because `blocker` is a file. This avoids CoreData's
+        // permission-denied recovery loop, which emits `error:` lines to stderr that CI
+        // surfaces as false job failures.
+        let blocker = FileManager.default.temporaryDirectory
+            .appendingPathComponent("blocker-\(UUID().uuidString)")
+        try? "x".data(using: .utf8)?.write(to: blocker)
+        let tmp = blocker.appendingPathComponent("inner", isDirectory: true)
+        let storageMechanism: StorageMechanism = .onDisk(name: testName, baseURL: tmp, journalMode: .delete)
         let options = CoreDataWrapper.Options(
             storageMechanism: storageMechanism,
             enableBackgroundTasks: false,
