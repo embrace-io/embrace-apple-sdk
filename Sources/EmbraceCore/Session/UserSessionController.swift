@@ -151,16 +151,18 @@ final class UserSessionController {
     /// - Returns: The user-session snapshot the new part will belong to.
     @discardableResult
     func attachPart(state newPartState: SessionState, startTime: Date) -> EmbraceUserSession {
-        return _state.withLock { mutableState in
+        var pendingEnd: (snapshot: ImmutableUserSession, reason: TerminationReason)?
+
+        let snapshot: EmbraceUserSession = _state.withLock { mutableState in
 
             // No active user session -> start new one
             guard let snapshot = mutableState.session else {
                 return startNewUserSession(state: &mutableState, at: startTime)
             }
 
-            // Active user session should be terminated -> end current and start new one
+            // Active user session should be terminated -> capture inputs, end after lock release
             if let reason = Self.expiryReason(snapshot: snapshot, at: startTime) {
-                internalEndUserSession(snapshot: snapshot, reason: reason, at: startTime)
+                pendingEnd = (snapshot, reason)
                 return startNewUserSession(state: &mutableState, at: startTime)
             }
 
@@ -175,6 +177,11 @@ final class UserSessionController {
             mutableState.session = updated
             return updated
         }
+
+        if let pendingEnd {
+            internalEndUserSession(snapshot: pendingEnd.snapshot, reason: pendingEnd.reason, at: startTime)
+        }
+        return snapshot
     }
 
     // MARK: - Foreground tracking
@@ -197,12 +204,18 @@ final class UserSessionController {
     /// Ends the active user session with the given reason. Idempotent — calling with no active
     /// user session is a silent no-op.
     func endActiveUserSession(reason: TerminationReason, at endTime: Date) {
+        var pendingEnd: ImmutableUserSession?
+
         _state.withLock { state in
             guard let snapshot = state.session else {
                 return
             }
-            internalEndUserSession(snapshot: snapshot, reason: reason, at: endTime)
+            pendingEnd = snapshot
             state.session = nil
+        }
+
+        if let pendingEnd {
+            internalEndUserSession(snapshot: pendingEnd, reason: reason, at: endTime)
         }
     }
 
@@ -246,7 +259,11 @@ final class UserSessionController {
     }
 
     /// Stamps the termination reason on the just-closed part record (if any) and posts the
-    /// internal notification. Caller holds the mutex.
+    /// `embraceUserSessionDidEnd` notification.
+    ///
+    /// - Important: MUST be called OUTSIDE `_state.withLock`. Performs a synchronous Core Data
+    ///   fetch via `backfillTerminationReasonOnLatestPart`; holding the mutex across it would
+    ///   block `currentUserSession` readers on the heartbeat and bg-split paths.
     private func internalEndUserSession(
         snapshot: ImmutableUserSession,
         reason: TerminationReason,
