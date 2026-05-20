@@ -2,16 +2,9 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceIO
+import EmbraceSemantics
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
-
-#if COCOAPODS
-    import EmbraceIO
-#else
-    import EmbraceCore
-    import EmbraceOTelInternal
-#endif
 
 @Observable
 class ReflexGameModel {
@@ -48,7 +41,7 @@ class ReflexGameModel {
     /// The time the reflexIcon was pressed
     private var reflexEndAt: Date?
 
-    private var reflexSpan: Span?
+    private var reflexSpan: EmbraceSpan?
 
     var reflexDuration: TimeInterval? {
         if let startAt = reflexStartAt, let endAt = reflexEndAt {
@@ -111,11 +104,11 @@ class ReflexGameModel {
         reflexEndAt = endAt
         if icon == reflexIcon {
             gameState = .testComplete
-            reflexSpan?.end(time: endAt)
+            reflexSpan?.end(endTime: endAt)
 
         } else {
             gameState = .testError
-            reflexSpan?.end(errorCode: .failure, time: endAt)
+            reflexSpan?.end(errorCode: .failure, endTime: endAt)
         }
 
         resetTimer = Timer.scheduledTimer(
@@ -151,9 +144,7 @@ class ReflexGameModel {
 }
 
 extension ReflexGameModel {
-    private func buildSpan(startTime: Date) -> Span? {
-        return Embrace.client?.buildSpan(name: "reflex-measure", type: .ux)
-            .setStartTime(time: startTime)
-            .startSpan()
+    private func buildSpan(startTime: Date) -> EmbraceSpan? {
+        EmbraceIO.shared.createSpan(name: "reflex-measure", type: .ux, startTime: startTime)
     }
 }

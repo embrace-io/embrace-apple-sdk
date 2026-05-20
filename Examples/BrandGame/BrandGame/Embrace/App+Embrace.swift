@@ -3,6 +3,7 @@
 //
 
 import EmbraceIO
+import EmbraceSemantics
 import StdoutExporter
 
 extension BrandGameApp {

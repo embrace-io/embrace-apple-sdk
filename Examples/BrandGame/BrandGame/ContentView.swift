@@ -19,7 +19,7 @@ struct ContentView: View {
             TapGesture(count: 3)
                 .onEnded { _ in
                     isShowingMenu = true
-                    try? Embrace.client?.metadata.addProperty(key: "user.menu.open", value: "true")
+                    EmbraceIO.shared.setProperty(key: "user.menu.open", value: "true", lifespan: .session)
                 }
         )
         .ignoresSafeArea(.all)
