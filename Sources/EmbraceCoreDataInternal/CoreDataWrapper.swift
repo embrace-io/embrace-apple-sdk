@@ -271,6 +271,20 @@ extension CoreDataWrapper {
             }
         }
     }
+
+    /// Asynchronously deletes requested records that satisfy the given request from the database and saves.
+    public func deleteRecordsAsync<T>(withRequest request: NSFetchRequest<T>) where T: NSManagedObject {
+        performAsyncOperation(save: true) {
+            do {
+                let records = try $0.fetch(request)
+                for record in records {
+                    $0.delete(record)
+                }
+            } catch {
+                self.logger.critical("Error deleting records async:\n\(error.localizedDescription)")
+            }
+        }
+    }
 }
 
 // MARK: - Internal saves

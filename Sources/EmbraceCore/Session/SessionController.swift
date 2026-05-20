@@ -229,7 +229,6 @@ class SessionController: SessionControllable {
             // to prevent race conditions.
             inProgressSessionSpan.end(time: now)
 
-            // Manually updating the span record synchronously.
             storage?.endSpan(
                 id: inProgressSessionSpan.context.spanId.hexString,
                 traceId: inProgressSessionSpan.context.traceId.hexString,
