@@ -57,7 +57,6 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
         button.tap()
     }
 
-
     func test_initStartup_PreMain_Span() {
         selectMetadataTest(.startProcess)
         evaluateTestResults(app)

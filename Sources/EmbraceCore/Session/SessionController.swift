@@ -219,8 +219,9 @@ class SessionController: SessionControllable {
             NotificationCenter.default.post(name: .embraceSessionWillEnd, object: mainQueueSession)
         }
 
-        // end log batches
-        logBatcher?.forceEndCurrentBatch(waitUntilFinished: true)
+        // end log batches — session ID captured now so batchFinished attributes correctly
+        // even if it runs after the session has been swapped.
+        logBatcher?.forceEndCurrentBatch(waitUntilFinished: false, sessionId: inProgressSession.id)
 
         // end span
         if let inProgressSessionSpan {

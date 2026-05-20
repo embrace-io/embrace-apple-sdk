@@ -461,9 +461,9 @@ class SpyLogBatcher: LogBatcher {
     }
 
     private(set) var didCallForceEndCurrentBatch: Bool = false
-    private(set) var forceEndCurrentBatchParameters: (Bool)?
-    func forceEndCurrentBatch(waitUntilFinished: Bool) {
-        forceEndCurrentBatchParameters = (waitUntilFinished)
+    private(set) var forceEndCurrentBatchParameters: (waitUntilFinished: Bool, sessionId: EmbraceIdentifier?)?
+    func forceEndCurrentBatch(waitUntilFinished: Bool, sessionId: EmbraceIdentifier?) {
+        forceEndCurrentBatchParameters = (waitUntilFinished, sessionId)
         didCallForceEndCurrentBatch = true
         self.renewBatch(withLogs: [])
     }

@@ -117,7 +117,6 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         evaluateTestResults(app)
     }
 
-
     func test_logCapture_trace() {
 
         enterCustomMessage()
