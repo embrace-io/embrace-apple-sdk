@@ -15,12 +15,7 @@ struct BenchmarksApp: App {
         }
 
         do {
-            try Embrace.setup(
-                options: Embrace.Options(
-                    appId: "bench"
-                )
-            )
-            .start()
+            try EmbraceIO.setup(options: .withAppId("bench"))
         } catch {}
     }
 

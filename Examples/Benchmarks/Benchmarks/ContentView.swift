@@ -3,7 +3,6 @@
 //
 
 import Darwin
-@_spi(Private) import EmbraceCore
 import EmbraceIO
 import SwiftUI
 
@@ -16,6 +15,12 @@ struct ContentView: View {
         return sign * mantissa * pow(2.0, exponent)
     }
 
+    // TODO 7.0: restore the per-iteration and post-loop work-drain barrier that was
+    // `Embrace.client?.waitForAllWork()` on 6.x. The 7.0 public surface doesn't expose
+    // an equivalent, and `Embrace` is `package`-internal here. Until a drain is reachable
+    // (e.g. an `@_spi(Testing)` shim on `EmbraceIO`), the benchmark's pre/post measurement
+    // window no longer reliably contains Embrace's flush IO and its numbers should be
+    // treated as indicative rather than authoritative.
     var body: some View {
 
         VStack {
@@ -31,12 +36,8 @@ struct ContentView: View {
                             \(randomDoubleFullRange()),
                             \(randomDoubleFullRange()) #raw #record
                         """
-                    Embrace.client?.add(event: .breadcrumb(value))
-                    Embrace.client?.waitForAllWork()
+                    EmbraceIO.shared.addBreadcrumb(value)
                 }
-
-                // This will cause priority inversion but its for the greater good.
-                Embrace.client?.waitForAllWork()
             }
             .accessibilityIdentifier("logical-writes-test-button")
 
@@ -59,8 +60,7 @@ struct ContentView: View {
                             \(randomDoubleFullRange()),
                             \(randomDoubleFullRange()) #raw #record
                         """
-                    Embrace.client?.add(event: .breadcrumb(value))
-                    Embrace.client?.waitForAllWork()
+                    EmbraceIO.shared.addBreadcrumb(value)
                     #if DEBUG
                         let postWork = EnergyMeasurement.shared.logicalWrites()
                         let countLW = postWork.logicalWrites &- preWork.logicalWrites
@@ -72,9 +72,6 @@ struct ContentView: View {
                         allValuesPF.append(countPF)
                     #endif
                 }
-
-                // This will cause priority inversion but its for the greater good.
-                Embrace.client?.waitForAllWork()
 
                 #if DEBUG
                     let post = EnergyMeasurement.shared.logicalWrites()
