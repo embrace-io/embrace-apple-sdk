@@ -67,14 +67,11 @@ class LogsBatchTests: XCTestCase {
 
 extension LogsBatchTests {
     fileprivate func givenNonZeroLogLimits() {
-        givenLimits(
-            maxBatchAge: .random(in: 1..<100),
-            maxLogsPerBatch: .random(in: 1..<100)
-        )
+        givenLimits()
     }
 
     fileprivate func givenLimits(
-        maxBatchAge: Double = .random(in: 1..<100), maxLogsPerBatch: Int = .random(in: 1..<100)
+        maxBatchAge: Double = 60, maxLogsPerBatch: Int = 100
     ) {
         limits = .init(maxBatchAge: maxBatchAge, maxLogsPerBatch: maxLogsPerBatch)
     }

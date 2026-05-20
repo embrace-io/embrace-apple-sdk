@@ -1,14 +1,19 @@
 name: Run xcodebuild
 description: >
-  Runs `xcodebuild build` or `xcodebuild test` against a workspace, with a
-  destination resolved from `platform`+`platform-version`, optional sanitizer
-  and code-coverage flags, output piped through xcbeautify, and an inline
-  xcresult summary on failure. Replaces mxcl/xcodebuild for Node-24 readiness.
+  Runs `xcodebuild build` or `xcodebuild test` against a workspace or project,
+  with a destination resolved from `platform`+`platform-version`, optional
+  sanitizer and code-coverage flags, output piped through xcbeautify, and an
+  inline xcresult summary on failure.
 
 inputs:
   workspace:
-    description: Path to the .xcworkspace.
-    required: true
+    description: Path to the .xcworkspace. Mutually exclusive with `project`.
+    required: false
+    default: ''
+  project:
+    description: Path to the .xcodeproj. Mutually exclusive with `workspace`.
+    required: false
+    default: ''
   scheme:
     description: Scheme to build/test.
     required: true
@@ -47,6 +52,7 @@ runs:
       shell: bash
       env:
         WORKSPACE: ${{ inputs.workspace }}
+        PROJECT: ${{ inputs.project }}
         SCHEME: ${{ inputs.scheme }}
         PLATFORM: ${{ inputs.platform }}
         PLATFORM_VERSION: ${{ inputs.platform-version }}
@@ -58,6 +64,17 @@ runs:
         XCODEBUILD_LOG: ${{ runner.temp }}/xcodebuild.log
       run: |
         set -euo pipefail
+
+        # Exactly one of workspace/project must be provided — they map to
+        # mutually exclusive xcodebuild flags.
+        if [[ -n "$WORKSPACE" && -n "$PROJECT" ]]; then
+          echo "::error::run-xcodebuild: set either 'workspace' or 'project', not both"
+          exit 1
+        fi
+        if [[ -z "$WORKSPACE" && -z "$PROJECT" ]]; then
+          echo "::error::run-xcodebuild: one of 'workspace' or 'project' is required"
+          exit 1
+        fi
 
         # An unset matrix field interpolates to empty string in the caller, which
         # would land here as `OS=,name=...` — coerce empty back to `latest`.
@@ -77,12 +94,16 @@ runs:
         # SwiftPM plugins and Swift macros, which would hang non-interactive CI.
         # These are the local equivalent of mxcl/xcodebuild's `trust-plugins: false`.
         ARGS=(
-          -workspace "$WORKSPACE"
           -scheme "$SCHEME"
           -destination "$DESTINATION"
           -skipPackagePluginValidation
           -skipMacroValidation
         )
+        if [[ -n "$WORKSPACE" ]]; then
+          ARGS=(-workspace "$WORKSPACE" "${ARGS[@]}")
+        else
+          ARGS=(-project "$PROJECT" "${ARGS[@]}")
+        fi
 
         if [[ "$XCODE_ACTION" == "test" ]]; then
           rm -rf "$RESULT_BUNDLE_PATH"
@@ -90,6 +111,13 @@ runs:
           if [[ "$CODE_COVERAGE" == "true" ]]; then
             ARGS+=(-enableCodeCoverage YES)
           fi
+        fi
+
+        # GitHub runners have no signing identity, so `xcodebuild build` against
+        # an app target fails at the codesign phase without these. The `test`
+        # path doesn't trip this — its test-runner driver skips install/sign.
+        if [[ "$XCODE_ACTION" == "build" ]]; then
+          ARGS+=(CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO)
         fi
 
         case "$SANITIZER" in
@@ -162,7 +190,7 @@ runs:
       if: failure()
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        name: xcodebuild-log-${{ inputs.platform }}-${{ inputs.action }}-${{ inputs.sanitizer }}
+        name: xcodebuild-log-${{ inputs.scheme }}-${{ inputs.platform }}-${{ inputs.action }}-${{ inputs.sanitizer }}
         path: ${{ runner.temp }}/xcodebuild.log
         if-no-files-found: ignore
         retention-days: 7
