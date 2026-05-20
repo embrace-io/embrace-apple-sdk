@@ -284,7 +284,9 @@ class SessionController: SessionControllable {
 
         // post notification
         if let session = sessionInfo.session {
-            NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
+            }
         }
 
         return sessionInfo.session
@@ -324,7 +326,6 @@ class SessionController: SessionControllable {
         otel?.autoTerminateSpans()
 
         // post public notification
-        // This is behind a lock, this is a problem, so we move it to the main queue so it runs after this code.
         let mainQueueSession = inProgressSession
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .embraceSessionPartWillEnd, object: mainQueueSession)

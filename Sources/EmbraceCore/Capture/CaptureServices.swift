@@ -106,8 +106,15 @@ final class CaptureServices {
             object: nil
         )
 
+        // Set the crash-reporter's user-session id when a new user session begins.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onUserSessionDidStart),
+            name: Notification.Name.embraceUserSessionDidStart,
+            object: nil
+        )
+
         // Clear the crash-reporter's user-session id when the active user session ends.
-        // The next part start will repopulate it via `onSessionStart`.
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onUserSessionDidEnd),
@@ -180,13 +187,18 @@ final class CaptureServices {
     @objc func onSessionStart(notification: Notification) {
         if let session = notification.object as? EmbraceSession {
             crashReporter?.currentSessionId = session.id.stringValue
-            crashReporter?.currentUserSessionId = session.userSessionId?.stringValue
         }
         for service in services { service.onSessionStart() }
     }
 
     @objc func onSessionWillEnd(notification: Notification) {
         for service in services { service.onSessionWillEnd() }
+    }
+
+    @objc func onUserSessionDidStart(notification: Notification) {
+        if let userSession = notification.object as? EmbraceUserSession {
+            crashReporter?.currentUserSessionId = userSession.id.stringValue
+        }
     }
 
     @objc func onUserSessionDidEnd(notification: Notification) {
