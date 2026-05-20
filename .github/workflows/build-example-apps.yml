@@ -17,36 +17,39 @@ jobs:
       fail-fast: false
       matrix:
         xcode_version: ["26.0"]
+    env:
+      PROJECT_DIR: ./Examples/BrandGame
+      PROJECT_NAME: BrandGame.xcodeproj
+      SCHEME: BrandGame
     steps:
-      - name: Select Xcode
-        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
-        run: |
-          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
-          xcodebuild -version
-
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         timeout-minutes: 4
         with:
           persist-credentials: false
 
-      - name: xcodebuild
-        env:
-          PROJECT_DIR: ./Examples/BrandGame
-          PROJECT_NAME: BrandGame.xcodeproj
-          SCHEME: BrandGame
-          IS_XCTEST: true # Needed to disable SwiftLint -> SwiftSyntax plugin dependency build issue
+      - name: Check project exists
+        id: check
         run: |
-          set -o pipefail
+          if [[ ! -d "$PROJECT_DIR/$PROJECT_NAME" ]]; then
+            echo "::notice title=Example app not on this branch::$PROJECT_DIR/$PROJECT_NAME is absent — skipping the build"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
 
-          BUILD_DIR="$PROJECT_DIR/.build"
+      - name: Select Xcode
+        if: steps.check.outputs.skip != 'true'
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
+          xcodebuild -version
 
-          xcodebuild build -project "$PROJECT_DIR/$PROJECT_NAME" \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
-            -scheme $SCHEME \
-            -sdk iphonesimulator \
-            -derivedDataPath $BUILD_DIR/DerivedData \
-            -clonedSourcePackagesDirPath $BUILD_DIR \
-          | xcpretty
+      - name: Build
+        if: steps.check.outputs.skip != 'true'
+        uses: ./.github/actions/run-xcodebuild
+        with:
+          project: ${{ env.PROJECT_DIR }}/${{ env.PROJECT_NAME }}
+          scheme: ${{ env.SCHEME }}
+          platform: iOS
+          action: build
 
   build-demoobjc-app:
     name: Build Objc Demo App
@@ -56,33 +59,36 @@ jobs:
       fail-fast: false
       matrix:
         xcode_version: ["26.0"]
+    env:
+      PROJECT_DIR: ./Examples/DemoObjectiveC
+      PROJECT_NAME: DemoObjectiveC.xcodeproj
+      SCHEME: DemoObjectiveC
     steps:
-      - name: Select Xcode
-        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
-        run: |
-          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
-          xcodebuild -version
-
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         timeout-minutes: 4
         with:
           persist-credentials: false
 
-      - name: xcodebuild
-        env:
-          PROJECT_DIR: ./Examples/DemoObjectiveC
-          PROJECT_NAME: DemoObjectiveC.xcodeproj
-          SCHEME: DemoObjectiveC
-          IS_XCTEST: true # Needed to disable SwiftLint -> SwiftSyntax plugin dependency build issue
+      - name: Check project exists
+        id: check
         run: |
-          set -o pipefail
+          if [[ ! -d "$PROJECT_DIR/$PROJECT_NAME" ]]; then
+            echo "::notice title=Example app not on this branch::$PROJECT_DIR/$PROJECT_NAME is absent — skipping the build"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
 
-          BUILD_DIR="$PROJECT_DIR/.build"
+      - name: Select Xcode
+        if: steps.check.outputs.skip != 'true'
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
+        run: |
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
+          xcodebuild -version
 
-          xcodebuild build -project "$PROJECT_DIR/$PROJECT_NAME" \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO \
-            -scheme $SCHEME \
-            -sdk iphonesimulator \
-            -derivedDataPath $BUILD_DIR/DerivedData \
-            -clonedSourcePackagesDirPath $BUILD_DIR \
-          | xcpretty
+      - name: Build
+        if: steps.check.outputs.skip != 'true'
+        uses: ./.github/actions/run-xcodebuild
+        with:
+          project: ${{ env.PROJECT_DIR }}/${{ env.PROJECT_NAME }}
+          scheme: ${{ env.SCHEME }}
+          platform: iOS
+          action: build
