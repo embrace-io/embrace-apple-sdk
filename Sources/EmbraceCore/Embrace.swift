@@ -425,6 +425,21 @@ package class Embrace {
         Embrace.resetUploadCache = true
     }
 
+    /// Waits synchronously for all queued SDK work to drain.
+    ///
+    /// Drains the internal processing queue and the OTel bridge's span pipeline so the SDK
+    /// is idle before the caller continues. Intended for benchmarks and tests — exposed
+    /// publicly via `@_spi(Private)` on `EmbraceIO`.
+    package func waitForAllWork() {
+        // Don't use `asyncAndWait(::)` — it crashes on iOS 16.4 sim. Radar: FB21077492.
+        let group = DispatchGroup()
+
+        processingQueue.async(group: group, flags: .assignCurrentContext) {}
+        group.wait()
+
+        otel.bridge.waitForAllWork()
+    }
+
     /// Called every time the remote config changes
     @objc private func onConfigUpdated() {
         Embrace.logger.limits = config.internalLogLimits

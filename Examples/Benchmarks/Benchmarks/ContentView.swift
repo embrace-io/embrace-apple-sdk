@@ -3,7 +3,7 @@
 //
 
 import Darwin
-import EmbraceIO
+@_spi(Private) import EmbraceIO
 import SwiftUI
 
 struct ContentView: View {
@@ -15,12 +15,6 @@ struct ContentView: View {
         return sign * mantissa * pow(2.0, exponent)
     }
 
-    // TODO 7.0: restore the per-iteration and post-loop work-drain barrier that was
-    // `Embrace.client?.waitForAllWork()` on 6.x. The 7.0 public surface doesn't expose
-    // an equivalent, and `Embrace` is `package`-internal here. Until a drain is reachable
-    // (e.g. an `@_spi(Testing)` shim on `EmbraceIO`), the benchmark's pre/post measurement
-    // window no longer reliably contains Embrace's flush IO and its numbers should be
-    // treated as indicative rather than authoritative.
     var body: some View {
 
         VStack {
@@ -37,7 +31,11 @@ struct ContentView: View {
                             \(randomDoubleFullRange()) #raw #record
                         """
                     EmbraceIO.shared.addBreadcrumb(value)
+                    EmbraceIO.shared.waitForAllWork()
                 }
+
+                // This will cause priority inversion but its for the greater good.
+                EmbraceIO.shared.waitForAllWork()
             }
             .accessibilityIdentifier("logical-writes-test-button")
 
@@ -61,6 +59,7 @@ struct ContentView: View {
                             \(randomDoubleFullRange()) #raw #record
                         """
                     EmbraceIO.shared.addBreadcrumb(value)
+                    EmbraceIO.shared.waitForAllWork()
                     #if DEBUG
                         let postWork = EnergyMeasurement.shared.logicalWrites()
                         let countLW = postWork.logicalWrites &- preWork.logicalWrites
@@ -72,6 +71,9 @@ struct ContentView: View {
                         allValuesPF.append(countPF)
                     #endif
                 }
+
+                // This will cause priority inversion but its for the greater good.
+                EmbraceIO.shared.waitForAllWork()
 
                 #if DEBUG
                     let post = EnergyMeasurement.shared.logicalWrites()

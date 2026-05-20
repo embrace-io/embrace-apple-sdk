@@ -104,6 +104,15 @@ class EmbraceSpanProcessor: SpanProcessor {
         }
     }
 
+    /// Drains the internal processor queue synchronously by enqueuing an empty barrier and
+    /// waiting. Used by benchmark/test harnesses to ensure all queued span work is processed
+    /// before measurements are taken.
+    func waitForAllWork() {
+        let group = DispatchGroup()
+        processorQueue.async(group: group, flags: .assignCurrentContext) {}
+        group.wait()
+    }
+
     func shutdown(explicitTimeout: TimeInterval?) {
         processorQueue.sync {
             for var processor in childProcessors {
