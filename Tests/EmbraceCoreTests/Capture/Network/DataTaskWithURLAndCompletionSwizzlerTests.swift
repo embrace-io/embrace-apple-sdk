@@ -21,6 +21,7 @@ class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
+        try? sut2.unswizzleInstanceMethod()
     }
 
     func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
