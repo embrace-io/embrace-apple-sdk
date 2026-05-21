@@ -25,6 +25,9 @@ class EmbraceUploadOperationTests: XCTestCase {
     var queue: DispatchQueue!
 
     override func setUpWithError() throws {
+        // EmbraceHTTPMock state is process-wide; reset between methods.
+        EmbraceHTTPMock.clearRequests()
+
         let urlSessionconfig = URLSessionConfiguration.ephemeral
         urlSessionconfig.httpMaximumConnectionsPerHost = .max
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
