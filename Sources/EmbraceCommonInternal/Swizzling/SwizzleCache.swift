@@ -52,15 +52,15 @@ import Foundation
         }()
 
         /// Signal raised when `addMethodImplementation` sees a duplicate install for the same
-        /// `(method, baseClass, swizzler)` key. Default fires `assertionFailure`. Tests that
-        /// intentionally exercise the duplicate-install contract override this (e.g. to record
-        /// the call) and are responsible for any logging they need.
+        /// `(method, baseClass, swizzler)` key. Default is a no-op — leak detection in
+        /// swizzler tests is handled per-test via `assertNoNewSwizzleCacheEntries`, and the
+        /// duplicate path is a legitimate pattern for any test that re-starts Embrace via
+        /// `Embrace.setup`. Tests that intentionally exercise the duplicate-install contract
+        /// override this to record the message.
         ///
         /// Whether or not this signal traps, the duplicate write is always skipped — the cached
         /// "true original" stays intact so a subsequent unswizzle still restores it correctly.
-        public static var onDuplicateInstall: (String) -> Void = { message in
-            assertionFailure(message)
-        }
+        public static var onDuplicateInstall: (String) -> Void = { _ in }
 
         private let lock = NSLock()
         private var originalImplementations: [OriginalMethod: IMP] = [:]
@@ -103,9 +103,25 @@ import Foundation
         public var residueDescription: [String] {
             lock.lock()
             defer { lock.unlock() }
-            return originalImplementations.keys.map { key in
-                "\(key.swizzlerClass) on \(NSStringFromClass(key.baseClass)).\(NSStringFromSelector(method_getName(key.method)))"
-            }.sorted()
+            return originalImplementations.keys.map(Self.identifier(for:)).sorted()
+        }
+
+        /// Restores the original IMP for, and removes from the cache, every entry whose
+        /// identifier is NOT present in `baseline`. Intended for capture-service tests
+        /// that install via `EmbraceSwizzler` directly and have no uninstall API; pair
+        /// it with a `residueDescription` snapshot taken in `setUp` so unrelated entries
+        /// from previous test classes are left intact.
+        public func restoreEntries(addedSince baseline: Set<String>) {
+            lock.lock()
+            defer { lock.unlock() }
+            for (key, imp) in originalImplementations where !baseline.contains(Self.identifier(for: key)) {
+                method_setImplementation(key.method, imp)
+                originalImplementations.removeValue(forKey: key)
+            }
+        }
+
+        fileprivate static func identifier(for key: OriginalMethod) -> String {
+            "\(key.swizzlerClass) on \(NSStringFromClass(key.baseClass)).\(NSStringFromSelector(method_getName(key.method)))"
         }
 
         public func getOriginalMethodImplementation(

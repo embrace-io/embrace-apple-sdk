@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
+final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
     private var otherSwizzler: DummyURLSessionInitWithDelegateSwizzler?
     private var urlSessionCaptureService: URLSessionCaptureService!
     private var openTelemetry: MockEmbraceOpenTelemetry!
@@ -21,7 +21,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
     override func tearDownWithError() throws {
         if urlSessionCaptureService != nil { unswizzleDefaultCaptureService() }
         if otherSwizzler != nil { unswizzleOtherSwizzler() }
-        assertSwizzleCacheEmpty()
+        try super.tearDownWithError()
     }
 
     // MARK: - Setup

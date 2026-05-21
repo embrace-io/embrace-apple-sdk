@@ -8,14 +8,14 @@ import XCTest
 @testable import EmbraceCommonInternal
 @testable import EmbraceCore
 
-class SessionTaskResumeSwizzlerTests: XCTestCase {
+class SessionTaskResumeSwizzlerTests: SwizzlerTestCase {
     private var session: URLSession!
     private var sut: SessionTaskResumeSwizzler!
     private var handler: MockURLSessionTaskHandler!
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
-        assertSwizzleCacheEmpty()
+        try super.tearDownWithError()
     }
 
     func test_afterInstall_taskWillBeCreatedInHandler() async throws {

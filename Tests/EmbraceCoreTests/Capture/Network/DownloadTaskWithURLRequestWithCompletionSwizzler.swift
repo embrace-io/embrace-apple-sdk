@@ -7,7 +7,7 @@ import XCTest
 
 @testable import EmbraceCore
 
-class DownloadTaskWithURLWithCompletionSwizzlerTests: XCTestCase {
+class DownloadTaskWithURLWithCompletionSwizzlerTests: SwizzlerTestCase {
     private var handler: MockURLSessionTaskHandler!
     private var sut: DownloadTaskWithURLRequestWithCompletionSwizzler!
     private var session: URLSession!
@@ -17,7 +17,7 @@ class DownloadTaskWithURLWithCompletionSwizzlerTests: XCTestCase {
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
-        assertSwizzleCacheEmpty()
+        try super.tearDownWithError()
     }
 
     func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {

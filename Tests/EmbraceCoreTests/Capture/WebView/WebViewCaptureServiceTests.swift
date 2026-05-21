@@ -11,14 +11,20 @@
     import EmbraceCommonInternal
 
     @MainActor
-    class WebViewCaptureServiceTests: XCTestCase {
+    class WebViewCaptureServiceTests: SwizzlerTestCase {
 
         let otel: MockEmbraceOpenTelemetry! = MockEmbraceOpenTelemetry()
         let service: WebViewCaptureService! = WebViewCaptureService()
         static let pids: EmbraceMutex<Set<Int32>> = EmbraceMutex(Set<Int32>())
 
-        override func setUp() {
+        override func setUpWithError() throws {
+            try super.setUpWithError()
             service.install(otel: otel)
+        }
+
+        override func tearDownWithError() throws {
+            restoreSwizzleCacheAdditions()
+            try super.tearDownWithError()
         }
 
         internal func checkTestAllowed() throws {

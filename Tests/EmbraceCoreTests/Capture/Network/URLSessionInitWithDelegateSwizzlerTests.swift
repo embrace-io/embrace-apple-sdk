@@ -9,7 +9,7 @@ import XCTest
 
 class DummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 
-class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
+class URLSessionInitWithDelegateSwizzlerTests: SwizzlerTestCase {
     private var sut: URLSessionInitWithDelegateSwizzler!
     private var session: URLSession!
     private var originalDelegate: URLSessionDelegate!
@@ -18,7 +18,7 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
         try? sut.unswizzleClassMethod()
-        assertSwizzleCacheEmpty()
+        try super.tearDownWithError()
     }
 
     func testAfterInstall_onCreateURLSessionWithDelegate_originalShouldBeWrapped() throws {
