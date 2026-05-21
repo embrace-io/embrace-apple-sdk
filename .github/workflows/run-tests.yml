@@ -40,14 +40,15 @@ jobs:
   run-tests:
     needs: prepare
     name: Test ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}, sanitizer ${{ matrix.sanitizer }}
-    timeout-minutes: 30
+    # 20 min: typical run is ~6 min compile + ~5 min tests. Per-test timeouts
+    # (see .github/actions/run-xcodebuild) catch single-method hangs; this
+    # job-level cap is the backstop for XCTest infra / parallel-worker hangs.
+    timeout-minutes: 20
     runs-on: macos-${{ matrix.macos-version }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
-    permissions:
-      checks: write
     steps:
       - name: Select Xcode
         run: |
@@ -89,7 +90,6 @@ jobs:
 
       - name: Run Unit Tests
         uses: ./.github/actions/run-xcodebuild
-        timeout-minutes: 80
         with:
           workspace: ".swiftpm/xcode/package.xcworkspace"
           scheme: EmbraceIO-Package
@@ -101,8 +101,8 @@ jobs:
           code-coverage: 'true'
           result-bundle-path: ./test.xcresult
 
-      - name: Upload xcresult on failure
-        if: failure()
+      - name: Upload xcresult on failure or cancellation
+        if: failure() || cancelled()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: xcresult-${{ matrix.platform }}-xcode${{ matrix.xcode_version }}-${{ matrix.sanitizer }}
@@ -114,7 +114,7 @@ jobs:
       # without downloading the ~75 MB xcresult artifact — especially
       # relevant for TSan aborts.
       - name: Surface failure summary from xcresult
-        if: failure()
+        if: failure() || cancelled()
         run: |
           if [ ! -d test.xcresult ]; then
             echo "test.xcresult not found in $(pwd); skipping summary."

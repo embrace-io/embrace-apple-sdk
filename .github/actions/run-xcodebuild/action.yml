@@ -111,6 +111,15 @@ runs:
           if [[ "$CODE_COVERAGE" == "true" ]]; then
             ARGS+=(-enableCodeCoverage YES)
           fi
+
+          # Per-test timeouts. A hung XCTest method otherwise eats the
+          # job-level cap and leaves no usable xcresult. Not enforced for
+          # hangs outside the test method body (XCTest infra waits, etc.).
+          ARGS+=(
+            -test-timeouts-enabled YES
+            -default-test-execution-time-allowance 120
+            -maximum-test-execution-time-allowance 600
+          )
         fi
 
         # GitHub runners have no signing identity, so `xcodebuild build` against
@@ -142,7 +151,7 @@ runs:
           | xcbeautify --renderer github-actions
 
     - name: Summarize xcodebuild log
-      if: failure()
+      if: failure() || cancelled()
       shell: bash
       env:
         XCODEBUILD_LOG: ${{ runner.temp }}/xcodebuild.log
@@ -187,7 +196,7 @@ runs:
         } >> "$GITHUB_STEP_SUMMARY"
 
     - name: Upload xcodebuild log on failure
-      if: failure()
+      if: failure() || cancelled()
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: xcodebuild-log-${{ inputs.scheme }}-${{ inputs.platform }}-${{ inputs.action }}-${{ inputs.sanitizer }}
