@@ -76,14 +76,16 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     override func cancel() {
         super.cancel()
 
-        let (taskToCancel, attemptCount, shouldFire) = state.withLock { s -> (URLSessionDataTask?, Int, Bool) in
-            guard !s.hasFinished else {
-                return (nil, s.attemptCount, false)
+        let (taskToCancel, attemptCount, shouldFire) = state.withLock {
+            guard !$0.hasFinished else {
+                return (nil, $0.attemptCount, false)
             }
+            
             let taskToCancel = s.task
-            s.task = nil
-            s.hasFinished = true
-            return (taskToCancel, s.attemptCount, true)
+            $0.task = nil
+            $0.hasFinished = true
+            
+            return (taskToCancel, $0.attemptCount, true)
         }
 
         taskToCancel?.cancel()
@@ -126,10 +128,12 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
             })
 
         // If operation finished meanwhile, cancel the new task immediately.
-        let started = state.withLock { s -> Bool in
-            guard !s.hasFinished else { return false }
-            s.attemptCount = nextAttemptCount
-            s.task = newTask
+        let started = state.withLock {
+            guard !$0.hasFinished else { return false }
+            
+            $0.attemptCount = nextAttemptCount
+            $0.task = newTask
+            
             return true
         }
 
@@ -148,7 +152,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         retryCount: Int
     ) {
         // Fast path: operation already completed or cancelled.
-        if state.withLock({ $0.hasFinished }) { return }
+        guard !state.safeValue.hasFinished else { return }
 
         // Check retry budget: -1 = unlimited, 0 = none, >0 = that many remaining
         let hasRetryBudget = (retryCount != 0)
@@ -179,10 +183,13 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
             result = .failure
         }
 
-        let (shouldFire, attemptCount) = state.withLock { s -> (Bool, Int) in
-            guard !s.hasFinished else { return (false, s.attemptCount) }
-            s.hasFinished = true
-            return (true, s.attemptCount)
+        let (shouldFire, attemptCount) = state.withLock {
+            guard !$0.hasFinished else { 
+                return (false, $0.attemptCount)
+            }
+            
+            $0.hasFinished = true
+            return (true, $0.attemptCount)
         }
 
         if shouldFire {
