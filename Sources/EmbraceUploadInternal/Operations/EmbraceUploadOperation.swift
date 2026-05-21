@@ -76,16 +76,16 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     override func cancel() {
         super.cancel()
 
-        let (taskToCancel, attemptCount, shouldFire) = state.withLock {
-            guard !$0.hasFinished else {
-                return (nil, $0.attemptCount, false)
+        let (taskToCancel, attemptCount, shouldFire) = state.withLock { s -> (URLSessionDataTask?, Int, Bool) in
+            guard !s.hasFinished else {
+                return (nil, s.attemptCount, false)
             }
-            
+
             let taskToCancel = s.task
-            $0.task = nil
-            $0.hasFinished = true
-            
-            return (taskToCancel, $0.attemptCount, true)
+            s.task = nil
+            s.hasFinished = true
+
+            return (taskToCancel, s.attemptCount, true)
         }
 
         taskToCancel?.cancel()
@@ -127,20 +127,18 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
                 )
             })
 
-        // If operation finished meanwhile, cancel the new task immediately.
+        // If operation finished meanwhile, drop the unstarted task; it was never resumed.
         let started = state.withLock {
             guard !$0.hasFinished else { return false }
-            
+
             $0.attemptCount = nextAttemptCount
             $0.task = newTask
-            
+
             return true
         }
 
         if started {
             newTask.resume()
-        } else {
-            newTask.cancel()
         }
     }
 
@@ -184,10 +182,10 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         }
 
         let (shouldFire, attemptCount) = state.withLock {
-            guard !$0.hasFinished else { 
+            guard !$0.hasFinished else {
                 return (false, $0.attemptCount)
             }
-            
+
             $0.hasFinished = true
             return (true, $0.attemptCount)
         }
