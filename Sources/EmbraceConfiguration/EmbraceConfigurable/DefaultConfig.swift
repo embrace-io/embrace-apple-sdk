@@ -2,8 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceSemantics
 import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
 
 public class DefaultConfig: EmbraceConfigurable {
     public var hangLimits: HangLimits = HangLimits()
