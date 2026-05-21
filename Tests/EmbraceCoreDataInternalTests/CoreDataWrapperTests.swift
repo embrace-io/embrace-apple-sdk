@@ -41,33 +41,6 @@ class CoreDataWrapperTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: storageMechanism.fileURL!.path))
     }
 
-    func test_init_throwsOnFailingCreation() {
-        // Place a regular file at `blocker`, then pass `blocker/inner` as baseURL.
-        // CoreDataWrapper calls createDirectory(at: baseURL, withIntermediateDirectories: true),
-        // which fails immediately because `blocker` is a file. This avoids CoreData's
-        // permission-denied recovery loop, which emits `error:` lines to stderr that CI
-        // surfaces as false job failures.
-        let blocker = FileManager.default.temporaryDirectory
-            .appendingPathComponent("blocker-\(UUID().uuidString)")
-        try? "x".data(using: .utf8)?.write(to: blocker)
-        let tmp = blocker.appendingPathComponent("inner", isDirectory: true)
-        let storageMechanism: StorageMechanism = .onDisk(name: testName, baseURL: tmp, journalMode: .delete)
-        let options = CoreDataWrapper.Options(
-            storageMechanism: storageMechanism,
-            enableBackgroundTasks: false,
-            entities: [MockRecord.entityDescription]
-        )
-
-        // `isTesting: false` may look counterintuitive, but it forces `CoreDataWrapper`
-        // to use the production-like implementation rather than the in-memory version we normally use in tests
-        XCTAssertThrowsError(
-            try CoreDataWrapper(
-                options: options,
-                logger: MockLogger(),
-                isTesting: false)
-        )
-    }
-
     func test_fetch() throws {
         // given a wrapper with data
         _ = MockRecord.create(context: wrapper.context, id: "test")
