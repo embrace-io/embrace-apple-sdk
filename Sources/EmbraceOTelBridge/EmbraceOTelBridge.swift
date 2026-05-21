@@ -214,6 +214,10 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
         spanCache.withLock { $0[id] = nil }
     }
 
+    package func waitForAllWork() {
+        spanProcessor.waitForAllWork()
+    }
+
     package func createLog(_ log: EmbraceLog) {
         let logId = log.id
         // Track the ID so the inbound processor can skip it.

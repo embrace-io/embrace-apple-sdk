@@ -3,35 +3,34 @@
 //
 
 import EmbraceIO
+import EmbraceSemantics
 import StdoutExporter
 
 extension BrandGameApp {
     #if DEBUG
         // https://dash.embrace.io/app/dcdt4
-        var embraceOptions: Embrace.Options {
-            return .init(
-                appId: "dcdt4",
-                appGroupId: nil,
+        var embraceOptions: EmbraceIO.Options {
+            return .withAppId(
+                "dcdt4",
                 platform: .default,
-                endpoints: Embrace.Endpoints.fromInfoPlist(),
+                endpoints: EmbraceEndpoints.fromInfoPlist(),
                 logLevel: .debug,
-                export: otelExport
+                otel: otelOptions
             )
         }
 
-        private var otelExport: OpenTelemetryExport {
-            OpenTelemetryExport(
-                spanExporter: StdoutSpanExporter(isDebug: true),
-                logExporter: StdoutLogExporter(isDebug: true)
+        private var otelOptions: EmbraceIO.OTelOptions {
+            .init(
+                spanExporters: [StdoutSpanExporter(isDebug: true)],
+                logExporters: [StdoutLogExporter(isDebug: true)]
             )
         }
 
     #else
         // https://dash.embrace.io/app/kj9hd
-        var embraceOptions: Embrace.Options {
-            return .init(
-                appId: "kj9hd",
-                appGroupId: nil,
+        var embraceOptions: EmbraceIO.Options {
+            return .withAppId(
+                "kj9hd",
                 platform: .default
             )
         }

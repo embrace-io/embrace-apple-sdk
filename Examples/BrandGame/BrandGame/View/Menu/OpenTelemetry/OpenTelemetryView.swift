@@ -84,9 +84,11 @@ extension OpenTelemetryView {
     }
 
     fileprivate func getEmbraceTracer() throws -> Tracer {
-        guard let embrace = Embrace.client else { throw CreateTracerError.embraceClientDoesNotExist }
+        // TODO 7.0: Embrace.tracer(instrumentationName:) is not exposed on the public surface yet.
+        // On 7.0 the OTel bridge is the single tracer provider, so this path falls back to
+        // the OTel SDK tracer. Re-enable an Embrace-branded entry point when EmbraceIO ships one.
         guard !name.isEmpty else { throw CreateTracerError.nameCannotBeEmpty }
-        return embrace.tracer(instrumentationName: name)
+        return OpenTelemetry.instance.tracerProvider.get(instrumentationName: name)
     }
 
     fileprivate func getOTelSDKTracer() throws -> Tracer {
