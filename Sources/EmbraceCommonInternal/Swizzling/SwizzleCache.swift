@@ -51,6 +51,17 @@ import Foundation
             return SwizzleCache()
         }()
 
+        /// Signal raised when `addMethodImplementation` sees a duplicate install for the same
+        /// `(method, baseClass, swizzler)` key. Default fires `assertionFailure`. Tests that
+        /// intentionally exercise the duplicate-install contract override this (e.g. to record
+        /// the call) and are responsible for any logging they need.
+        ///
+        /// Whether or not this signal traps, the duplicate write is always skipped — the cached
+        /// "true original" stays intact so a subsequent unswizzle still restores it correctly.
+        public static var onDuplicateInstall: (String) -> Void = { message in
+            assertionFailure(message)
+        }
+
         private let lock = NSLock()
         private var originalImplementations: [OriginalMethod: IMP] = [:]
 
@@ -64,13 +75,37 @@ import Foundation
         ) {
             lock.lock()
             defer { lock.unlock() }
-            originalImplementations[
-                OriginalMethod(
-                    method: method,
-                    baseClass: baseClass,
-                    swizzlerClass: swizzler
+            let key = OriginalMethod(
+                method: method,
+                baseClass: baseClass,
+                swizzlerClass: swizzler
+            )
+            if originalImplementations[key] != nil {
+                let className = NSStringFromClass(baseClass)
+                let selectorName = NSStringFromSelector(method_getName(method))
+                Self.onDuplicateInstall(
+                    "SwizzleCache: \(swizzler) installed twice on \(className).\(selectorName) without an unswizzle in between."
                 )
-            ] = imp
+                return
+            }
+            originalImplementations[key] = imp
+        }
+
+        /// Whether the cache currently holds any swizzled-method entries. Intended for tests.
+        public var isEmpty: Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return originalImplementations.isEmpty
+        }
+
+        /// Snapshot of cache contents as human-readable strings, sorted for stable output.
+        /// Intended for tests.
+        public var residueDescription: [String] {
+            lock.lock()
+            defer { lock.unlock() }
+            return originalImplementations.keys.map { key in
+                "\(key.swizzlerClass) on \(NSStringFromClass(key.baseClass)).\(NSStringFromSelector(method_getName(key.method)))"
+            }.sorted()
         }
 
         public func getOriginalMethodImplementation(

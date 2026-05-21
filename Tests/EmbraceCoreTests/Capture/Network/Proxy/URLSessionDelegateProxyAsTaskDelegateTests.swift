@@ -18,6 +18,12 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: XCTestCase {
 
     static let timeoutQuick = 0.2
 
+    override func tearDownWithError() throws {
+        if urlSessionCaptureService != nil { unswizzleDefaultCaptureService() }
+        if otherSwizzler != nil { unswizzleOtherSwizzler() }
+        assertSwizzleCacheEmpty()
+    }
+
     // MARK: - Setup
     func givenCaptureServiceInstalled() {
         urlSessionCaptureService = URLSessionCaptureService(options: .init())

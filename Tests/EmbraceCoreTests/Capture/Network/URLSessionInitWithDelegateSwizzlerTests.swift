@@ -18,6 +18,7 @@ class URLSessionInitWithDelegateSwizzlerTests: XCTestCase {
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
         try? sut.unswizzleClassMethod()
+        assertSwizzleCacheEmpty()
     }
 
     func testAfterInstall_onCreateURLSessionWithDelegate_originalShouldBeWrapped() throws {

@@ -5,6 +5,22 @@
 import EmbraceCommonInternal
 import EmbraceCore
 import Foundation
+import XCTest
+
+extension XCTestCase {
+    /// Asserts the global `SwizzleCache` is empty. Call from `tearDownWithError` in swizzler-style
+    /// tests so a test that installs without unswizzling fails immediately on the offending case,
+    /// instead of surfacing later as cross-test residue.
+    public func assertSwizzleCacheEmpty(file: StaticString = #file, line: UInt = #line) {
+        let residue = SwizzleCache.shared.residueDescription
+        XCTAssertTrue(
+            residue.isEmpty,
+            "SwizzleCache leak after \(name): \(residue.joined(separator: ", "))",
+            file: file,
+            line: line
+        )
+    }
+}
 
 extension Swizzlable {
     public func unswizzleInstanceMethod() throws {

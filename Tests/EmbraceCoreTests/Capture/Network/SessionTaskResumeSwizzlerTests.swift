@@ -15,6 +15,7 @@ class SessionTaskResumeSwizzlerTests: XCTestCase {
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
+        assertSwizzleCacheEmpty()
     }
 
     func test_afterInstall_taskWillBeCreatedInHandler() async throws {

@@ -17,6 +17,7 @@ class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: XCTestCase {
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
+        assertSwizzleCacheEmpty()
     }
 
     func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
