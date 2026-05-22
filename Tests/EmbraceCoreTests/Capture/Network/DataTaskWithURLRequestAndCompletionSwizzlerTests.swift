@@ -127,8 +127,7 @@ extension DataTaskWithURLRequestAndCompletionSwizzlerTests {
     }
 
     fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
-        XCTAssertTrue(handler.didInvokeCreate)
-        XCTAssertEqual(handler.createReceivedTask, dataTask)
+        handler.verifyCreated(dataTask)
     }
 
     fileprivate func thenHandlerShouldntHaveInvokedCreate() {

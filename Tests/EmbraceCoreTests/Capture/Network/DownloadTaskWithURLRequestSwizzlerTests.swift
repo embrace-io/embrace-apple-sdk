@@ -68,8 +68,7 @@ extension DownloadTaskWithURLRequestSwizzlerTests {
     }
 
     fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
-        XCTAssertTrue(handler.didInvokeCreate)
-        XCTAssertEqual(handler.createReceivedTask, downloadTask)
+        handler.verifyCreated(downloadTask)
     }
 
     fileprivate func thenHandlerShouldntHaveInvokedCreate() {
