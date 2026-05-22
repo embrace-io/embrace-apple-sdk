@@ -10,7 +10,7 @@ import XCTest
 
 // swiftlint:disable force_try
 
-class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
+class DataTaskWithURLAndCompletionSwizzlerTests: SwizzlerTestCase {
     private var session: URLSession!
     private var sut: DataTaskWithURLAndCompletionSwizzler!
     private var sut2: DataTaskWithURLRequestAndCompletionSwizzler!
@@ -21,6 +21,8 @@ class DataTaskWithURLAndCompletionSwizzlerTests: XCTestCase {
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
+        try? sut2.unswizzleInstanceMethod()
+        try super.tearDownWithError()
     }
 
     func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
