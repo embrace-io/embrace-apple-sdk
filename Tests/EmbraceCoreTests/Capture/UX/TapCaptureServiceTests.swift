@@ -8,16 +8,19 @@
     @testable import EmbraceCore
     import TestSupport
 
-    final class TapCaptureServiceTests: XCTestCase {
+    final class TapCaptureServiceTests: SwizzlerTestCase {
 
         private var otel: MockOTelSignalsHandler!
 
         override func setUpWithError() throws {
+            try super.setUpWithError()
             otel = MockOTelSignalsHandler()
         }
 
         override func tearDownWithError() throws {
             otel = nil
+            restoreSwizzleCacheAdditions()
+            try super.tearDownWithError()
         }
 
         func test_tap() throws {

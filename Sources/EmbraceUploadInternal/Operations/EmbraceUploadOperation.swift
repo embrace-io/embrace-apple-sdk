@@ -26,11 +26,24 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     private let payloadTypes: String?
     private let retryCount: Int
     private let exponentialBackoffBehavior: EmbraceUpload.ExponentialBackoff
-    private var attemptCount: Int
     private let logger: InternalLogger?
     private let completion: EmbraceUploadOperationCompletion?
 
-    private var task: URLSessionDataTask?
+    /// Mutable state guarded by `state`. `hasFinished` guarantees completion
+    /// and `finish()` fire exactly once.
+    private struct State {
+        var attemptCount: Int
+        var task: URLSessionDataTask?
+        var hasFinished: Bool
+
+        init(attemptCount: Int) {
+            self.attemptCount = attemptCount
+            self.task = nil
+            self.hasFinished = false
+        }
+    }
+
+    private let state: EmbraceMutex<State>
 
     init(
         urlSession: URLSession,
@@ -55,18 +68,31 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         self.payloadTypes = payloadTypes
         self.retryCount = retryCount
         self.exponentialBackoffBehavior = exponentialBackoffBehavior
-        self.attemptCount = attemptCount
+        self.state = EmbraceMutex(State(attemptCount: attemptCount))
         self.logger = logger
         self.completion = completion
     }
 
     override func cancel() {
         super.cancel()
-        task?.cancel()
-        task = nil
 
-        completion?(.cancelled, attemptCount)
-        finish()
+        let (taskToCancel, attemptCount, shouldFire) = state.withLock { s -> (URLSessionDataTask?, Int, Bool) in
+            guard !s.hasFinished else {
+                return (nil, s.attemptCount, false)
+            }
+
+            let taskToCancel = s.task
+            s.task = nil
+            s.hasFinished = true
+
+            return (taskToCancel, s.attemptCount, true)
+        }
+
+        taskToCancel?.cancel()
+        if shouldFire {
+            completion?(.cancelled, attemptCount)
+            finish()
+        }
     }
 
     override func execute() {
@@ -81,16 +107,15 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     }
 
     private func sendRequest(_ r: URLRequest, retryCount: Int) {
-        var request = r
+        // Build next attempt outside lock, then commit attempt + task atomically.
+        let nextAttemptCount: Int? = state.withLock {
+            $0.hasFinished ? nil : $0.attemptCount + 1
+        }
+        guard let nextAttemptCount else { return }
 
-        // increment attempt count
-        attemptCount += 1
+        let request = updateRequest(r, attemptCount: nextAttemptCount)
 
-        // update request's attempt count header
-        request = updateRequest(request, attemptCount: attemptCount)
-
-        // Use completion handler directly on all platforms
-        task = urlSession.dataTask(
+        let newTask = urlSession.dataTask(
             with: request,
             completionHandler: { [weak self] data, response, error in
                 self?.handleTaskCompletion(
@@ -102,7 +127,19 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
                 )
             })
 
-        task?.resume()
+        // If operation finished meanwhile, drop the unstarted task; it was never resumed.
+        let started = state.withLock {
+            guard !$0.hasFinished else { return false }
+
+            $0.attemptCount = nextAttemptCount
+            $0.task = newTask
+
+            return true
+        }
+
+        if started {
+            newTask.resume()
+        }
     }
 
     private func handleTaskCompletion(
@@ -112,17 +149,15 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         request: URLRequest,
         retryCount: Int
     ) {
-        // If the operation was cancelled, cancel() already fired the completion and called finish().
-        // Just return to avoid double-completion and double-finish.
-        guard !isCancelled else {
-            return
-        }
+        // Fast path: operation already completed or cancelled.
+        guard !state.safeValue.hasFinished else { return }
 
         // Check retry budget: -1 = unlimited, 0 = none, >0 = that many remaining
         let hasRetryBudget = (retryCount != 0)
         if hasRetryBudget && shouldRetry(basedOn: response, error: error) {
+            let attemptCountForDelay = state.withLock { $0.attemptCount }
             let delay = exponentialBackoffBehavior.calculateDelay(
-                forRetryNumber: attemptCount,
+                forRetryNumber: attemptCountForDelay,
                 appending: TimeInterval(getSuggestedDelay(fromResponse: response))
             )
 
@@ -136,21 +171,29 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
             return
         }
 
-        // No retries left or non-retriable — determine result
+        let result: EmbraceUploadOperationResult
         if let response = response as? HTTPURLResponse {
             logger?.debug(
                 "Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))"
             )
-            if response.statusCode >= 200 && response.statusCode < 300 {
-                completion?(.success, attemptCount)
-            } else {
-                completion?(.failure, attemptCount)
-            }
+            result = (response.statusCode >= 200 && response.statusCode < 300) ? .success : .failure
         } else {
-            completion?(.failure, attemptCount)
+            result = .failure
         }
 
-        finish()
+        let (shouldFire, attemptCount) = state.withLock {
+            guard !$0.hasFinished else {
+                return (false, $0.attemptCount)
+            }
+
+            $0.hasFinished = true
+            return (true, $0.attemptCount)
+        }
+
+        if shouldFire {
+            completion?(result, attemptCount)
+            finish()
+        }
     }
 
     private func shouldRetry(
