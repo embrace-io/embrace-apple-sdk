@@ -136,8 +136,7 @@ extension UploadTaskWithRequestFromFileWithCompletionSwizzlerTests {
     }
 
     fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
-        XCTAssertTrue(handler.didInvokeCreate)
-        XCTAssertEqual(handler.createReceivedTask, uploadTask)
+        handler.verifyCreated(uploadTask)
     }
 
     fileprivate func thenHandlerShouldHaveInvokedFinishTask() {
