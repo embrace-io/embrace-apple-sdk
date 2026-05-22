@@ -525,6 +525,56 @@ final class SessionControllerTests: XCTestCase {
             lastDate = controller.currentSession!.lastHeartbeatTime
         }
     }
+
+    func test_startSession_coldStart_backgroundDropped_deletesOldSession() throws {
+        // given a cold-start background session with background sessions disabled (config == nil)
+        let backgroundSession = controller.startSession(state: .background)
+        XCTAssertNotNil(backgroundSession)
+
+        // when a foreground session starts (this is the appDidBecomeActive path)
+        let foregroundSession = controller.startSession(state: .foreground)
+
+        // then the new session is a foreground session
+        XCTAssertNotNil(foregroundSession)
+        XCTAssertEqual(foregroundSession?.state, "foreground")
+
+        // and the old background session is deleted from storage
+        // (fetching via performAndWait drains the async CoreData queue first)
+        let sessions: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(sessions.count, 1)
+        XCTAssertEqual(sessions.first?.idRaw, foregroundSession?.idRaw)
+    }
+
+    // Verifies that moving flush(span:) outside the lock in update(state:) does not
+    // break the in-memory session state update.
+    func test_update_state_updatesSessionAndSpanStateCorrectly() throws {
+        let spanProcessor = MockSpanProcessor()
+        EmbraceOTel.setup(spanProcessors: [spanProcessor])
+
+        // given an active foreground session
+        controller.startSession(state: .foreground)
+        XCTAssertEqual(controller.currentSession?.state, "foreground")
+
+        // when transitioning to background
+        controller.update(state: .background)
+
+        // then in-memory session state is updated immediately
+        XCTAssertEqual(controller.currentSession?.state, "background")
+    }
+
+    // Verifies that moving flush(span:) outside the lock in update(appTerminated:) does not
+    // break the in-memory session state update.
+    func test_update_appTerminated_updatesSessionStateCorrectly() throws {
+        // given an active session
+        controller.startSession(state: .foreground)
+        XCTAssertEqual(controller.currentSession?.appTerminated, false)
+
+        // when marking as app terminated
+        controller.update(appTerminated: true)
+
+        // then in-memory session state is updated immediately
+        XCTAssertEqual(controller.currentSession?.appTerminated, true)
+    }
 }
 
 extension SessionControllerTests {
