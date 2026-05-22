@@ -5,6 +5,7 @@
 import EmbraceCommonInternal
 import EmbraceCore
 import Foundation
+import XCTest
 
 extension Swizzlable {
     public func unswizzleInstanceMethod() throws {
