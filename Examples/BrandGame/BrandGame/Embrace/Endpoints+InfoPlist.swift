@@ -2,16 +2,12 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceIO
+import EmbraceSemantics
 import Foundation
 
-#if COCOAPODS
-    import EmbraceIO
-#else
-    import EmbraceCore
-#endif
-
-extension Embrace.Endpoints {
-    static func fromInfoPlist() -> Embrace.Endpoints? {
+extension EmbraceEndpoints {
+    static func fromInfoPlist() -> EmbraceEndpoints? {
         guard let endpoints = Bundle.main.infoDictionary?["EmbraceEndpoints"] as? [String: String],
             let baseURL = value(from: endpoints, key: "baseURL"),
             let configBaseURL = value(from: endpoints, key: "configBaseURL")
@@ -19,7 +15,7 @@ extension Embrace.Endpoints {
             return nil
         }
 
-        return Embrace.Endpoints(
+        return EmbraceEndpoints(
             baseURL: baseURL,
             configBaseURL: configBaseURL
         )

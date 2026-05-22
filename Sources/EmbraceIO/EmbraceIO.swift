@@ -121,4 +121,12 @@ public class EmbraceIO {
     public func resetUploadCache() {
         Embrace.client?.resetUploadCache()
     }
+
+    /// Waits synchronously for all queued SDK work to drain.
+    ///
+    /// SPI for benchmarks and tests — not part of the public SDK surface.
+    @_spi(Private)
+    public func waitForAllWork() {
+        Embrace.client?.waitForAllWork()
+    }
 }

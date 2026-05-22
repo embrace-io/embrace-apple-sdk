@@ -9,7 +9,7 @@
     import TestSupport
     import EmbraceCommonInternal
 
-    class CaptureServicesUIViewControllerTests: XCTestCase {
+    class CaptureServicesUIViewControllerTests: SwizzlerTestCase {
 
         let context = CrashReporterContext(
             appId: nil,
@@ -22,6 +22,11 @@
 
         let enabledConfig = EditableConfig(isUiLoadInstrumentationEnabled: true)
         let disabledConfig = EditableConfig(isUiLoadInstrumentationEnabled: false)
+
+        override func tearDownWithError() throws {
+            restoreSwizzleCacheAdditions()
+            try super.tearDownWithError()
+        }
 
         func test_onInteractionReady_noService() {
             // given capture services without a ViewCaptureService

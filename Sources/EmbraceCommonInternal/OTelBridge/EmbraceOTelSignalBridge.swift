@@ -40,4 +40,11 @@ public protocol EmbraceOTelSignalBridge {
 
     /// Called when a log is created
     func createLog(_ log: EmbraceLog)
+
+    /// Waits synchronously for any queued bridge work to drain.
+    func waitForAllWork()
+}
+
+extension EmbraceOTelSignalBridge {
+    public func waitForAllWork() {}
 }
