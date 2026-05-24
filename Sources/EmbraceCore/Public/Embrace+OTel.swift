@@ -36,14 +36,16 @@ extension Embrace: EmbraceOpenTelemetry {
         attributes: [String: String] = [:],
         autoTerminationCode: SpanErrorCode? = nil
     ) -> SpanBuilder {
-        guard let autoTerminationCode = autoTerminationCode else {
-            return otel.buildSpan(name: name, type: type, attributes: attributes)
+        var attributes = attributes
+        if let autoTerminationCode = autoTerminationCode {
+            attributes[SpanSemantics.keyAutoTerminationCode] = autoTerminationCode.rawValue
         }
 
-        var attributes = attributes
-        attributes[SpanSemantics.keyAutoTerminationCode] = autoTerminationCode.rawValue
-
-        return otel.buildSpan(name: name, type: type, attributes: attributes)
+        let builder = otel.buildSpan(name: name, type: type, attributes: attributes)
+        if options.autoParentOrphanSpansToSession, let sessionSpan = sessionController.currentSessionSpan {
+            builder.setParent(sessionSpan)
+        }
+        return builder
     }
 
     /// Record a span after the fact
@@ -71,7 +73,8 @@ extension Embrace: EmbraceOpenTelemetry {
             .buildSpan(name: name, type: type, attributes: attributes)
             .setStartTime(time: startTime)
 
-        if let parent = parent { builder.setParent(parent) }
+        let resolvedParent = parent ?? (options.autoParentOrphanSpansToSession ? sessionController.currentSessionSpan : nil)
+        if let resolvedParent { builder.setParent(resolvedParent) }
         let span = builder.startSpan()
 
         events.forEach { event in

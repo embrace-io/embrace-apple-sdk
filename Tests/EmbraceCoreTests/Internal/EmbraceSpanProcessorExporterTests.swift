@@ -131,6 +131,86 @@ final class EmbraceSpanProcessorExporterTests: XCTestCase {
         XCTAssertEqual(spanData.attributes["foo"], .string("baz"))
     }
 
+    // MARK: - Session span suppression tests
+
+    func test_storageExporter_suppressesEndedSessionSpan() throws {
+        // given a processor backed by storage only
+        let storage = try EmbraceStorage.createInMemoryDb()
+        let sessionController = MockSessionController()
+        sessionController.startSession(state: .foreground)
+        let processor = processor(storage: storage, session: sessionController)
+
+        let traceId = TraceId.random()
+        let spanId = SpanId.random()
+        let startTime = Date()
+        let endTime = startTime.addingTimeInterval(1000)
+
+        let closedSessionSpan = SpanData(
+            traceId: traceId,
+            spanId: spanId,
+            parentSpanId: nil,
+            name: "emb-session",
+            kind: .internal,
+            startTime: startTime,
+            attributes: ["emb.type": .string("ux.session")],
+            endTime: endTime,
+            hasEnded: true
+        )
+
+        // when a closed session span is processed
+        processor.processCompletedSpanData(closedSessionSpan, sync: true)
+        processor.waitUntilDrained()
+
+        // then the storage exporter suppresses it
+        let exportedSpans: [SpanRecord] = storage.fetchAll()
+        XCTAssertTrue(exportedSpans.isEmpty)
+    }
+
+    func test_externalExporter_receivesEndedSessionSpan() throws {
+        // given a processor with both storage and an external exporter
+        let storage = try EmbraceStorage.createInMemoryDb()
+        let sessionController = MockSessionController()
+        sessionController.startSession(state: .foreground)
+        let externalExporter = InMemorySpanExporter()
+
+        let processor = EmbraceSpanProcessor(
+            spanExporters: [
+                StorageSpanExporter(storage: storage, logger: MockLogger()),
+                externalExporter
+            ],
+            sdkStateProvider: MockEmbraceSDKStateProvider(),
+            sessionIdProvider: { sessionController.currentSession?.idRaw }
+        )
+
+        let traceId = TraceId.random()
+        let spanId = SpanId.random()
+        let startTime = Date()
+        let endTime = startTime.addingTimeInterval(1000)
+
+        let closedSessionSpan = SpanData(
+            traceId: traceId,
+            spanId: spanId,
+            parentSpanId: nil,
+            name: "emb-session",
+            kind: .internal,
+            startTime: startTime,
+            attributes: ["emb.type": .string("ux.session")],
+            endTime: endTime,
+            hasEnded: true
+        )
+
+        // when a closed session span is processed
+        processor.processCompletedSpanData(closedSessionSpan, sync: true)
+        processor.waitUntilDrained()
+
+        // then the storage exporter suppresses it
+        let exportedSpans: [SpanRecord] = storage.fetchAll()
+        XCTAssertTrue(exportedSpans.isEmpty)
+
+        // but the external exporter receives it
+        XCTAssertNotNil(externalExporter.exportedSpans[spanId])
+    }
+
     func test_noExport_onSessionEnd() throws {
         // given an exporter
         let storage = try EmbraceStorage.createInMemoryDb()

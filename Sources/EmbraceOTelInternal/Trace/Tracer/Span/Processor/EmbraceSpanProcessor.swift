@@ -219,15 +219,16 @@ package class EmbraceSpanProcessor: SpanProcessor {
         runExporters([span], sync: sync, completion: completion)
     }
 
-    private func hydrateSpan(_ span: SpanData, with resource: Resource?) -> SpanData? {
+    private func hydrateSpan(_ span: SpanData, with resource: Resource?, suppressEndedSession: Bool = false) -> SpanData? {
 
         // spanData endTime is non-optional and will be set during `toSpanData()`
         let endTime = span.hasEnded ? span.endTime : nil
 
-        // Prevent exporting our session spans on end.
-        // This process is handled by the `SessionController` to prevent
-        // race conditions when a session ends and its payload gets built.
-        if endTime != nil && span.embType == SpanType.session {
+        // Suppress ended session spans for internal (storage) exporters only.
+        // SessionController manually updates storage synchronously to avoid race conditions
+        // with the session upload payload. External exporters (e.g. OTLP) are exempt so
+        // that session spans appear in third-party backends.
+        if suppressEndedSession && endTime != nil && span.embType == SpanType.session {
             return nil
         }
 
@@ -250,13 +251,17 @@ package class EmbraceSpanProcessor: SpanProcessor {
     private func runExporters(_ spans: [SpanData], sync: Bool, completion: (() -> Void)? = nil) {
 
         let exporters = self.spanExporters
+        let embraceStorageExporter = self.embraceExporter
         let spansToExport: [SpanData] = spans
         let provider = resourceProvider
 
         let block = { [exporters, spansToExport, completion, provider, self] in
             let resource = provider?()
-            let filteredSpans = spansToExport.compactMap { hydrateSpan($0, with: resource) }
             for exporter in exporters {
+                let isStorage = exporter === embraceStorageExporter
+                let filteredSpans = spansToExport.compactMap {
+                    hydrateSpan($0, with: resource, suppressEndedSession: isStorage)
+                }
                 _ = exporter.export(spans: filteredSpans)
             }
             completion?()

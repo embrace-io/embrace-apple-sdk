@@ -54,4 +54,34 @@ final class Embrace_OptionsTests: XCTestCase {
 
         XCTAssertTrue(mockObj === options.runtimeConfiguration)
     }
+
+    func test_init_autoParentOrphanSpansToSession_defaultsFalse() {
+        let options = Embrace.Options(appId: "myApp", captureServices: [], crashReporter: nil)
+        XCTAssertFalse(options.autoParentOrphanSpansToSession)
+    }
+
+    func test_init_autoParentOrphanSpansToSession_canBeEnabled() {
+        let options = Embrace.Options(
+            appId: "myApp",
+            captureServices: [],
+            crashReporter: nil,
+            autoParentOrphanSpansToSession: true
+        )
+        XCTAssertTrue(options.autoParentOrphanSpansToSession)
+    }
+
+    func test_init_export_autoParentOrphanSpansToSession_defaultsFalse() {
+        let options = Embrace.Options(export: OpenTelemetryExport(), captureServices: [], crashReporter: nil)
+        XCTAssertFalse(options.autoParentOrphanSpansToSession)
+    }
+
+    func test_init_export_autoParentOrphanSpansToSession_canBeEnabled() {
+        let options = Embrace.Options(
+            export: OpenTelemetryExport(),
+            captureServices: [],
+            crashReporter: nil,
+            autoParentOrphanSpansToSession: true
+        )
+        XCTAssertTrue(options.autoParentOrphanSpansToSession)
+    }
 }
