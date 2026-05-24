@@ -349,8 +349,8 @@ import OpenTelemetrySdk
 
                 state = .started
 
-                startupInstrumentation.buildMainSpans()
                 sessionLifecycle.startSession()
+                startupInstrumentation.buildMainSpans()
                 captureServices.install()
 
                 // save latest session in memory before its sent and deleted
@@ -445,7 +445,7 @@ import OpenTelemetrySdk
 
         return sessionController.currentSession?.idRaw
     }
-
+    
     /// Returns the current device identifier.
     @objc public func currentDeviceId() -> String? {
         return deviceId.stringValue

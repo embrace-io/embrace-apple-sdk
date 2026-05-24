@@ -29,6 +29,8 @@ extension Embrace {
         @objc public let processors: [OpenTelemetryProcessor]?
         @objc public let backtracer: Backtracer?
         @objc public let symbolicator: Symbolicator?
+        /// When true, spans started without an explicit parent are automatically parented to the current session span.
+        @objc public let autoParentOrphanSpansToSession: Bool
 
         /// Default initializer for `Embrace.Options` that requires an array of `CaptureServices` to be passed.
         ///
@@ -49,6 +51,8 @@ extension Embrace {
         ///     built-in mechanism, which is sufficient for most apps.
         ///   - symbolicator: Optional `Symbolicator` to resolve frames into symbols;
         ///     without it, only raw addresses are shown.
+        ///   - autoParentOrphanSpansToSession: When true, spans started without an explicit parent
+        ///     are automatically parented to the current session span. Defaults to false.
         @objc public init(
             appId: String,
             appGroupId: String? = nil,
@@ -60,7 +64,8 @@ extension Embrace {
             export: OpenTelemetryExport? = nil,
             processors: [OpenTelemetryProcessor]? = nil,
             backtracer: Backtracer? = nil,
-            symbolicator: Symbolicator? = nil
+            symbolicator: Symbolicator? = nil,
+            autoParentOrphanSpansToSession: Bool = false
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
@@ -74,6 +79,7 @@ extension Embrace {
             self.processors = processors
             self.backtracer = backtracer
             self.symbolicator = symbolicator
+            self.autoParentOrphanSpansToSession = autoParentOrphanSpansToSession
         }
 
         /// Initializer for `Embrace.Options` that does not require an appId.
@@ -88,6 +94,8 @@ extension Embrace {
         ///   - crashReporter: The `CrashReporter` to be installed.
         ///   - logLevel: The `LogLevel` to use for console logs.
         ///   - runtimeConfiguration: An object to control runtime behavior of the SDK itself.
+        ///   - autoParentOrphanSpansToSession: When true, spans started without an explicit parent
+        ///     are automatically parented to the current session span. Defaults to false.
         @objc public init(
             export: OpenTelemetryExport,
             processors: [OpenTelemetryProcessor]? = nil,
@@ -97,7 +105,8 @@ extension Embrace {
             logLevel: LogLevel = .default,
             runtimeConfiguration: EmbraceConfigurable = .default,
             backtracer: Backtracer? = nil,
-            symbolicator: Symbolicator? = nil
+            symbolicator: Symbolicator? = nil,
+            autoParentOrphanSpansToSession: Bool = false
         ) {
             self.appId = nil
             self.appGroupId = nil
@@ -111,6 +120,7 @@ extension Embrace {
             self.processors = processors
             self.backtracer = backtracer
             self.symbolicator = symbolicator
+            self.autoParentOrphanSpansToSession = autoParentOrphanSpansToSession
         }
     }
 }
