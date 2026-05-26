@@ -264,7 +264,17 @@ public final class ProfilingEngine: @unchecked Sendable {
                 start_paused: configuration.startPaused
             )
 
-            switch emb_sampler_start(ringBuffer, config) {
+            let startResult = emb_sampler_start(ringBuffer, config)
+
+            if startResult != EMB_SAMPLER_START_OK, needsNewBuffer {
+                emb_ring_buffer_destroy(ringBuffer)
+                if let ptr = readBuffer { free(ptr) }
+                ringBuffer = nil
+                readBuffer = nil
+                readBufferSize = 0
+            }
+
+            switch startResult {
             case EMB_SAMPLER_START_OK:
                 activeConfiguration = configuration
                 return wasActive ? .alreadyActive : .started
