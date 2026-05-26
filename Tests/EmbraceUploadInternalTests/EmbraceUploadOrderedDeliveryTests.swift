@@ -368,7 +368,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
 
         // Cancel all operations while they're still retrying
         module.spansQueue.cancelAllOperations()
-        module.spansQueue.waitUntilAllOperationsAreFinished()
 
         // Allow handleOperationFinished to process on coordination queue
         module.queue.sync {}
