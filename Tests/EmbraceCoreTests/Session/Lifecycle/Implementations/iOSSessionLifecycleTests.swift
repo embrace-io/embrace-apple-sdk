@@ -58,7 +58,7 @@ import XCTest
 
         func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() {
             let expectation = XCTestExpectation(description: "startSession called from background queue")
-            DispatchQueue.global(qos: .default).async { [self] in
+            DispatchQueue.global(qos: .background).async { [self] in
                 lifecycle.startSession()
                 expectation.fulfill()
             }
