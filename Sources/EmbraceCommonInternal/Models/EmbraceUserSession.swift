@@ -18,6 +18,10 @@ public enum TerminationReason: String {
     case manual
     case clockAnomaly = "clock_anomaly"
     case crash
+
+    /// A background-only user session that was created to hold the tail of a background part
+    /// after its parent user session expired, and is ended when a foreground part begins.
+    case endBackground = "end_background_only_user_session"
 }
 
 /// In-memory representation of a "user session" — a logical grouping of one or

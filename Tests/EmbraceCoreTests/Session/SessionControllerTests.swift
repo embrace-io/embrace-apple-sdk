@@ -287,7 +287,7 @@ final class SessionControllerTests: XCTestCase {
     func test_backfillTerminationReason_allReasons_roundTrip() throws {
         // Every `TerminationReason` raw-value must round-trip through the
         // `userSessionTerminationReason` column. `.crash` is otherwise never tested.
-        let reasons: [TerminationReason] = [.maxDurationReached, .inactivity, .manual, .clockAnomaly, .crash]
+        let reasons: [TerminationReason] = [.maxDurationReached, .inactivity, .manual, .clockAnomaly, .crash, .endBackground]
         for reason in reasons {
             let session = controller.startSession(state: .foreground)
             controller.endSession()
@@ -464,12 +464,15 @@ final class SessionControllerTests: XCTestCase {
             accuracy: 0.05
         )
 
-        // The synthetic bg part belongs to a NEW user session (different from the sliced bg).
+        // The split produces three distinct user sessions: the sliced bg stays in the original
+        // user session, the synthetic bg tail gets its own, and the new fg part gets a third.
         XCTAssertNotEqual(syntheticBg.userSessionIdRaw, slicedBg.userSessionIdRaw)
-
-        // The new fg part shares the synthetic bg's user session (within bounds at this point).
         XCTAssertEqual(newFg.state, "foreground")
-        XCTAssertEqual(newFg.userSessionIdRaw, syntheticBg.userSessionIdRaw)
+        XCTAssertNotEqual(newFg.userSessionIdRaw, syntheticBg.userSessionIdRaw)
+        XCTAssertNotEqual(newFg.userSessionIdRaw, slicedBg.userSessionIdRaw)
+
+        // The synthetic bg part's user session is ended when the foreground part begins.
+        XCTAssertEqual(syntheticBg.userSessionTerminationReason, TerminationReason.endBackground.rawValue)
     }
 
     func test_startSession_bgToFgWithinUserSessionBounds_doesNotSplit() throws {
@@ -501,6 +504,35 @@ final class SessionControllerTests: XCTestCase {
         // following foreground part.
         let bgRecord = stored.first { $0.idRaw == bgFirst?.id.stringValue }
         XCTAssertNotNil(bgRecord?.endTime)
+    }
+
+    func test_startSession_backgroundEndsForegroundInline_joinsSameUserSession() throws {
+        // Reproduces the real lifecycle: backgrounding calls `startSession(.background)` while a
+        // foreground part is still active, so the foreground part is ended *inside* that call.
+        // The new part's startTime and the foreground part's end time must be the same instant —
+        // otherwise the few-ms gap between two `Date()` calls reads as the clock moving backwards
+        // and the background part is wrongly rolled into a brand-new user session.
+        let bgConfig = EmbraceConfig(
+            configurable: EditableConfig(isBackgroundSessionEnabled: true),
+            options: .init(),
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
+        )
+        let bgController = SessionController(storage: storage, upload: nil, config: bgConfig)
+        bgController.sdkStateProvider = sdkStateProvider
+        bgController.otel = otel
+        let bgConfigurable = MockEmbraceConfigurable()  // 12h/30min defaults
+        let bgUserSessionController = UserSessionController(storage: storage, config: bgConfigurable)
+        bgUserSessionController.sessionController = bgController
+        bgController.userSessionController = bgUserSessionController
+
+        let fg = bgController.startSession(state: .foreground)
+        let bg = bgController.startSession(state: .background)
+
+        XCTAssertNotNil(bg)
+        XCTAssertNotNil(fg?.userSessionId)
+        XCTAssertEqual(fg?.userSessionId, bg?.userSessionId)
+        XCTAssertEqual(bg?.userSessionPartIndex, 2)
     }
 
     func test_endSession_saves_foregroundSession() throws {

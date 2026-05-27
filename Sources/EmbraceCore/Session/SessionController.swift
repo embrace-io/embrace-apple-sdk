@@ -118,9 +118,14 @@ class SessionController: SessionControllable {
 
     /// If a foreground part is about to start after a background part whose user session
     /// crossed its `maxDuration` or `inactivityTimeout` cutoff, slice the bg part at the
-    /// cutoff and synthesize a bg part `[cutoff, now]`. Returns `true` when the split was
-    /// applied — the caller must skip its own "end previous part" step because the prev part
-    /// is already closed.
+    /// cutoff and produce three user sessions:
+    ///   - the bg part `[bg.start, cutoff]` stays in the original user session `S1`;
+    ///   - a synthetic bg part `[cutoff, now]` holds the tail in a brand-new user session `S2`;
+    ///   - `S2` is then ended so the foreground part the caller is about to create begins a
+    ///     fresh user session `S3` rather than joining `S2`.
+    ///
+    /// Returns `true` when the split was applied — the caller must skip its own "end previous
+    /// part" step because the prev part is already closed.
     @discardableResult
     private func applyBackgroundSplitIfNeeded(
         prev: EmbraceSession?,
@@ -146,6 +151,10 @@ class SessionController: SessionControllable {
         endSession(at: cutoff)
         startSession(state: .background, startTime: cutoff)
         endSession(at: now)
+
+        // End the synthetic bg part's user session so the foreground part the caller starts
+        // next does not join it — it must open its own user session.
+        userSessionController?.endActiveUserSession(reason: .endBackground, at: now)
         return true
     }
 
@@ -194,9 +203,13 @@ class SessionController: SessionControllable {
 
         let sessionInfo: (session: EmbraceSession?, span: EmbraceSpan?) = lock.locked {
 
-            // end current session first (skipped if bg-split already closed the prev part)
+            // end current session first (skipped if bg-split already closed the prev part).
+            // The previous part ends exactly at the new part's `startTime` — parts are
+            // contiguous, and using a separate `Date()` here would stamp a
+            // `lastForegroundPartEnd` a few ms *after* `startTime`, which `attachPart` would
+            // then misread as the clock moving backwards (a false `.clockAnomaly`).
             if !bgSplitFired, inProgressSessionInfo.session != nil {
-                endSessionNoLock(inProgressSessionInfo.session, inProgressSessionInfo.sessionSpan)
+                endSessionNoLock(inProgressSessionInfo.session, inProgressSessionInfo.sessionSpan, endTime: startTime)
             }
 
             guard sdkStateProvider?.isEnabled == true else {
