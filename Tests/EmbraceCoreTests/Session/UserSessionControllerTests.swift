@@ -499,7 +499,7 @@ final class UserSessionControllerTests: XCTestCase {
 
     func testBootstrap_emptyStorage_leavesNoActiveUserSession() {
         let controller = makeController()
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
         XCTAssertNil(controller.currentUserSession)
     }
 
@@ -516,7 +516,7 @@ final class UserSessionControllerTests: XCTestCase {
         wait(for: [exp], timeout: 1)
 
         let controller = makeController()
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
         XCTAssertNil(controller.currentUserSession)
     }
 
@@ -541,7 +541,7 @@ final class UserSessionControllerTests: XCTestCase {
         wait(for: [exp], timeout: 1)
 
         let controller = makeController()
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
 
         let snapshot = controller.currentUserSession
         XCTAssertEqual(snapshot?.id, userSessionId)
@@ -569,7 +569,7 @@ final class UserSessionControllerTests: XCTestCase {
         wait(for: [exp], timeout: 1)
 
         let controller = makeController()
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
         XCTAssertNil(controller.currentUserSession)
     }
 
@@ -600,7 +600,7 @@ final class UserSessionControllerTests: XCTestCase {
 
         let controller = makeController()
         controller.sessionController = realSessionController
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
 
         XCTAssertNil(controller.currentUserSession)
 
@@ -640,7 +640,7 @@ final class UserSessionControllerTests: XCTestCase {
 
         let controller = makeController()
         controller.sessionController = realSessionController
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
 
         let drained = expectation(description: "drained")
         storage.coreData.performAsyncOperation { _ in drained.fulfill() }
@@ -669,7 +669,7 @@ final class UserSessionControllerTests: XCTestCase {
         wait(for: [exp], timeout: 1)
 
         let controller = makeController()
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
         XCTAssertNil(controller.currentUserSession)
     }
 
@@ -699,7 +699,7 @@ final class UserSessionControllerTests: XCTestCase {
         wait(for: [exp], timeout: 1)
 
         let controller = makeController()
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
 
         XCTAssertEqual(controller.currentUserSession?.maxDuration, storedMax)
         XCTAssertEqual(controller.currentUserSession?.inactivityTimeout, storedInactivity)
@@ -726,7 +726,7 @@ final class UserSessionControllerTests: XCTestCase {
         wait(for: [exp], timeout: 1)
 
         let controller = makeController()
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
 
         XCTAssertEqual(controller.currentUserSession?.maxDuration, config.userSessionMaxDuration)
         XCTAssertEqual(controller.currentUserSession?.inactivityTimeout, config.userSessionInactivityTimeout)
@@ -758,7 +758,7 @@ final class UserSessionControllerTests: XCTestCase {
         let controller = makeControllerWithEphemeralConfig()
         XCTAssertNil(controller.config, "Precondition: weak config must have deallocated")
 
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
 
         XCTAssertEqual(controller.currentUserSession?.maxDuration, UserSessionSemantics.defaultMaxDurationSeconds)
         XCTAssertEqual(controller.currentUserSession?.inactivityTimeout, UserSessionSemantics.defaultInactivityTimeoutSeconds)
@@ -788,7 +788,7 @@ final class UserSessionControllerTests: XCTestCase {
         wait(for: [exp], timeout: 1)
 
         let controller = makeController()
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
 
         XCTAssertEqual(
             controller.currentUserSession?.lastForegroundPartEnd?.timeIntervalSince1970 ?? 0,
@@ -817,7 +817,7 @@ final class UserSessionControllerTests: XCTestCase {
         wait(for: [exp], timeout: 1)
 
         let controller = makeController()
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
 
         XCTAssertEqual(controller.currentUserSession?.partIndex, 1)
     }
@@ -851,7 +851,7 @@ final class UserSessionControllerTests: XCTestCase {
 
         let controller = makeController()
         controller.sessionController = realSessionController
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
 
         XCTAssertNil(controller.currentUserSession)
 
@@ -889,7 +889,7 @@ final class UserSessionControllerTests: XCTestCase {
 
         let controller = makeController()
         controller.sessionController = realSessionController
-        controller.bootstrap()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
 
         XCTAssertNil(controller.currentUserSession)
 
