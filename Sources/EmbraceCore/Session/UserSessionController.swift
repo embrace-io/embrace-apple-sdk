@@ -82,11 +82,13 @@ final class UserSessionController {
 
     // MARK: - Bootstrap
 
-    /// Reconstructs the in-memory snapshot from the most recent persisted `SessionRecord`.
-    /// Call once at SDK init, before `UnsentDataHandler.sendUnsentData`.
+    /// Reconstructs the in-memory snapshot from the prior process's most recent persisted
+    /// `SessionRecord`. Call once at SDK start, before `sessionLifecycle.startSession()` and
+    /// before `UnsentDataHandler.sendUnsentData`.
     ///
-    /// If the latest part has no user-session columns (legacy v6 row) the snapshot is left
-    /// empty and the next `attachPart` call starts a new user session from scratch.
+    /// If the prior record has no user-session columns (legacy v6 row) or no record exists,
+    /// the snapshot is left empty and the next `attachPart` call starts a new user session
+    /// from scratch.
     ///
     /// If the reconstructed user session is already expired by the time bootstrap runs, the
     /// termination is routed through `internalEndUserSession` — same path as a mid-session
@@ -94,14 +96,9 @@ final class UserSessionController {
     /// part record (no-op if the prior process already stamped one) and the user-session-end
     /// notification fires, so cold-start expiry produces the same telemetry as mid-session
     /// expiry instead of silently dropping the snapshot.
-    func bootstrap() {
-        guard let storage = storage else {
-            return
-        }
-
-        let latest = storage.fetchLatestSession()
+    func bootstrap(priorSession: EmbraceSession?) {
         guard
-            let latest = latest,
+            let latest = priorSession,
             let userSessionId = latest.userSessionId,
             let userSessionStartTime = latest.userSessionStartTime
         else {

@@ -175,16 +175,15 @@ package class Embrace {
         // initialize session controller
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
 
-        // initialize user-session controller and reconstruct any persisted user-session state.
-        // MUST run before `sessionLifecycle.startSession()` AND before `UnsentDataHandler.sendUnsentData`
-        // — both are downstream consumers, and `sendUnsentData` may delete the source row.
+        // initialize user-session controller. Bootstrap is deferred to `start()` so it runs
+        // only when the SDK actually starts and so the prior-session fetch can be shared
+        // with other consumers (metric-kit) that need the same row.
         self.userSessionController = UserSessionController(
             storage: storage,
             config: config.configurable
         )
         self.userSessionController.sessionController = sessionController
         self.sessionController.userSessionController = userSessionController
-        self.userSessionController.bootstrap()
 
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
 
@@ -306,17 +305,19 @@ package class Embrace {
             // set sdk state
             state = .started
 
+            // Fetch the prior process's last session ONCE and share it. Must happen before
+            // `sessionLifecycle.startSession()` creates a new record. Consumed by both
+            // `userSessionController.bootstrap` (to reconstruct user-session state) and
+            // metric-kit (to attribute incoming MetricKit payloads to the prior session).
+            let priorSession = storage.fetchLatestSession()
+            userSessionController.bootstrap(priorSession: priorSession)
+            metricKit.lastSession = priorSession
+            metricKit.install()
+
             // start instrumentation
             startupInstrumentation.buildMainSpans()
             sessionLifecycle.startSession()
             captureServices.install()
-
-            // save latest session in memory before its sent and deleted
-            // this will be used to link metric kit payloads to the session
-            storage.fetchLatestSession { [self] session in
-                metricKit.lastSession = session
-                metricKit.install()
-            }
 
             // WARNING: This is dangerous as it calls out to external code.
             self.captureServices.start()

@@ -5,10 +5,10 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    @_exported import EmbraceCore  // so users don't have to import EmbraceIO AND EmbraceCore
+    @_exported import EmbraceCore
     import EmbraceCommonInternal
     import EmbraceOTelBridge
-    import EmbraceSemantics
+    @_exported import EmbraceSemantics
 #endif
 
 /// Main class used to interact with the Embrace SDK.
