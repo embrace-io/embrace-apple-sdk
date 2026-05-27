@@ -66,7 +66,8 @@ final class EmbraceLogProcessorTests: XCTestCase {
 
     func test_onEmit_injectsEmbraceAttributesOnExternalLog() {
         mockDelegate.currentSessionState = .background
-        mockDelegate.currentSessionId = EmbraceIdentifier(stringValue: "log-session-123")
+        mockDelegate.currentSessionId = EmbraceIdentifier(stringValue: "part-123")
+        mockDelegate.currentUserSessionId = EmbraceIdentifier(stringValue: "user-123")
 
         emitLog(body: "external-log")
 
@@ -74,7 +75,10 @@ final class EmbraceLogProcessorTests: XCTestCase {
         let log = mockDelegate.emittedLogs.first
         XCTAssertEqual(log?.attributes[LogSemantics.keyEmbraceType], .string(EmbraceType.message.rawValue))
         XCTAssertEqual(log?.attributes[LogSemantics.keyState], .string("background"))
-        XCTAssertEqual(log?.attributes[LogSemantics.keySessionId], .string("log-session-123"))
+        // session.id carries the user-session id; the part id lives under emb.session_part_id.
+        XCTAssertEqual(log?.attributes[LogSemantics.keySessionId], .string("user-123"))
+        XCTAssertEqual(log?.attributes[LogSemantics.keyUserSessionId], .string("user-123"))
+        XCTAssertEqual(log?.attributes[LogSemantics.keyPartId], .string("part-123"))
     }
 
     // MARK: - Child processor forwarding
@@ -167,6 +171,7 @@ class MockLogProcessorDelegate: EmbraceLogProcessorDelegate {
     var emittedLogs: [ReadableLogRecord] = []
     var currentSessionState: SessionState = .foreground
     var currentSessionId: EmbraceIdentifier? = nil
+    var currentUserSessionId: EmbraceIdentifier? = nil
 
     func isInternalLog(_ log: ReadableLogRecord) -> Bool {
         guard case let .string(body) = log.body else { return false }

@@ -60,7 +60,7 @@ class LogController: LogBatcherDelegate {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionEnd),
-            name: Notification.Name.embraceSessionWillEnd,
+            name: Notification.Name.embraceSessionPartWillEnd,
             object: nil
         )
     }

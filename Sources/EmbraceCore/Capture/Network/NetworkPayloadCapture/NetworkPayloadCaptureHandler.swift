@@ -49,13 +49,13 @@ class DefaultNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionStart),
-            name: Notification.Name.embraceSessionDidStart,
+            name: Notification.Name.embraceSessionPartDidStart,
             object: nil
         )
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionEnd),
-            name: Notification.Name.embraceSessionWillEnd,
+            name: Notification.Name.embraceSessionPartWillEnd,
             object: nil
         )
 

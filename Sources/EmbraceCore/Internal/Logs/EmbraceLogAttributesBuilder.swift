@@ -125,15 +125,28 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addSessionIdentifier() -> Self {
-        return addSessionIdentifier(currentSession?.id)
+        return addSessionIdentifier(
+            partId: currentSession?.id,
+            userSessionId: currentSession?.userSessionId
+        )
     }
 
     @discardableResult
     func addSessionIdentifier(_ sessionId: EmbraceIdentifier?) -> Self {
-        guard let sessionId = sessionId else {
-            return self
-        }
-        attributes[LogSemantics.keySessionId] = sessionId.stringValue
+        return addSessionIdentifier(partId: sessionId, userSessionId: currentSession?.userSessionId)
+    }
+
+    /// Stamps the three identity keys on the log. All three are always present (empty strings
+    /// when unknown) so the backend can correlate every log back to a user session/part.
+    /// `session.id` carries the user-session UUID in v7; `emb.session_part_id` carries the
+    /// part UUID (the value `session.id` had pre-v7).
+    @discardableResult
+    func addSessionIdentifier(partId: EmbraceIdentifier?, userSessionId: EmbraceIdentifier?) -> Self {
+        let userSessionValue = userSessionId?.stringValue ?? ""
+        let partValue = partId?.stringValue ?? ""
+        attributes[LogSemantics.keySessionId] = userSessionValue
+        attributes[LogSemantics.keyUserSessionId] = userSessionValue
+        attributes[LogSemantics.keyPartId] = partValue
         return self
     }
 

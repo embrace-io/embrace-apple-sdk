@@ -419,8 +419,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         let inactivityRange: ClosedRange<TimeInterval> = 30...86400  // 30s–24h
 
         // defaults
-        let defaultMax = UserSession.defaultMaxDurationSeconds
-        let defaultInactivity = UserSession.defaultInactivityTimeoutSeconds
+        let defaultMax = UserSessionSemantics.defaultMaxDurationSeconds
+        let defaultInactivity = UserSessionSemantics.defaultInactivityTimeoutSeconds
 
         let validatedMax = maxRange.contains(max) ? max : defaultMax
         var validatedInactivity = inactivityRange.contains(inactivity) ? inactivity : defaultInactivity
@@ -473,7 +473,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         useLegacyUrlSessionProxy = false
         useNewStorageForSpanEvents = false
 
-        userSessionMaxDurationSeconds = UserSession.defaultMaxDurationSeconds
-        userSessionInactivityTimeoutSeconds = UserSession.defaultInactivityTimeoutSeconds
+        userSessionMaxDurationSeconds = UserSessionSemantics.defaultMaxDurationSeconds
+        userSessionInactivityTimeoutSeconds = UserSessionSemantics.defaultInactivityTimeoutSeconds
     }
 }

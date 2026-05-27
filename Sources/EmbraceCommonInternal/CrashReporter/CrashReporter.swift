@@ -23,8 +23,14 @@ public enum LastRunState: Int {
 /// These keys are intended for use with `CrashReporter.appendCrashInfo(key:value:)`
 /// and retrieval via `CrashReporter.getCrashInfo(key:)`.
 public struct CrashReporterInfoKey {
-    /// Session identifier (e.g., Embrace session id). Value should be a stable string for the lifetime of the session.
+    /// Session-part identifier. Value is the UUID of the current Embrace session part.
     static public let sessionId = "emb-sid"
+
+    /// User-session identifier. Value is the UUID of the current Embrace user session — the
+    /// logical grouping of one or more parts. Stable across foreground/background transitions
+    /// within a user session; rolls when a new user session begins.
+    static public let userSessionId = "emb-usi"
+
     /// SDK version string (e.g., "5.2.1"). Use to correlate reports with the runtime SDK build.
     static public let sdkVersion = "emb-sdk"
 }

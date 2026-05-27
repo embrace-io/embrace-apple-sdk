@@ -139,7 +139,7 @@ public class CoreDataWrapper {
     ) -> Result {
 
         if !allowMainQueue && Thread.isMainThread {
-            logger.critical("Warning: performBlockAndWait on main thread can easily deadlock! Proceeding with caution.")
+            logger.warning("Warning: performBlockAndWait on main thread can easily deadlock! Proceeding with caution.")
         }
 
         let id = workTracker.increment(name)

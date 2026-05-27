@@ -41,10 +41,9 @@ struct ResourcePayload: Codable {
         DeviceResourceKey.locale.rawValue,
         DeviceResourceKey.timezone.rawValue,
         DeviceResourceKey.osDescription.rawValue,
-        // Storage key for the permanent counter that backs `emb.user_session_number`
-        // (renamed from `emb.session_number` in v7). The storage key is unchanged
-        // (`"emb.session.upload_index"`) — only the emitted payload key was renamed.
-        SessionController.sessionNumberKey
+        // Storage key for the permanent per-part counter. The value is emitted as a
+        // dedicated attribute on every part span rather than as a resource.
+        SessionController.sessionPartNumberKey
     ]
 
     enum CodingKeys: String, CodingKey, CaseIterable {

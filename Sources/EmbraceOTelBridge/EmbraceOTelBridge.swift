@@ -267,6 +267,10 @@ extension EmbraceOTelBridge: EmbraceSpanProcessorDelegate {
     package var currentSessionId: EmbraceIdentifier? {
         metadataProvider?.currentSessionId
     }
+
+    package var currentUserSessionId: EmbraceIdentifier? {
+        metadataProvider?.currentUserSessionId
+    }
 }
 
 // MARK: - EmbraceLogProcessorDelegate

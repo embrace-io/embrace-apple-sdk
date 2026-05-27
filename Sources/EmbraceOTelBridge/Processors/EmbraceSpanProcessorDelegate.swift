@@ -28,6 +28,9 @@ package protocol EmbraceSpanProcessorDelegate: AnyObject {
     /// The foreground/background state of the current session.
     var currentSessionState: SessionState { get }
 
-    /// The identifier for the current session, or `nil` when no session is active.
+    /// The identifier for the current session part, or `nil` when no part is active.
     var currentSessionId: EmbraceIdentifier? { get }
+
+    /// The identifier for the current user session, or `nil` when no user session is active.
+    var currentUserSessionId: EmbraceIdentifier? { get }
 }

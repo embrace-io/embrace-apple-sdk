@@ -66,7 +66,8 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
     func test_onStart_injectsEmbraceTypeOnExternalSpan() {
         mockDelegate.currentSessionState = .foreground
-        mockDelegate.currentSessionId = EmbraceIdentifier(stringValue: "session-123")
+        mockDelegate.currentSessionId = EmbraceIdentifier(stringValue: "part-123")
+        mockDelegate.currentUserSessionId = EmbraceIdentifier(stringValue: "user-123")
         let span = tracer.spanBuilder(spanName: "external").startSpan()
 
         guard let readable = span as? ReadableSpan else {
@@ -76,19 +77,26 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         let data = readable.toSpanData()
         XCTAssertEqual(data.attributes[SpanSemantics.keyEmbraceType], .string(EmbraceType.performance.rawValue))
         XCTAssertEqual(data.attributes[SpanSemantics.Session.keyState], .string("foreground"))
-        XCTAssertEqual(data.attributes[SpanSemantics.keySessionId], .string("session-123"))
+        // session.id carries the user-session id; the part id lives under emb.session_part_id.
+        XCTAssertEqual(data.attributes[SpanSemantics.keySessionId], .string("user-123"))
+        XCTAssertEqual(data.attributes[SpanSemantics.Session.keyUserSessionId], .string("user-123"))
+        XCTAssertEqual(data.attributes[SpanSemantics.Session.keyPartId], .string("part-123"))
         span.end()
     }
 
-    func test_onStart_doesNotInjectSessionId_whenNil() {
+    func test_onStart_stampsEmptyStringsWhenIdentifiersAreNil() {
         mockDelegate.currentSessionId = nil
+        mockDelegate.currentUserSessionId = nil
         let span = tracer.spanBuilder(spanName: "external").startSpan()
         guard let readable = span as? ReadableSpan else {
             XCTFail("Span does not conform to ReadableSpan")
             return
         }
         let data = readable.toSpanData()
-        XCTAssertNil(data.attributes[SpanSemantics.keySessionId])
+        // Spec: all three identity keys are present even as empty strings.
+        XCTAssertEqual(data.attributes[SpanSemantics.keySessionId], .string(""))
+        XCTAssertEqual(data.attributes[SpanSemantics.Session.keyUserSessionId], .string(""))
+        XCTAssertEqual(data.attributes[SpanSemantics.Session.keyPartId], .string(""))
         span.end()
     }
 
@@ -220,6 +228,7 @@ class MockSpanProcessorDelegate: EmbraceSpanProcessorDelegate {
     var endedSpans: [ReadableSpan] = []
     var currentSessionState: SessionState = .foreground
     var currentSessionId: EmbraceIdentifier? = nil
+    var currentUserSessionId: EmbraceIdentifier? = nil
 
     func isInternalSpan(_ span: ReadableSpan) -> Bool {
         return internalSpanNames.contains(span.name)

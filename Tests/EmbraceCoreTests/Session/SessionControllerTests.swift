@@ -4,6 +4,7 @@
 
 import EmbraceCommonInternal
 import EmbraceConfigInternal
+import EmbraceConfiguration
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
@@ -15,6 +16,8 @@ final class SessionControllerTests: XCTestCase {
 
     var storage: EmbraceStorage!
     var controller: SessionController!
+    var userSessionController: UserSessionController!
+    var configurable: MockEmbraceConfigurable!
     var config: EmbraceConfig!
     var upload: EmbraceUpload!
     let sdkStateProvider = MockEmbraceSDKStateProvider()
@@ -55,6 +58,14 @@ final class SessionControllerTests: XCTestCase {
         controller = SessionController(storage: storage, upload: nil, config: nil)
         controller.sdkStateProvider = sdkStateProvider
         controller.otel = otel
+
+        // Every part-start in v7 routes through the user-session controller. The default
+        // mock config returns 12h max / 30min inactivity so back-to-back startSession calls
+        // in the same test stay within the same user session.
+        configurable = MockEmbraceConfigurable()
+        userSessionController = UserSessionController(storage: storage, config: configurable)
+        userSessionController.sessionController = controller
+        controller.userSessionController = userSessionController
     }
 
     override func tearDownWithError() throws {
@@ -99,7 +110,7 @@ final class SessionControllerTests: XCTestCase {
     // MARK: startSession
 
     func test_startSession_setsCurrentSession_andPostsDidStartNotification() throws {
-        let notificationExpectation = expectation(forNotification: .embraceSessionDidStart, object: nil)
+        let notificationExpectation = expectation(forNotification: .embraceSessionPartDidStart, object: nil)
 
         let session = controller.startSession(state: .foreground)!
         XCTAssertNotNil(session.startTime)
@@ -150,7 +161,7 @@ final class SessionControllerTests: XCTestCase {
     // MARK: endSession
 
     func test_endSession_setsCurrentSessionToNil_andPostsWillEndNotification() throws {
-        let notificationExpectation = expectation(forNotification: .embraceSessionWillEnd, object: nil)
+        let notificationExpectation = expectation(forNotification: .embraceSessionPartWillEnd, object: nil)
 
         let session = controller.startSession(state: .foreground)
         XCTAssertNotNil(controller.currentSessionSpan)
@@ -166,6 +177,362 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNil(controller.currentSessionSpan)
 
         wait(for: [notificationExpectation])
+    }
+
+    func test_endSession_foreground_writesUserSessionLastForegroundEndOnRecord() throws {
+        let session = controller.startSession(state: .foreground)
+        let endTime = controller.endSession()
+
+        let stored: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(stored.count, 1)
+        XCTAssertEqual(stored.first?.idRaw, session?.id.stringValue)
+        XCTAssertEqual(
+            stored.first?.userSessionLastForegroundEnd?.timeIntervalSince1970 ?? 0,
+            endTime.timeIntervalSince1970,
+            accuracy: 0.001
+        )
+
+        // and the in-memory snapshot was updated for the next attachPart's inactivity math
+        XCTAssertEqual(
+            userSessionController.currentUserSession?.lastForegroundPartEnd?.timeIntervalSince1970 ?? 0,
+            endTime.timeIntervalSince1970,
+            accuracy: 0.001
+        )
+    }
+
+    func test_endSession_background_doesNotWriteUserSessionLastForegroundEnd() throws {
+        // Background-session retention requires an explicit config; the default mock keeps
+        // bg parts dropped, so build a one-off controller that allows them.
+        let bgConfig = EmbraceConfig(
+            configurable: EditableConfig(isBackgroundSessionEnabled: true),
+            options: .init(),
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
+        )
+        let bgController = SessionController(storage: storage, upload: nil, config: bgConfig)
+        bgController.sdkStateProvider = sdkStateProvider
+        bgController.otel = otel
+        let bgUserSessionController = UserSessionController(
+            storage: storage,
+            config: MockEmbraceConfigurable()
+        )
+        bgUserSessionController.sessionController = bgController
+        bgController.userSessionController = bgUserSessionController
+
+        let session = bgController.startSession(state: .background)
+        bgController.endSession()
+
+        let stored: [SessionRecord] = storage.fetchAll()
+        let bgRecord = stored.first { $0.idRaw == session?.id.stringValue }
+        XCTAssertNotNil(bgRecord)
+        XCTAssertNil(bgRecord?.userSessionLastForegroundEnd)
+    }
+
+    func test_endSessionAt_usesProvidedTimestamp() throws {
+        controller.startSession(state: .foreground)
+        let cutoff = Date(timeIntervalSinceNow: -120)
+        controller.endSession(at: cutoff)
+
+        let stored: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(stored.count, 1)
+        XCTAssertEqual(
+            stored.first?.endTime?.timeIntervalSince1970 ?? 0,
+            cutoff.timeIntervalSince1970,
+            accuracy: 0.001
+        )
+    }
+
+    func test_backfillTerminationReason_writesToLatestPart() throws {
+        let session = controller.startSession(state: .foreground)
+        controller.endSession()
+
+        controller.backfillTerminationReasonOnLatestPart(.manual)
+
+        let stored = storage.fetchSession(id: session!.id)
+        XCTAssertEqual(stored?.userSessionTerminationReason, .manual)
+    }
+
+    func test_backfillTerminationReason_noStoredParts_isNoop() throws {
+        // Nothing in storage — must not crash.
+        controller.backfillTerminationReasonOnLatestPart(.manual)
+        XCTAssertEqual((storage.fetchAll() as [SessionRecord]).count, 0)
+    }
+
+    func test_rollPartForUserSessionExpiry_endsOldStartsNewSameStateNewUserSession() throws {
+        let first = controller.startSession(state: .foreground)
+        let firstUserSessionId = first?.userSessionId
+
+        let rollTime = Date()
+        controller.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: rollTime)
+
+        let stored: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(stored.count, 2)
+
+        // Old part: closed at rollTime, marked with `.maxDurationReached` via the backfill.
+        let closed = stored.first { $0.idRaw == first?.id.stringValue }
+        XCTAssertNotNil(closed?.endTime)
+        XCTAssertEqual(closed?.userSessionTerminationReason, "max_duration_reached")
+
+        // New part: same state, fresh user-session ID.
+        XCTAssertEqual(controller.currentSession?.state, .foreground)
+        XCTAssertNotEqual(controller.currentSession?.userSessionId, firstUserSessionId)
+    }
+
+    func test_rollPartForUserSessionExpiry_noActiveSession_isNoop() throws {
+        controller.rollPartForUserSessionExpiry(reason: .manual, at: Date())
+        XCTAssertEqual((storage.fetchAll() as [SessionRecord]).count, 0)
+        XCTAssertNil(controller.currentSession)
+    }
+
+    func test_backfillTerminationReason_allReasons_roundTrip() throws {
+        // Every `TerminationReason` raw-value must round-trip through the
+        // `userSessionTerminationReason` column. `.crash` is otherwise never tested.
+        let reasons: [TerminationReason] = [.maxDurationReached, .inactivity, .manual, .clockAnomaly, .crash, .endBackground]
+        for reason in reasons {
+            let session = controller.startSession(state: .foreground)
+            controller.endSession()
+            controller.backfillTerminationReasonOnLatestPart(reason)
+
+            let stored = storage.fetchSession(id: session!.id)
+            XCTAssertEqual(stored?.userSessionTerminationReason, reason, "round-trip failed for \(reason)")
+        }
+    }
+
+    func test_rollPartForUserSessionExpiry_writesReasonToClosedPart_allReasons() throws {
+        // Each `TerminationReason` plumbed through `rollPart` must land on the closed part's
+        // `userSessionTerminationReason` column. The existing `endsOldStartsNewSameStateNewUserSession`
+        // test only checks `.maxDurationReached`.
+        let reasons: [TerminationReason] = [.maxDurationReached, .inactivity, .manual, .clockAnomaly]
+        for reason in reasons {
+            let started = controller.startSession(state: .foreground)
+            controller.rollPartForUserSessionExpiry(reason: reason, at: Date())
+
+            let closed = storage.fetchSession(id: started!.id)
+            XCTAssertEqual(closed?.userSessionTerminationReason, reason, "rollPart failed for \(reason)")
+        }
+    }
+
+    func test_rollPartForUserSessionExpiry_preservesBackgroundState() throws {
+        // The same-state guarantee on rollPart applies to bg parts too — the new part opened
+        // after the rotation must have state `.background`.
+        let bgConfig = EmbraceConfig(
+            configurable: EditableConfig(isBackgroundSessionEnabled: true),
+            options: .init(),
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
+        )
+        let bgController = SessionController(storage: storage, upload: nil, config: bgConfig)
+        bgController.sdkStateProvider = sdkStateProvider
+        bgController.otel = otel
+        let bgUserSessionController = UserSessionController(storage: storage, config: MockEmbraceConfigurable())
+        bgUserSessionController.sessionController = bgController
+        bgController.userSessionController = bgUserSessionController
+
+        let first = bgController.startSession(state: .background)
+        bgController.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: Date())
+
+        XCTAssertEqual(bgController.currentSession?.state, .background)
+        XCTAssertNotEqual(bgController.currentSession?.userSessionId, first?.userSessionId)
+    }
+
+    func test_checkUserSessionMaxDurationExpiry_doubleTick_rotatesOnce() throws {
+        // Two back-to-back heartbeat ticks against the same expired user session must enqueue
+        // two check-then-maybe-roll blocks. The second block, when it runs, sees the state
+        // left by the first (freshly-rotated user session with a far-future maxEnd) and bails.
+        // Without the in-block re-check, both blocks would call rollPart and we'd see two
+        // rotations.
+        controller.startSession(state: .foreground)
+        let userSessionStart = try XCTUnwrap(userSessionController.currentUserSession?.startTime)
+        let expired = userSessionStart.addingTimeInterval(13 * 3600)  // past 12h max default
+
+        controller.checkUserSessionMaxDurationExpiry(now: expired)
+        controller.checkUserSessionMaxDurationExpiry(now: expired)
+
+        let drained = expectation(description: "controller queue drained")
+        controller.queue.async { drained.fulfill() }
+        wait(for: [drained], timeout: 2)
+
+        // One rotation: original part (closed) + new part (active). Two rotations would be 3.
+        let stored: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(stored.count, 2)
+        XCTAssertEqual(stored.filter { $0.endTime != nil }.count, 1)
+        XCTAssertEqual(stored.filter { $0.endTime == nil }.count, 1)
+    }
+
+    func test_rollPartForUserSessionExpiry_serializedThroughQueue_producesConsistentState() throws {
+        // Two back-to-back rolls dispatched onto the same serial controller queue must run
+        // atomically as a unit (end-old → end-user-session → start-new). Before this queue
+        // routing, heartbeat-driven and manual-driven rolls each ran on their own queues and
+        // could interleave at the three sub-locks, producing a shadow part: the brand-new
+        // session opened by roll A would be immediately ended by roll B's `endSession` step,
+        // then re-opened, leaving a ~ms-lived part record in storage and an unbalanced
+        // pair of user-session start/end notifications.
+        let initial = controller.startSession(state: .foreground)
+
+        let firstRoll = Date()
+        let secondRoll = firstRoll.addingTimeInterval(0.001)
+
+        controller.queue.async {
+            self.controller.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: firstRoll)
+        }
+        controller.queue.async {
+            self.controller.rollPartForUserSessionExpiry(reason: .manual, at: secondRoll)
+        }
+
+        // Drain the controller queue.
+        let drained = expectation(description: "controller queue drained")
+        controller.queue.async {
+            drained.fulfill()
+        }
+        wait(for: [drained], timeout: 2)
+
+        // Three persisted parts (initial, post-roll-1, post-roll-2) — not four. A shadow part
+        // from interleaving would inflate this count.
+        let stored: [SessionRecord] = storage.fetchAll().sorted { $0.startTime < $1.startTime }
+        XCTAssertEqual(stored.count, 3, "exactly one part per rotation; no shadow part")
+
+        // The initial and the post-roll-1 parts are closed; the post-roll-2 part is active.
+        XCTAssertEqual(stored.filter { $0.endTime != nil }.count, 2)
+        XCTAssertEqual(stored.filter { $0.endTime == nil }.count, 1)
+
+        // The three parts each belong to a distinct user session.
+        let userSessionIds = Set(stored.compactMap { $0.userSessionIdRaw })
+        XCTAssertEqual(userSessionIds.count, 3, "three distinct user sessions for three rotations")
+
+        // The currently-active part is the one from roll 2 (last to be opened); it's a foreground
+        // part because the roll preserves the state of the original part.
+        XCTAssertEqual(controller.currentSession?.state, .foreground)
+        XCTAssertNotEqual(controller.currentSession?.id, initial?.id)
+    }
+
+    func test_startSession_bgToFgPastUserSessionCutoff_splitsBackgroundPart() throws {
+        // Build a controller whose userSessionInactivityTimeout is short so the cutoff is
+        // crossed within a reasonable wall-clock window in the test. Also enable background
+        // sessions so the bg part survives.
+        let bgConfig = EmbraceConfig(
+            configurable: EditableConfig(isBackgroundSessionEnabled: true),
+            options: .init(),
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
+        )
+        let splitController = SessionController(storage: storage, upload: nil, config: bgConfig)
+        splitController.sdkStateProvider = sdkStateProvider
+        splitController.otel = otel
+        // The user-session controller holds its `config` weakly; the mock must outlive this
+        // scope or the controller will fall back to defaults.
+        let splitConfigurable = MockEmbraceConfigurable(
+            userSessionMaxDuration: 12 * 3600,
+            userSessionInactivityTimeout: 1  // 1s inactivity for tight cutoff
+        )
+        let splitUserSessionController = UserSessionController(storage: storage, config: splitConfigurable)
+        splitUserSessionController.sessionController = splitController
+        splitController.userSessionController = splitUserSessionController
+
+        // Foreground part that ends at T0 — installs the inactivity cutoff at T0+1s.
+        splitController.startSession(state: .foreground)
+        let foregroundEnd = splitController.endSession()
+        let cutoffExpected = foregroundEnd.addingTimeInterval(1)
+
+        // Background part that begins before the cutoff and would normally span past it.
+        splitController.startSession(state: .background, startTime: foregroundEnd.addingTimeInterval(0.1))
+
+        let bgEnd = foregroundEnd.addingTimeInterval(1.5)  // past the 1s cutoff
+        // Now transition to foreground: bg-split fires.
+        splitController.startSession(state: .foreground, startTime: bgEnd)
+
+        // Three persisted parts: original fg, sliced bg [bg.start, cutoff], synthetic bg [cutoff, now],
+        // and the new fg. Plus the original fg = 4 records total.
+        let stored: [SessionRecord] = storage.fetchAll().sorted { $0.startTime < $1.startTime }
+        XCTAssertEqual(stored.count, 4)
+
+        // Records 2 and 3 are the split bg pair.
+        let slicedBg = stored[1]
+        let syntheticBg = stored[2]
+        let newFg = stored[3]
+
+        XCTAssertEqual(slicedBg.state, "background")
+        XCTAssertEqual(
+            slicedBg.endTime!.timeIntervalSince1970,
+            cutoffExpected.timeIntervalSince1970,
+            accuracy: 0.05
+        )
+
+        XCTAssertEqual(syntheticBg.state, "background")
+        XCTAssertEqual(
+            syntheticBg.startTime.timeIntervalSince1970,
+            cutoffExpected.timeIntervalSince1970,
+            accuracy: 0.05
+        )
+
+        // The split produces three distinct user sessions: the sliced bg stays in the original
+        // user session, the synthetic bg tail gets its own, and the new fg part gets a third.
+        XCTAssertNotEqual(syntheticBg.userSessionIdRaw, slicedBg.userSessionIdRaw)
+        XCTAssertEqual(newFg.state, "foreground")
+        XCTAssertNotEqual(newFg.userSessionIdRaw, syntheticBg.userSessionIdRaw)
+        XCTAssertNotEqual(newFg.userSessionIdRaw, slicedBg.userSessionIdRaw)
+
+        // The synthetic bg part's user session is ended when the foreground part begins.
+        XCTAssertEqual(syntheticBg.userSessionTerminationReason, TerminationReason.endBackground.rawValue)
+    }
+
+    func test_startSession_bgToFgWithinUserSessionBounds_doesNotSplit() throws {
+        // Default inactivity is 30min; we'll only idle a moment, so the cutoff isn't crossed.
+        let bgConfig = EmbraceConfig(
+            configurable: EditableConfig(isBackgroundSessionEnabled: true),
+            options: .init(),
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
+        )
+        let noSplitController = SessionController(storage: storage, upload: nil, config: bgConfig)
+        noSplitController.sdkStateProvider = sdkStateProvider
+        noSplitController.otel = otel
+        let noSplitConfigurable = MockEmbraceConfigurable()  // 12h/30min defaults
+        let noSplitUserSessionController = UserSessionController(storage: storage, config: noSplitConfigurable)
+        noSplitUserSessionController.sessionController = noSplitController
+        noSplitController.userSessionController = noSplitUserSessionController
+
+        noSplitController.startSession(state: .foreground)
+        noSplitController.endSession()
+        let bgFirst = noSplitController.startSession(state: .background)
+        noSplitController.startSession(state: .foreground)
+
+        // No split: only the original fg, the bg, and the new fg — three records total.
+        let stored: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(stored.count, 3)
+
+        // The bg part is closed cleanly (no synthetic split) — its user session matches the
+        // following foreground part.
+        let bgRecord = stored.first { $0.idRaw == bgFirst?.id.stringValue }
+        XCTAssertNotNil(bgRecord?.endTime)
+    }
+
+    func test_startSession_backgroundEndsForegroundInline_joinsSameUserSession() throws {
+        // Reproduces the real lifecycle: backgrounding calls `startSession(.background)` while a
+        // foreground part is still active, so the foreground part is ended *inside* that call.
+        // The new part's startTime and the foreground part's end time must be the same instant —
+        // otherwise the few-ms gap between two `Date()` calls reads as the clock moving backwards
+        // and the background part is wrongly rolled into a brand-new user session.
+        let bgConfig = EmbraceConfig(
+            configurable: EditableConfig(isBackgroundSessionEnabled: true),
+            options: .init(),
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
+        )
+        let bgController = SessionController(storage: storage, upload: nil, config: bgConfig)
+        bgController.sdkStateProvider = sdkStateProvider
+        bgController.otel = otel
+        let bgConfigurable = MockEmbraceConfigurable()  // 12h/30min defaults
+        let bgUserSessionController = UserSessionController(storage: storage, config: bgConfigurable)
+        bgUserSessionController.sessionController = bgController
+        bgController.userSessionController = bgUserSessionController
+
+        let fg = bgController.startSession(state: .foreground)
+        let bg = bgController.startSession(state: .background)
+
+        XCTAssertNotNil(bg)
+        XCTAssertNotNil(fg?.userSessionId)
+        XCTAssertEqual(fg?.userSessionId, bg?.userSessionId)
+        XCTAssertEqual(bg?.userSessionPartIndex, 2)
     }
 
     func test_endSession_saves_foregroundSession() throws {
@@ -447,50 +814,129 @@ final class SessionControllerTests: XCTestCase {
 
     // MARK: heartbeat
 
-    func test_startSession_assignsSessionNumber() throws {
+    func test_startSession_assignsSessionPartNumber() throws {
         // when starting a session
         let session = controller.startSession(state: .foreground)
 
-        // then the session has sessionNumber 1
+        // then sessionNumber == 1 and the permanent counter is at 1
         XCTAssertEqual(session?.sessionNumber, 1)
-
-        // and the MetadataRecord counter was incremented to 1
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
         XCTAssertEqual(resource?.value, "1")
     }
 
-    func test_startSession_incrementsSessionNumberEachTime() throws {
-        // when starting and ending two sessions
+    func test_startSession_incrementsSessionPartNumberPerPart() throws {
+        // given two parts under the same user session
         let first = controller.startSession(state: .foreground)
         controller.endSession()
         let second = controller.startSession(state: .foreground)
 
-        // then each session has a distinct, incrementing sessionNumber
+        // then each part has a unique, strictly-increasing sessionNumber
         XCTAssertEqual(first?.sessionNumber, 1)
         XCTAssertEqual(second?.sessionNumber, 2)
-
-        // and the MetadataRecord reflects the final count
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
         XCTAssertEqual(resource?.value, "2")
     }
 
     func test_startSession_continuesFromExistingCounter() throws {
         // given an existing counter value of 5
         storage.addMetadata(
-            key: SessionController.sessionNumberKey,
+            key: SessionController.sessionPartNumberKey,
             value: "5",
             type: .requiredResource,
             lifespan: .permanent
         )
 
-        // when starting a session
+        // when starting a session, the per-part counter continues from 6
         let session = controller.startSession(state: .foreground)
 
-        // then sessionNumber continues from 6
         XCTAssertEqual(session?.sessionNumber, 6)
 
-        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
         XCTAssertEqual(resource?.value, "6")
+    }
+
+    func test_startSession_persistsUserSessionColumnsOnRecord() throws {
+        let session = controller.startSession(state: .foreground)
+        XCTAssertNotNil(session)
+
+        let stored: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(stored.count, 1)
+        let record = stored[0]
+        XCTAssertNotNil(record.userSessionIdRaw)
+        XCTAssertNotNil(record.userSessionStartTime)
+        XCTAssertEqual(record.userSessionMaxDuration?.doubleValue, configurable.userSessionMaxDuration)
+        XCTAssertEqual(record.userSessionInactivityTimeout?.doubleValue, configurable.userSessionInactivityTimeout)
+        XCTAssertEqual(record.userSessionPartIndex, 1)
+    }
+
+    func test_startSession_backgroundPartIncrementsSessionNumber() throws {
+        // `sessionNumber` is the global per-part counter and must bump regardless of state.
+        let bgConfig = EmbraceConfig(
+            configurable: EditableConfig(isBackgroundSessionEnabled: true),
+            options: .init(),
+            notificationCenter: NotificationCenter.default,
+            logger: MockLogger()
+        )
+        let bgController = SessionController(storage: storage, upload: nil, config: bgConfig)
+        bgController.sdkStateProvider = sdkStateProvider
+        bgController.otel = otel
+        let bgUserSessionController = UserSessionController(storage: storage, config: MockEmbraceConfigurable())
+        bgUserSessionController.sessionController = bgController
+        bgController.userSessionController = bgUserSessionController
+
+        let bg = bgController.startSession(state: .background)
+        XCTAssertEqual(bg?.sessionNumber, 1)
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
+        XCTAssertEqual(resource?.value, "1")
+    }
+
+    func test_sessionNumberAndPartIndex_independentAcrossUserSessionRollover() throws {
+        // After a user-session rollover, `userSessionPartIndex` resets to 1 while the global
+        // `sessionNumber` keeps incrementing. The two counters are independent.
+        controller.startSession(state: .foreground)
+        controller.endSession()
+        controller.startSession(state: .foreground)
+
+        // Force a user-session rollover.
+        controller.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: Date())
+
+        let stored: [SessionRecord] = storage.fetchAll().sorted { $0.sessionNumber < $1.sessionNumber }
+        XCTAssertEqual(stored.count, 3)
+        XCTAssertEqual(stored.map { $0.sessionNumber }, [1, 2, 3], "sessionNumber strictly increasing across rollover")
+        XCTAssertEqual(stored[0].userSessionPartIndex, 1)
+        XCTAssertEqual(stored[1].userSessionPartIndex, 2)
+        XCTAssertEqual(stored[2].userSessionPartIndex, 1, "partIndex resets to 1 in the new user session")
+
+        // First two parts belong to the same user session; the third is a new one.
+        XCTAssertEqual(stored[0].userSessionIdRaw, stored[1].userSessionIdRaw)
+        XCTAssertNotEqual(stored[1].userSessionIdRaw, stored[2].userSessionIdRaw)
+    }
+
+    func test_partsOfSameUserSession_shareUserSessionFields() throws {
+        // Parts 1, 2, 3 of one user session share id/startTime/maxDuration/inactivityTimeout;
+        // only partIndex differs.
+        controller.startSession(state: .foreground)
+        controller.endSession()
+        controller.startSession(state: .foreground)
+        controller.endSession()
+        controller.startSession(state: .foreground)
+
+        let stored: [SessionRecord] = storage.fetchAll().sorted { $0.sessionNumber < $1.sessionNumber }
+        XCTAssertEqual(stored.count, 3)
+
+        let firstId = stored[0].userSessionIdRaw
+        let firstStart = stored[0].userSessionStartTime
+        let firstMax = stored[0].userSessionMaxDuration
+        let firstInactivity = stored[0].userSessionInactivityTimeout
+
+        for record in stored {
+            XCTAssertEqual(record.userSessionIdRaw, firstId)
+            XCTAssertEqual(record.userSessionStartTime, firstStart)
+            XCTAssertEqual(record.userSessionMaxDuration, firstMax)
+            XCTAssertEqual(record.userSessionInactivityTimeout, firstInactivity)
+        }
+
+        XCTAssertEqual(stored.map { $0.userSessionPartIndex }, [1, 2, 3])
     }
 
     func test_heartbeat() throws {
