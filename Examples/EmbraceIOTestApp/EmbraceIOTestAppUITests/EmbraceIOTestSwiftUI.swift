@@ -20,7 +20,6 @@ final class EmbraceIOTestSwiftUI: XCTestCase {
 
     }
 
-
     /// Manual Capture
     func test_manualCapture() {
         toggle("manualCaptureContentComplete", value: false)
