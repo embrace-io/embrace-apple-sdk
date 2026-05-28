@@ -43,9 +43,13 @@ func timeBlock(body: () -> Void) -> Double {
 }
 
 func walkFP(port: thread_t) -> Int {
+    guard let pth = pthread_from_mach_thread_np(port) else { return 0 }
+    let top = pthread_get_stackaddr_np(pth)
+    let size = pthread_get_stacksize_np(pth)
+    let bottom = UnsafeRawPointer(top - size)
     var frames = [UInt](repeating: 0, count: maxFrames)
     var count = 0
-    emb_stack_walk(port, &frames, maxFrames, &count)
+    emb_stack_walk(port, bottom, UnsafeRawPointer(top), &frames, maxFrames, &count)
     return count
 }
 
