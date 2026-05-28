@@ -143,7 +143,8 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
             // tracing header
             if let traceparent = self.addTracingHeader(task: task, span: span),
-               self.dataSource?.isNSFEligible == true {
+                self.dataSource?.isNSFEligible == true
+            {
                 span.setAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: .string(traceparent))
             }
 
@@ -277,11 +278,13 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         }
 
         let value = W3C.traceparent(from: span.context)
-        guard EMBRURLSessionTaskHeaderInjector.injectHeader(
-            withKey: W3C.traceparentHeaderName,
-            value: value,
-            into: task
-        ) else {
+        guard
+            EMBRURLSessionTaskHeaderInjector.injectHeader(
+                withKey: W3C.traceparentHeaderName,
+                value: value,
+                into: task
+            )
+        else {
             return nil
         }
         return value

@@ -26,7 +26,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(logMessageTextField))
         logMessageTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: logMessageTextField)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         logMessageTextField.typeText(
             String(
@@ -117,49 +117,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         evaluateTestResults(app)
     }
 
-    func testAllLogCases() {
-        caseTestLogCapture_trace()
-        app.swipeDown()
-        caseTestLogCapture_debug()
-        app.swipeDown()
-        caseTestLogCapture_info()
-        app.swipeDown()
-        caseTestLogCapture_warn()
-        app.swipeDown()
-        caseTestLogCapture_error()
-        app.swipeDown()
-        caseTestLogCapture_fatal()
-        app.swipeDown()
-        caseTestLogCapture_critical()
-        app.swipeDown()
-        caseTestLogCapture_warn_noStack()
-        app.swipeDown()
-        caseTestLogCapture_error_noStack()
-        app.swipeDown()
-        caseTestLogCapture_trace_customStack_notExpected()
-        app.swipeDown()
-        caseTestLogCapture_debug_customStack_notExpected()
-        app.swipeDown()
-        caseTestLogCapture_info_customStack_notExpected()
-        app.swipeDown()
-        caseTestLogCapture_warn_customStack_expected()
-        app.swipeDown()
-        caseTestLogCapture_error_customStack_expected()
-        app.swipeDown()
-        caseTestLogCapture_fatal_customStack_notExpected()
-        app.swipeDown()
-        caseTestLogCapture_critical_customStack_notExpected()
-        app.swipeDown()
-        caseTestLogCapture_withProperty()
-        app.swipeDown()
-        caseTestLogCapture_withNormalFileSize()
-        app.swipeDown()
-        caseTestLogCapture_withMaxFileSize()
-        app.swipeDown()
-        caseTestLogCapture_withOversizeFileSize()
-    }
-
-    func caseTestLogCapture_trace() {
+    func test_logCapture_trace() {
 
         enterCustomMessage()
 
@@ -168,7 +126,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_debug() {
+    func test_logCapture_debug() {
 
         enterCustomMessage()
 
@@ -177,7 +135,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_info() {
+    func test_logCapture_info() {
 
         enterCustomMessage()
 
@@ -186,7 +144,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_warn() {
+    func test_logCapture_warn() {
 
         enterCustomMessage()
 
@@ -195,7 +153,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_error() {
+    func test_logCapture_error() {
 
         enterCustomMessage()
 
@@ -204,7 +162,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_fatal() {
+    func test_logCapture_fatal() {
 
         enterCustomMessage()
 
@@ -213,7 +171,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_critical() {
+    func test_logCapture_critical() {
 
         enterCustomMessage()
 
@@ -224,7 +182,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
     /// No Stack Trace
 
-    func caseTestLogCapture_warn_noStack() {
+    func test_logCapture_warn_noStack() {
 
         enterCustomMessage()
 
@@ -233,7 +191,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_error_noStack() {
+    func test_logCapture_error_noStack() {
 
         enterCustomMessage()
 
@@ -253,7 +211,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         ])
     }
 
-    func caseTestLogCapture_trace_customStack_notExpected() {
+    func test_logCapture_trace_customStack_notExpected() {
         enterCustomMessage()
 
         selectSeverityButton(.trace)
@@ -262,7 +220,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_debug_customStack_notExpected() {
+    func test_logCapture_debug_customStack_notExpected() {
         enterCustomMessage()
 
         selectSeverityButton(.debug)
@@ -271,7 +229,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_info_customStack_notExpected() {
+    func test_logCapture_info_customStack_notExpected() {
         enterCustomMessage()
 
         selectSeverityButton(.info)
@@ -280,7 +238,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_warn_customStack_expected() {
+    func test_logCapture_warn_customStack_expected() {
         enterCustomMessage()
 
         selectSeverityButton(.warn)
@@ -289,7 +247,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_error_customStack_expected() {
+    func test_logCapture_error_customStack_expected() {
         enterCustomMessage()
 
         selectSeverityButton(.error)
@@ -298,7 +256,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_fatal_customStack_notExpected() {
+    func test_logCapture_fatal_customStack_notExpected() {
         enterCustomMessage()
 
         selectSeverityButton(.fatal)
@@ -307,7 +265,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_critical_customStack_notExpected() {
+    func test_logCapture_critical_customStack_notExpected() {
         enterCustomMessage()
 
         selectSeverityButton(.critical)
@@ -318,7 +276,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
     /// Adding a property
 
-    func caseTestLogCapture_withProperty() {
+    func test_logCapture_withProperty() {
 
         enterCustomMessage()
         selectSeverityButton(.warn)
@@ -328,7 +286,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(logMessageAttributeKeyTextField))
         logMessageAttributeKeyTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: logMessageAttributeKeyTextField)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         logMessageAttributeKeyTextField.typeText(
             String(
@@ -343,7 +301,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(logMessageAttributeValueTextField))
         logMessageAttributeValueTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: logMessageAttributeValueTextField)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         logMessageAttributeValueTextField.typeText(
             String(
@@ -363,7 +321,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
     /// File Attachment
 
-    func caseTestLogCapture_withNormalFileSize() {
+    func test_logCapture_withNormalFileSize() {
         enterCustomMessage()
         setAttachmentEnabled(true)
         setAttachmentSize(.safe)
@@ -371,7 +329,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_withMaxFileSize() {
+    func test_logCapture_withMaxFileSize() {
         enterCustomMessage()
         setAttachmentEnabled(true)
         setAttachmentSize(.maxAllowed)
@@ -379,7 +337,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func caseTestLogCapture_withOversizeFileSize() {
+    func test_logCapture_withOversizeFileSize() {
         enterCustomMessage()
         setAttachmentEnabled(true)
         setAttachmentSize(.overMaxAllowed)

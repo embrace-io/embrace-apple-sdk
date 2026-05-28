@@ -52,6 +52,12 @@ private func makeModule(
 
 class EmbraceUploadOrderedDeliveryTests: XCTestCase {
 
+    override func setUp() {
+        super.setUp()
+        // EmbraceHTTPMock state is process-wide; reset between methods.
+        EmbraceHTTPMock.clearRequests()
+    }
+
     // MARK: - 1. Ordering guarantee
 
     func test_spansAreUploadedInInsertionOrder() throws {
@@ -362,7 +368,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
 
         // Cancel all operations while they're still retrying
         module.spansQueue.cancelAllOperations()
-        module.spansQueue.waitUntilAllOperationsAreFinished()
 
         // Allow handleOperationFinished to process on coordination queue
         module.queue.sync {}

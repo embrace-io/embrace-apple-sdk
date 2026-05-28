@@ -74,11 +74,13 @@ final class CaptureServices {
         }
 
         // Ensure the hang service has the right config
-        if let limits = config?.hangLimits {
-            services
-                .compactMap { $0 as? HangCaptureService }
-                .forEach { $0.limits = limits }
-        }
+        #if !os(watchOS) && !os(macOS)
+            if let limits = config?.hangLimits {
+                services
+                    .compactMap { $0 as? HangCaptureService }
+                    .forEach { $0.limits = limits }
+            }
+        #endif
 
         if let config {
             services.forEach { $0.onConfigUpdated(config) }

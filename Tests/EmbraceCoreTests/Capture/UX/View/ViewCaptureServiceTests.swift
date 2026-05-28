@@ -10,16 +10,22 @@
     import EmbraceOTelInternal
     import TestSupport
 
-    class ViewCaptureServiceTests: XCTestCase {
+    class ViewCaptureServiceTests: SwizzlerTestCase {
 
         var handler: MockUIViewControllerHandler!
         var service: ViewCaptureService!
 
         override func setUpWithError() throws {
+            try super.setUpWithError()
             handler = MockUIViewControllerHandler()
             service = ViewCaptureService(options: ViewCaptureService.Options(), handler: handler, lock: NSLock())
             service.install(otel: nil)
             service.start()
+        }
+
+        override func tearDownWithError() throws {
+            restoreSwizzleCacheAdditions()
+            try super.tearDownWithError()
         }
 
         func test_viewDidLoad() {

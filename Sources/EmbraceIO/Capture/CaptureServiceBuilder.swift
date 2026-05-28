@@ -58,6 +58,7 @@ public class CaptureServiceBuilder: NSObject {
             if !services.contains(where: { $0 is ViewCaptureService }) {
                 add(.view())
             }
+
         #endif
 
         #if canImport(WebKit)

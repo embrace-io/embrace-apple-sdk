@@ -21,13 +21,13 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let isSwiftUiViewInstrumentationEnabled: Bool = true
 
-    public let isMetricKitEnabled: Bool = false
+    public let isMetricKitEnabled: Bool = true
 
     public var isMetricKitInstrumentationEnabled: Bool = false
 
-    public var isMetricKitCrashCaptureEnabled: Bool = false
+    public var isMetricKitCrashCaptureEnabled: Bool = true
 
-    public var metricKitCrashSignals: [String] = []
+    public var metricKitCrashSignals: [String] = ["SIGKILL"]
 
     public var isMetricKitHangCaptureEnabled: Bool = false
 

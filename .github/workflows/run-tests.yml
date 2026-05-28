@@ -40,14 +40,15 @@ jobs:
   run-tests:
     needs: prepare
     name: Test ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}, sanitizer ${{ matrix.sanitizer }}
-    timeout-minutes: 30
+    # 20 min: typical run is ~6 min compile + ~5 min tests. Per-test timeouts
+    # (see .github/actions/run-xcodebuild) catch single-method hangs; this
+    # job-level cap is the backstop for XCTest infra / parallel-worker hangs.
+    timeout-minutes: 20
     runs-on: macos-${{ matrix.macos-version }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
-    permissions:
-      checks: write
     steps:
       - name: Select Xcode
         run: |
@@ -62,7 +63,15 @@ jobs:
         run: |
           xcodebuild -runFirstLaunch
           xcrun simctl list
-          xcodebuild -downloadPlatform ${MATRIX_PLATFORM}
+          for i in 1 2 3; do
+            xcodebuild -downloadPlatform "${MATRIX_PLATFORM}" && break
+            if [ "$i" -eq 3 ]; then
+              echo "::error title=downloadPlatform failed::all 3 attempts failed for ${MATRIX_PLATFORM}"
+              exit 1
+            fi
+            echo "::warning title=downloadPlatform retry::attempt $i failed for ${MATRIX_PLATFORM}; retrying in 15s"
+            sleep 15
+          done
           xcodebuild -runFirstLaunch
         env:
           MATRIX_PLATFORM: ${{ matrix.platform }}
@@ -72,26 +81,40 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Cache SwiftPM packages
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData/embrace-apple-sdk-*/SourcePackages
+          key: swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: swiftpm-${{ runner.os }}-
+
       - name: Run Unit Tests
-        uses: mxcl/xcodebuild@d3ee9b419c1be9a988086c58fe0988f32d99cfc5 # v3.6.0
-        timeout-minutes: 80
+        uses: ./.github/actions/run-xcodebuild
         with:
           workspace: ".swiftpm/xcode/package.xcworkspace"
           scheme: EmbraceIO-Package
           platform: ${{ matrix.platform }}
           platform-version: ${{ matrix.platform-version }}
-          upload-logs: always
-          code-coverage: true
-          trust-plugins: false
           arch: arm64
+          action: test
           sanitizer: ${{ matrix.sanitizer }}
+          code-coverage: 'true'
+          result-bundle-path: ./test.xcresult
+
+      - name: Upload xcresult on failure or cancellation
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: xcresult-${{ matrix.platform }}-xcode${{ matrix.xcode_version }}-${{ matrix.sanitizer }}
+          path: test.xcresult
+          retention-days: 7
 
       # Dumps the human-readable failure summary and per-test failure tree
       # (with file:line) into the job log so a failure can be diagnosed
       # without downloading the ~75 MB xcresult artifact — especially
       # relevant for TSan aborts.
       - name: Surface failure summary from xcresult
-        if: failure()
+        if: failure() || cancelled()
         run: |
           if [ ! -d test.xcresult ]; then
             echo "test.xcresult not found in $(pwd); skipping summary."
@@ -105,6 +128,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5.5.3
+        if: success()
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # zizmor: ignore[secrets-outside-env]

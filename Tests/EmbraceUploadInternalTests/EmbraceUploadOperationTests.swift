@@ -25,6 +25,9 @@ class EmbraceUploadOperationTests: XCTestCase {
     var queue: DispatchQueue!
 
     override func setUpWithError() throws {
+        // EmbraceHTTPMock state is process-wide; reset between methods.
+        EmbraceHTTPMock.clearRequests()
+
         let urlSessionconfig = URLSessionConfiguration.ephemeral
         urlSessionconfig.httpMaximumConnectionsPerHost = .max
         urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
@@ -221,6 +224,40 @@ class EmbraceUploadOperationTests: XCTestCase {
         operation.cancel()
 
         wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
+    // Regression: cancel after success must not trigger completion twice.
+    func test_completionFiresExactlyOnceWhenCancelledAfterSuccess() throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
+        EmbraceHTTPMock.mock(url: TestConstants.url)
+
+        let completionFired = XCTestExpectation(description: "completion fires once")
+
+        let operation = EmbraceUploadOperation(
+            urlSession: urlSession,
+            queue: queue,
+            metadataOptions: testMetadataOptions,
+            endpoint: TestConstants.url,
+            identifier: "id",
+            data: Data(),
+            retryCount: 0,
+            exponentialBackoffBehavior: .init(),
+            attemptCount: 0
+        ) { result, _ in
+            XCTAssertEqual(result, .success)
+            completionFired.fulfill()
+        }
+
+        operation.start()
+        wait(for: [completionFired], timeout: .defaultTimeout)
+
+        // Cancelling after completion must not re-fire completion.
+        operation.cancel()
+
+        // Give any erroneous async re-fire a chance to land before the test ends.
+        let noSecondFire = XCTestExpectation(description: "no second completion")
+        noSecondFire.isInverted = true
+        wait(for: [noSecondFire], timeout: 0.1)
     }
 
     func test_onExecuting_whenReceivingNonRetryableError_shouldntRetry() throws {

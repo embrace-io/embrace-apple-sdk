@@ -62,7 +62,13 @@ import Foundation
         return PushNotificationCaptureService(options: options)
     }
 
-    static func hangWatchdog() -> HangCaptureService {
-        return HangCaptureService()
-    }
+    #if !os(watchOS) && !os(macOS)
+        /// Returns a `HangCaptureService`.
+        /// - Note: Available on iOS and tvOS only. Hang detection relies on
+        ///   `CADisplayLink`, which has no standalone initializer on macOS and
+        ///   is not available on watchOS.
+        static func hangWatchdog() -> HangCaptureService {
+            return HangCaptureService()
+        }
+    #endif
 }

@@ -37,7 +37,15 @@ jobs:
         run: |
           xcodebuild -runFirstLaunch
           xcrun simctl list
-          xcodebuild -downloadPlatform iOS
+          for i in 1 2 3; do
+            xcodebuild -downloadPlatform iOS && break
+            if [ "$i" -eq 3 ]; then
+              echo "::error title=downloadPlatform failed::all 3 attempts failed for iOS"
+              exit 1
+            fi
+            echo "::warning title=downloadPlatform retry::attempt $i failed for iOS; retrying in 15s"
+            sleep 15
+          done
           xcodebuild -runFirstLaunch
 
       - name: Checkout PR
@@ -47,7 +55,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@4c56a21280b36d862b5fc31348f463d60bdc55d5 # v1.301.0
+        uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
         with:
           ruby-version: 3.2.2
 
@@ -61,12 +69,12 @@ jobs:
         run: pod install
 
       - name: Build BrandGame-CocoaPods
-        uses: mxcl/xcodebuild@d3ee9b419c1be9a988086c58fe0988f32d99cfc5 # v3.6.0
+        uses: ./.github/actions/run-xcodebuild
         with:
-          action: build
           workspace: Examples/BrandGame-CocoaPods/BrandGame.xcworkspace
           scheme: BrandGame
           platform: iOS
+          action: build
 
       - name: Lint Podspec
         id: lint
@@ -76,7 +84,7 @@ jobs:
           pod lib lint --allow-warnings --verbose --platforms=iOS 2>&1 | tee cocoapod-lint-output.log
 
       - name: Upload Lint Output on Failure
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cocoapod-lint-output

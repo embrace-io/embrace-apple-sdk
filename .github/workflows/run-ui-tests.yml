@@ -2,17 +2,19 @@ name: UI Tests App
 
 on:
   workflow_dispatch: {}
-  pull_request: {}
-  push:
-    branches:
-      - main
+  schedule:
+    - cron: "0 9 * * *"
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run-ui-tests-app:
-    timeout-minutes: 60
+    timeout-minutes: 30
     runs-on: [macos-15]
     strategy:
       fail-fast: false
@@ -20,6 +22,17 @@ jobs:
         xcode_version: ["26.0"]
         device:
           - "iPhone 16 Pro"
+        test_group:
+          - name: startup
+            filter: "EmbraceIOTestAppUITests/EmbraceIOTestWARMStartupUITests,EmbraceIOTestAppUITests/EmbraceIOTestCOLDStartupUITests"
+          - name: logs
+            filter: "EmbraceIOTestAppUITests/EmbraceIOTestLogsUITests"
+          - name: networking
+            filter: "EmbraceIOTestAppUITests/EmbraceIOTestNetworkingUITests"
+          - name: session
+            filter: "EmbraceIOTestAppUITests/EmbraceIOTestSessionSpanUITests,EmbraceIOTestAppUITests/EmbraceIOTestPostedPayloads"
+          - name: views
+            filter: "EmbraceIOTestAppUITests/EmbraceIOTestSwiftUI,EmbraceIOTestAppUITests/EmbraceIOTestViewUITests"
     permissions:
       checks: write
 
@@ -45,7 +58,7 @@ jobs:
      #     xcrun simctl boot "${{ matrix.device }}"
 
       - name: Cache SPM Dependencies
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: |
             .build/checkouts
@@ -60,15 +73,38 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
-      - name: Run UI Tests
+      - name: Run UI Tests (${{ matrix.test_group.name }})
         env:
           IS_XCTEST: true
         run: |
-          set -e && xcodebuild -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" -scheme "EmbraceIOTestApp" -derivedDataPath "build/DerivedData" -resultBundlePath ".build/test/output" -destination "platform=iOS Simulator,name=${{ matrix.device }}" -parallel-testing-enabled NO test -retry-tests-on-failure -test-iterations 3 | xcbeautify && exit ${PIPESTATUS[0]}
+          set -o pipefail
+          mkdir -p build
+          IFS=',' read -ra FILTERS <<< "${{ matrix.test_group.filter }}"
+          xcodebuild \
+            -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" \
+            -scheme "EmbraceIOTestApp" \
+            -derivedDataPath "build/DerivedData" \
+            -resultBundlePath ".build/test/output" \
+            -destination "platform=iOS Simulator,name=${{ matrix.device }}" \
+            -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 60 \
+            -maximum-test-execution-time-allowance 180 \
+            "${FILTERS[@]/#/-only-testing:}" \
+            test 2>&1 \
+            | tee >(awk '{ printf "[%s] %s\n", strftime("%H:%M:%S"), $0; fflush() }' > build/xcodebuild.log) \
+            | xcbeautify --renderer github-actions
 
-      - name: Upload xcresult Bundle Manually
-        if: failure()
+      - name: Upload xcodebuild log
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: output_xcresult
+          name: xcodebuild_log_${{ matrix.test_group.name }}
+          path: build/xcodebuild.log
+
+      - name: Upload xcresult Bundle Manually
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: output_xcresult_${{ matrix.test_group.name }}
           path: .build/test/output.xcresult

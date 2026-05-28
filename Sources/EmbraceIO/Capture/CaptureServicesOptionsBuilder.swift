@@ -184,13 +184,18 @@ public class CaptureServicesOptionsBuilder: NSObject {
         return self
     }
 
-    /// Adds a new `HangCaptureService`.
-    /// - Note: If there was another `HangCaptureService` previously added, it will be replaced with the new one.
-    @discardableResult
-    public func addHangCaptureService() -> Self {
-        map[.hang] = true
-        return self
-    }
+    #if !os(watchOS) && !os(macOS)
+        /// Adds a new `HangCaptureService`.
+        /// - Note: Available on iOS and tvOS only. Hang detection relies on
+        ///   `CADisplayLink`, which has no standalone initializer on macOS and
+        ///   is not available on watchOS.
+        /// - Note: If there was another `HangCaptureService` previously added, it will be replaced with the new one.
+        @discardableResult
+        public func addHangCaptureService() -> Self {
+            map[.hang] = true
+            return self
+        }
+    #endif
 
     /// Adds the given custom `CaptureService`.
     /// - Note: If there was another `CaptureService` already added of the same type, it will be replaced with the new one.
@@ -239,9 +244,11 @@ public class CaptureServicesOptionsBuilder: NSObject {
             map[.lowPowerMode] = nil
         }
 
-        if type == HangCaptureService.self {
-            map[.hang] = nil
-        }
+        #if !os(watchOS) && !os(macOS)
+            if type == HangCaptureService.self {
+                map[.hang] = nil
+            }
+        #endif
 
         customServices.removeAll(where: { $0.isKind(of: type) })
 

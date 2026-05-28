@@ -27,8 +27,8 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssert(payload.viewControllerClassNameBlocklist.isEmpty)
         XCTAssertEqual(payload.uiInstrumentationCaptureHostingControllers, false)
         XCTAssertEqual(payload.swiftUiViewInstrumentationEnabled, true)
-        XCTAssertEqual(payload.metricKitEnabledThreshold, 0)
-        XCTAssertEqual(payload.metricKitCrashCaptureEnabled, false)
+        XCTAssertEqual(payload.metricKitEnabledThreshold, 100)
+        XCTAssertEqual(payload.metricKitCrashCaptureEnabled, true)
         XCTAssertEqual(payload.metricKitCrashSignals, ["SIGKILL"])
         XCTAssertEqual(payload.metricKitHangCaptureEnabled, false)
         XCTAssertEqual(payload.breadcrumbLimit, 100)
@@ -42,6 +42,7 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.internalLogsWarningLimit, 0)
         XCTAssertEqual(payload.internalLogsErrorLimit, 3)
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
+        XCTAssertEqual(payload.hangLimitsHangThreshold, 0.249)
     }
 
     func testOnHavingValidRemoteConfig_RemoteConfigPayload_shouldOverridedDefaultValuesWithProvidedOnes() throws {
@@ -90,6 +91,9 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.metricKitCrashCaptureEnabled, true)
         XCTAssertEqual(payload.metricKitCrashSignals, ["SIGKILL", "SIGINT"])
         XCTAssertEqual(payload.metricKitHangCaptureEnabled, true)
+        XCTAssertEqual(payload.hangLimitsHangThreshold, 0.5)
+        XCTAssertEqual(payload.hangLimitsHangPerSession, 100)
+        XCTAssertEqual(payload.hangLimitsReportsWatchdogEvents, true)
     }
 
     func test_onHavingOldAndInvalidRemoteConfigPayload_RemoteConfigPayload_shouldBeCreatedWithDefaults() throws {
@@ -108,8 +112,8 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssert(payload.viewControllerClassNameBlocklist.isEmpty)
         XCTAssertEqual(payload.uiInstrumentationCaptureHostingControllers, false)
         XCTAssertEqual(payload.swiftUiViewInstrumentationEnabled, true)
-        XCTAssertEqual(payload.metricKitEnabledThreshold, 0)
-        XCTAssertEqual(payload.metricKitCrashCaptureEnabled, false)
+        XCTAssertEqual(payload.metricKitEnabledThreshold, 100)
+        XCTAssertEqual(payload.metricKitCrashCaptureEnabled, true)
         XCTAssertEqual(payload.metricKitCrashSignals, ["SIGKILL"])
         XCTAssertEqual(payload.metricKitHangCaptureEnabled, false)
         XCTAssertEqual(payload.breadcrumbLimit, 100)
@@ -123,6 +127,7 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.internalLogsWarningLimit, 0)
         XCTAssertEqual(payload.internalLogsErrorLimit, 3)
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
+        XCTAssertEqual(payload.hangLimitsHangThreshold, 0.249)
     }
 
     func getRemoteConfigData(forResource resource: String) throws -> Data {
