@@ -11,62 +11,69 @@ final class URLSessionCaptureServiceOptionsTests: XCTestCase {
     // MARK: - allowedDomains validation: empty string
 
     func test_allowedDomainEmptyString_Dropped() {
-        let t = URLSessionCaptureService.Traceparent(allowedDomains: [""])
-        XCTAssertTrue(t.allowedDomains.isEmpty)
+        let t = URLSessionCaptureService.Traceparent(onlyAllowedDomains: [""])
+        XCTAssertNotNil(t.onlyAllowedDomains)
+        XCTAssertTrue(t.onlyAllowedDomains!.isEmpty)
     }
 
     // MARK: - allowedDomains validation: contains slash
 
     func test_allowedDomainContainsSlash_Dropped() {
-        let t = URLSessionCaptureService.Traceparent(allowedDomains: ["test.com/path"])
-        XCTAssertTrue(t.allowedDomains.isEmpty)
+        let t = URLSessionCaptureService.Traceparent(onlyAllowedDomains: ["test.com/path"])
+        XCTAssertNotNil(t.onlyAllowedDomains)
+        XCTAssertTrue(t.onlyAllowedDomains!.isEmpty)
     }
 
     // MARK: - allowedDomains validation: contains whitespace
 
     func test_allowedDomainContainsWhitespace_Dropped() {
-        let t = URLSessionCaptureService.Traceparent(allowedDomains: ["test .com"])
-        XCTAssertTrue(t.allowedDomains.isEmpty)
+        let t = URLSessionCaptureService.Traceparent(onlyAllowedDomains: ["test .com"])
+        XCTAssertNotNil(t.onlyAllowedDomains)
+        XCTAssertTrue(t.onlyAllowedDomains!.isEmpty)
     }
 
     func test_allowedDomainContainsTab_Dropped() {
-        let t = URLSessionCaptureService.Traceparent(allowedDomains: ["test\t.com"])
-        XCTAssertTrue(t.allowedDomains.isEmpty)
+        let t = URLSessionCaptureService.Traceparent(onlyAllowedDomains: ["test\t.com"])
+        XCTAssertNotNil(t.onlyAllowedDomains)
+        XCTAssertTrue(t.onlyAllowedDomains!.isEmpty)
     }
 
     // MARK: - allowedDomains validation: leading dot
 
     func test_allowedDomainLeadingDot_Dropped() {
-        let t = URLSessionCaptureService.Traceparent(allowedDomains: [".test.com"])
-        XCTAssertTrue(t.allowedDomains.isEmpty)
+        let t = URLSessionCaptureService.Traceparent(onlyAllowedDomains: [".test.com"])
+        XCTAssertNotNil(t.onlyAllowedDomains)
+        XCTAssertTrue(t.onlyAllowedDomains!.isEmpty)
     }
 
     // MARK: - allowedDomains validation: mixed valid and invalid
 
     func test_allowedDomainMixedValidAndInvalid_OnlyValidPreserved() {
-        let t = URLSessionCaptureService.Traceparent(allowedDomains: ["valid.com", "bad/path", "other.com"])
-        XCTAssertEqual(t.allowedDomains, ["valid.com", "other.com"])
+        let t = URLSessionCaptureService.Traceparent(onlyAllowedDomains: ["valid.com", "bad/path", "other.com"])
+        XCTAssertNotNil(t.onlyAllowedDomains)
+        XCTAssertEqual(t.onlyAllowedDomains, ["valid.com", "other.com"])
     }
 
     // MARK: - allowedDomains validation: all invalid
 
     func test_allowedDomainAllInvalid_AllowlistEmpty_StillFunctions() {
-        let t = URLSessionCaptureService.Traceparent(allowedDomains: ["", ".bad.com", "bad/path"])
-        XCTAssertTrue(t.allowedDomains.isEmpty)
-        // Empty allowlist means "match everything" — not a setup error on its own
-        XCTAssertTrue(HostAllowlistMatcher.matches(host: "any.host.com", allowlist: t.allowedDomains))
+        let t = URLSessionCaptureService.Traceparent(onlyAllowedDomains: ["", ".bad.com", "bad/path"])
+        XCTAssertNotNil(t.onlyAllowedDomains)
+        XCTAssertTrue(t.onlyAllowedDomains!.isEmpty)
+        // Empty, not-nil allowlist means "ignore everything" — not a setup error on its own
+        XCTAssertFalse(HostAllowlistMatcher.matches(host: "any.host.com", allowlist: t.onlyAllowedDomains!))
     }
 
     // MARK: - allowedDomains validation: valid entry preserved and lowercased
 
     func test_allowedDomainValidEntry_PreservedAndLowercased() {
-        let t = URLSessionCaptureService.Traceparent(allowedDomains: ["Test.Com"])
-        XCTAssertEqual(t.allowedDomains, ["test.com"])
+        let t = URLSessionCaptureService.Traceparent(onlyAllowedDomains: ["Test.Com"])
+        XCTAssertEqual(t.onlyAllowedDomains, ["test.com"])
     }
 
     func test_allowedDomainMultipleValidEntries_AllPreserved() {
-        let t = URLSessionCaptureService.Traceparent(allowedDomains: ["test.com", "api.test.com"])
-        XCTAssertEqual(t.allowedDomains, ["test.com", "api.test.com"])
+        let t = URLSessionCaptureService.Traceparent(onlyAllowedDomains: ["test.com", "api.test.com"])
+        XCTAssertEqual(t.onlyAllowedDomains, ["test.com", "api.test.com"])
     }
 
     // MARK: - injectTracingHeader deprecation
@@ -85,14 +92,14 @@ final class URLSessionCaptureServiceOptionsTests: XCTestCase {
 
     // MARK: - Options init
 
-    func test_defaultInit_HasEmptyAllowedDomains() {
+    func test_defaultInit_HasNilAllowedDomains() {
         let options = URLSessionCaptureService.Options()
-        XCTAssertTrue(options.traceparent.allowedDomains.isEmpty)
+        XCTAssertNil(options.traceparent.onlyAllowedDomains)
     }
 
     func test_primaryInit_SetsTraceparentOptions() {
-        let tp = URLSessionCaptureService.Traceparent(allowedDomains: ["test.com"])
+        let tp = URLSessionCaptureService.Traceparent(onlyAllowedDomains: ["test.com"])
         let options = URLSessionCaptureService.Options(traceparent: tp)
-        XCTAssertEqual(options.traceparent.allowedDomains, ["test.com"])
+        XCTAssertEqual(options.traceparent.onlyAllowedDomains, ["test.com"])
     }
 }

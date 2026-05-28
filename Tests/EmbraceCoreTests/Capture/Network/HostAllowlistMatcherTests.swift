@@ -14,14 +14,14 @@ final class HostAllowlistMatcherTests: XCTestCase {
         XCTAssertFalse(HostAllowlistMatcher.matches(host: nil, allowlist: ["test.com"]))
     }
 
-    func test_nilHost_EmptyAllowlist_ReturnsFalse() {
+    func test_nilHost_EmptyNotNilAllowlist_ReturnsFalse() {
         XCTAssertFalse(HostAllowlistMatcher.matches(host: nil, allowlist: []))
     }
 
     // MARK: - Empty allowlist
 
-    func test_emptyAllowlist_ReturnsTrue() {
-        XCTAssertTrue(HostAllowlistMatcher.matches(host: "any.host.com", allowlist: []))
+    func test_emptyAllowlist_ReturnsFalse() {
+        XCTAssertFalse(HostAllowlistMatcher.matches(host: "any.host.com", allowlist: []))
     }
 
     // MARK: - Bare domain matching
@@ -55,10 +55,11 @@ final class HostAllowlistMatcherTests: XCTestCase {
     // MARK: - Multiple entries
 
     func test_multipleEntries_FirstHitWins() {
-        XCTAssertTrue(HostAllowlistMatcher.matches(
-            host: "api.sometest.com",
-            allowlist: ["test.com", "sometest.com", "othertest.com"]
-        ))
+        XCTAssertTrue(
+            HostAllowlistMatcher.matches(
+                host: "api.sometest.com",
+                allowlist: ["test.com", "sometest.com", "othertest.com"]
+            ))
     }
 
     // MARK: - Unrelated host

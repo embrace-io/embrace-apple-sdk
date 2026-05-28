@@ -81,13 +81,23 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
     }
 
     func shouldInjectHeader(for request: URLRequest) -> Bool {
+        let injectionEnabled = Embrace.client?.config.traceparentInjectionEnabled ?? false
+
+        /// Check the feature is even enabled.
+        guard injectionEnabled else { return false }
+
+        /// If the allowedDomains list is nil, all requests should be injected.
+        guard let allowedDomains = options.traceparent.onlyAllowedDomains else { return true }
+
+        /// If the list is not-nil, apply filtering.
         guard
             HostAllowlistMatcher.matches(
                 host: request.url?.host,
-                allowlist: options.traceparent.allowedDomains
+                allowlist: allowedDomains
             )
         else { return false }
-        return Embrace.client?.config.traceparentInjectionEnabled == true
+
+        return true
     }
 
     var isNSFEligible: Bool {

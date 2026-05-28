@@ -9,7 +9,7 @@ extension URLSessionCaptureService {
     /// Configuration for W3C `traceparent` header propagation on captured network requests.
     @objc(EMBURLSessionCaptureServiceTraceparentOptions)
     public final class Traceparent: NSObject {
-        /// First-party domain allowlist. Only requests whose host matches one of these entries
+        /// First-party domain allowlist. When not nil, only requests whose host matches one of these entries
         /// get a `traceparent` header.
         ///
         /// Entries are bare hostnames (e.g. `"test.com"`). No protocol prefix, no leading `.`,
@@ -19,16 +19,19 @@ extension URLSessionCaptureService {
         /// Malformed entries (empty, containing `/`, containing whitespace, having a leading `.`)
         /// are dropped at init time and a warning is logged. The SDK does not throw for bad entries.
         ///
-        /// Empty list (default) = no allowlist filter; the header is sent on every captured
+        /// Nil list (default) = no allowlist filter; the header is sent on every captured
         /// request that passes the other gates.
-        @objc public let allowedDomains: [String]
+        /// An empty list means no domains should be captured.
+        @objc public let onlyAllowedDomains: [String]?
 
-        @objc public init(allowedDomains: [String] = []) {
-            self.allowedDomains = Traceparent.validated(allowedDomains)
+        @objc public init(onlyAllowedDomains: [String]? = nil) {
+            self.onlyAllowedDomains = Traceparent.validated(onlyAllowedDomains)
+
             super.init()
         }
 
-        private static func validated(_ entries: [String]) -> [String] {
+        private static func validated(_ entries: [String]?) -> [String]? {
+            guard let entries = entries else { return nil }
             guard !entries.isEmpty else { return [] }
             var result: [String] = []
             for entry in entries {
@@ -114,7 +117,8 @@ extension URLSessionCaptureService {
         @available(
             *,
             deprecated,
-            message: "Injection rate is now controlled via remote config (traceparent_injection_pct_enabled) for managed customers, or via EmbraceConfigurable.traceparentInjectionEnabled for non-managed setups. This property is now a no-op."
+            message:
+                "Injection rate is now controlled via remote config (traceparent_injection_pct_enabled) for managed customers, or via EmbraceConfigurable.traceparentInjectionEnabled for non-managed setups. This property is now a no-op."
         )
         @objc public var injectTracingHeader: Bool {
             get { false }
