@@ -372,7 +372,7 @@ extension LogControllerTests {
     }
 
     fileprivate func whenInvokingBatchFinished(withLogs logs: [EmbraceLog]) {
-        sut.batchFinished(withLogs: logs)
+        sut.batchFinished(withLogs: logs, sessionId: nil)
     }
 
     fileprivate func whenAttachmentLimitIsReached() {

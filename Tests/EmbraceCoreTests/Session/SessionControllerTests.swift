@@ -308,7 +308,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(uploadData.count, 1)
     }
 
-    func testOnHavingBatcher_endSession_forcesEndBatchAndWaits() throws {
+    func testOnHavingBatcher_endSession_forcesEndBatch() throws {
         // given sesion controller has a batcher
         let batcher = SpyLogBatcher()
         controller.setLogBatcher(batcher)
@@ -319,11 +319,12 @@ final class SessionControllerTests: XCTestCase {
         // when ending the session
         controller.endSession()
 
-        // then should force end current batch
+        // then should force end current batch without blocking the caller
         XCTAssertTrue(batcher.didCallForceEndCurrentBatch)
+        XCTAssertFalse(try XCTUnwrap(batcher.forceEndCurrentBatchParameters).waitUntilFinished)
 
-        // then should wait for log batch to be closed
-        XCTAssertTrue(try XCTUnwrap(batcher.forceEndCurrentBatchParameters))
+        // then the ending session's ID should be passed so logs are attributed correctly
+        XCTAssertNotNil(try XCTUnwrap(batcher.forceEndCurrentBatchParameters).sessionId)
     }
 
     // MARK: update
@@ -523,6 +524,56 @@ final class SessionControllerTests: XCTestCase {
             XCTAssertNotEqual(lastDate, controller.currentSession!.lastHeartbeatTime)
             lastDate = controller.currentSession!.lastHeartbeatTime
         }
+    }
+
+    func test_startSession_coldStart_backgroundDropped_deletesOldSession() throws {
+        // given a cold-start background session with background sessions disabled (config == nil)
+        let backgroundSession = controller.startSession(state: .background)
+        XCTAssertNotNil(backgroundSession)
+
+        // when a foreground session starts (this is the appDidBecomeActive path)
+        let foregroundSession = controller.startSession(state: .foreground)
+
+        // then the new session is a foreground session
+        XCTAssertNotNil(foregroundSession)
+        XCTAssertEqual(foregroundSession?.state, "foreground")
+
+        // and the old background session is deleted from storage
+        // (fetching via performAndWait drains the async CoreData queue first)
+        let sessions: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(sessions.count, 1)
+        XCTAssertEqual(sessions.first?.idRaw, foregroundSession?.idRaw)
+    }
+
+    // Verifies that moving flush(span:) outside the lock in update(state:) does not
+    // break the in-memory session state update.
+    func test_update_state_updatesSessionAndSpanStateCorrectly() throws {
+        let spanProcessor = MockSpanProcessor()
+        EmbraceOTel.setup(spanProcessors: [spanProcessor])
+
+        // given an active foreground session
+        controller.startSession(state: .foreground)
+        XCTAssertEqual(controller.currentSession?.state, "foreground")
+
+        // when transitioning to background
+        controller.update(state: .background)
+
+        // then in-memory session state is updated immediately
+        XCTAssertEqual(controller.currentSession?.state, "background")
+    }
+
+    // Verifies that moving flush(span:) outside the lock in update(appTerminated:) does not
+    // break the in-memory session state update.
+    func test_update_appTerminated_updatesSessionStateCorrectly() throws {
+        // given an active session
+        controller.startSession(state: .foreground)
+        XCTAssertEqual(controller.currentSession?.appTerminated, false)
+
+        // when marking as app terminated
+        controller.update(appTerminated: true)
+
+        // then in-memory session state is updated immediately
+        XCTAssertEqual(controller.currentSession?.appTerminated, true)
     }
 }
 

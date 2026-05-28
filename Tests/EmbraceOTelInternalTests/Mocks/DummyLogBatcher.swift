@@ -17,6 +17,6 @@ class DummyLogBatcher: LogBatcher {
     func renewBatch(withLogs logRecords: [any EmbraceLog]) {
     }
 
-    func forceEndCurrentBatch(waitUntilFinished: Bool) {
+    func forceEndCurrentBatch(waitUntilFinished: Bool, sessionId: EmbraceIdentifier?) {
     }
 }

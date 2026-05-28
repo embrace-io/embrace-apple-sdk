@@ -219,8 +219,9 @@ class SessionController: SessionControllable {
             NotificationCenter.default.post(name: .embraceSessionWillEnd, object: mainQueueSession)
         }
 
-        // end log batches
-        logBatcher?.forceEndCurrentBatch(waitUntilFinished: true)
+        // end log batches — session ID captured now so batchFinished attributes correctly
+        // even if it runs after the session has been swapped.
+        logBatcher?.forceEndCurrentBatch(waitUntilFinished: false, sessionId: inProgressSession.id)
 
         // end span
         if let inProgressSessionSpan {
@@ -229,7 +230,6 @@ class SessionController: SessionControllable {
             // to prevent race conditions.
             inProgressSessionSpan.end(time: now)
 
-            // Manually updating the span record synchronously.
             storage?.endSpan(
                 id: inProgressSessionSpan.context.spanId.hexString,
                 traceId: inProgressSessionSpan.context.traceId.hexString,
@@ -272,59 +272,41 @@ class SessionController: SessionControllable {
 
     func update(state: SessionState) {
         let sessionInfo = _session.safeValue
-        lock.locked {
-            guard let session = sessionInfo.session else {
-                return
-            }
-
+        let spanToFlush: Span? = lock.locked {
+            guard let session = sessionInfo.session else { return nil }
             let updatedSession = storage?.updateSession(session: session, state: state)
-            _session.withLock {
-                $0.session = updatedSession
-            }
-
-            if let span = sessionInfo.sessionSpan {
-                SessionSpanUtils.setState(span: span, state: state)
-                Embrace.client?.flush(span)
-            }
+            _session.withLock { $0.session = updatedSession }
+            guard let span = sessionInfo.sessionSpan else { return nil }
+            SessionSpanUtils.setState(span: span, state: state)
+            return span
         }
+        if let span = spanToFlush { Embrace.client?.flush(span) }
     }
 
     func update(appTerminated: Bool) {
         let sessionInfo = _session.safeValue
-        lock.locked {
-            guard let session = sessionInfo.session else {
-                return
-            }
-
+        let spanToFlush: Span? = lock.locked {
+            guard let session = sessionInfo.session else { return nil }
             let updatedSession = storage?.updateSession(session: session, appTerminated: appTerminated)
-            _session.withLock {
-                $0.session = updatedSession
-            }
-
-            if let span = sessionInfo.sessionSpan {
-                SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
-                Embrace.client?.flush(span)
-            }
+            _session.withLock { $0.session = updatedSession }
+            guard let span = sessionInfo.sessionSpan else { return nil }
+            SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
+            return span
         }
+        if let span = spanToFlush { Embrace.client?.flush(span) }
     }
 
     func update(heartbeat: Date) {
         let sessionInfo = _session.safeValue
-        lock.locked {
-            guard let session = sessionInfo.session else {
-                return
-            }
-
+        let spanToFlush: Span? = lock.locked {
+            guard let session = sessionInfo.session else { return nil }
             let updatedSession = storage?.updateSession(session: session, lastHeartbeatTime: heartbeat)
-            _session.withLock {
-                $0.session = updatedSession
-            }
-
-            if let span = sessionInfo.sessionSpan {
-                SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
-                Embrace.client?.flush(span)
-            }
+            _session.withLock { $0.session = updatedSession }
+            guard let span = sessionInfo.sessionSpan else { return nil }
+            SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
+            return span
         }
+        if let span = spanToFlush { Embrace.client?.flush(span) }
     }
 
     func uploadSessionNoLock(_ session: EmbraceSession?) {
