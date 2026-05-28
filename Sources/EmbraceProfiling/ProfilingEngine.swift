@@ -4,6 +4,7 @@
 
 #if !os(watchOS)
     import Darwin
+    import EmbraceAtomicsShim
     import EmbraceProfilingSampler
 #endif
 
@@ -14,54 +15,371 @@
 /// and samples can be retrieved after the engine has stopped.
 ///
 /// - Note: On watchOS this is a no-op; Mach thread APIs are unavailable.
-public final class ProfilingEngine {
-    private let configuration: ProfilingConfiguration
+/// Concurrency contract: all mutable state (`ringBuffer`, `readBuffer`,
+/// `readBufferSize`) is protected by `gate` (atomic CAS flag). The C sampler
+/// manages its own thread safety via atomic state machine transitions.
+///
+/// **IMPORTANT:** Do NOT replace the gate with `os_unfair_lock` or any lock
+/// with kernel ownership tracking. The sampler worker thread calls
+/// `thread_suspend` on the main thread. If the main thread holds an
+/// `os_unfair_lock` when suspended, any thread that tries to acquire that
+/// lock will deadlock. The kernel knows the owner is suspended and will
+/// never schedule the waiter. With a plain atomic CAS gate, waiters spin
+/// briefly and time out, avoiding deadlock. This two-layer design (Swift
+/// atomic gate + C atomic state machine + ring buffer seqlock) is intentional.
+public final class ProfilingEngine: @unchecked Sendable {
+    public static let shared = ProfilingEngine()
+
+    /// Result of calling ``start(configuration:)``.
+    public enum StartResult: Equatable, Sendable {
+        /// Successfully started the sampler.
+        case started
+        /// Was already running.
+        case alreadyActive
+        /// Another caller is currently starting.
+        case operationInProgress
+        /// Ring buffer allocation failed.
+        case bufferCreationFailed
+        /// The provided configuration is invalid.
+        case invalidConfiguration
+        /// The underlying C sampler failed to start.
+        case samplerStartFailed
+        /// A previous sampler session is still shutting down. Try again later.
+        case samplerBusy
+        /// The sampler is already running with a different configuration.
+        case configMismatch
+        /// The sampler has entered an unrecoverable faulted state (bug or broken runtime).
+        /// The associated string describes the fault reason.
+        case faulted(reason: String)
+        /// Profiling is not supported on this platform (e.g. watchOS).
+        case notSupported
+    }
+
+    /// Result of calling ``retrieveSamples(from:through:)``.
+    public enum RetrieveResult: Equatable, Sendable {
+        /// Samples were successfully retrieved (may be empty if none match the time range).
+        case success(ProfilingResult)
+        /// The engine has not been started (no buffers allocated).
+        case notStarted
+        /// Another operation (start or retrieve) is in progress. Retry shortly.
+        case busy
+        /// The sampler has entered an unrecoverable faulted state (bug or broken runtime).
+        /// The associated string describes the fault reason.
+        case faulted(reason: String)
+        /// Profiling is not supported on this platform (e.g. watchOS).
+        case notSupported
+    }
+
+    internal var activeConfiguration: ProfilingConfiguration?
 
     #if !os(watchOS)
-        private var _isRunning = false
-        private var startTimestamp: UInt64 = 0
-        private var stopTimestamp: UInt64 = 0
+        internal var ringBuffer: UnsafeMutablePointer<emb_ring_buffer_t>?
+        internal var readBuffer: UnsafeMutableRawPointer?
+        internal var readBufferSize: Int = 0
+        /// Atomic gate. CAS-based, no kernel ownership tracking.
+        private let gateIsAcquired: UnsafeMutablePointer<emb_atomic_bool_t>
     #endif
 
-    /// Returns `true` if the profiling engine is currently running.
-    public var isRunning: Bool {
+    /// Sleep interval between gate acquisition attempts (nanoseconds).
+    private static let gateSleepNs: UInt64 = 100_000
+    /// Maximum cumulative actual uptime before giving up (nanoseconds). 10ms.
+    private static let gateTimeoutNs: UInt64 = 10_000_000
+
+    /// Returns `true` if the profiling engine is actively capturing stack traces.
+    ///
+    /// Equivalent to "the worker is in `RUNNING` and not paused". Returns
+    /// `false` during transient states (`STARTING`, `STOPPING`), in `FAULTED`,
+    /// when the engine has not been started, or when ``isPaused`` is `true`.
+    /// To check whether the worker thread is still alive (for resource lifecycle
+    /// purposes), use ``isActive``.
+    public var isCapturing: Bool {
         #if os(watchOS)
             return false
         #else
-            return _isRunning
+            return emb_sampler_get_state() == EMB_SAMPLER_RUNNING
+                && !emb_sampler_is_paused()
         #endif
     }
 
-    public init() {
-        self.configuration = ProfilingConfiguration()
+    /// Returns `true` if the sampler has entered an unrecoverable faulted state.
+    public var isFaulted: Bool {
+        #if os(watchOS)
+            return false
+        #else
+            return emb_sampler_get_state() == EMB_SAMPLER_FAULTED
+        #endif
     }
+
+    /// Returns `true` if the sampler is in any active state (STARTING, RUNNING, or STOPPING).
+    ///
+    /// While `isActive` returns `true`, the worker thread may still be writing to the ring buffer.
+    /// Use this (not ``isCapturing``) to determine when it is safe to destroy the ring buffer.
+    /// Polling `isActive` also triggers background cleanup (thread join) when the worker exits.
+    public var isActive: Bool {
+        #if os(watchOS)
+            return false
+        #else
+            return emb_sampler_is_active()
+        #endif
+    }
+
+    /// Returns the fault reason if the sampler is faulted, or `nil` otherwise.
+    public var faultReason: String? {
+        #if os(watchOS)
+            return nil
+        #else
+            guard let cStr = emb_sampler_get_fault_reason() else { return nil }
+            return String(cString: cStr)
+        #endif
+    }
+
+    private init() {
+        #if !os(watchOS)
+            self.gateIsAcquired = .allocate(capacity: 1)
+            emb_atomic_bool_init(gateIsAcquired, false)
+        #endif
+    }
+
+    #if !os(watchOS)
+    /// Try to acquire the gate.
+    /// Sleeps ``gateSleepNs`` between attempts, up to ``gateTimeoutNs``
+    /// cumulative actual elapsed time.
+    ///
+    /// Note: On iOS, timer coalescing may inflate `usleep(100)` to several
+    /// milliseconds. Under contention, the effective behavior may be closer to
+    /// 2-3 CAS attempts within the 10ms deadline rather than the ~100 attempts
+    /// that the arithmetic suggests. This is acceptable because contention is
+    /// expected to be extremely rare (only start/retrieve overlap).
+    internal func acquireGate() -> Bool {
+        let deadlineNs = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + Self.gateTimeoutNs
+        while true {
+            var expected: Bool = false
+            if emb_atomic_bool_compare_exchange(gateIsAcquired, &expected, true, .acquire, .relaxed) {
+                return true
+            }
+            if clock_gettime_nsec_np(CLOCK_UPTIME_RAW) >= deadlineNs {
+                return false
+            }
+            usleep(useconds_t(Self.gateSleepNs / 1_000))
+        }
+    }
+
+    /// Release the gate.
+    internal func releaseGate() {
+        emb_atomic_bool_store(gateIsAcquired, false, .release)
+    }
+    #endif
 
     /// Start the profiling engine.
     ///
-    /// Calling `start` while already running has no effect.
+    /// Uses atomic CAS for fail-fast semantics: if another caller is
+    /// mid-start, returns `.operationInProgress` immediately instead of
+    /// blocking.
     ///
-    /// - Throws: An error if the underlying sampler cannot be initialized.
-    public func start() throws {
+    /// - Note: This method acquires an internal gate using a sleep-based
+    ///   spin loop (up to 10ms under contention). It is not suitable for
+    ///   hot-path usage. Typical uncontested acquisition is sub-microsecond.
+    ///
+    /// - Parameter configuration: Profiling parameters. Defaults are suitable
+    ///   for most use cases (10 Hz, 1MB buffer).
+    /// - Returns: A ``StartResult`` indicating the outcome.
+    @discardableResult
+    public func start(configuration: ProfilingConfiguration = ProfilingConfiguration()) -> StartResult {
         #if os(watchOS)
-            // No-op on watchOS
+            return .notSupported
         #else
-            guard !_isRunning else { return }
-            startTimestamp = currentTimestampNs()
-            stopTimestamp = 0
-            _isRunning = true
+            guard configuration.isValid else {
+                return .invalidConfiguration
+            }
+
+            if let reason = faultReason {
+                return .faulted(reason: reason)
+            }
+
+            guard acquireGate() else {
+                return .operationInProgress
+            }
+            defer { releaseGate() }
+
+            let wasActive = emb_sampler_is_active()
+
+            // If the sampler is already active, skip buffer manipulation
+            // (the worker thread may be writing to it) and let
+            // emb_sampler_start() report the accurate state.
+            let needsNewBuffer: Bool
+            if wasActive {
+                needsNewBuffer = false
+            } else if let existing = ringBuffer {
+                if configuration.bufferCapacityBytes == activeConfiguration?.bufferCapacityBytes {
+                    // Retry briefly: the Dekker protocol in reset can fail if a
+                    // concurrent reader is briefly inside read_range. Under the
+                    // Swift gate this is unlikely, but defensive retries are cheap.
+                    var resetOK = false
+                    for _ in 0..<3 {
+                        if emb_ring_buffer_reset(existing) {
+                            resetOK = true
+                            break
+                        }
+                        usleep(200)
+                    }
+                    if !resetOK {
+                        return .samplerBusy
+                    }
+                    needsNewBuffer = false
+                } else {
+                    emb_ring_buffer_destroy(existing)
+                    if let ptr = readBuffer { free(ptr) }
+                    activeConfiguration = nil
+                    ringBuffer = nil
+                    readBuffer = nil
+                    readBufferSize = 0
+                    needsNewBuffer = true
+                }
+            } else {
+                needsNewBuffer = true
+            }
+
+            if needsNewBuffer {
+                guard let buffer = emb_ring_buffer_create(Int(configuration.bufferCapacityBytes), nil) else {
+                    return .bufferCreationFailed
+                }
+                ringBuffer = buffer
+
+                let capacity = emb_ring_buffer_capacity(buffer)
+                guard let newReadBuffer = malloc(capacity) else {
+                    emb_ring_buffer_destroy(buffer)
+                    ringBuffer = nil
+                    return .bufferCreationFailed
+                }
+                readBuffer = UnsafeMutableRawPointer(newReadBuffer)
+                readBufferSize = capacity
+            }
+
+            let config = emb_sampler_config_t(
+                sampling_interval_ms: configuration.samplingIntervalMs,
+                min_sampling_interval_ms: configuration.minSamplingIntervalMs,
+                max_frames: configuration.maxFramesPerSample,
+                min_frames: configuration.minFramesPerSample,
+                fallback_walker: nil,
+                start_paused: configuration.startPaused
+            )
+
+            let startResult = emb_sampler_start(ringBuffer, config)
+
+            if startResult != EMB_SAMPLER_START_OK, needsNewBuffer {
+                emb_ring_buffer_destroy(ringBuffer)
+                if let ptr = readBuffer { free(ptr) }
+                ringBuffer = nil
+                readBuffer = nil
+                readBufferSize = 0
+            }
+
+            switch startResult {
+            case EMB_SAMPLER_START_OK:
+                activeConfiguration = configuration
+                return wasActive ? .alreadyActive : .started
+            case EMB_SAMPLER_START_BUSY:
+                // If the sampler was already active when we entered, BUSY means
+                // it's in a transitional active state (STARTING/STOPPING), report
+                // as already active. If it wasn't active, BUSY means a previous
+                // session is still being reaped, so report as busy.
+                return wasActive ? .alreadyActive : .samplerBusy
+            case EMB_SAMPLER_START_CONFIG_MISMATCH:
+                return .configMismatch
+            default:
+                if let reason = faultReason {
+                    return .faulted(reason: reason)
+                }
+                return .samplerStartFailed
+            }
         #endif
     }
 
-    /// Stop the profiling engine.
+    /// Request the profiling engine to stop.
+    ///
+    /// This is non-blocking: it signals the worker thread to exit and
+    /// returns immediately. To determine when it is safe to destroy the ring buffer (or when the worker
+    /// has fully exited), poll ``isActive`` until it returns `false`. ``isCapturing``
+    /// flips to `false` as soon as STOPPING begins and is not sufficient for this purpose.
     ///
     /// Samples captured before stopping remain available via ``retrieveSamples(from:through:)``.
     public func stop() {
+        #if !os(watchOS)
+            emb_sampler_stop()
+        #endif
+    }
+
+    /// Pause the engine without tearing down the worker thread.
+    ///
+    /// While paused, the worker thread continues to wake on its configured
+    /// cadence but skips the main-thread suspend, stack walk, and ring buffer
+    /// write. Existing samples remain readable via
+    /// ``retrieveSamples(from:through:)``.
+    ///
+    /// Pause/resume bypass the engine gate, so they are safe to call at high
+    /// frequency (e.g. from span boundaries). The cost is a single relaxed
+    /// atomic store per call.
+    ///
+    /// Observation latency is bounded by the sampling interval: the worker
+    /// observes the pause flag at the top of each loop iteration. A pause
+    /// request mid-sleep takes effect at the next wake-up, which guarantees
+    /// the configured sampling interval is also a hard cap on main-thread
+    /// suspension frequency.
+    ///
+    /// Idempotent: pausing an already-paused engine returns `true`. Safe to
+    /// call synchronously after ``start(configuration:)`` (the underlying C
+    /// API accepts both `STARTING` and `RUNNING`).
+    ///
+    /// Nesting/refcounting (e.g. for overlapping spans) is the caller's
+    /// responsibility; pause and resume are simple toggles, not counters.
+    ///
+    /// - Returns: `true` if the pause flag was set (engine is in `STARTING`
+    ///   or `RUNNING`). `false` if the engine is not in a state where pause
+    ///   is meaningful (not started, stopping, or faulted).
+    @discardableResult
+    public func pause() -> Bool {
         #if os(watchOS)
-            // No-op on watchOS
+            return false
         #else
-            guard _isRunning else { return }
-            stopTimestamp = currentTimestampNs()
-            _isRunning = false
+            return emb_sampler_pause()
+        #endif
+    }
+
+    /// Resume sampling after a pause.
+    ///
+    /// See ``pause()`` for semantics. Resume is symmetric: a single relaxed
+    /// atomic store, gate-free, safe at high frequency. The next sample is
+    /// taken at the worker's next configured wake-up.
+    ///
+    /// Idempotent: resuming an already-running engine returns `true`. Safe
+    /// to call synchronously after `start(configuration:)` with
+    /// `startPaused: true`.
+    ///
+    /// - Returns: `true` if the pause flag was cleared (engine is in
+    ///   `STARTING` or `RUNNING`). `false` if the engine is not in a state
+    ///   where resume is meaningful.
+    @discardableResult
+    public func resume() -> Bool {
+        #if os(watchOS)
+            return false
+        #else
+            return emb_sampler_resume()
+        #endif
+    }
+
+    /// Returns `true` if the engine is currently paused.
+    ///
+    /// Gated on `RUNNING || STARTING` — the only states where the pause flag
+    /// has any effect on the worker. After `stop()` (or in `FAULTED`), this
+    /// returns `false` regardless of the underlying flag value, so the user
+    /// never sees a stale `true` on an inactive engine.
+    public var isPaused: Bool {
+        #if os(watchOS)
+            return false
+        #else
+            let state = emb_sampler_get_state()
+            return (state == EMB_SAMPLER_RUNNING || state == EMB_SAMPLER_STARTING)
+                && emb_sampler_is_paused()
         #endif
     }
 
@@ -70,110 +388,108 @@ public final class ProfilingEngine {
     /// Time values are in `CLOCK_MONOTONIC_RAW` nanoseconds, matching timekeeping used in EmbraceClock.swift.
     ///
     /// Samples are returned in chronological order. The engine does not need to be running.
-    /// Samples persist after ``stop()`` is called.
+    /// Samples persist after ``stop()`` is called, and persist across calls to
+    /// ``start(configuration:)`` that reuse the same buffer. Samples are cleared
+    /// when ``start(configuration:)`` allocates a new buffer (different capacity or first start).
+    ///
+    /// - Note: This method acquires an internal gate using a sleep-based
+    ///   spin loop (up to 10ms under contention). It is not suitable for
+    ///   hot-path usage. Typical uncontested acquisition is sub-microsecond.
+    ///   With only 1 reader, contention will be minimal and rare.
     ///
     /// - Parameters:
     ///   - startTime: Start of the time range (`CLOCK_MONOTONIC_RAW` nanoseconds).
     ///   - endTime: End of the time range (`CLOCK_MONOTONIC_RAW` nanoseconds).
-    /// - Returns: An array of `ProfilingSample` values captured within the range.
-    public func retrieveSamples(from startTime: UInt64, through endTime: UInt64) -> [ProfilingSample] {
+    /// - Returns: A ``RetrieveResult`` indicating the outcome.
+    public func retrieveSamples(from startTime: UInt64, through endTime: UInt64) -> RetrieveResult {
         #if os(watchOS)
-            return []
+            return .notSupported
         #else
-            return generateFakeSamples(from: startTime, through: endTime)
+            if let reason = faultReason {
+                return .faulted(reason: reason)
+            }
+
+            guard acquireGate() else { return .busy }
+            defer { releaseGate() }
+
+            guard let ringBuffer, let readBuffer else {
+                return .notStarted
+            }
+
+            let result = emb_ring_buffer_read_range(ringBuffer, startTime, endTime,
+                                                    readBuffer.assumingMemoryBound(to: UInt8.self),
+                                                    readBufferSize)
+
+            guard result.record_count > 0 else {
+                return .success(ProfilingResult(samples: [], frames: []))
+            }
+
+            let headerSize = MemoryLayout<emb_ring_record_header_t>.size
+            let rawBuffer = UnsafeRawPointer(readBuffer)
+
+            // Valid data boundary: only records_offset..records_offset+total_bytes
+            // contains data copied from the ring buffer. Checking against
+            // readBufferSize would allow reading stale data beyond the copy range.
+            let validEnd = Int(result.records_offset) + Int(result.total_bytes)
+
+            // Pass 1: Walk records to count total frames for upfront allocation.
+            var totalFrames = 0
+            var offset = result.records_offset
+            for _ in 0..<result.record_count {
+                guard offset + headerSize <= validEnd else { break }
+                let header = rawBuffer.load(fromByteOffset: offset, as: emb_ring_record_header_t.self)
+                // Defense-in-depth: reject implausibly large frame_count values.
+                // The C read path already bounds-checks via record_size > (write_pos -
+                // scan_pos), but a corruption check is cheap.
+                guard header.frame_count <= UInt32(EMB_MAX_STACK_FRAMES) else { break }
+                let recordSize = Int(emb_ring_record_size(header.frame_count))
+                guard offset + recordSize <= validEnd else { break }
+                totalFrames += Int(header.frame_count)
+                offset += recordSize
+            }
+
+            // Pass 2: Allocate once, then populate.
+            var samples: [ProfilingSample] = []
+            samples.reserveCapacity(result.record_count)
+            var frames: [UInt] = []
+            frames.reserveCapacity(totalFrames)
+
+            offset = result.records_offset
+            for _ in 0..<result.record_count {
+                guard offset + headerSize <= validEnd else { break }
+                let header = rawBuffer.load(fromByteOffset: offset, as: emb_ring_record_header_t.self)
+                guard header.frame_count <= UInt32(EMB_MAX_STACK_FRAMES) else { break }
+                let frameCount = Int(header.frame_count)
+                let recordSize = Int(emb_ring_record_size(header.frame_count))
+                guard offset + recordSize <= validEnd else { break }
+
+                let framesStart = frames.count
+                // Invariant: uintptr_t and UInt are both 8 bytes on all supported
+                // platforms (64-bit only). The _Static_assert in emb_ring_buffer.h
+                // enforces this at the C layer. This assumingMemoryBound is safe
+                // because the ring buffer stores uintptr_t values at this offset.
+                let framesPtr = (rawBuffer + offset + headerSize)
+                    .assumingMemoryBound(to: UInt.self)
+                frames.append(contentsOf: UnsafeBufferPointer(start: framesPtr, count: frameCount))
+
+                samples.append(ProfilingSample(
+                    timestamp: header.timestamp_ns,
+                    frameRange: framesStart..<frames.count
+                ))
+
+                offset += recordSize
+            }
+
+            return .success(ProfilingResult(samples: samples, frames: frames))
         #endif
     }
 
-    // MARK: - Prototype fake data (will be replaced by real sampler)
-
-    #if !os(watchOS)
-        private func currentTimestampNs() -> UInt64 {
-            clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
-        }
-
-        private func generateFakeSamples(from startTime: UInt64, through endTime: UInt64) -> [ProfilingSample] {
-            guard startTimestamp > 0 else { return [] }
-
-            let effectiveEnd: UInt64
-            if _isRunning {
-                effectiveEnd = currentTimestampNs()
-            } else if stopTimestamp > 0 {
-                effectiveEnd = stopTimestamp
-            } else {
-                return []
-            }
-
-            let rangeStart = max(startTime, startTimestamp)
-            let rangeEnd = min(endTime, effectiveEnd)
-            guard rangeStart < rangeEnd else { return [] }
-
-            let intervalNs = UInt64(configuration.samplingIntervalMs) * 1_000_000
-            var samples: [ProfilingSample] = []
-
-            var tick = startTimestamp + intervalNs
-            while tick <= rangeEnd {
-                if tick >= rangeStart {
-                    samples.append(
-                        ProfilingSample(
-                            timestamp: tick,
-                            frames: fakeSampleFrames(seed: tick),
-                            unwindMethod: .framePointer  // Fake samples use FP method
-                        ))
-                }
-                tick += intervalNs
-            }
-
-            return samples
-        }
-
-        private func fakeSampleFrames(seed: UInt64) -> [UInt] {
-            // Simulate main thread call stacks with realistic arm64 addresses.
-
-            // Usually the base will look like this:
-            let runLoopBase: [UInt] = [
-                0x00000001_8B6E6000,  // CoreFoundation: CFRunLoopRunSpecific
-                0x00000001_8B6E5800,  // CoreFoundation: __CFRunLoopRun
-                0x00000001_8B6E2400,  // CoreFoundation: __CFRunLoopDoSources0
-                0x00000001_8B6E1000,  // CoreFoundation: __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0
-                0x00000001_8DAF4200,  // CoreAnimation: CA::Display::DisplayLink::dispatch
-                0x00000001_8DAF2100,  // CoreAnimation: CA::Transaction::commit
-                0x00000001_8E301C80,  // UIKitCore: -[UIApplication _firstCommitBlock]
-                0x00000001_8E2F3B40,  // UIKitCore: -[UIApplication _run]
-                0x00000001_8E2F1A00,  // UIKitCore: UIApplicationMain
-                0x00000001_04A3D210,  // app: UIApplicationMain wrapper
-                0x00000001_04A3C000  // app: main
-            ]
-
-            // Varying stack tops
-            var top: [UInt]
-            switch seed % 5 {
-            case 0:
-                top = [
-                    0x00000001_04A42300,  // app: -[ViewController loadData]
-                    0x00000001_04A42100  // app: -[ViewController viewDidLoad]
-                ]
-            case 1:
-                top = [
-                    0x00000001_04A45200,  // app: completion handler
-                    0x00000001_04A45000  // app: -[NetworkManager fetch]
-                ]
-            case 2:
-                top = [
-                    0x00000001_04A48000  // app: -[TableView cellForRow]
-                ]
-            case 3:
-                top = [
-                    0x00000001_04A4B400,  // app: -[AnimationController render]
-                    0x00000001_04A4B200,  // app: -[AnimationController update]
-                    0x00000001_04A4B000  // app: -[AnimationController tick]
-                ]
-            default:
-                top = [
-                    0x00000001_04A4E000  // app: -[LayoutEngine solve]
-                ]
-            }
-
-            return top + runLoopBase
-        }
-    #endif
+    // Note: ProfilingEngine is a singleton; deinit never runs.
+    // If changed to non-singleton, deinit would need to:
+    //   1. Call emb_sampler_stop(), then poll emb_sampler_is_active() until
+    //      false (with a timeout to avoid unbounded blocking).
+    //   2. Destroy the ring buffer: emb_ring_buffer_destroy(ringBuffer)
+    //   3. Deallocate readBuffer: if let ptr = readBuffer { free(ptr) }
+    //   4. Deallocate the atomic gate:
+    //      gateIsAcquired.deallocate()
 }
