@@ -21,7 +21,7 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
     var serviceState: CaptureServiceState { get }
     var otel: EmbraceOpenTelemetry? { get }
 
-    func shouldInjectHeader(for request: URLRequest, span: Span) -> Bool
+    func shouldInjectHeader(for request: URLRequest) -> Bool
     var isNSFEligible: Bool { get }
     var requestsDataSource: URLSessionRequestsDataSource? { get }
     var ignoredURLs: [String] { get }
@@ -269,7 +269,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
     func addTracingHeader(task: URLSessionTask, span: Span) -> String? {
         guard let request = task.originalRequest else { return nil }
-        guard dataSource?.shouldInjectHeader(for: request, span: span) == true else { return nil }
+        guard dataSource?.shouldInjectHeader(for: request) == true else { return nil }
 
         // Preserve upstream traceparent — leave the wire header untouched and return its value
         // so NSF can forward the span linked to upstream's trace context.

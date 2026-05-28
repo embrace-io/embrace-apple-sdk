@@ -80,11 +80,13 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
         }
     }
 
-    func shouldInjectHeader(for request: URLRequest, span: Span) -> Bool {
-        guard HostAllowlistMatcher.matches(
-            host: request.url?.host,
-            allowlist: options.traceparent.allowedDomains
-        ) else { return false }
+    func shouldInjectHeader(for request: URLRequest) -> Bool {
+        guard
+            HostAllowlistMatcher.matches(
+                host: request.url?.host,
+                allowlist: options.traceparent.allowedDomains
+            )
+        else { return false }
         return Embrace.client?.config.traceparentInjectionEnabled == true
     }
 

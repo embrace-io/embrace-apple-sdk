@@ -20,7 +20,7 @@ class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
 
     var ignoredTaskTypes: [AnyClass] = []
 
-    func shouldInjectHeader(for request: URLRequest, span: Span) -> Bool {
+    func shouldInjectHeader(for request: URLRequest) -> Bool {
         stubbedShouldInjectHeader
     }
 }
