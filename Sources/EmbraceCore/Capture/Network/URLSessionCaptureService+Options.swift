@@ -22,10 +22,10 @@ extension URLSessionCaptureService {
         /// Nil list (default) = no allowlist filter; the header is sent on every captured
         /// request that passes the other gates.
         /// An empty list means no domains should be captured.
-        @objc public let onlyAllowedDomains: [String]?
+        @objc public let onlyAllowDomains: [String]?
 
-        @objc public init(onlyAllowedDomains: [String]? = nil) {
-            self.onlyAllowedDomains = Traceparent.validated(onlyAllowedDomains)
+        @objc public init(onlyAllowDomains: [String]? = nil) {
+            self.onlyAllowDomains = Traceparent.validated(onlyAllowDomains)
 
             super.init()
         }

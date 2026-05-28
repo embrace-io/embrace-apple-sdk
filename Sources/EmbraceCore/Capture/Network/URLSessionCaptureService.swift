@@ -87,7 +87,7 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
         guard injectionEnabled else { return false }
 
         /// If the allowedDomains list is nil, all requests should be injected.
-        guard let allowedDomains = options.traceparent.onlyAllowedDomains else { return true }
+        guard let allowedDomains = options.traceparent.onlyAllowDomains else { return true }
 
         /// If the list is not-nil, apply filtering.
         guard
