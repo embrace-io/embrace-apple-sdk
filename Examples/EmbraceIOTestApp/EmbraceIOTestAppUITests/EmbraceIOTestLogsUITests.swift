@@ -4,9 +4,8 @@
 //
 //
 
+import EmbraceSemantics
 import XCTest
-
-@testable import EmbraceCommonInternal
 
 final class EmbraceIOTestLogsUITests: XCTestCase {
     var app = XCUIApplication()
@@ -36,23 +35,23 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         logMessageTextField.typeText(XCUIKeyboardKey.return.rawValue)
     }
 
-    private func selectSeverityButton(_ severity: LogSeverity) {
+    private func selectSeverityButton(_ severity: EmbraceLogSeverity) {
         var identifier: String = ""
         switch severity {
         case .trace:
-            identifier = "LogSeverity_Trace"
+            identifier = "EmbraceLogSeverity_Trace"
         case .debug:
-            identifier = "LogSeverity_Debug"
+            identifier = "EmbraceLogSeverity_Debug"
         case .info:
-            identifier = "LogSeverity_Info"
+            identifier = "EmbraceLogSeverity_Info"
         case .warn:
-            identifier = "LogSeverity_Warn"
+            identifier = "EmbraceLogSeverity_Warn"
         case .error:
-            identifier = "LogSeverity_Error"
+            identifier = "EmbraceLogSeverity_Error"
         case .fatal:
-            identifier = "LogSeverity_Fatal"
+            identifier = "EmbraceLogSeverity_Fatal"
         case .critical:
-            identifier = "LogSeverity_Critical"
+            identifier = "EmbraceLogSeverity_Critical"
         }
 
         let button = app.buttons[identifier]
@@ -61,7 +60,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         button.tap()
     }
 
-    private func selectStackTraceBehavior(_ behavior: StackTraceBehavior) {
+    private func selectEmbraceStackTraceBehavior(_ behavior: EmbraceStackTraceBehavior) {
         var identifier = ""
         switch behavior {
         case .default:
@@ -187,7 +186,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         enterCustomMessage()
 
         selectSeverityButton(.warn)
-        selectStackTraceBehavior(.notIncluded)
+        selectEmbraceStackTraceBehavior(.notIncluded)
         runLogTest()
     }
 
@@ -196,7 +195,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         enterCustomMessage()
 
         selectSeverityButton(.error)
-        selectStackTraceBehavior(.notIncluded)
+        selectEmbraceStackTraceBehavior(.notIncluded)
         runLogTest()
     }
 
@@ -216,7 +215,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
         selectSeverityButton(.trace)
 
-        selectStackTraceBehavior(.custom(customStackTrace))
+        selectEmbraceStackTraceBehavior(.custom(customStackTrace))
         runLogTest()
     }
 
@@ -225,7 +224,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
         selectSeverityButton(.debug)
 
-        selectStackTraceBehavior(.custom(customStackTrace))
+        selectEmbraceStackTraceBehavior(.custom(customStackTrace))
         runLogTest()
     }
 
@@ -234,7 +233,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
         selectSeverityButton(.info)
 
-        selectStackTraceBehavior(.custom(customStackTrace))
+        selectEmbraceStackTraceBehavior(.custom(customStackTrace))
         runLogTest()
     }
 
@@ -243,7 +242,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
         selectSeverityButton(.warn)
 
-        selectStackTraceBehavior(.custom(customStackTrace))
+        selectEmbraceStackTraceBehavior(.custom(customStackTrace))
         runLogTest()
     }
 
@@ -252,7 +251,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
         selectSeverityButton(.error)
 
-        selectStackTraceBehavior(.custom(customStackTrace))
+        selectEmbraceStackTraceBehavior(.custom(customStackTrace))
         runLogTest()
     }
 
@@ -261,7 +260,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
         selectSeverityButton(.fatal)
 
-        selectStackTraceBehavior(.custom(customStackTrace))
+        selectEmbraceStackTraceBehavior(.custom(customStackTrace))
         runLogTest()
     }
 
@@ -270,7 +269,7 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
 
         selectSeverityButton(.critical)
 
-        selectStackTraceBehavior(.custom(customStackTrace))
+        selectEmbraceStackTraceBehavior(.custom(customStackTrace))
         runLogTest()
     }
 

@@ -32,10 +32,6 @@
 		4D54F2902E3ABD5800E38132 /* SwiftUITestViewManualCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D54F28F2E3ABD5100E38132 /* SwiftUITestViewManualCapture.swift */; };
 		4D54F2922E3ABD8B00E38132 /* SwiftUITestViewMacroCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D54F2912E3ABD8200E38132 /* SwiftUITestViewMacroCapture.swift */; };
 		4D5E45FE2E0B07F900FA6E0E /* OTelSemanticsValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D5E45FD2E0B07ED00FA6E0E /* OTelSemanticsValidation.swift */; };
-		4D61D1C12DE0BAC70048B5E2 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1C02DE0BAC70048B5E2 /* EmbraceCore */; };
-		4D61D1C52DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1C42DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport */; };
-		4D61D1C72DE0BAC70048B5E2 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1C62DE0BAC70048B5E2 /* EmbraceIO */; };
-		4D61D1C92DE0BAC70048B5E2 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D61D1C82DE0BAC70048B5E2 /* EmbraceSemantics */; };
 		4D6337A72DE1157200557BDC /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D63379E2DE1157200557BDC /* Extensions.swift */; };
 		4D6337A82DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A02DE1157200557BDC /* EmbraceIOTestCrashesUITests.swift */; };
 		4D6337A92DE1157200557BDC /* EmbraceIOTestLogsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337A12DE1157200557BDC /* EmbraceIOTestLogsUITests.swift */; };
@@ -121,13 +117,20 @@
 		4D6338732DE1157700557BDC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4D6338232DE1157700557BDC /* Assets.xcassets */; };
 		4D6338752DE1157700557BDC /* URLRequestMethod.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FF2DE1157700557BDC /* URLRequestMethod.swift */; };
 		4D686FB82E1D74BB00483C72 /* SwiftUITestsDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D686FB72E1D74A900483C72 /* SwiftUITestsDataModel.swift */; };
+		07E7D879C61B55B764D51D83 /* OpenTelemetrySdk in Frameworks */ = {isa = PBXBuildFile; productRef = 7A44CEF7995192D16E26FFB0 /* OpenTelemetrySdk */; };
+		88F937C12406D24F010F1011 /* OpenTelemetryApi in Frameworks */ = {isa = PBXBuildFile; productRef = 2AE7109574BB836C004B301A /* OpenTelemetryApi */; };
+		4D6E558F2FD1EFDD00C40BB6 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6E558E2FD1EFDD00C40BB6 /* EmbraceCore */; };
+		4D6E55912FD1EFDD00C40BB6 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6E55902FD1EFDD00C40BB6 /* EmbraceIO */; };
+		4D6E55932FD1EFDD00C40BB6 /* EmbraceKSCrashBacktraceSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6E55922FD1EFDD00C40BB6 /* EmbraceKSCrashBacktraceSupport */; };
+		4D6E55952FD1EFDD00C40BB6 /* EmbraceMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6E55942FD1EFDD00C40BB6 /* EmbraceMacros */; };
+		4D6E55972FD1EFDD00C40BB6 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6E55962FD1EFDD00C40BB6 /* EmbraceSemantics */; };
+		4D6E55992FD1EFEE00C40BB6 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6E55982FD1EFEE00C40BB6 /* EmbraceCore */; };
+		4D6E559B2FD1EFEE00C40BB6 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6E559A2FD1EFEE00C40BB6 /* EmbraceIO */; };
+		4D6E559D2FD1EFEE00C40BB6 /* EmbraceKSCrashBacktraceSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6E559C2FD1EFEE00C40BB6 /* EmbraceKSCrashBacktraceSupport */; };
+		4D6E559F2FD1EFEE00C40BB6 /* EmbraceMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6E559E2FD1EFEE00C40BB6 /* EmbraceMacros */; };
+		4D6E55A12FD1EFEE00C40BB6 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D6E55A02FD1EFEE00C40BB6 /* EmbraceSemantics */; };
 		4D7A9E6E2E1C3A0C00C43C81 /* SwiftUICaptureTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A9E6D2E1C3A0100C43C81 /* SwiftUICaptureTest.swift */; };
 		4D7A9E742E1CA4B100C43C81 /* SwiftUICaptureTestViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D7A9E732E1CA4AF00C43C81 /* SwiftUICaptureTestViewModel.swift */; };
-		4D96B1062FA944E10082FCA3 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D96B1052FA944E10082FCA3 /* EmbraceCore */; };
-		4D96B1082FA944E10082FCA3 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D96B1072FA944E10082FCA3 /* EmbraceIO */; };
-		4D96B10A2FA944E10082FCA3 /* EmbraceKSCrashBacktraceSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D96B1092FA944E10082FCA3 /* EmbraceKSCrashBacktraceSupport */; };
-		4D96B10C2FA944E10082FCA3 /* EmbraceMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 4D96B10B2FA944E10082FCA3 /* EmbraceMacros */; };
-		4D96B10E2FA944E10082FCA3 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D96B10D2FA944E10082FCA3 /* EmbraceSemantics */; };
 		4DAF52012DEA51970025F669 /* EmbraceIOTestPostedPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DAF52002DEA51870025F669 /* EmbraceIOTestPostedPayloads.swift */; };
 		4DCD37FE2E70C36E004F28A5 /* EmbraceIOTestSwiftUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCD37FD2E70C365004F28A5 /* EmbraceIOTestSwiftUI.swift */; };
 		4DF440832E3C4C3700708D6A /* SwiftUITestViewEmbraceViewCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF440822E3C4C2D00708D6A /* SwiftUITestViewEmbraceViewCapture.swift */; };
@@ -282,10 +285,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D61D1C72DE0BAC70048B5E2 /* EmbraceIO in Frameworks */,
-				4D61D1C12DE0BAC70048B5E2 /* EmbraceCore in Frameworks */,
-				4D61D1C52DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport in Frameworks */,
-				4D61D1C92DE0BAC70048B5E2 /* EmbraceSemantics in Frameworks */,
+				4D6E559B2FD1EFEE00C40BB6 /* EmbraceIO in Frameworks */,
+				4D6E559F2FD1EFEE00C40BB6 /* EmbraceMacros in Frameworks */,
+				4D6E559D2FD1EFEE00C40BB6 /* EmbraceKSCrashBacktraceSupport in Frameworks */,
+				4D6E55992FD1EFEE00C40BB6 /* EmbraceCore in Frameworks */,
+				4D6E55A12FD1EFEE00C40BB6 /* EmbraceSemantics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -293,11 +297,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D96B1082FA944E10082FCA3 /* EmbraceIO in Frameworks */,
-				4D96B10C2FA944E10082FCA3 /* EmbraceMacros in Frameworks */,
-				4D96B10A2FA944E10082FCA3 /* EmbraceKSCrashBacktraceSupport in Frameworks */,
-				4D96B1062FA944E10082FCA3 /* EmbraceCore in Frameworks */,
-				4D96B10E2FA944E10082FCA3 /* EmbraceSemantics in Frameworks */,
+				4D6E55932FD1EFDD00C40BB6 /* EmbraceKSCrashBacktraceSupport in Frameworks */,
+				4D6E55952FD1EFDD00C40BB6 /* EmbraceMacros in Frameworks */,
+				4D6E55972FD1EFDD00C40BB6 /* EmbraceSemantics in Frameworks */,
+				4D6E55912FD1EFDD00C40BB6 /* EmbraceIO in Frameworks */,
+				4D6E558F2FD1EFDD00C40BB6 /* EmbraceCore in Frameworks */,
+				07E7D879C61B55B764D51D83 /* OpenTelemetrySdk in Frameworks */,
+				88F937C12406D24F010F1011 /* OpenTelemetryApi in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -963,10 +969,11 @@
 			);
 			name = EmbraceIOTestAppUITests;
 			packageProductDependencies = (
-				4D61D1C02DE0BAC70048B5E2 /* EmbraceCore */,
-				4D61D1C42DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport */,
-				4D61D1C62DE0BAC70048B5E2 /* EmbraceIO */,
-				4D61D1C82DE0BAC70048B5E2 /* EmbraceSemantics */,
+				4D6E55982FD1EFEE00C40BB6 /* EmbraceCore */,
+				4D6E559A2FD1EFEE00C40BB6 /* EmbraceIO */,
+				4D6E559C2FD1EFEE00C40BB6 /* EmbraceKSCrashBacktraceSupport */,
+				4D6E559E2FD1EFEE00C40BB6 /* EmbraceMacros */,
+				4D6E55A02FD1EFEE00C40BB6 /* EmbraceSemantics */,
 			);
 			productName = EmbraceIOTestAppUITests;
 			productReference = 4D94F2532D429257008DECEE /* EmbraceIOTestAppUITests.xctest */;
@@ -989,11 +996,13 @@
 			);
 			name = EmbraceIOTestApp;
 			packageProductDependencies = (
-				4D96B1052FA944E10082FCA3 /* EmbraceCore */,
-				4D96B1072FA944E10082FCA3 /* EmbraceIO */,
-				4D96B1092FA944E10082FCA3 /* EmbraceKSCrashBacktraceSupport */,
-				4D96B10B2FA944E10082FCA3 /* EmbraceMacros */,
-				4D96B10D2FA944E10082FCA3 /* EmbraceSemantics */,
+				4D6E558E2FD1EFDD00C40BB6 /* EmbraceCore */,
+				4D6E55902FD1EFDD00C40BB6 /* EmbraceIO */,
+				4D6E55922FD1EFDD00C40BB6 /* EmbraceKSCrashBacktraceSupport */,
+				4D6E55942FD1EFDD00C40BB6 /* EmbraceMacros */,
+				4D6E55962FD1EFDD00C40BB6 /* EmbraceSemantics */,
+				2AE7109574BB836C004B301A /* OpenTelemetryApi */,
+				7A44CEF7995192D16E26FFB0 /* OpenTelemetrySdk */,
 			);
 			productName = EmbraceIOTestApp;
 			productReference = 4DF12A202D302C3200C93E62 /* EmbraceIOTestApp.app */;
@@ -1029,7 +1038,8 @@
 			mainGroup = 4DF12A172D302C3200C93E62;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				4D96B1042FA944E10082FCA3 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */,
+				4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */,
+				4121B3EA059CFCD2C98C4362 /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */,
 			);
 			productRefGroup = 4DF12A212D302C3200C93E62 /* Products */;
 			projectDirPath = "";
@@ -1456,48 +1466,83 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		4D96B1042FA944E10082FCA3 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */ = {
+		4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../../embrace-apple-sdk";
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		4121B3EA059CFCD2C98C4362 /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/open-telemetry/opentelemetry-swift-core";
+			requirement = {
+				kind = exactVersion;
+				version = "2.4.1";
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
-		4D61D1C02DE0BAC70048B5E2 /* EmbraceCore */ = {
+		4D6E558E2FD1EFDD00C40BB6 /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceCore;
 		};
-		4D61D1C42DE0BAC70048B5E2 /* EmbraceCrashlyticsSupport */ = {
+		4D6E55902FD1EFDD00C40BB6 /* EmbraceIO */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrashlyticsSupport;
-		};
-		4D61D1C62DE0BAC70048B5E2 /* EmbraceIO */ = {
-			isa = XCSwiftPackageProductDependency;
+			package = 4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceIO;
 		};
-		4D61D1C82DE0BAC70048B5E2 /* EmbraceSemantics */ = {
+		4D6E55922FD1EFDD00C40BB6 /* EmbraceKSCrashBacktraceSupport */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceSemantics;
-		};
-		4D96B1052FA944E10082FCA3 /* EmbraceCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCore;
-		};
-		4D96B1072FA944E10082FCA3 /* EmbraceIO */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceIO;
-		};
-		4D96B1092FA944E10082FCA3 /* EmbraceKSCrashBacktraceSupport */ = {
-			isa = XCSwiftPackageProductDependency;
+			package = 4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceKSCrashBacktraceSupport;
 		};
-		4D96B10B2FA944E10082FCA3 /* EmbraceMacros */ = {
+		4D6E55942FD1EFDD00C40BB6 /* EmbraceMacros */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceMacros;
 		};
-		4D96B10D2FA944E10082FCA3 /* EmbraceSemantics */ = {
+		4D6E55962FD1EFDD00C40BB6 /* EmbraceSemantics */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceSemantics;
+		};
+		4D6E55982FD1EFEE00C40BB6 /* EmbraceCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			productName = EmbraceCore;
+		};
+		4D6E559A2FD1EFEE00C40BB6 /* EmbraceIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			productName = EmbraceIO;
+		};
+		4D6E559C2FD1EFEE00C40BB6 /* EmbraceKSCrashBacktraceSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			productName = EmbraceKSCrashBacktraceSupport;
+		};
+		4D6E559E2FD1EFEE00C40BB6 /* EmbraceMacros */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			productName = EmbraceMacros;
+		};
+		4D6E55A02FD1EFEE00C40BB6 /* EmbraceSemantics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D6E558D2FD1EFDD00C40BB6 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			productName = EmbraceSemantics;
+		};
+		2AE7109574BB836C004B301A /* OpenTelemetryApi */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4121B3EA059CFCD2C98C4362 /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */;
+			productName = OpenTelemetryApi;
+		};
+		7A44CEF7995192D16E26FFB0 /* OpenTelemetrySdk */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4121B3EA059CFCD2C98C4362 /* XCRemoteSwiftPackageReference "opentelemetry-swift-core" */;
+			productName = OpenTelemetrySdk;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
