@@ -43,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -125,7 +125,7 @@ jobs:
           SDK_VERSION_TOKEN: ${{ secrets.SDK_VERSION_TOKEN }}
 
       - name: Checkout Repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: true
@@ -178,7 +178,7 @@ jobs:
       RC_VERSION: ${{ needs.extractor.outputs.rc_version }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: ${{ needs.extractor.outputs.rc_version }}
           fetch-depth: 0
@@ -256,7 +256,7 @@ jobs:
       IS_STABLE_HOTFIX: ${{ needs.extractor.outputs.is_stable_hotfix }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -317,7 +317,7 @@ jobs:
       IS_PRODUCTION_READY: ${{ needs.extractor.outputs.is_production_ready }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: ${{ needs.extractor.outputs.rc_version }}
           fetch-depth: 0
