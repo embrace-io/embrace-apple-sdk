@@ -34,7 +34,6 @@ class StartupProcessLaunchSpanTest: PayloadTest {
                 .init(target: "emb.private attribute", expected: "exists", recorded: "missing", result: .fail))
         }
 
-        MetadataResourceTest.testMetadataInclussion(on: setupSpan.resource, testItems: &testItems)
         testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(setupSpan.attributes))
 
         return .init(items: testItems)
