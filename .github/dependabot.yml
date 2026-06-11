@@ -4,6 +4,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     groups:
       github:
         patterns:
@@ -11,7 +13,10 @@ updates:
       embrace-io:
         patterns:
           - "embrace-io/*"
+
   - package-ecosystem: "swift"
     directory: "/"
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 7
