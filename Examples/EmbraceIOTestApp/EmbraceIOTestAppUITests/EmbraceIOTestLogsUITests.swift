@@ -39,19 +39,19 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         var identifier: String = ""
         switch severity {
         case .trace:
-            identifier = "EmbraceLogSeverity_Trace"
+            identifier = "LogSeverity_Trace"
         case .debug:
-            identifier = "EmbraceLogSeverity_Debug"
+            identifier = "LogSeverity_Debug"
         case .info:
-            identifier = "EmbraceLogSeverity_Info"
+            identifier = "LogSeverity_Info"
         case .warn:
-            identifier = "EmbraceLogSeverity_Warn"
+            identifier = "LogSeverity_Warn"
         case .error:
-            identifier = "EmbraceLogSeverity_Error"
+            identifier = "LogSeverity_Error"
         case .fatal:
-            identifier = "EmbraceLogSeverity_Fatal"
+            identifier = "LogSeverity_Fatal"
         case .critical:
-            identifier = "EmbraceLogSeverity_Critical"
+            XCTFail("Critial Logs are for internal use only. Do not test these with the UI app as these are out of scope.")
         }
 
         let button = app.buttons[identifier]
@@ -170,15 +170,6 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         runLogTest()
     }
 
-    func test_logCapture_critical() {
-
-        enterCustomMessage()
-
-        selectSeverityButton(.critical)
-
-        runLogTest()
-    }
-
     /// No Stack Trace
 
     func test_logCapture_warn_noStack() {
@@ -259,15 +250,6 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
         enterCustomMessage()
 
         selectSeverityButton(.fatal)
-
-        selectEmbraceStackTraceBehavior(.custom(customStackTrace))
-        runLogTest()
-    }
-
-    func test_logCapture_critical_customStack_notExpected() {
-        enterCustomMessage()
-
-        selectSeverityButton(.critical)
 
         selectEmbraceStackTraceBehavior(.custom(customStackTrace))
         runLogTest()
