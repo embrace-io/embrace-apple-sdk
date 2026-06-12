@@ -89,7 +89,6 @@
 		4D6338562DE1157700557BDC /* LoggingTestsSeverityTypeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337F42DE1157700557BDC /* LoggingTestsSeverityTypeView.swift */; };
 		4D6338572DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337F52DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift */; };
 		4D6338582DE1157700557BDC /* LoggingTestScreenDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337F72DE1157700557BDC /* LoggingTestScreenDataModel.swift */; };
-		4D6338592DE1157700557BDC /* MetadataResourceTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337F92DE1157700557BDC /* MetadataResourceTest.swift */; };
 		4D63385A2DE1157700557BDC /* StartupPreMainPayloadTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FA2DE1157700557BDC /* StartupPreMainPayloadTest.swift */; };
 		4D63385B2DE1157700557BDC /* StartupStartupProcessSpanTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FB2DE1157700557BDC /* StartupStartupProcessSpanTest.swift */; };
 		4D63385C2DE1157700557BDC /* StartupTestsDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6337FD2DE1157700557BDC /* StartupTestsDataModel.swift */; };
@@ -234,7 +233,6 @@
 		4D6337F42DE1157700557BDC /* LoggingTestsSeverityTypeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTestsSeverityTypeView.swift; sourceTree = "<group>"; };
 		4D6337F52DE1157700557BDC /* LoggingTestsStackTraceSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTestsStackTraceSelectionView.swift; sourceTree = "<group>"; };
 		4D6337F72DE1157700557BDC /* LoggingTestScreenDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingTestScreenDataModel.swift; sourceTree = "<group>"; };
-		4D6337F92DE1157700557BDC /* MetadataResourceTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataResourceTest.swift; sourceTree = "<group>"; };
 		4D6337FA2DE1157700557BDC /* StartupPreMainPayloadTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupPreMainPayloadTest.swift; sourceTree = "<group>"; };
 		4D6337FB2DE1157700557BDC /* StartupStartupProcessSpanTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupStartupProcessSpanTest.swift; sourceTree = "<group>"; };
 		4D6337FD2DE1157700557BDC /* StartupTestsDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartupTestsDataModel.swift; sourceTree = "<group>"; };
@@ -688,7 +686,6 @@
 				4D4CE7F52DFCF28100740AC3 /* StartupSDKSetupSpanTest.swift */,
 				4D4CE7F32DFCF1DB00740AC3 /* StartupFirstFrameSpanTest.swift */,
 				4D3334C32DFB892300C699B4 /* StartupStateSpanTest.swift */,
-				4D6337F92DE1157700557BDC /* MetadataResourceTest.swift */,
 				4D6337FA2DE1157700557BDC /* StartupPreMainPayloadTest.swift */,
 				4D6337FB2DE1157700557BDC /* StartupStartupProcessSpanTest.swift */,
 			);
@@ -1166,7 +1163,6 @@
 				4D6338582DE1157700557BDC /* LoggingTestScreenDataModel.swift in Sources */,
 				4D686FB82E1D74BB00483C72 /* SwiftUITestsDataModel.swift in Sources */,
 				4D372B242DF0B12E00B1D1E1 /* UploadedSessionPayloadTestPersonasView.swift in Sources */,
-				4D6338592DE1157700557BDC /* MetadataResourceTest.swift in Sources */,
 				4D63385A2DE1157700557BDC /* StartupPreMainPayloadTest.swift in Sources */,
 				4D63385B2DE1157700557BDC /* StartupStartupProcessSpanTest.swift in Sources */,
 				4D4CE7F62DFCF28900740AC3 /* StartupSDKSetupSpanTest.swift in Sources */,
