@@ -8,13 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		4D784F0B2F1159C9003F43CE /* Embrace-watchOS-TestApp Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 4D784F0A2F1159C9003F43CE /* Embrace-watchOS-TestApp Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		4D784F202F11618B003F43CE /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D784F1F2F11618B003F43CE /* EmbraceCore */; };
-		4D784F222F11618B003F43CE /* EmbraceCrash in Frameworks */ = {isa = PBXBuildFile; productRef = 4D784F212F11618B003F43CE /* EmbraceCrash */; };
-		4D784F242F11618B003F43CE /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D784F232F11618B003F43CE /* EmbraceCrashlyticsSupport */; };
-		4D784F262F11618B003F43CE /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4D784F252F11618B003F43CE /* EmbraceIO */; };
-		4D784F282F11618B003F43CE /* EmbraceKSCrashBacktraceSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4D784F272F11618B003F43CE /* EmbraceKSCrashBacktraceSupport */; };
-		4D784F2A2F11618B003F43CE /* EmbraceMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 4D784F292F11618B003F43CE /* EmbraceMacros */; };
-		4D784F2C2F11618B003F43CE /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D784F2B2F11618B003F43CE /* EmbraceSemantics */; };
+		4DADA8ED2FE1D6AB008CA254 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DADA8EC2FE1D6AB008CA254 /* EmbraceCore */; };
+		4DADA8EF2FE1D6AB008CA254 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4DADA8EE2FE1D6AB008CA254 /* EmbraceIO */; };
+		4DADA8F12FE1D6AB008CA254 /* EmbraceKSCrashBacktraceSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 4DADA8F02FE1D6AB008CA254 /* EmbraceKSCrashBacktraceSupport */; };
+		4DADA8F32FE1D6AB008CA254 /* EmbraceMacros in Frameworks */ = {isa = PBXBuildFile; productRef = 4DADA8F22FE1D6AB008CA254 /* EmbraceMacros */; };
+		4DADA8F52FE1D6AB008CA254 /* EmbraceSemantics in Frameworks */ = {isa = PBXBuildFile; productRef = 4DADA8F42FE1D6AB008CA254 /* EmbraceSemantics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,13 +57,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D784F282F11618B003F43CE /* EmbraceKSCrashBacktraceSupport in Frameworks */,
-				4D784F262F11618B003F43CE /* EmbraceIO in Frameworks */,
-				4D784F222F11618B003F43CE /* EmbraceCrash in Frameworks */,
-				4D784F2A2F11618B003F43CE /* EmbraceMacros in Frameworks */,
-				4D784F202F11618B003F43CE /* EmbraceCore in Frameworks */,
-				4D784F2C2F11618B003F43CE /* EmbraceSemantics in Frameworks */,
-				4D784F242F11618B003F43CE /* EmbraceCrashlyticsSupport in Frameworks */,
+				4DADA8EF2FE1D6AB008CA254 /* EmbraceIO in Frameworks */,
+				4DADA8F32FE1D6AB008CA254 /* EmbraceMacros in Frameworks */,
+				4DADA8F12FE1D6AB008CA254 /* EmbraceKSCrashBacktraceSupport in Frameworks */,
+				4DADA8ED2FE1D6AB008CA254 /* EmbraceCore in Frameworks */,
+				4DADA8F52FE1D6AB008CA254 /* EmbraceSemantics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -76,6 +72,7 @@
 			isa = PBXGroup;
 			children = (
 				4D784F0E2F1159C9003F43CE /* Embrace-watchOS-TestApp Watch App */,
+				4DADA8EB2FE1D6AB008CA254 /* Frameworks */,
 				4D784F052F1159C9003F43CE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -87,6 +84,13 @@
 				4D784F0A2F1159C9003F43CE /* Embrace-watchOS-TestApp Watch App.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		4DADA8EB2FE1D6AB008CA254 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -128,13 +132,11 @@
 			);
 			name = "Embrace-watchOS-TestApp Watch App";
 			packageProductDependencies = (
-				4D784F1F2F11618B003F43CE /* EmbraceCore */,
-				4D784F212F11618B003F43CE /* EmbraceCrash */,
-				4D784F232F11618B003F43CE /* EmbraceCrashlyticsSupport */,
-				4D784F252F11618B003F43CE /* EmbraceIO */,
-				4D784F272F11618B003F43CE /* EmbraceKSCrashBacktraceSupport */,
-				4D784F292F11618B003F43CE /* EmbraceMacros */,
-				4D784F2B2F11618B003F43CE /* EmbraceSemantics */,
+				4DADA8EC2FE1D6AB008CA254 /* EmbraceCore */,
+				4DADA8EE2FE1D6AB008CA254 /* EmbraceIO */,
+				4DADA8F02FE1D6AB008CA254 /* EmbraceKSCrashBacktraceSupport */,
+				4DADA8F22FE1D6AB008CA254 /* EmbraceMacros */,
+				4DADA8F42FE1D6AB008CA254 /* EmbraceSemantics */,
 			);
 			productName = "Embrace-watchOS-TestApp Watch App";
 			productReference = 4D784F0A2F1159C9003F43CE /* Embrace-watchOS-TestApp Watch App.app */;
@@ -168,7 +170,7 @@
 			mainGroup = 4D784EFD2F1159C9003F43CE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				4D784F1E2F11618B003F43CE /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */,
+				4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4D784F052F1159C9003F43CE /* Products */;
@@ -472,39 +474,36 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		4D784F1E2F11618B003F43CE /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */ = {
+		4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "../../../embrace-apple-sdk";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		4D784F1F2F11618B003F43CE /* EmbraceCore */ = {
+		4DADA8EC2FE1D6AB008CA254 /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceCore;
 		};
-		4D784F212F11618B003F43CE /* EmbraceCrash */ = {
+		4DADA8EE2FE1D6AB008CA254 /* EmbraceIO */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrash;
-		};
-		4D784F232F11618B003F43CE /* EmbraceCrashlyticsSupport */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrashlyticsSupport;
-		};
-		4D784F252F11618B003F43CE /* EmbraceIO */ = {
-			isa = XCSwiftPackageProductDependency;
+			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceIO;
 		};
-		4D784F272F11618B003F43CE /* EmbraceKSCrashBacktraceSupport */ = {
+		4DADA8F02FE1D6AB008CA254 /* EmbraceKSCrashBacktraceSupport */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceKSCrashBacktraceSupport;
 		};
-		4D784F292F11618B003F43CE /* EmbraceMacros */ = {
+		4DADA8F22FE1D6AB008CA254 /* EmbraceMacros */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceMacros;
 		};
-		4D784F2B2F11618B003F43CE /* EmbraceSemantics */ = {
+		4DADA8F42FE1D6AB008CA254 /* EmbraceSemantics */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
 			productName = EmbraceSemantics;
 		};
 /* End XCSwiftPackageProductDependency section */

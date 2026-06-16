@@ -3,7 +3,8 @@
 //
 
 /// Defines all possible statuses for spans.
-public enum EmbraceSpanStatus: Int {
+
+public enum EmbraceSpanStatus: Int64 {
     case ok
     case unset
     case error

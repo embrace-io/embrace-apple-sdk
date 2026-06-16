@@ -7,6 +7,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
+    import EmbraceCommonInternal
 #endif
 
 /// Represents a span in the storage
@@ -17,7 +18,7 @@ public class SpanRecord: NSManagedObject {
     @NSManaged public var parentSpanId: String?
     @NSManaged public var name: String
     @NSManaged public var typeRaw: String
-    @NSManaged public var statusRaw: Int
+    @NSManaged public var statusRaw: EMBInt
     @NSManaged public var startTime: Date
     @NSManaged public var endTime: Date?
     @NSManaged public var sessionIdRaw: String?
