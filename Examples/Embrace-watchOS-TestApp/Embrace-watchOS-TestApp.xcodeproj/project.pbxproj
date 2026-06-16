@@ -170,7 +170,7 @@
 			mainGroup = 4D784EFD2F1159C9003F43CE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */,
+				4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../.." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4D784F052F1159C9003F43CE /* Products */;
@@ -474,36 +474,36 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */ = {
+		4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../.." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../embrace-apple-sdk";
+			relativePath = "../..";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		4DADA8EC2FE1D6AB008CA254 /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../.." */;
 			productName = EmbraceCore;
 		};
 		4DADA8EE2FE1D6AB008CA254 /* EmbraceIO */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../.." */;
 			productName = EmbraceIO;
 		};
 		4DADA8F02FE1D6AB008CA254 /* EmbraceKSCrashBacktraceSupport */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../.." */;
 			productName = EmbraceKSCrashBacktraceSupport;
 		};
 		4DADA8F22FE1D6AB008CA254 /* EmbraceMacros */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../.." */;
 			productName = EmbraceMacros;
 		};
 		4DADA8F42FE1D6AB008CA254 /* EmbraceSemantics */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */;
+			package = 4DADA8E02FE1D5C8008CA254 /* XCLocalSwiftPackageReference "../.." */;
 			productName = EmbraceSemantics;
 		};
 /* End XCSwiftPackageProductDependency section */

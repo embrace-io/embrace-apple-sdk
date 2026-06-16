@@ -115,7 +115,7 @@
 			mainGroup = 4D59595A2E9F04F4002114ED;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				4DADA9462FE1E5D1008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */,
+				4DADA9462FE1E5D1008CA254 /* XCLocalSwiftPackageReference "../.." */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4D5959642E9F04F4002114ED /* Products */;
@@ -357,9 +357,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		4DADA9462FE1E5D1008CA254 /* XCLocalSwiftPackageReference "../../../embrace-apple-sdk" */ = {
+		4DADA9462FE1E5D1008CA254 /* XCLocalSwiftPackageReference "../.." */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../../embrace-apple-sdk";
+			relativePath = "../..";
 		};
 /* End XCLocalSwiftPackageReference section */
 
