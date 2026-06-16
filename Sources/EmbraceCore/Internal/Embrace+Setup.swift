@@ -133,14 +133,12 @@ extension Embrace {
             status = .error
         }
 
-        let parent = try? otel.createInternalSpan(
+        let parent = otel.createSpan(
             name: "emb-process-launch",
-            type: .performance,
             status: status,
             startTime: startTime
         )
         if let parent {
-            try? parent.setAttribute(key: SpanSemantics.keyIsPrivateSpan, value: "true")
             result.append(parent)
         }
 

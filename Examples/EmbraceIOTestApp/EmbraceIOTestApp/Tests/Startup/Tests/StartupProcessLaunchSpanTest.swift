@@ -27,13 +27,6 @@ class StartupProcessLaunchSpanTest: PayloadTest {
         testItems.append(.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "exists"))
         testItems.append(evaluate("emb.type", expecting: "perf", on: setupSpan.attributes))
 
-        if let embPrivate = setupSpan.attributes["emb.private"]?.description {
-            testItems.append(.init(target: "emb.private value", expected: "true", recorded: embPrivate))
-        } else {
-            testItems.append(
-                .init(target: "emb.private attribute", expected: "exists", recorded: "missing", result: .fail))
-        }
-
         testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(setupSpan.attributes))
 
         return .init(items: testItems)
