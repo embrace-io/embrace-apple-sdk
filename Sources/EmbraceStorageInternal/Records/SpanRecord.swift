@@ -7,7 +7,6 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
-    import EmbraceCommonInternal
 #endif
 
 /// Represents a span in the storage
