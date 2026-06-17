@@ -38,14 +38,14 @@ class BaseInternalLogger: InternalLogger {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionStart),
-            name: .embraceSessionDidStart,
+            name: .embraceSessionPartDidStart,
             object: nil
         )
 
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionEnd),
-            name: .embraceSessionWillEnd,
+            name: .embraceSessionPartWillEnd,
             object: nil
         )
     }

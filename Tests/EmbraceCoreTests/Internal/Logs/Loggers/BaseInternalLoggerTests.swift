@@ -108,7 +108,7 @@ class BaseInternalLoggerTests: XCTestCase {
         logger.limits = InternalLogLimits(trace: 1, debug: 0, info: 0, warning: 0, error: 0)
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
 
         // when sending logs
         logger.trace("trace1")
@@ -132,7 +132,7 @@ class BaseInternalLoggerTests: XCTestCase {
         logger.limits = InternalLogLimits(trace: 0, debug: 1, info: 0, warning: 0, error: 0)
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
 
         // when sending logs
         logger.trace("trace")
@@ -156,7 +156,7 @@ class BaseInternalLoggerTests: XCTestCase {
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 1, warning: 0, error: 0)
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
 
         // when sending logs
         logger.trace("trace")
@@ -180,7 +180,7 @@ class BaseInternalLoggerTests: XCTestCase {
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 0, warning: 1, error: 0)
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
 
         // when sending logs
         logger.trace("trace")
@@ -204,7 +204,7 @@ class BaseInternalLoggerTests: XCTestCase {
         logger.limits = InternalLogLimits(trace: 0, debug: 0, info: 0, warning: 0, error: 1)
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
 
         // when sending logs
         logger.trace("trace")
@@ -228,7 +228,7 @@ class BaseInternalLoggerTests: XCTestCase {
         logger.limits = InternalLogLimits(trace: 2, debug: 3, info: 1, warning: 0, error: 4)
 
         // given a session started
-        NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+        NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
 
         // when sending logs
         logger.trace("trace1")

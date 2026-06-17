@@ -35,7 +35,6 @@ class MetadataResourceTest: PayloadTest {
             "emb.process_pre_warm",
             "emb.process_start_time",
             "emb.sdk.version",
-            "emb.session.upload_index",
             "emb.app.bundle_version",
             "service.name",
             "service.version",
@@ -52,17 +51,6 @@ class MetadataResourceTest: PayloadTest {
     private static func unknownResourceMetadataKeys(on attributes: [String: AttributeValue]) -> [String] {
         return attributes.keys.filter { !expectedKeys.contains($0) }
     }
-    private static var keysAllowedToBeMissing: [String] {
-        ["emb.session.upload_index"]
-    }
-    private static func resultForMissingMetadataKey(_ key: String) -> TestResult {
-        keysAllowedToBeMissing.contains(key) ? .warning : .fail
-    }
-
-    private static func allMissingKeysAreAllowed(_ missingKeys: [String]) -> Bool {
-        missingKeys.allSatisfy { keysAllowedToBeMissing.contains($0) }
-    }
-
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 
@@ -78,11 +66,7 @@ class MetadataResourceTest: PayloadTest {
         }
 
         MetadataResourceTest.expectedKeys.forEach { key in
-            var item = evaluate(key, on: startSpan.resource.attributes)
-            if item.result == .fail && MetadataResourceTest.keysAllowedToBeMissing.contains(key) {
-                item = .init(target: item.target, expected: item.expected, recorded: item.recorded, result: .warning)
-            }
-            testItems.append(item)
+            testItems.append(evaluate(key, on: startSpan.resource.attributes))
         }
 
         return .init(items: testItems)
@@ -90,8 +74,7 @@ class MetadataResourceTest: PayloadTest {
 
     static func testMetadataInclussion(on resource: Resource, testItems: inout [TestReportItem]) {
         let missingMetadataKeys = missingResourceMetadataKeys(on: resource.attributes)
-        let missingKeysResult: TestResult =
-            missingMetadataKeys.count == 0 ? .success : allMissingKeysAreAllowed(missingMetadataKeys) ? .warning : .fail
+        let missingKeysResult: TestResult = missingMetadataKeys.isEmpty ? .success : .fail
         testItems.append(
             .init(
                 target: "Missing Metadata Keys", expected: "0 missing",
@@ -101,7 +84,7 @@ class MetadataResourceTest: PayloadTest {
             testItems.append(
                 .init(
                     target: "Metadata Key \(missingKey)", expected: "exists", recorded: "missing",
-                    result: resultForMissingMetadataKey(missingKey)))
+                    result: .fail))
         }
 
         let unknownMetadataKeys = MetadataResourceTest.unknownResourceMetadataKeys(on: resource.attributes)

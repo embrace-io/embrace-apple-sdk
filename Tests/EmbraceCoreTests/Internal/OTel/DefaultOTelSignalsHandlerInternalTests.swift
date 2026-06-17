@@ -109,7 +109,14 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         // then the span has the correct internal attributes
         XCTAssertEqual(span.attributes["emb.type"] as! String, "perf")
-        XCTAssertEqual(span.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
+        // `session.id` is the user-session UUID (empty when the mock has no user session set);
+        // the part UUID lives under `emb.session_part_id`.
+        XCTAssertEqual(
+            span.attributes["emb.session_part_id"] as! String,
+            sessionController.currentSession!.id.stringValue
+        )
+        XCTAssertNotNil(span.attributes["session.id"])
+        XCTAssertNotNil(span.attributes["emb.user_session_id"])
 
         // then the span is saved in storage correctly
         let record = storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId)
@@ -124,7 +131,10 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(record!.links[0].context.traceId, TestConstants.traceId)
         XCTAssertEqual(record!.attributes["key"] as! String, "value")
         XCTAssertEqual(record!.attributes["emb.type"] as! String, "perf")
-        XCTAssertEqual(record!.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
+        XCTAssertEqual(
+            record!.attributes["emb.session_part_id"] as! String,
+            sessionController.currentSession!.id.stringValue
+        )
     }
 
     func test_addInternalSessionEvent() throws {
@@ -192,7 +202,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
             return log.body == "test" && log.severity == .debug && log.type == .message && log.timestamp == timestamp && log.attributes["key"] as! String == "value"
                 && log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.state"] as! String == "foreground"
-                && log.attributes["session.id"] as! String == self.sessionController.currentSession!.id.stringValue && self.bridge.createLogCallCount == 1
+                && log.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue && self.bridge.createLogCallCount == 1
         }
 
         // then the log is saved correctly
@@ -201,7 +211,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
             return record.body == "test" && record.severity == .debug && record.type == .message && record.timestamp == timestamp && record.attributes["key"] as! String == "value"
                 && record.attributes["emb.type"] as! String == "sys.log" && record.attributes["emb.state"] as! String == "foreground"
-                && record.attributes["session.id"] as! String == self.sessionController.currentSession!.id.stringValue
+                && record.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue
         }
     }
 
