@@ -37,10 +37,17 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddSessionIdentifier()
         whenInvokingBuild()
 
-        thenResultingAttributes(is: ["session.id": identifier.stringValue])
+        // `session.id` carries the user-session UUID in v7 (empty here because the mock has
+        // no user session); `emb.session_part_id` carries the part UUID. All three identity
+        // keys are always present.
+        thenResultingAttributes(is: [
+            "session.id": "",
+            "emb.user_session_id": "",
+            "emb.session_part_id": identifier.stringValue
+        ])
     }
 
-    func testOnNotHavingSession_addSessionIdentifier_addsNothingToAttributes() {
+    func testOnNotHavingSession_addSessionIdentifier_addsEmptyStringsToAttributes() {
         givenSessionControllerWithNoSession()
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
@@ -48,7 +55,12 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddSessionIdentifier()
         whenInvokingBuild()
 
-        thenResultingAttributes(is: .empty())
+        // Spec requires the three keys be present even as empty strings when no session is active.
+        thenResultingAttributes(is: [
+            "session.id": "",
+            "emb.user_session_id": "",
+            "emb.session_part_id": ""
+        ])
     }
 
     // MARK: - addApplicationProperties Tests

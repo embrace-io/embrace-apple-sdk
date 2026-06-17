@@ -106,7 +106,10 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the span has the correct internal attributes
         XCTAssertEqual(span.attributes["emb.type"] as! String, "perf")
-        XCTAssertEqual(span.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
+        XCTAssertEqual(
+            span.attributes["emb.session_part_id"] as! String,
+            sessionController.currentSession!.id.stringValue
+        )
 
         // then the span is saved in storage correctly
         let record = storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId)
@@ -121,7 +124,10 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(record!.links[0].context.traceId, TestConstants.traceId)
         XCTAssertEqual(record!.attributes["key"] as! String, "value")
         XCTAssertEqual(record!.attributes["emb.type"] as! String, "perf")
-        XCTAssertEqual(record!.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
+        XCTAssertEqual(
+            record!.attributes["emb.session_part_id"] as! String,
+            sessionController.currentSession!.id.stringValue
+        )
     }
 
     func test_createSpan_failure() throws {
@@ -166,10 +172,24 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler
         // when creating a span passing attributes
         // that would collide with internal ones
-        let span = try XCTUnwrap(handler.createSpan(name: "test", attributes: ["session.id": "test", "emb.type": "test"]))
+        let span = try XCTUnwrap(
+            handler.createSpan(
+                name: "test",
+                attributes: [
+                    "session.id": "test",
+                    "emb.session_part_id": "test",
+                    "emb.type": "test"
+                ]
+            )
+        )
 
-        // then the correct internal attributes are kept
-        XCTAssertEqual(span.attributes["session.id"] as! String, sessionController.currentSession!.id.stringValue)
+        // then the correct internal attributes are kept (caller can't override the part id;
+        // `session.id` is the user-session UUID, which is empty in this test setup since the
+        // mock session controller has no user session attached).
+        XCTAssertEqual(
+            span.attributes["emb.session_part_id"] as! String,
+            sessionController.currentSession!.id.stringValue
+        )
         XCTAssertEqual(span.attributes["emb.type"] as! String, "perf")
     }
 
@@ -464,7 +484,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
             return log.body == "test" && log.severity == .debug && log.type == .message && log.timestamp == timestamp && log.attributes["key"] as! String == "value"
                 && log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.state"] as! String == "foreground"
-                && log.attributes["session.id"] as! String == self.sessionController.currentSession!.id.stringValue && self.bridge.createLogCallCount == 1
+                && log.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue && self.bridge.createLogCallCount == 1
         }
 
         // then the log is saved correctly
@@ -473,7 +493,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
             return record.body == "test" && record.severity == .debug && record.type == .message && record.timestamp == timestamp && record.attributes["key"] as! String == "value"
                 && record.attributes["emb.type"] as! String == "sys.log" && record.attributes["emb.state"] as! String == "foreground"
-                && record.attributes["session.id"] as! String == self.sessionController.currentSession!.id.stringValue
+                && record.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue
         }
     }
 
@@ -528,7 +548,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         wait(timeout: .defaultTimeout) {
             let log = self.logController.batcher.batch!.logs[0]
 
-            return log.attributes["emb.type"] as! String == "sys.log" && log.attributes["session.id"] as! String == self.sessionController.currentSession!.id.stringValue
+            return log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue
                 && log.attributes["emb.state"] as! String == "foreground"
         }
     }

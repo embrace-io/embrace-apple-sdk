@@ -10,6 +10,7 @@ import Foundation
 
 class MockMetadataProvider: EmbraceMetadataProvider {
     var currentSessionId: EmbraceIdentifier? = EmbraceIdentifier(stringValue: "test-session-id")
+    var currentUserSessionId: EmbraceIdentifier? = EmbraceIdentifier(stringValue: "test-user-session-id")
     var currentProcessId: EmbraceIdentifier = EmbraceIdentifier(stringValue: "test-process-id")
     var currentSessionState: SessionState = .foreground
 }

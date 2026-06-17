@@ -68,6 +68,7 @@ package class Embrace {
     let logController: LogController
 
     let sessionController: SessionController
+    let userSessionController: UserSessionController
     let sessionLifecycle: SessionLifecycle
 
     let otelResources: EmbraceAttributes?
@@ -173,6 +174,17 @@ package class Embrace {
 
         // initialize session controller
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
+
+        // initialize user-session controller. Bootstrap is deferred to `start()` so it runs
+        // only when the SDK actually starts and so the prior-session fetch can be shared
+        // with other consumers (metric-kit) that need the same row.
+        self.userSessionController = UserSessionController(
+            storage: storage,
+            config: config.configurable
+        )
+        self.userSessionController.sessionController = sessionController
+        self.sessionController.userSessionController = userSessionController
+
         self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
 
         // initialize log controller
@@ -293,17 +305,19 @@ package class Embrace {
             // set sdk state
             state = .started
 
+            // Fetch the prior process's last session ONCE and share it. Must happen before
+            // `sessionLifecycle.startSession()` creates a new record. Consumed by both
+            // `userSessionController.bootstrap` (to reconstruct user-session state) and
+            // metric-kit (to attribute incoming MetricKit payloads to the prior session).
+            let priorSession = storage.fetchLatestSession()
+            userSessionController.bootstrap(priorSession: priorSession)
+            metricKit.lastSession = priorSession
+            metricKit.install()
+
             // start instrumentation
             startupInstrumentation.buildMainSpans()
             sessionLifecycle.startSession()
             captureServices.install()
-
-            // save latest session in memory before its sent and deleted
-            // this will be used to link metric kit payloads to the session
-            storage.fetchLatestSession { [self] session in
-                metricKit.lastSession = session
-                metricKit.install()
-            }
 
             // WARNING: This is dangerous as it calls out to external code.
             self.captureServices.start()
@@ -395,28 +409,22 @@ package class Embrace {
         return deviceId.stringValue
     }
 
-    /// Forces the Embrace SDK to start a new session.
-    /// - Note: If there was a session running, it will be ended before starting a new one.
-    /// - Note: This method won't do anything if the SDK is stopped.
-    package func startNewSession() {
+    /// Ends the active user session. The current part is closed and a new part of the same
+    /// state is started under a fresh user session. Rate-limited to one call per 5 seconds —
+    /// subsequent calls inside that window are ignored silently.
+    /// - Note: This method has no effect if the SDK is stopped.
+    package func endUserSession() {
         guard isSDKEnabled else {
             return
         }
 
-        processingQueue.async {
-            self.sessionLifecycle.startSession()
-        }
-    }
-
-    /// Forces the Embrace SDK to stop the current session, if any.
-    /// - Note: This method won't do anything if the SDK is stopped.
-    package func endCurrentSession() {
-        guard isSDKEnabled else {
-            return
-        }
-
-        processingQueue.async {
-            self.sessionLifecycle.endSession()
+        // Dispatch onto the session-controller's serial queue so the manual roll cannot
+        // interleave with the heartbeat-driven max-duration roll, which uses the same queue.
+        sessionController.queue.async { [weak self] in
+            guard let self = self else { return }
+            let now = Date()
+            guard self.userSessionController.canManuallyEnd(now: now) else { return }
+            self.sessionController.rollPartForUserSessionExpiry(reason: .manual, at: now)
         }
     }
 

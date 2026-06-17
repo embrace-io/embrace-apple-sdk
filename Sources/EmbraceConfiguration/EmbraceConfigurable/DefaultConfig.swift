@@ -51,9 +51,9 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let useNewStorageForSpanEvents = false
 
-    public let userSessionMaxDuration: TimeInterval = UserSession.defaultMaxDurationSeconds
+    public let userSessionMaxDuration: TimeInterval = UserSessionSemantics.defaultMaxDurationSeconds
 
-    public let userSessionInactivityTimeout: TimeInterval = UserSession.defaultInactivityTimeoutSeconds
+    public let userSessionInactivityTimeout: TimeInterval = UserSessionSemantics.defaultInactivityTimeoutSeconds
 
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)

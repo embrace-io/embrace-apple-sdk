@@ -13,21 +13,28 @@ import Foundation
 #endif
 
 extension Notification.Name {
-    public static let embraceSessionDidStart = Notification.Name("embrace.session.did_start")
-    public static let embraceSessionWillEnd = Notification.Name("embrace.session.will_end")
+    /// Posted just after a session part starts. The `object` is the newly-created `EmbraceSession`
+    /// (the part). For user-session lifecycle, listen to `embraceUserSessionDidStart` instead.
+    public static let embraceSessionPartDidStart = Notification.Name("embrace.session.part.did_start")
+
+    /// Posted just before a session part ends. The `object` is the `EmbraceSession` (the part)
+    /// that is about to end. For user-session lifecycle, listen to `embraceUserSessionDidEnd`.
+    public static let embraceSessionPartWillEnd = Notification.Name("embrace.session.part.will_end")
 }
 
-/// The source of truth for sessions. Provides the CRUD functionality for a given EmbraceSession
+/// The source of truth for session parts. A "part" is one contiguous foreground or background
+/// interval; a user session groups one or more parts and is owned by `UserSessionController`.
+///
 /// This class should not be interacted with directly, but by using a ``SessionListener``.
 ///
 /// This class will post notifications when:
-///     Just after a session starts. See ``Notification.Name.embraceSessionDidStart``
-///     Just before a session will end. See ``Notification.Name.embraceSessionWillEnd``
+///     Just after a part starts. See ``Notification.Name.embraceSessionPartDidStart``
+///     Just before a part will end. See ``Notification.Name.embraceSessionPartWillEnd``
 ///
 
 class SessionController: SessionControllable {
 
-    static let sessionNumberKey = "emb.session.upload_index"
+    static let sessionPartNumberKey = "emb.session_part_number"
 
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
@@ -40,6 +47,7 @@ class SessionController: SessionControllable {
     weak var config: EmbraceConfig?
     weak var sdkStateProvider: EmbraceSDKStateProvider?
     weak var otel: InternalOTelSignalsHandler?
+    weak var userSessionController: UserSessionController?
 
     private struct SessionInfo {
         var session: EmbraceSession? = nil
@@ -80,9 +88,88 @@ class SessionController: SessionControllable {
 
         self.heartbeat.callback = { [weak self] in
             let span = EmbraceMetricKitSpan.begin(name: "heartbeat")
-            self?.update(heartbeat: Date())
+            let now = Date()
+            self?.update(heartbeat: now)
+            self?.checkUserSessionMaxDurationExpiry(now: now)
             span.end()
         }
+    }
+
+    /// Triggered each heartbeat tick. If the active user session has crossed its max-duration
+    /// cutoff, schedules a part-roll on the upload coordination queue so the work doesn't stall
+    /// the heartbeat thread. The roll closes the current part, ends the user session with
+    /// `.maxDurationReached`, and starts a new part with the same state.
+    ///
+    /// The expiry decision runs INSIDE the dispatched block — not before — so that two ticks
+    /// queued back-to-back can't both roll. The second block sees the state left by the first
+    /// (the freshly-rotated user session has a far-future `maxEnd`) and bails.
+    func checkUserSessionMaxDurationExpiry(now: Date) {
+        queue.async { [weak self] in
+            guard let self = self,
+                let userSession = self.userSessionController?.currentUserSession,
+                now >= userSession.maxEnd,
+                self._session.safeValue.session != nil
+            else {
+                return
+            }
+            self.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: now)
+        }
+    }
+
+    /// If a foreground part is about to start after a background part whose user session
+    /// crossed its `maxDuration` or `inactivityTimeout` cutoff, slice the bg part at the
+    /// cutoff and produce three user sessions:
+    ///   - the bg part `[bg.start, cutoff]` stays in the original user session `S1`;
+    ///   - a synthetic bg part `[cutoff, now]` holds the tail in a brand-new user session `S2`;
+    ///   - `S2` is then ended so the foreground part the caller is about to create begins a
+    ///     fresh user session `S3` rather than joining `S2`.
+    ///
+    /// Returns `true` when the split was applied — the caller must skip its own "end previous
+    /// part" step because the prev part is already closed.
+    @discardableResult
+    private func applyBackgroundSplitIfNeeded(
+        prev: EmbraceSession?,
+        newState: SessionState,
+        now: Date
+    ) -> Bool {
+        guard newState == .foreground,
+            let prev = prev,
+            prev.state == .background,
+            let userSession = userSessionController?.currentUserSession
+        else {
+            return false
+        }
+
+        let inactivityCutoff = userSession.lastForegroundPartEnd?.addingTimeInterval(userSession.inactivityTimeout)
+        guard let cutoff = [userSession.maxEnd, inactivityCutoff].compactMap({ $0 }).min(),
+            now >= cutoff,
+            cutoff > prev.startTime
+        else {
+            return false
+        }
+
+        endSession(at: cutoff)
+        startSession(state: .background, startTime: cutoff)
+        endSession(at: now)
+
+        // End the synthetic bg part's user session so the foreground part the caller starts
+        // next does not join it — it must open its own user session.
+        userSessionController?.endActiveUserSession(reason: .endBackground, at: now)
+        return true
+    }
+
+    /// Closes the current part at `now`, ends the user session with the given reason, then
+    /// starts a new part with the same `SessionState`. Used by the heartbeat-driven max-duration
+    /// detector and the manual `endUserSession()` API. The order — end-part → end-user-session
+    /// → start-part — guarantees that `attachPart` for the new part sees no active user session.
+    func rollPartForUserSessionExpiry(reason: TerminationReason, at now: Date) {
+        let info = _session.safeValue
+        let currentState = info.session?.state ?? .unknown
+        guard info.session != nil else { return }
+
+        endSession(at: now)
+        userSessionController?.endActiveUserSession(reason: reason, at: now)
+        startSession(state: currentState, startTime: now)
     }
 
     deinit {
@@ -102,11 +189,27 @@ class SessionController: SessionControllable {
     func startSession(state: SessionState, startTime: Date = Date()) -> EmbraceSession? {
         // we lock after end session to avoid a deadlock
         let inProgressSessionInfo = _session.safeValue
+
+        // Background-to-foreground transition that crosses a user-session cutoff during the
+        // bg interval: slice the bg part at the cutoff and insert a synthetic bg part
+        // [cutoff, now] so the tail is attributed to a fresh user session rather than dragging
+        // the old one into the foreground. The synthetic part runs through `attachPart`, which
+        // expires the old user session and creates a new one before the actual fg part starts.
+        let bgSplitFired = applyBackgroundSplitIfNeeded(
+            prev: inProgressSessionInfo.session,
+            newState: state,
+            now: startTime
+        )
+
         let sessionInfo: (session: EmbraceSession?, span: EmbraceSpan?) = lock.locked {
 
-            // end current session first
-            if inProgressSessionInfo.session != nil {
-                endSessionNoLock(inProgressSessionInfo.session, inProgressSessionInfo.sessionSpan)
+            // end current session first (skipped if bg-split already closed the prev part).
+            // The previous part ends exactly at the new part's `startTime` — parts are
+            // contiguous, and using a separate `Date()` here would stamp a
+            // `lastForegroundPartEnd` a few ms *after* `startTime`, which `attachPart` would
+            // then misread as the clock moving backwards (a false `.clockAnomaly`).
+            if !bgSplitFired, inProgressSessionInfo.session != nil {
+                endSessionNoLock(inProgressSessionInfo.session, inProgressSessionInfo.sessionSpan, endTime: startTime)
             }
 
             guard sdkStateProvider?.isEnabled == true else {
@@ -150,14 +253,17 @@ class SessionController: SessionControllable {
                 return (nil, nil)
             }
 
-            // increment session counter and create session record
-            // TODO(Part 3): move this increment into UserSessionController.attachPart so it
-            // fires once per user-session creation rather than once per part. Per the v7 spec,
-            // sessionNumber on the part record is the user-session number — all parts of the
-            // same user session share the value.
-            let sessionNumber = storage.incrementCountForPermanentResource(
-                key: SessionController.sessionNumberKey
+            // Resolve which user session this new part belongs to. The user-session controller
+            // decides whether to reuse the active user session or start a new one, and returns
+            // the snapshot we stamp onto the new part record.
+            let userSession = userSessionController?.attachPart(state: state, startTime: startTime)
+
+            // Permanent per-part counter — bumped on every new part record and stamped onto
+            // the part's `sessionNumber` column.
+            let sessionPartNumber = storage.incrementCountForPermanentResource(
+                key: SessionController.sessionPartNumberKey
             )
+
             let session = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,
@@ -166,7 +272,13 @@ class SessionController: SessionControllable {
                 spanId: span.context.spanId,
                 startTime: startTime,
                 coldStart: isColdStart,
-                sessionNumber: sessionNumber
+                sessionNumber: sessionPartNumber,
+                userSessionId: userSession?.id,
+                userSessionStartTime: userSession?.startTime,
+                userSessionMaxDuration: userSession?.maxDuration,
+                userSessionInactivityTimeout: userSession?.inactivityTimeout,
+                userSessionLastForegroundEnd: userSession?.lastForegroundPartEnd,
+                userSessionPartIndex: userSession?.partIndex ?? 0
             )
 
             // start heartbeat
@@ -185,7 +297,9 @@ class SessionController: SessionControllable {
 
         // post notification
         if let session = sessionInfo.session {
-            NotificationCenter.default.post(name: .embraceSessionDidStart, object: session)
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
+            }
         }
 
         return sessionInfo.session
@@ -193,15 +307,19 @@ class SessionController: SessionControllable {
 
     /// Ends the session session taking into account that the lock is held externally
     @discardableResult
-    private func endSessionNoLock(_ inProgressSession: EmbraceSession?, _ inProgressSessionSpan: EmbraceSpan?) -> Date {
+    private func endSessionNoLock(
+        _ inProgressSession: EmbraceSession?,
+        _ inProgressSessionSpan: EmbraceSpan?,
+        endTime: Date? = nil
+    ) -> Date {
 
         guard let inProgressSession else {
-            return Date()
+            return endTime ?? Date()
         }
 
         // stop heartbeat
         heartbeat.stop()
-        let now = Date()
+        let now = endTime ?? Date()
 
         guard sdkStateProvider?.isEnabled == true else {
             deleteNoLock(inProgressSession)
@@ -221,10 +339,9 @@ class SessionController: SessionControllable {
         otel?.autoTerminateSpans()
 
         // post public notification
-        // This is behind a lock, this is a problem, so we move it to the main queue so it runs after this code.
         let mainQueueSession = inProgressSession
         DispatchQueue.main.async {
-            NotificationCenter.default.post(name: .embraceSessionWillEnd, object: mainQueueSession)
+            NotificationCenter.default.post(name: .embraceSessionPartWillEnd, object: mainQueueSession)
         }
 
         // end span
@@ -243,15 +360,24 @@ class SessionController: SessionControllable {
             // )
         }
 
-        // update session end time and clean exit
+        // update session part end time and clean exit. For foreground parts, also record the
+        // foreground-end timestamp on the part record AND on the in-memory user-session
+        // snapshot so the next `attachPart` can compute the inactivity cutoff.
+        let isForeground = inProgressSession.state == SessionState.foreground
         let sessionToUpload: EmbraceSession? = storage?.updateSession(
             session: inProgressSession,
             endTime: now,
-            cleanExit: true
+            cleanExit: true,
+            // nil will not overwrite previously-set userSessionLastForegroundEnd value
+            userSessionLastForegroundEnd: isForeground ? now : nil
         )
 
+        if isForeground {
+            userSessionController?.markForegroundPartEnded(at: now)
+        }
+
         // post internal notification
-        if inProgressSession.state == SessionState.foreground {
+        if isForeground {
             Embrace.notificationCenter.post(name: .embraceForegroundSessionDidEnd, object: now)
         }
 
@@ -274,6 +400,17 @@ class SessionController: SessionControllable {
         let sessionInfo = _session.safeValue
         return lock.locked {
             endSessionNoLock(sessionInfo.session, sessionInfo.sessionSpan)
+        }
+    }
+
+    /// Ends the session using the supplied `endTime` rather than `Date()`. Used when splitting
+    /// a background part along a user-session cutoff: the part record must close exactly at the
+    /// cutoff timestamp so the subsequent (synthetic) bg part can begin from the same instant.
+    @discardableResult
+    func endSession(at endTime: Date) -> Date {
+        let sessionInfo = _session.safeValue
+        return lock.locked {
+            endSessionNoLock(sessionInfo.session, sessionInfo.sessionSpan, endTime: endTime)
         }
     }
 
@@ -351,6 +488,39 @@ class SessionController: SessionControllable {
 
     func increaseAttachmentCount() {
         _attachmentCount += 1
+    }
+
+    /// Stamps the given termination reason on the most recently closed part record.
+    ///
+    /// Called by `UserSessionController` when ending a user session — the part being stamped
+    /// is, by construction, the last part of that user session. Looks up the latest persisted
+    /// part record via storage so the call works after `endSession` has already cleared the
+    /// in-memory snapshot.
+    ///
+    /// Idempotent: if the latest part already has a `userSessionTerminationReason`, the call
+    /// is a no-op. This protects the bootstrap-driven expiry path from overwriting a reason
+    /// the prior process recorded (e.g. `.manual` from a manual end that the process executed
+    /// just before dying), and preserves the precedence rule that the first-set reason wins.
+    ///
+    /// **Lock contract:** this method MUST NOT acquire `SessionController.lock`. It is reached
+    /// from `UserSessionController.internalEndUserSession`, which itself runs under the
+    /// user-session controller's `_state` mutex (via `attachPart` and `endActiveUserSession`).
+    /// Holding `_state` while acquiring `lock` would create two failure modes:
+    ///   - When the caller is `SessionController.startSession`, `lock` is already held; trying
+    ///     to acquire it again from inside `_state` is a same-thread re-acquire of a
+    ///     non-reentrant `UnfairLock` (undefined behavior / hang).
+    ///   - Across threads, the chain `lock → _state` on one thread and `_state → lock` on
+    ///     another forms a classic lock-order inversion / deadlock.
+    /// Keep this method to storage-only writes. Storage has its own internal serialization
+    /// and does not interact with either lock.
+    func backfillTerminationReasonOnLatestPart(_ reason: TerminationReason) {
+        guard let storage = storage,
+            let latest = storage.fetchLatestSession(),
+            latest.userSessionTerminationReason == nil
+        else {
+            return
+        }
+        storage.updateSession(session: latest, userSessionTerminationReason: reason)
     }
 }
 
