@@ -66,7 +66,7 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
 
 extension EmbraceLogSeverity: @retroactive CaseIterable {
     public static var allCases: [EmbraceLogSeverity] {
-        [.trace, .debug, .info, .warn, .error, .fatal, .critical]
+        [.trace, .debug, .info, .warn, .error, .fatal]
     }
 }
 

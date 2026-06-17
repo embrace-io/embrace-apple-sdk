@@ -39,6 +39,7 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCaptureService"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceConfigInternal"
+    subs.dependency "EmbraceIO/EmbraceKSCrashBacktraceSupport"
     subs.dependency "EmbraceIO/EmbraceOTelInternal"
     subs.dependency "EmbraceIO/EmbraceStorageInternal"
     subs.dependency "EmbraceIO/EmbraceUploadInternal"
@@ -50,6 +51,7 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceCommonInternal' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceAtomicsShim"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
     subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
@@ -60,7 +62,6 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceSemantics' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
-    subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
@@ -79,6 +80,7 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceConfiguration' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
   end
 
   spec.subspec 'EmbraceOTelInternal' do |subs|

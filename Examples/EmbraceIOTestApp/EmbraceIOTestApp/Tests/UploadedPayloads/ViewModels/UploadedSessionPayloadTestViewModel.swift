@@ -60,12 +60,12 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
             self?.updatedExportedSessions()
         }
 
-        NotificationCenter.default.addObserver(forName: .embraceSessionDidStart, object: nil, queue: nil) {
+        NotificationCenter.default.addObserver(forName: .embraceSessionPartDidStart, object: nil, queue: nil) {
             [weak self] _ in
             self?.currentSessionId = EmbraceIO.shared.currentSessionId
         }
 
-        NotificationCenter.default.addObserver(forName: .embraceSessionWillEnd, object: nil, queue: nil) {
+        NotificationCenter.default.addObserver(forName: .embraceUserSessionDidEnd, object: nil, queue: nil) {
             [weak self] _ in
             self?.currentSessionId = nil
         }

@@ -6,9 +6,9 @@ import EmbraceStorageInternal
 import TestSupport
 import XCTest
 
-@testable import EmbraceCommonInternal
 @testable import EmbraceConfigInternal
 @testable import EmbraceCore
+@testable import EmbraceSemantics
 
 class EncryptedNetworkPayloadTests: XCTestCase {
 

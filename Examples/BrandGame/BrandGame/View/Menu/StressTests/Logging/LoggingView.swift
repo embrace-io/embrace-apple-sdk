@@ -3,7 +3,6 @@
 //
 
 import EmbraceIO
-import EmbraceSemantics
 import SwiftUI
 
 struct LoggingView: View {

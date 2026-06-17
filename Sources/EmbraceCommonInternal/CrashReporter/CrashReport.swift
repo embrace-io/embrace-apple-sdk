@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
 /// Representation of a crash that will be reported through Embrace.
 public struct EmbraceCrashReport {
 

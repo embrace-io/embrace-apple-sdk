@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
 extension Date {
     public var millisecondsSince1970: Double {
         Double(self.timeIntervalSince1970 * 1000)

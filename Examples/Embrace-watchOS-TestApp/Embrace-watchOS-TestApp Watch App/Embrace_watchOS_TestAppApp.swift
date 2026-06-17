@@ -11,7 +11,7 @@ import SwiftUI
 @main
 struct Embrace_watchOS_TestApp_Watch_AppApp: App {
     init() {
-        _ = try? Embrace.setup(options: .init(appId: "wby8w")).start()
+        _ = try? EmbraceIO.setup(options: .withAppId("wby8w"))
     }
 
     var body: some Scene {
