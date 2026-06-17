@@ -24,4 +24,11 @@ extension TimeInterval {
     public static var veryLongTimeout: TimeInterval {
         return 7
     }
+
+    /// Polling cadence for `wait(timeout:interval:until:)`. 10 ms is tight enough
+    /// that the dominant cost in poll-based waits is the work itself, not the
+    /// interval — much smaller and we just burn CPU on no-op checks.
+    public static var shortInterval: TimeInterval {
+        return 0.01
+    }
 }

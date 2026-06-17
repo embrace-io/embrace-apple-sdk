@@ -19,7 +19,8 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
     var serviceState: CaptureServiceState { get }
     var otel: EmbraceOTelSignalsHandler? { get }
 
-    var injectTracingHeader: Bool { get }
+    func shouldInjectHeader(for request: URLRequest) -> Bool
+    var isNSFEligible: Bool { get }
     var requestsDataSource: URLSessionRequestsDataSource? { get }
     var ignoredURLs: [String] { get }
 
@@ -136,8 +137,13 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
             if let span {
                 // tracing header
-                if let tracingHader = self.addTracingHeader(task: task, span: span) {
-                    span.setInternalAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: tracingHader)
+                if let tracingHeader = self.addTracingHeader(task: task, span: span),
+                    self.dataSource?.isNSFEligible == true
+                {
+                    span.setInternalAttribute(
+                        key: SpanSemantics.NetworkRequest.keyTracingHeader,
+                        value: tracingHeader
+                    )
                 }
 
                 self.spans[task] = span
@@ -263,29 +269,26 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     }
 
     func addTracingHeader(task: URLSessionTask, span: EmbraceSpan) -> String? {
-        guard dataSource?.injectTracingHeader == true,
-            task.originalRequest != nil
-        else {
-            return nil
-        }
+        guard let request = task.originalRequest else { return nil }
+        guard dataSource?.shouldInjectHeader(for: request) == true else { return nil }
 
-        // ignore if header is already present
-        let previousValue = task.originalRequest?.value(forHTTPHeaderField: W3C.traceparentHeaderName)
-        guard previousValue == nil else {
-            return previousValue
+        // Preserve upstream traceparent — leave the wire header untouched and return its value
+        // so NSF can forward the span linked to upstream's trace context.
+        if let upstream = request.value(forHTTPHeaderField: W3C.traceparentHeaderName) {
+            return upstream
         }
 
         let value = W3C.traceparent(from: span.context)
-
-        if EMBRURLSessionTaskHeaderInjector.injectHeader(
-            withKey: W3C.traceparentHeaderName,
-            value: value,
-            into: task
-        ) {
-            return value
+        guard
+            EMBRURLSessionTaskHeaderInjector.injectHeader(
+                withKey: W3C.traceparentHeaderName,
+                value: value,
+                into: task
+            )
+        else {
+            return nil
         }
-
-        return nil
+        return value
     }
 
     func shouldCapture(url: URL) -> Bool {

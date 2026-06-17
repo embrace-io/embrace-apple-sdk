@@ -6,6 +6,7 @@ import EmbraceCaptureService
 import EmbraceCommonInternal
 import EmbraceSemantics
 import Foundation
+import OpenTelemetryApi
 
 @testable import EmbraceCore
 
@@ -13,9 +14,14 @@ class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
     var serviceState: CaptureServiceState = .uninstalled
     var otel: EmbraceOTelSignalsHandler?
 
-    var injectTracingHeader = false
+    var stubbedShouldInjectHeader = false
+    var isNSFEligible = false
     var requestsDataSource: URLSessionRequestsDataSource?
     var ignoredURLs: [String] = []
 
     var ignoredTaskTypes: [AnyClass] = []
+
+    func shouldInjectHeader(for request: URLRequest) -> Bool {
+        stubbedShouldInjectHeader
+    }
 }

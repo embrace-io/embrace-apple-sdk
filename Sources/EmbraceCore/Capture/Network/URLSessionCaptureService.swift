@@ -74,14 +74,28 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
         }
     }
 
-    var injectTracingHeader: Bool {
-        // check remote config
-        guard Embrace.client?.config.isNetworkSpansForwardingEnabled == true else {
-            return false
-        }
+    func shouldInjectHeader(for request: URLRequest) -> Bool {
+        let injectionEnabled = Embrace.client?.config.traceparentInjectionEnabled ?? false
 
-        // check local config
-        return options.injectTracingHeader
+        /// Check the feature is even enabled.
+        guard injectionEnabled else { return false }
+
+        /// If the allowedDomains list is nil, all requests should be injected.
+        guard let allowedDomains = options.traceparent.onlyAllowDomains else { return true }
+
+        /// If the list is not-nil, apply filtering.
+        guard
+            HostAllowlistMatcher.matches(
+                host: request.url?.host,
+                allowlist: allowedDomains
+            )
+        else { return false }
+
+        return true
+    }
+
+    var isNSFEligible: Bool {
+        Embrace.client?.config.isNetworkSpansForwardingEnabled == true
     }
 
     var requestsDataSource: URLSessionRequestsDataSource? {

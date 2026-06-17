@@ -140,10 +140,10 @@ extension EmbraceStorage {
         return result
     }
 
-    /// Synchronously deletes the given session from the storage
+    /// Asynchronously deletes the given session from the storage
     public func deleteSession(id: EmbraceIdentifier) {
         let request = fetchSessionRequest(id: id)
-        coreData.deleteRecords(withRequest: request)
+        coreData.deleteRecordsAsync(withRequest: request)
     }
 
     /// Synchronously fetches the newest session in the storage, ignoring the current session if it exists.

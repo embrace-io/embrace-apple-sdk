@@ -51,6 +51,8 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var userSessionInactivityTimeout: TimeInterval = 30 * 60
 
+    public var traceparentInjectionEnabled: Bool = false
+
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)
     }

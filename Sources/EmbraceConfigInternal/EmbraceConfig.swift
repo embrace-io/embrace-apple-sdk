@@ -102,6 +102,10 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isNetworkSpansForwardingEnabled
     }
 
+    public var traceparentInjectionEnabled: Bool {
+        configurable.traceparentInjectionEnabled
+    }
+
     public var isUiLoadInstrumentationEnabled: Bool {
         configurable.isUiLoadInstrumentationEnabled
     }

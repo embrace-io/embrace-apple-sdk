@@ -341,6 +341,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
+    public var traceparentInjectionEnabled: Bool = false
+
     public var updateCallCount = 0
     public var updateCompletionParamDidUpdate: Bool
     public var updateCompletionParamError: Error?

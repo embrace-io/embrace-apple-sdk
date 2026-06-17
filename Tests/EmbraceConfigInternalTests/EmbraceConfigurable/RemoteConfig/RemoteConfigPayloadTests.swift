@@ -19,7 +19,8 @@ class RemoteConfigPayloadTests: XCTestCase {
         // then the default values are used
         XCTAssertEqual(payload.sdkEnabledThreshold, 100)
         XCTAssertEqual(payload.backgroundSessionThreshold, 0)
-        XCTAssertEqual(payload.networkSpansForwardingThreshold, 0)
+        XCTAssertNil(payload.nsfThreshold)
+        XCTAssertNil(payload.traceparentInjectionThreshold)
         XCTAssertEqual(payload.uiLoadInstrumentationEnabled, true)
         XCTAssert(payload.viewControllerClassNameBlocklist.isEmpty)
         XCTAssertEqual(payload.uiInstrumentationCaptureHostingControllers, false)
@@ -54,7 +55,8 @@ class RemoteConfigPayloadTests: XCTestCase {
         // then the values are correct
         XCTAssertEqual(payload.sdkEnabledThreshold, 50)
         XCTAssertEqual(payload.backgroundSessionThreshold, 75)
-        XCTAssertEqual(payload.networkSpansForwardingThreshold, 25)
+        XCTAssertEqual(payload.nsfThreshold, 25)
+        XCTAssertEqual(payload.traceparentInjectionThreshold, 10)
         XCTAssertEqual(payload.uiLoadInstrumentationEnabled, false)
         XCTAssertEqual(payload.viewControllerClassNameBlocklist, ["MYVIEWCONTROLLER", "TESTVIEWCONTROLLER"])
         XCTAssertEqual(payload.uiInstrumentationCaptureHostingControllers, true)
@@ -104,7 +106,8 @@ class RemoteConfigPayloadTests: XCTestCase {
         // then the default values are used
         XCTAssertEqual(payload.sdkEnabledThreshold, 100)
         XCTAssertEqual(payload.backgroundSessionThreshold, 0)
-        XCTAssertEqual(payload.networkSpansForwardingThreshold, 0)
+        XCTAssertNil(payload.nsfThreshold)
+        XCTAssertNil(payload.traceparentInjectionThreshold)
         XCTAssertEqual(payload.uiLoadInstrumentationEnabled, true)
         XCTAssert(payload.viewControllerClassNameBlocklist.isEmpty)
         XCTAssertEqual(payload.uiInstrumentationCaptureHostingControllers, false)
