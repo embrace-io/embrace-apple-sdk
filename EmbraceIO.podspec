@@ -39,6 +39,7 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCaptureService"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceConfigInternal"
+    subs.dependency "EmbraceIO/EmbraceKSCrashBacktraceSupport"
     subs.dependency "EmbraceIO/EmbraceOTelInternal"
     subs.dependency "EmbraceIO/EmbraceStorageInternal"
     subs.dependency "EmbraceIO/EmbraceUploadInternal"
