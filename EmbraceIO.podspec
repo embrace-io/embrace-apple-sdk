@@ -80,6 +80,7 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceConfiguration' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
   end
 
   spec.subspec 'EmbraceOTelInternal' do |subs|
