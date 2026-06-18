@@ -56,7 +56,6 @@
         sel == @selector(URLSession:dataTask:didReceiveResponse:completionHandler:) ||
         sel == @selector(URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:) ||
         sel == @selector(URLSession:downloadTask:didFinishDownloadingToURL:)) {
-
         return nil;
     }
 
@@ -89,7 +88,7 @@
 
 - (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(NSError *)error
 {
-    if ([self.originalDelegate respondsToSelector:_cmd]) {
+    if ([self.originalDelegate respondsToSelector:@selector(URLSession:didBecomeInvalidWithError:)]) {
         [(id<NSURLSessionDelegate>)self.originalDelegate URLSession:session didBecomeInvalidWithError:error];
     }
     self.originalDelegate = nil;
@@ -98,29 +97,29 @@
 
 - (void)URLSession:(NSURLSession *)session
     didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
-     completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
+      completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
 {
     id delegate = self.originalDelegate;
-    if (delegate && [delegate respondsToSelector:_cmd]) {
+    if (delegate && [delegate respondsToSelector:@selector(URLSession:didReceiveChallenge:completionHandler:)]) {
         [(id<NSURLSessionDelegate>)delegate URLSession:session
                                    didReceiveChallenge:challenge
-                                    completionHandler:completionHandler];
+                                     completionHandler:completionHandler];
     } else {
         completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
     }
 }
 
 - (void)URLSession:(NSURLSession *)session
-              task:(NSURLSessionTask *)task
-didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
- completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
+                   task:(NSURLSessionTask *)task
+    didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+      completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
 {
     id delegate = self.originalDelegate;
-    if (delegate && [delegate respondsToSelector:_cmd]) {
+    if (delegate && [delegate respondsToSelector:@selector(URLSession:task:didReceiveChallenge:completionHandler:)]) {
         [(id<NSURLSessionTaskDelegate>)delegate URLSession:session
-                                                     task:task
-                                      didReceiveChallenge:challenge
-                                       completionHandler:completionHandler];
+                                                      task:task
+                                       didReceiveChallenge:challenge
+                                         completionHandler:completionHandler];
     } else {
         completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
     }
@@ -132,7 +131,7 @@ didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
 {
     [self.handler finishWithTask:task data:nil error:error];
 
-    if ([self.originalDelegate respondsToSelector:_cmd]) {
+    if ([self.originalDelegate respondsToSelector:@selector(URLSession:task:didCompleteWithError:)]) {
         [(id<NSURLSessionTaskDelegate>)self.originalDelegate URLSession:session task:task didCompleteWithError:error];
     }
 }
@@ -147,7 +146,7 @@ didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
     }
     [self.handler finishWithTask:task bodySize:totalBytes error:nil];
 
-    if ([self.originalDelegate respondsToSelector:_cmd]) {
+    if ([self.originalDelegate respondsToSelector:@selector(URLSession:task:didFinishCollectingMetrics:)]) {
         [(id<NSURLSessionTaskDelegate>)self.originalDelegate URLSession:session
                                                                    task:task
                                              didFinishCollectingMetrics:metrics];
@@ -157,18 +156,19 @@ didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
 #pragma mark - NSURLSessionTaskDelegate (redirection)
 
 - (void)URLSession:(NSURLSession *)session
-              task:(NSURLSessionTask *)task
-willPerformHTTPRedirection:(NSHTTPURLResponse *)response
-        newRequest:(NSURLRequest *)request
- completionHandler:(void (^)(NSURLRequest *))completionHandler
+                          task:(NSURLSessionTask *)task
+    willPerformHTTPRedirection:(NSHTTPURLResponse *)response
+                    newRequest:(NSURLRequest *)request
+             completionHandler:(void (^)(NSURLRequest *))completionHandler
 {
     id delegate = self.originalDelegate;
-    if (delegate && [delegate respondsToSelector:_cmd]) {
+    if (delegate && [delegate respondsToSelector:@selector
+                              (URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:)]) {
         [(id<NSURLSessionTaskDelegate>)delegate URLSession:session
-                                                     task:task
-                               willPerformHTTPRedirection:response
-                                               newRequest:request
-                                        completionHandler:completionHandler];
+                                                      task:task
+                                willPerformHTTPRedirection:response
+                                                newRequest:request
+                                         completionHandler:completionHandler];
     } else {
         completionHandler(request);  // follow the redirect — URLSession's built-in default
     }
@@ -180,22 +180,23 @@ willPerformHTTPRedirection:(NSHTTPURLResponse *)response
 {
     [self.handler addData:data dataTask:dataTask];
 
-    if ([self.originalDelegate respondsToSelector:_cmd]) {
+    if ([self.originalDelegate respondsToSelector:@selector(URLSession:dataTask:didReceiveData:)]) {
         [(id<NSURLSessionDataDelegate>)self.originalDelegate URLSession:session dataTask:dataTask didReceiveData:data];
     }
 }
 
 - (void)URLSession:(NSURLSession *)session
-          dataTask:(NSURLSessionDataTask *)dataTask
-didReceiveResponse:(NSURLResponse *)response
- completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler
+              dataTask:(NSURLSessionDataTask *)dataTask
+    didReceiveResponse:(NSURLResponse *)response
+     completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler
 {
     id delegate = self.originalDelegate;
-    if (delegate && [delegate respondsToSelector:_cmd]) {
+    if (delegate && [delegate respondsToSelector:@selector(URLSession:
+                                                             dataTask:didReceiveResponse:completionHandler:)]) {
         [(id<NSURLSessionDataDelegate>)delegate URLSession:session
-                                                 dataTask:dataTask
-                                       didReceiveResponse:response
-                                        completionHandler:completionHandler];
+                                                  dataTask:dataTask
+                                        didReceiveResponse:response
+                                         completionHandler:completionHandler];
     } else {
         completionHandler(NSURLSessionResponseAllow);
     }
@@ -204,14 +205,14 @@ didReceiveResponse:(NSURLResponse *)response
 #pragma mark - NSURLSessionDownloadDelegate
 
 - (void)URLSession:(NSURLSession *)session
-      downloadTask:(NSURLSessionDownloadTask *)downloadTask
-didFinishDownloadingToURL:(NSURL *)location
+                 downloadTask:(NSURLSessionDownloadTask *)downloadTask
+    didFinishDownloadingToURL:(NSURL *)location
 {
     id delegate = self.originalDelegate;
-    if (delegate && [delegate respondsToSelector:_cmd]) {
+    if (delegate && [delegate respondsToSelector:@selector(URLSession:downloadTask:didFinishDownloadingToURL:)]) {
         [(id<NSURLSessionDownloadDelegate>)delegate URLSession:session
-                                                 downloadTask:downloadTask
-                                    didFinishDownloadingToURL:location];
+                                                  downloadTask:downloadTask
+                                     didFinishDownloadingToURL:location];
     }
 }
 
