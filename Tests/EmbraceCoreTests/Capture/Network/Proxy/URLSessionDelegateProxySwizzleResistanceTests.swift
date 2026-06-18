@@ -9,8 +9,6 @@ import XCTest
 @testable import EmbraceCore
 @testable import EmbraceObjCUtilsInternal
 
-// Regression tests for EMBR-12649.
-//
 // 3rd party debugging tools rename Embrace's original IMP to a prefixed selector, e.g.
 // `_sdk_swizzle_XXX_URLSession:dataTask:didReceiveData:`. When the runtime dispatches to
 // that renamed IMP, `_cmd` equals the prefix — not the canonical protocol selector — so
