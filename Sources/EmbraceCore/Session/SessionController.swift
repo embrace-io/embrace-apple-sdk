@@ -225,6 +225,23 @@ class SessionController: SessionControllable {
 
         // end span
         if let inProgressSessionSpan {
+            // On iOS, custom properties set via addSessionProperty() are written to SQLite but never
+            // stamped onto the OTel session span. The legacy upload path (SessionPayloadBuilder) reads
+            // them separately, but the OTel/OTLP path has no equivalent step. We inject them here —
+            // just before .end() — because the span is immutable and exported immediately after.
+            if let storage = storage {
+                let properties = storage.fetchCustomProperties(
+                    sessionId: inProgressSession.idRaw,
+                    processId: inProgressSession.processIdRaw
+                )
+                for record in properties {
+                    inProgressSessionSpan.setAttribute(
+                        key: "emb.properties.\(record.key)",
+                        value: record.value.description
+                    )
+                }
+            }
+
             // Ending span for otel processors
             // Note: our exporter wont trigger an update on the stored span
             // to prevent race conditions.
