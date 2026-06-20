@@ -47,6 +47,8 @@ import Foundation
 
     var useNewStorageForSpanEvents: Bool { get }
 
+    var traceparentInjectionEnabled: Bool { get }
+
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:
     ///     - completion: A completion block that takes two parameters (didChange, error). Completion block should pass `true`

@@ -30,7 +30,7 @@ public class DummyLogControllable: LogControllable {
         queue: DispatchQueue
     ) {}
 
-    public func batchFinished(withLogs logs: [EmbraceLog]) {}
+    public func batchFinished(withLogs logs: [EmbraceLog], sessionId: EmbraceIdentifier?) {}
 
     public var limits = LogsLimits()
 }

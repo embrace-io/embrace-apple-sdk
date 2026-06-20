@@ -151,6 +151,71 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         thenSpanShouldNotHaveTheTracingHeaderAttribute()
     }
 
+    func test_shouldInjectHeader_withoutNSF_headerPresentAttributeAbsent() {
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        dataSource.isNSFEligible = false
+        givenAnURLSessionTask(method: "GET")
+        whenInvokingCreate()
+        thenOriginalRequestShouldHaveTheTracingHeader()
+        whenInvokingFinish()
+        thenSpanShouldNotHaveTheTracingHeaderAttribute()
+    }
+
+    func test_shouldInjectHeader_withNSFOn_headerAndAttribute() {
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        dataSource.isNSFEligible = true
+        givenAnURLSessionTask(method: "GET")
+        whenInvokingCreate()
+        thenOriginalRequestShouldHaveTheTracingHeader()
+        whenInvokingFinish()
+        thenSpanShouldHaveTheTracingHeaderAttribute()
+    }
+
+    func test_existingTraceparentOnRequest_PreservedNotInjected() {
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        dataSource.isNSFEligible = false
+        let upstream = "00-aaaabbbbccccdddd0000111122223333-aabbccdd11223344-01"
+        givenAnURLSessionTaskWithTraceparent(upstream)
+        whenInvokingCreate()
+        thenOriginalRequestShouldHaveTraceparentValue(upstream)
+    }
+
+    func test_existingTraceparentOnRequest_AttributeWrittenWithUpstreamValue_WhenNSFOn() {
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        dataSource.isNSFEligible = true
+        let upstream = "00-aaaabbbbccccdddd0000111122223333-aabbccdd11223344-01"
+        givenAnURLSessionTaskWithTraceparent(upstream)
+        whenInvokingCreate()
+        whenInvokingFinish()
+        thenSpanShouldHaveTraceparentAttributeValue(upstream)
+    }
+
+    func test_existingTraceparentOnRequest_AttributeNotWritten_WhenNSFOff() {
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        dataSource.isNSFEligible = false
+        let upstream = "00-aaaabbbbccccdddd0000111122223333-aabbccdd11223344-01"
+        givenAnURLSessionTaskWithTraceparent(upstream)
+        whenInvokingCreate()
+        whenInvokingFinish()
+        thenSpanShouldNotHaveTheTracingHeaderAttribute()
+    }
+
+    func test_existingTraceparentOnRequest_LocalGateFails_NoAttribute() {
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = false
+        dataSource.isNSFEligible = true
+        let upstream = "00-aaaabbbbccccdddd0000111122223333-aabbccdd11223344-01"
+        givenAnURLSessionTaskWithTraceparent(upstream)
+        whenInvokingCreate()
+        whenInvokingFinish()
+        thenSpanShouldNotHaveTheTracingHeaderAttribute()
+    }
+
     // MARK: - Requests Data Source
 
     func test_requestsDataSource_path() {
@@ -274,7 +339,8 @@ extension DefaultURLSessionTaskHandlerTests {
     }
 
     fileprivate func givenTracingHeaderEnabled(_ enabled: Bool) {
-        dataSource.injectTracingHeader = enabled
+        dataSource.stubbedShouldInjectHeader = enabled
+        dataSource.isNSFEligible = enabled
     }
 
     fileprivate func givenRequestsDataSourceWithBlock(_ block: @escaping (URLRequest) -> URLRequest) {
@@ -469,6 +535,32 @@ extension DefaultURLSessionTaskHandlerTests {
         XCTAssertEqual(components[2], span.spanId.hexString)
 
         XCTAssertEqual(components[3], "01")
+    }
+
+    fileprivate func givenAnURLSessionTaskWithTraceparent(_ value: String) {
+        // Build the task with the traceparent already present in the original request.
+        let urlString = "https://embrace.io"
+        var url = URL(string: urlString.replacingOccurrences(of: "https://", with: "https://\(testName)."))!
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue(value, forHTTPHeaderField: "traceparent")
+        url.mockResponse = .successful(withData: UUID().uuidString.data(using: .utf8)!, response: aValidResponse())
+        task = session.dataTask(with: request)
+    }
+
+    fileprivate func thenOriginalRequestShouldHaveTraceparentValue(_ expected: String) {
+        let header = task.originalRequest?.value(forHTTPHeaderField: "traceparent")
+        XCTAssertEqual(header, expected)
+    }
+
+    fileprivate func thenSpanShouldHaveTraceparentAttributeValue(_ expected: String) {
+        do {
+            let span = try XCTUnwrap(otel.spanProcessor.endedSpans.first)
+            let attr = span.attributes["emb.w3c_traceparent"]?.description
+            XCTAssertEqual(attr, expected)
+        } catch let exception {
+            XCTFail("Couldn't get span: \(exception.localizedDescription)")
+        }
     }
 
     fileprivate func thenOriginalRequestShouldHaveTheTracingHeader() {

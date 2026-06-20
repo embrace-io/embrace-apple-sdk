@@ -102,7 +102,6 @@ final class EmbraceIOTestNetworkingUITests: XCTestCase {
         evaluateTestResults(app)
     }
 
-
     func test_getRequest() {
         enterURL(embraceURL)
         selectRequestMethod(.get)

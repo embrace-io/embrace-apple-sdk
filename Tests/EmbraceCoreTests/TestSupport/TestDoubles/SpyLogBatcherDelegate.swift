@@ -9,7 +9,7 @@ import EmbraceConfiguration
 
 class SpyLogBatcherDelegate: LogBatcherDelegate {
     var didCallBatchFinished: Bool = false
-    func batchFinished(withLogs logs: [EmbraceLog]) {
+    func batchFinished(withLogs logs: [EmbraceLog], sessionId: EmbraceIdentifier?) {
         didCallBatchFinished = true
     }
 
