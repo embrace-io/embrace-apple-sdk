@@ -32,7 +32,9 @@ typedef vm_size_t emb_vm_size_t;
 // Layout-compatible with the public emb_ring_record_header_t.
 typedef struct {
     _Atomic uint32_t seq;
-    uint32_t frame_count;
+    uint16_t frame_count;
+    uint8_t  thread_state;
+    uint8_t  flags;
     uint64_t timestamp_ns;
 } emb_ring_write_header_t;
 
@@ -44,6 +46,10 @@ _Static_assert(offsetof(emb_ring_write_header_t, seq) == offsetof(emb_ring_recor
                "seq offset mismatch");
 _Static_assert(offsetof(emb_ring_write_header_t, frame_count) == offsetof(emb_ring_record_header_t, frame_count),
                "frame_count offset mismatch");
+_Static_assert(offsetof(emb_ring_write_header_t, thread_state) == offsetof(emb_ring_record_header_t, thread_state),
+               "thread_state offset mismatch");
+_Static_assert(offsetof(emb_ring_write_header_t, flags) == offsetof(emb_ring_record_header_t, flags),
+               "flags offset mismatch");
 _Static_assert(offsetof(emb_ring_write_header_t, timestamp_ns) == offsetof(emb_ring_record_header_t, timestamp_ns),
                "timestamp_ns offset mismatch");
 
@@ -131,11 +137,23 @@ emb_ring_buffer_t *emb_ring_buffer_create(size_t capacity_bytes, kern_return_t *
         goto fail;
     }
 
-    buf->data       = (uint8_t *)region;
-    buf->capacity   = capacity;
-    buf->next_seq   = 0;
-    atomic_store_explicit(&buf->write_pos,  0, memory_order_relaxed);
-    atomic_store_explicit(&buf->oldest_pos, 0, memory_order_relaxed);
+    // In-memory buffers own a heap-allocated control block. (File-backed buffers
+    // attach a mapped footer control block instead — emb_profile_store, Step 3.)
+    emb_ring_control_t *control = calloc(1, sizeof(*control));
+    if (control == NULL) {
+        free(buf);
+        *kr_out = KERN_RESOURCE_SHORTAGE;
+        goto fail;
+    }
+
+    buf->data           = (uint8_t *)region;
+    buf->capacity       = capacity;
+    buf->control        = control;
+    buf->owns_resources = true;
+    buf->control->next_seq   = 0;
+    atomic_store_explicit(&buf->control->write_pos,    0, memory_order_relaxed);
+    atomic_store_explicit(&buf->control->oldest_pos,   0, memory_order_relaxed);
+    atomic_store_explicit(&buf->control->status_flags, 0, memory_order_relaxed);
     atomic_store_explicit(&buf->active_readers, 0, memory_order_relaxed);
     atomic_store_explicit(&buf->resetting, false, memory_order_relaxed);
 
@@ -159,16 +177,41 @@ fail:
     return NULL;
 }
 
+emb_ring_buffer_t *emb_ring_buffer_attach(uint8_t *data, size_t capacity, emb_ring_control_t *control)
+{
+    if (data == NULL || control == NULL || capacity == 0) {
+        return NULL;
+    }
+    emb_ring_buffer_t *buf = calloc(1, sizeof(*buf));
+    if (buf == NULL) {
+        return NULL;
+    }
+    buf->data           = data;
+    buf->capacity       = capacity;
+    buf->control        = control;          // caller-owned (mapped footer or anon)
+    buf->owns_resources = false;            // store owns data + control; destroy frees only the wrapper
+    atomic_store_explicit(&buf->active_readers, 0, memory_order_relaxed);
+    atomic_store_explicit(&buf->resetting, false, memory_order_relaxed);
+    // Deliberately does NOT touch *control — the caller sets the positions.
+    return buf;
+}
+
 void emb_ring_buffer_destroy(emb_ring_buffer_t *buf)
 {
     if (buf == NULL) {
         return;
     }
-    // Deallocate the full 2 × capacity virtual region (both the original
-    // allocation and the remap share the same address range).
-    emb_vm_deallocate(mach_task_self(),
-                      (emb_vm_address_t)buf->data,
-                      (emb_vm_size_t)buf->capacity * 2);
+    // For in-memory buffers we own the VM region and the heap control block.
+    // For file-backed buffers (owns_resources == false) the store owns the mapping
+    // and the mapped control block, so we must not free them here.
+    if (buf->owns_resources) {
+        // Deallocate the full 2 × capacity virtual region (both the original
+        // allocation and the remap share the same address range).
+        emb_vm_deallocate(mach_task_self(),
+                          (emb_vm_address_t)buf->data,
+                          (emb_vm_size_t)buf->capacity * 2);
+        free(buf->control);
+    }
     free(buf);
 }
 
@@ -189,9 +232,9 @@ bool emb_ring_buffer_reset(emb_ring_buffer_t *buf)
     }
 
     memset(buf->data, 0, buf->capacity);
-    buf->next_seq = 0;
-    atomic_store_explicit(&buf->write_pos, 0, memory_order_release);
-    atomic_store_explicit(&buf->oldest_pos, 0, memory_order_release);
+    buf->control->next_seq = 0;
+    atomic_store_explicit(&buf->control->write_pos, 0, memory_order_release);
+    atomic_store_explicit(&buf->control->oldest_pos, 0, memory_order_release);
 
     atomic_store_explicit(&buf->resetting, false, memory_order_seq_cst);
     return true;
@@ -208,14 +251,21 @@ size_t emb_ring_buffer_capacity(const emb_ring_buffer_t *buf)
 emb_ring_write_status_t emb_ring_buffer_write(emb_ring_buffer_t *buf,
                                                uint64_t timestamp_ns,
                                                const uintptr_t *frames,
-                                               size_t frame_count)
+                                               size_t frame_count,
+                                               uint8_t thread_state,
+                                               uint8_t flags)
 {
     if (buf == NULL || (frames == NULL && frame_count > 0)) {
         return EMB_RING_WRITE_BAD_ARGS;
     }
 
-    // The header stores frame_count as uint32_t.
-    if (frame_count > UINT32_MAX) {
+    // frame_count is stored as uint16 in the record header (16-byte layout), so reject
+    // anything that would truncate. The recovery scanner's invariants (no committed
+    // record has frame_count == 0 or > EMB_MAX_STACK_FRAMES) are guaranteed at the
+    // *sampler* — the sole writer of persisted/file-backed buffers, which only writes
+    // when frame_count > 0 and clamps max_frames <= EMB_MAX_STACK_FRAMES. This generic
+    // ring buffer stays general-purpose (0-frame records remain valid for in-memory use).
+    if (frame_count > UINT16_MAX) {
         return EMB_RING_WRITE_BAD_ARGS;
     }
 
@@ -228,10 +278,10 @@ emb_ring_write_status_t emb_ring_buffer_write(emb_ring_buffer_t *buf,
     }
 
     // Current write position (monotonically increasing byte offset).
-    uint64_t write_pos = atomic_load_explicit(&buf->write_pos, memory_order_relaxed);
+    uint64_t write_pos = atomic_load_explicit(&buf->control->write_pos, memory_order_relaxed);
     // relaxed: the writer is the only thread that advances oldest_pos, so no
     // synchronisation is needed here — we only need our own prior stores.
-    uint64_t oldest_pos = atomic_load_explicit(&buf->oldest_pos, memory_order_relaxed);
+    uint64_t oldest_pos = atomic_load_explicit(&buf->control->oldest_pos, memory_order_relaxed);
 
     // Evict old records that would be overlapped by this write.
     // The loop condition: oldest_pos + capacity < write_pos + record_size
@@ -250,7 +300,7 @@ emb_ring_write_status_t emb_ring_buffer_write(emb_ring_buffer_t *buf,
         // On corruption, evict everything to prevent cascading garbage reads.
         if (old_record_size > buf->capacity) {
             oldest_pos = write_pos;
-            atomic_store_explicit(&buf->oldest_pos, oldest_pos, memory_order_release);
+            atomic_store_explicit(&buf->control->oldest_pos, oldest_pos, memory_order_release);
             corruption_detected = true;
             break;
         }
@@ -259,7 +309,7 @@ emb_ring_write_status_t emb_ring_buffer_write(emb_ring_buffer_t *buf,
         oldest_pos += old_record_size;
 
         // Publish the new oldest_pos.
-        atomic_store_explicit(&buf->oldest_pos, oldest_pos, memory_order_release);
+        atomic_store_explicit(&buf->control->oldest_pos, oldest_pos, memory_order_release);
     }
 
     if (corruption_detected) {
@@ -299,24 +349,26 @@ emb_ring_write_status_t emb_ring_buffer_write(emb_ring_buffer_t *buf,
     // Set seq to odd (writing). Release ordering ensures this store is visible
     // to readers before any subsequent data writes, which is necessary for
     // correct seqlock protocol on weakly-ordered architectures (ARM64).
-    atomic_store_explicit(&header->seq, (uint32_t)(buf->next_seq | 1), memory_order_release);
+    atomic_store_explicit(&header->seq, (uint32_t)(buf->control->next_seq | 1), memory_order_release);
 
     // Copy frame data into the buffer.
     uintptr_t *dest_frames = (uintptr_t *)(header + 1);
     memcpy(dest_frames, frames, frame_count * sizeof(*dest_frames));
 
-    // Write the header fields (frame_count and timestamp).
-    header->frame_count = (uint32_t)frame_count;
+    // Write the header fields (frame_count, thread_state, flags, timestamp).
+    header->frame_count = (uint16_t)frame_count;
+    header->thread_state = thread_state;
+    header->flags = flags;
     header->timestamp_ns = timestamp_ns;
 
     // Seal the seqlock (transition to even = stable).
-    atomic_store_explicit(&header->seq, (uint32_t)buf->next_seq, memory_order_release);
+    atomic_store_explicit(&header->seq, (uint32_t)buf->control->next_seq, memory_order_release);
 
     // Advance write_pos by the actual record size.
-    atomic_store_explicit(&buf->write_pos, write_pos + record_size(frame_count), memory_order_release);
+    atomic_store_explicit(&buf->control->write_pos, write_pos + record_size(frame_count), memory_order_release);
 
     // Increment the seqlock counter for the next write.
-    buf->next_seq += 2;
+    buf->control->next_seq += 2;
 
     return EMB_RING_WRITE_OK;
 }
@@ -331,6 +383,8 @@ static inline emb_ring_record_header_t read_live_header(emb_ring_buffer_t *buf,
     emb_ring_record_header_t hdr;
     hdr.seq          = atomic_load_explicit(&whdr->seq, memory_order_acquire);
     hdr.frame_count  = whdr->frame_count;
+    hdr.thread_state = whdr->thread_state;
+    hdr.flags        = whdr->flags;
     hdr.timestamp_ns = whdr->timestamp_ns;
     return hdr;
 }
@@ -362,8 +416,8 @@ emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
     }
 
     // Snapshot the occupied region boundaries.
-    uint64_t oldest_pos = atomic_load_explicit(&buf->oldest_pos, memory_order_acquire);
-    const uint64_t write_pos = atomic_load_explicit(&buf->write_pos, memory_order_acquire);
+    uint64_t oldest_pos = atomic_load_explicit(&buf->control->oldest_pos, memory_order_acquire);
+    const uint64_t write_pos = atomic_load_explicit(&buf->control->write_pos, memory_order_acquire);
 
     if (oldest_pos >= write_pos) {
         atomic_fetch_sub_explicit(&buf->active_readers, 1, memory_order_release);
@@ -412,7 +466,7 @@ emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
     // Skip records before start_ns.
     while (scan_pos + header_size <= write_pos) {
         // Check if the writer evicted past our position.
-        uint64_t current_oldest = atomic_load_explicit(&buf->oldest_pos, memory_order_acquire);
+        uint64_t current_oldest = atomic_load_explicit(&buf->control->oldest_pos, memory_order_acquire);
         if (current_oldest > scan_pos) {
             scan_pos = current_oldest;
             continue;
@@ -423,7 +477,7 @@ emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
         // Re-check oldest_pos after reading. The seq_cst fence in the writer
         // guarantees that if oldest_pos hasn't advanced past us, the data at
         // our position has not been overwritten.
-        current_oldest = atomic_load_explicit(&buf->oldest_pos, memory_order_acquire);
+        current_oldest = atomic_load_explicit(&buf->control->oldest_pos, memory_order_acquire);
         if (current_oldest > scan_pos) {
             scan_pos = current_oldest;
             continue;
@@ -443,7 +497,7 @@ emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
     // Find end of matching range, counting records as we go.
     size_t scan_record_count = 0;
     while (scan_pos + header_size <= write_pos) {
-        uint64_t current_oldest = atomic_load_explicit(&buf->oldest_pos, memory_order_acquire);
+        uint64_t current_oldest = atomic_load_explicit(&buf->control->oldest_pos, memory_order_acquire);
         if (current_oldest > scan_pos) {
             // Record evicted. Restart from new oldest position.
             copy_start = current_oldest;
@@ -454,7 +508,7 @@ emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
 
         emb_ring_record_header_t hdr = read_live_header(buf, scan_pos);
 
-        current_oldest = atomic_load_explicit(&buf->oldest_pos, memory_order_acquire);
+        current_oldest = atomic_load_explicit(&buf->control->oldest_pos, memory_order_acquire);
         if (current_oldest > scan_pos) {
             // Record evicted. Restart from new oldest position.
             copy_start = current_oldest;
@@ -500,7 +554,7 @@ emb_ring_read_result_t emb_ring_buffer_read_range(emb_ring_buffer_t *buf,
     // checks.
     // ========================================================================
 
-    uint64_t post_oldest = atomic_load_explicit(&buf->oldest_pos, memory_order_acquire);
+    uint64_t post_oldest = atomic_load_explicit(&buf->control->oldest_pos, memory_order_acquire);
 
     // Fast path: no eviction reached our copy range, so all records intact.
     if (post_oldest <= copy_start) {

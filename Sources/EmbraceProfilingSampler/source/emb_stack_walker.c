@@ -29,7 +29,8 @@ bool emb_stack_walk(thread_t thread,
                     const void *stack_top,
                     uintptr_t *frames_out,
                     size_t max_frames,
-                    size_t *count_out)
+                    size_t *count_out,
+                    bool *is_truncated)
 {
     if (frames_out == NULL || count_out == NULL || max_frames == 0
         || stack_bottom == NULL || stack_top == NULL
@@ -37,6 +38,9 @@ bool emb_stack_walk(thread_t thread,
         return false;
     }
     *count_out = 0;
+    if (is_truncated != NULL) {
+        *is_truncated = false;
+    }
 
     emb_thread_state_t state;
     mach_msg_type_number_t state_count = EMB_THREAD_STATE_COUNT;
@@ -61,12 +65,20 @@ bool emb_stack_walk(thread_t thread,
     // Frame pointers must be aligned to sizeof(void *) * 2 bytes
     // (16 bytes on the supported 64-bit architectures).
     const uintptr_t fp_align_mask = sizeof(void *) * 2 - 1;
-    while (count < max_frames && fp >= stack_bottom && fp < stack_top
+    while (fp >= stack_bottom && fp < stack_top
            && ((uintptr_t)fp & fp_align_mask) == 0) {
         void **record = (void **)fp;
-        void *next_fp = record[0];
         void *ret_addr = ptrauth_strip(record[1], ptrauth_key_return_address);
 
+        // Buffer full: if the chain still holds a real frame, we are truncating.
+        if (count == max_frames) {
+            if (ret_addr != NULL && is_truncated != NULL) {
+                *is_truncated = true;
+            }
+            break;
+        }
+
+        void *next_fp = record[0];
         if (ret_addr == NULL) {
             break;
         }
