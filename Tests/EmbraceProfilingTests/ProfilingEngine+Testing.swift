@@ -65,7 +65,8 @@ extension ProfilingEngine {
     /// TEST-ONLY: Write a synthetic sample directly to the ring buffer.
     /// Buffer must have been allocated (via ``allocateBufferForTesting(configuration:)`` or ``start(configuration:)``).
     /// Does NOT acquire the gate. Caller must ensure no concurrent access.
-    func writeSampleForTesting(timestamp: UInt64, frames: [UInt]) -> Bool {
+    func writeSampleForTesting(timestamp: UInt64, frames: [UInt],
+                               threadState: UInt8 = 0, flags: UInt8 = 0) -> Bool {
         #if os(watchOS)
             return false
         #else
@@ -74,7 +75,8 @@ extension ProfilingEngine {
             return frames.withUnsafeBufferPointer { buf in
                 guard let baseAddress = buf.baseAddress else { return false }
                 return baseAddress.withMemoryRebound(to: uintptr_t.self, capacity: frames.count) { ptr in
-                    emb_ring_buffer_write(ringBuffer, timestamp, ptr, frames.count) == EMB_RING_WRITE_OK
+                    emb_ring_buffer_write(ringBuffer, timestamp, ptr, frames.count,
+                                          threadState, flags) == EMB_RING_WRITE_OK
                 }
             }
         #endif
@@ -102,7 +104,11 @@ extension ProfilingEngine {
             // since we've already stopped the sampler.
             let gateAcquired = acquireGate()
 
-            if let rb = ringBuffer {
+            if let s = store {
+                emb_profile_store_destroy(s)  // frees the attached ring-buffer wrapper + unmaps
+                store = nil
+                ringBuffer = nil
+            } else if let rb = ringBuffer {
                 emb_ring_buffer_destroy(rb)
                 ringBuffer = nil
             }
@@ -112,6 +118,7 @@ extension ProfilingEngine {
             }
             readBufferSize = 0
             activeConfiguration = nil
+            activeSessionFileName = nil
 
             emb_sampler_reset_for_testing()
 

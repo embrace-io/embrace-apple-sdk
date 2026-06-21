@@ -8,5 +8,6 @@
 #include "emb_ring_buffer.h"
 #include "emb_stack_walker.h"
 #include "emb_sampler.h"
+#include "emb_profile_store.h"
 
 #endif /* EmbraceProfilingSampler_h */

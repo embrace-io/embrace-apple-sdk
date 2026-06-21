@@ -12,6 +12,8 @@
         let timestamp_ns: UInt64
         let frame_count: Int
         let frames: [UInt]
+        var thread_state: UInt8 = 0
+        var flags: UInt8 = 0
     }
 
     /// Read matching records from a ring buffer into Swift-friendly structs.
@@ -49,7 +51,7 @@
             ) { $0.pointee }
 
             let fc = Int(hdr.frame_count)
-            let recordSize = Int(emb_ring_record_size(hdr.frame_count))
+            let recordSize = Int(emb_ring_record_size(UInt32(hdr.frame_count)))
             guard offset + recordSize <= validEnd else { break }
 
             var frames: [UInt] = []
@@ -65,7 +67,9 @@
             records.append(TestRecord(
                 timestamp_ns: hdr.timestamp_ns,
                 frame_count: fc,
-                frames: frames
+                frames: frames,
+                thread_state: hdr.thread_state,
+                flags: hdr.flags
             ))
 
             offset += recordSize

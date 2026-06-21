@@ -56,13 +56,17 @@ extern "C" {
 /// @param frames_out   Output buffer for frame addresses.
 /// @param max_frames   Capacity of frames_out.
 /// @param count_out    On return, the number of frames captured.
+/// @param is_truncated Optional (may be NULL). On return, true if the walk stopped
+///                     because `max_frames` was reached while the chain still had
+///                     at least one more frame.
 /// @return true on success, false on failure.
 bool emb_stack_walk(thread_t thread,
                     const void *stack_bottom,
                     const void *stack_top,
                     uintptr_t *frames_out,
                     size_t max_frames,
-                    size_t *count_out);
+                    size_t *count_out,
+                    bool *is_truncated);
 
 #ifdef __cplusplus
 }

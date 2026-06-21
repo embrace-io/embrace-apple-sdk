@@ -38,7 +38,7 @@
 
             var frames = [UInt](repeating: 0, count: maxFrames)
             var count = 0
-            let walkResult = emb_stack_walk(port, bounds.bottom, bounds.top,
+            let walkResult = stackWalk(port, bounds.bottom, bounds.top,
                                             &frames, maxFrames, &count)
 
             thread_resume(port)
@@ -78,7 +78,7 @@
             let maxFrames = 512
             var frames = [UInt](repeating: 0, count: maxFrames)
             var count = 0
-            let walkResult = emb_stack_walk(machThread, bounds.bottom, bounds.top,
+            let walkResult = stackWalk(machThread, bounds.bottom, bounds.top,
                                             &frames, maxFrames, &count)
 
             // Resume immediately after walking.
@@ -104,7 +104,7 @@
             // Provide dummy stack bounds. The call should fail on thread_get_state.
             let dummy = UnsafeRawPointer(bitPattern: 1)!
             let dummyTop = UnsafeRawPointer(bitPattern: UInt.max)!
-            let result = emb_stack_walk(0, dummy, dummyTop, &frames, maxFrames, &count)
+            let result = stackWalk(0, dummy, dummyTop, &frames, maxFrames, &count)
             XCTAssertFalse(result, "Should fail with invalid thread")
             XCTAssertEqual(count, 0)
         }
@@ -113,7 +113,7 @@
             var count = 0
             let dummy = UnsafeRawPointer(bitPattern: 1)!
             let dummyTop = UnsafeRawPointer(bitPattern: UInt.max)!
-            let result = emb_stack_walk(mach_thread_self(), dummy, dummyTop, nil, 64, &count)
+            let result = stackWalk(mach_thread_self(), dummy, dummyTop, nil, 64, &count)
             XCTAssertFalse(result, "Should fail with null frames_out")
         }
 
@@ -122,7 +122,7 @@
             var count = 0
             let dummy = UnsafeRawPointer(bitPattern: 1)!
             let dummyTop = UnsafeRawPointer(bitPattern: UInt.max)!
-            let result = emb_stack_walk(mach_thread_self(), dummy, dummyTop, &frames, 0, &count)
+            let result = stackWalk(mach_thread_self(), dummy, dummyTop, &frames, 0, &count)
             XCTAssertFalse(result, "Should fail with max_frames == 0")
         }
 
@@ -200,7 +200,7 @@
                 let maxFrames = 512
                 var frames = [UInt](repeating: 0, count: maxFrames)
                 var count = 0
-                let ok = emb_stack_walk(port, bounds.bottom, bounds.top,
+                let ok = stackWalk(port, bounds.bottom, bounds.top,
                                         &frames, maxFrames, &count)
                 XCTAssertTrue(ok, "Walk \(i) should succeed")
 
@@ -249,7 +249,7 @@
             var frames = [UInt](repeating: 0, count: 64)
             var count = 0
             // Null stack_bottom.
-            let result = emb_stack_walk(port, nil, UnsafeRawPointer(bitPattern: UInt.max)!,
+            let result = stackWalk(port, nil, UnsafeRawPointer(bitPattern: UInt.max)!,
                                         &frames, 64, &count)
             XCTAssertFalse(result, "Should fail with null stack_bottom")
 
@@ -276,7 +276,7 @@
             var frames = [UInt](repeating: 0, count: 64)
             var count = 0
             // Inverted: bottom > top.
-            let result = emb_stack_walk(port, bounds.top, bounds.bottom,
+            let result = stackWalk(port, bounds.top, bounds.bottom,
                                         &frames, 64, &count)
             XCTAssertFalse(result, "Should fail with inverted stack bounds")
 
@@ -301,7 +301,7 @@
             XCTAssertEqual(suspendResult, KERN_SUCCESS)
 
             var frames = [UInt](repeating: 0, count: 64)
-            let result = emb_stack_walk(port, bounds.bottom, bounds.top,
+            let result = stackWalk(port, bounds.bottom, bounds.top,
                                         &frames, 64, nil)
             XCTAssertFalse(result, "Should fail with null count_out")
 
@@ -326,7 +326,7 @@
 
             var frames = [UInt](repeating: 0, count: 64)
             var count = 0
-            let result = emb_stack_walk(port, bounds.bottom, bounds.top, &frames, 64, &count)
+            let result = stackWalk(port, bounds.bottom, bounds.top, &frames, 64, &count)
             XCTAssertFalse(result, "Walk on a dead thread port should fail")
             XCTAssertEqual(count, 0)
         }
