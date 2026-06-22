@@ -59,8 +59,8 @@
 extern "C" {
 #endif
 
-/// Hard upper limit on stack frames per sample.
-#define EMB_MAX_STACK_FRAMES 1024
+// EMB_MAX_STACK_FRAMES is defined in emb_ring_buffer.h (included above) — the ring
+// write path validates against it, so it lives at that layer and is consumed here.
 
 /// Sampler lifecycle states.
 ///

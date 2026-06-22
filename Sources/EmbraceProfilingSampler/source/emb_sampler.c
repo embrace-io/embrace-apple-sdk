@@ -218,6 +218,23 @@ static void *sampler_thread_func(void *arg) {
             void *stack_top = pthread_get_stackaddr_np(g_main_pthread_cached);
             void *stack_bottom = (uint8_t *)stack_top - stack_size;
 
+            // Capture the main thread's run state BEFORE suspending it (THREAD-STATE.md §3):
+            // thread_info is a mach_msg RPC, not async-signal-safe, so it must not run inside the
+            // suspend window. Held in locals consumed by the post-resume write below.
+            uint8_t thread_state = EMB_THREAD_RUN_STATE_UNKNOWN;
+            uint8_t record_flags = 0;
+            {
+                thread_basic_info_data_t info;
+                mach_msg_type_number_t info_count = THREAD_BASIC_INFO_COUNT;
+                if (thread_info(g_main_thread, THREAD_BASIC_INFO,
+                                (thread_info_t)&info, &info_count) == KERN_SUCCESS) {
+                    thread_state = (uint8_t)info.run_state;  // values mirror TH_STATE_*
+                    // Remap Mach flags into our own packed layout (NOT a raw copy of info.flags).
+                    if (info.flags & TH_FLAGS_IDLE)    { record_flags |= EMB_RECORD_FLAG_IDLE; }
+                    if (info.flags & TH_FLAGS_SWAPPED) { record_flags |= EMB_RECORD_FLAG_SWAPPED; }
+                }
+            }
+
             if (thread_suspend(g_main_thread) != KERN_SUCCESS) {
                 // The Mach port is dead/invalid (thread terminated or port recycled).
                 // We go directly to FAULTED, bypassing the normal STOPPING→ZOMBIE→
@@ -238,20 +255,30 @@ static void *sampler_thread_func(void *arg) {
             uint64_t timestamp_ns = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
 
             size_t frame_count = 0;
+            bool stack_truncated = false;
             emb_stack_walk(g_main_thread,
                            stack_bottom,
                            stack_top,
                            g_stack_frames,
                            g_config.max_frames,
-                           &frame_count);
+                           &frame_count,
+                           &stack_truncated);
 
             if (frame_count < g_config.min_frames && fallback_walker != NULL) {
-                bool is_truncated = false;
+                bool fb_truncated = false;
                 int result = fallback_walker(g_main_thread,
                                              g_stack_frames,
                                              (int)g_config.max_frames,
-                                             &is_truncated);
-                frame_count = result < 0 ? 0 : (size_t)result;
+                                             &fb_truncated);
+                if (result < 0) {
+                    frame_count = 0;
+                } else {
+                    frame_count = (size_t)result;
+                    // Defense-in-depth: a misbehaving fallback could over-report; clamp to the buffer
+                    // capacity we handed it so the subsequent write never reads past g_stack_frames.
+                    if (frame_count > g_config.max_frames) { frame_count = g_config.max_frames; }
+                    stack_truncated = fb_truncated;
+                }
             }
 
             if (thread_resume(g_main_thread) != KERN_SUCCESS) {
@@ -272,8 +299,11 @@ static void *sampler_thread_func(void *arg) {
             // validates that max_frames fits within the buffer capacity. A failure
             // here indicates a logic error (e.g. buffer was destroyed externally).
             if (frame_count > 0) {
+                uint8_t flags = record_flags;
+                if (stack_truncated) { flags |= EMB_RECORD_FLAG_TRUNCATED; }
                 emb_ring_write_status_t ws =
-                    emb_ring_buffer_write(g_buffer, timestamp_ns, g_stack_frames, frame_count);
+                    emb_ring_buffer_write(g_buffer, timestamp_ns, g_stack_frames, frame_count,
+                                          thread_state, flags);
                 if (ws == EMB_RING_WRITE_CORRUPTION_DETECTED) {
                     sampler_fault("ring buffer corruption detected");
                     return NULL;
