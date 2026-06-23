@@ -96,9 +96,15 @@ class SessionController: SessionControllable {
     }
 
     /// Triggered each heartbeat tick. If the active user session has crossed its max-duration
-    /// cutoff, schedules a part-roll on the upload coordination queue so the work doesn't stall
-    /// the heartbeat thread. The roll closes the current part, ends the user session with
-    /// `.maxDurationReached`, and starts a new part with the same state.
+    /// cutoff *while the current part is in the foreground*, schedules a part-roll on the upload
+    /// coordination queue so the work doesn't stall the heartbeat thread. The roll closes the current
+    /// part, ends the user session with `.maxDurationReached`, and starts a new part with the same
+    /// state.
+    ///
+    /// Max-duration is only enforced at runtime for a foreground part. A backgrounded session is
+    /// never expired by the timer — its expiry is resolved lazily at the next foreground transition or
+    /// cold start (so a background-only session may legitimately outlive its max). This also prevents
+    /// slicing a background-only session at its own max.
     ///
     /// The expiry decision runs INSIDE the dispatched block — not before — so that two ticks
     /// queued back-to-back can't both roll. The second block sees the state left by the first
@@ -108,7 +114,8 @@ class SessionController: SessionControllable {
             guard let self = self,
                 let userSession = self.userSessionController?.currentUserSession,
                 now >= userSession.maxEnd,
-                self._session.safeValue.session != nil
+                let currentSession = self._session.safeValue.session,
+                currentSession.state == .foreground
             else {
                 return
             }
@@ -135,7 +142,11 @@ class SessionController: SessionControllable {
         guard newState == .foreground,
             let prev = prev,
             prev.state == .background,
-            let userSession = userSessionController?.currentUserSession
+            let userSession = userSessionController?.currentUserSession,
+            // Only a foreground-origin session is split at its cutoff. A background-only session is
+            // never sliced at its own max; foregrounding it ends it whole,
+            // which `UserSessionController.attachPart` handles after this returns `false`.
+            !userSession.isBackgroundOnly
         else {
             return false
         }
@@ -154,7 +165,7 @@ class SessionController: SessionControllable {
 
         // End the synthetic bg part's user session so the foreground part the caller starts
         // next does not join it — it must open its own user session.
-        userSessionController?.endActiveUserSession(reason: .endBackground, at: now)
+        userSessionController?.endActiveUserSession(reason: .backgroundUserSessionForegrounded, at: now)
         return true
     }
 
@@ -170,6 +181,69 @@ class SessionController: SessionControllable {
         endSession(at: now)
         userSessionController?.endActiveUserSession(reason: reason, at: now)
         startSession(state: currentState, startTime: now)
+    }
+
+    /// Persists the cold-start that `UserSessionController.bootstrap` decided on: closes the
+    /// prior foreground-origin session's final background part at `cutoff` (stamping `s1Reason`), and
+    /// writes a closed background-only tail part `[cutoff, tailEnd]` belonging to the new user session
+    /// `s2`. The caller sets the in-memory `s2` snapshot; this method only writes records, so both the
+    /// closed foreground-origin session and the new background-only tail upload as normal parts.
+    ///
+    /// Runs at SDK start before `sessionLifecycle.startSession()` and before unsent data is uploaded,
+    /// so the prior record is still present and the OTel handler is ready to mint the tail span. This
+    /// is the cold-start equivalent of `applyBackgroundSplitIfNeeded`'s warm split.
+    func writeColdStartBackgroundSplit(
+        prior: EmbraceSession,
+        cutoff: Date,
+        tailEnd: Date,
+        s1Reason: TerminationReason,
+        s2: EmbraceUserSession
+    ) {
+        guard let storage = storage, let otel = otel else {
+            return
+        }
+
+        // Close the foreground-origin session's final (background) part at the cutoff.
+        storage.updateSession(session: prior, endTime: cutoff, userSessionTerminationReason: s1Reason)
+
+        // Materialize the background-only tail part [cutoff, tailEnd] under the new user session.
+        let newId = EmbraceIdentifier.random
+        guard
+            let span = SessionSpanUtils.span(
+                otel: otel,
+                id: newId,
+                startTime: cutoff,
+                state: .background,
+                coldStart: false
+            )
+        else {
+            return
+        }
+        span.end(endTime: tailEnd)
+
+        let sessionPartNumber = storage.incrementCountForPermanentResource(key: SessionController.sessionPartNumberKey)
+
+        storage.addSession(
+            id: newId,
+            processId: prior.processId,
+            state: .background,
+            traceId: span.context.traceId,
+            spanId: span.context.spanId,
+            startTime: cutoff,
+            endTime: tailEnd,
+            lastHeartbeatTime: tailEnd,
+            crashReportId: prior.crashReportId,
+            coldStart: false,
+            cleanExit: prior.cleanExit,
+            appTerminated: prior.appTerminated,
+            sessionNumber: sessionPartNumber,
+            userSessionId: s2.id,
+            userSessionStartTime: s2.startTime,
+            userSessionMaxDuration: s2.maxDuration,
+            userSessionInactivityTimeout: s2.inactivityTimeout,
+            userSessionLastForegroundEnd: nil,
+            userSessionPartIndex: 1
+        )
     }
 
     deinit {

@@ -21,7 +21,7 @@ public enum TerminationReason: String {
 
     /// A background-only user session that was created to hold the tail of a background part
     /// after its parent user session expired, and is ended when a foreground part begins.
-    case endBackground = "end_background_only_user_session"
+    case backgroundUserSessionForegrounded = "background_only_user_session_foregrounded"
 }
 
 /// In-memory representation of a "user session" — a logical grouping of one or
@@ -46,6 +46,14 @@ public protocol EmbraceUserSession {
     var partIndex: EMBInt { get }
     var endTime: Date? { get }
     var terminationReason: TerminationReason? { get }
+
+    /// `true` while every part of this user session has been a background part. A user session is
+    /// created background-only when its first part is a background part, and stops being
+    /// background-only the moment it records a foreground part. A foreground part never *joins* a
+    /// background-only user session — it ends it whole and starts a new one — so this also marks the
+    /// sessions whose duration is allowed to exceed the configured max (they are only ever ended
+    /// whole, never sliced at their own cutoff).
+    var isBackgroundOnly: Bool { get }
 }
 
 /// Plain value-type `EmbraceUserSession` for in-memory use by `UserSessionController`.
@@ -59,6 +67,7 @@ public struct ImmutableUserSession: EmbraceUserSession {
     public let partIndex: EMBInt
     public let endTime: Date?
     public let terminationReason: TerminationReason?
+    public let isBackgroundOnly: Bool
 
     public init(
         id: EmbraceIdentifier,
@@ -68,7 +77,8 @@ public struct ImmutableUserSession: EmbraceUserSession {
         lastForegroundPartEnd: Date? = nil,
         partIndex: EMBInt,
         endTime: Date? = nil,
-        terminationReason: TerminationReason? = nil
+        terminationReason: TerminationReason? = nil,
+        isBackgroundOnly: Bool
     ) {
         self.id = id
         self.startTime = startTime
@@ -79,5 +89,6 @@ public struct ImmutableUserSession: EmbraceUserSession {
         self.partIndex = partIndex
         self.endTime = endTime
         self.terminationReason = terminationReason
+        self.isBackgroundOnly = isBackgroundOnly
     }
 }

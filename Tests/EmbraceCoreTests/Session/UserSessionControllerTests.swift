@@ -901,6 +901,177 @@ final class UserSessionControllerTests: XCTestCase {
         XCTAssertEqual(stored?.userSessionTerminationReason, .clockAnomaly)
     }
 
+    // MARK: - bootstrap: background split
+
+    func testBootstrap_foregroundOriginCrossedCutoff_splitsIntoBackgroundOnlyTail() throws {
+        // Prior process: a foreground-origin user session that went to the background 50min ago and
+        // kept a background part running until 10min ago. Its inactivity cutoff (fgEnd + 30min) was
+        // crossed while backgrounded, so bootstrap must split: close the foreground-origin session at
+        // the cutoff and materialize a background-only tail for the remainder.
+        let sdkStateProvider = MockEmbraceSDKStateProvider()
+        let otel = MockOTelSignalsHandler()
+        let realSessionController = SessionController(storage: storage, upload: nil, config: nil)
+        realSessionController.sdkStateProvider = sdkStateProvider
+        realSessionController.otel = otel
+
+        let userSessionStart = now.addingTimeInterval(-3600)  // S1 started 1h ago
+        let fgEnd = now.addingTimeInterval(-3000)  // backgrounded 50min ago
+        let tailEnd = now.addingTimeInterval(-600)  // last background activity 10min ago
+        let expectedCutoff = fgEnd.addingTimeInterval(Self.defaultInactivity)  // fgEnd + 30min
+        let priorUserSessionId = EmbraceIdentifier.random
+
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .background,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: fgEnd,
+            endTime: tailEnd,
+            lastHeartbeatTime: tailEnd,
+            userSessionId: priorUserSessionId,
+            userSessionStartTime: userSessionStart,
+            userSessionMaxDuration: Self.defaultMax,
+            userSessionInactivityTimeout: Self.defaultInactivity,
+            userSessionLastForegroundEnd: fgEnd,
+            userSessionPartIndex: 2
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        let controller = makeController()
+        controller.sessionController = realSessionController
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
+
+        // The active snapshot is the new background-only tail session, starting at the cutoff.
+        let active = try XCTUnwrap(controller.currentUserSession)
+        XCTAssertNotEqual(active.id, priorUserSessionId)
+        XCTAssertEqual(active.startTime, expectedCutoff)
+        XCTAssertEqual(active.partIndex, 1)
+        XCTAssertTrue(active.isBackgroundOnly)
+        XCTAssertNil(active.lastForegroundPartEnd)
+
+        // Drain the async split writes.
+        let drained = expectation(description: "split writes landed")
+        storage.coreData.performAsyncOperation { _ in drained.fulfill() }
+        wait(for: [drained], timeout: 1)
+
+        // The foreground-origin session's final part was closed at the cutoff with `.inactivity`.
+        let closedS1 = try XCTUnwrap(storage.fetchSession(id: TestConstants.sessionId))
+        XCTAssertEqual(closedS1.endTime, expectedCutoff)
+        XCTAssertEqual(closedS1.userSessionTerminationReason, .inactivity)
+        XCTAssertEqual(closedS1.userSessionId, priorUserSessionId)
+
+        // A new background-only tail part [cutoff, tailEnd] exists under the new user session.
+        let all = storage.fetchAllSessions()
+        XCTAssertEqual(all.count, 2)
+        let tail = try XCTUnwrap(all.first { $0.userSessionId == active.id })
+        XCTAssertEqual(tail.state, .background)
+        XCTAssertEqual(tail.startTime, expectedCutoff)
+        XCTAssertEqual(tail.endTime, tailEnd)
+        XCTAssertEqual(tail.userSessionStartTime, expectedCutoff)
+        XCTAssertEqual(tail.userSessionPartIndex, 1)
+        XCTAssertNil(tail.userSessionLastForegroundEnd)
+        XCTAssertNil(tail.userSessionTerminationReason)
+    }
+
+    func testBootstrap_backgroundOnlyPriorSession_isNotSplit() throws {
+        // Prior process ended in a background-only user session (no foreground-part end recorded) that
+        // is still within its own max. Bootstrap must reconstruct it whole — no split — and flag it
+        // background-only so the next foreground part will end it.
+        let userSessionStart = now.addingTimeInterval(-600)  // 10min ago, well under max
+        let exp = expectation(description: "addSession")
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .background,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: userSessionStart,
+            userSessionId: EmbraceIdentifier.random,
+            userSessionStartTime: userSessionStart,
+            userSessionMaxDuration: Self.defaultMax,
+            userSessionInactivityTimeout: Self.defaultInactivity,
+            userSessionLastForegroundEnd: nil,
+            userSessionPartIndex: 1
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+
+        let controller = makeController()
+        controller.bootstrap(priorSession: storage.fetchLatestSession())
+
+        let active = try XCTUnwrap(controller.currentUserSession)
+        XCTAssertEqual(active.startTime, userSessionStart)
+        XCTAssertTrue(active.isBackgroundOnly)
+        XCTAssertEqual(storage.fetchAllSessions().count, 1, "no tail record should have been written")
+    }
+
+    // MARK: - attachPart: background-only sessions
+
+    func testAttachPart_newBackgroundSession_isBackgroundOnly() {
+        let controller = makeController()
+        let snapshot = controller.attachPart(state: .background, startTime: now)
+        XCTAssertTrue(snapshot.isBackgroundOnly)
+    }
+
+    func testAttachPart_newForegroundSession_isNotBackgroundOnly() {
+        let controller = makeController()
+        let snapshot = controller.attachPart(state: .foreground, startTime: now)
+        XCTAssertFalse(snapshot.isBackgroundOnly)
+    }
+
+    func testAttachPart_backgroundPartJoinsBackgroundOnlySession() {
+        // Within its max, a background-only session keeps absorbing background parts (case E shape).
+        let controller = makeController()
+        let first = controller.attachPart(state: .background, startTime: now)
+
+        now = now.addingTimeInterval(60)
+        let second = controller.attachPart(state: .background, startTime: now)
+
+        XCTAssertEqual(second.id, first.id)
+        XCTAssertEqual(second.partIndex, 2)
+        XCTAssertTrue(second.isBackgroundOnly)
+    }
+
+    func testAttachPart_foregroundOntoBackgroundOnlySession_rollsWhole() throws {
+        // A foreground part must not join a background-only session: it ends it whole with
+        // `.backgroundUserSessionForegrounded` and starts a fresh (non-background-only) session,
+        // even when the background-only session is still well within its max.
+        let controller = makeController()
+        let bgOnly = controller.attachPart(state: .background, startTime: now)
+        XCTAssertTrue(bgOnly.isBackgroundOnly)
+
+        var endedSnapshot: EmbraceUserSession?
+        let endExp = expectation(forNotification: .embraceUserSessionDidEnd, object: nil) { notif in
+            guard let snap = notif.object as? EmbraceUserSession, snap.id == bgOnly.id else { return false }
+            endedSnapshot = snap
+            return true
+        }
+
+        now = now.addingTimeInterval(60)  // far from any cutoff
+        let fg = controller.attachPart(state: .foreground, startTime: now)
+
+        XCTAssertNotEqual(fg.id, bgOnly.id)
+        XCTAssertEqual(fg.partIndex, 1)
+        XCTAssertFalse(fg.isBackgroundOnly)
+
+        wait(for: [endExp], timeout: 1)
+        XCTAssertEqual(endedSnapshot?.terminationReason, .backgroundUserSessionForegrounded)
+    }
+
+    func testMarkForegroundPartEnded_clearsBackgroundOnly() {
+        // A background-only session promoted to foreground (grace-period swap) records a
+        // foreground-part end; from then on it is no longer background-only.
+        let controller = makeController()
+        let bgOnly = controller.attachPart(state: .background, startTime: now)
+        XCTAssertTrue(bgOnly.isBackgroundOnly)
+
+        now = now.addingTimeInterval(60)
+        controller.markForegroundPartEnded(at: now)
+
+        XCTAssertEqual(controller.currentUserSession?.isBackgroundOnly, false)
+    }
+
     // MARK: - end / idempotency
 
     func testEndActiveUserSession_isIdempotent() {
