@@ -36,7 +36,15 @@
 
 - (BOOL)respondsToSelector:(SEL)sel
 {
-    // If we implement it directly (instance methods below), advertise YES.
+    // Challenge selectors: only advertise YES if the original delegate handles them.
+    // Unconditionally claiming YES changes the OS’s internal challenge handling path for
+    // sessions created without a delegate (where originalDelegate is EmbraceDummyURLSessionDelegate),
+    // which breaks tokenization and SSL-pinning SDKs that depend on the OS-native path.
+    if (sel == @selector(URLSession:didReceiveChallenge:completionHandler:) ||
+        sel == @selector(URLSession:task:didReceiveChallenge:completionHandler:)) {
+        return [self.originalDelegate respondsToSelector:sel];
+    }
+    // For all other directly-implemented methods, advertise YES unconditionally.
     if ([super respondsToSelector:sel]) {
         return YES;
     }
