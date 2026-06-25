@@ -19,7 +19,7 @@ jobs:
 
   build-and-lint-cocoapod:
     name: Cocoapod Build And Lint
-    runs-on: macos-latest
+    runs-on: macos-15
     timeout-minutes: 60
     strategy:
       fail-fast: true

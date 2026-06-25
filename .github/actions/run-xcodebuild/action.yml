@@ -81,9 +81,9 @@ runs:
         PLATFORM_VERSION="${PLATFORM_VERSION:-latest}"
 
         case "$PLATFORM" in
-          iOS)          SIM_PLATFORM="iOS Simulator";      SIM_NAME="iPhone 16" ;;
+          iOS)          SIM_PLATFORM="iOS Simulator";      SIM_NAME="iPhone 17" ;;
           tvOS)         SIM_PLATFORM="tvOS Simulator";     SIM_NAME="Apple TV" ;;
-          watchOS)      SIM_PLATFORM="watchOS Simulator";  SIM_NAME="Apple Watch Series 10 (46mm)" ;;
+          watchOS)      SIM_PLATFORM="watchOS Simulator";  SIM_NAME="Apple Watch Series 11 (46mm)" ;;
           visionOS)     SIM_PLATFORM="visionOS Simulator"; SIM_NAME="Apple Vision Pro" ;;
           macOS)        DESTINATION="platform=macOS,arch=${ARCH}" ;;
           mac-catalyst) DESTINATION="platform=macOS,variant=Mac Catalyst,arch=${ARCH}" ;;
