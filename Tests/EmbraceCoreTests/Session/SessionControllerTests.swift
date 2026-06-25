@@ -5,6 +5,7 @@
 import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceConfiguration
+import EmbraceSemantics
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
@@ -287,7 +288,7 @@ final class SessionControllerTests: XCTestCase {
     func test_backfillTerminationReason_allReasons_roundTrip() throws {
         // Every `TerminationReason` raw-value must round-trip through the
         // `userSessionTerminationReason` column. `.crash` is otherwise never tested.
-        let reasons: [TerminationReason] = [.maxDurationReached, .inactivity, .manual, .clockAnomaly, .crash, .endBackground]
+        let reasons: [TerminationReason] = [.maxDurationReached, .inactivity, .manual, .clockAnomaly, .crash, .backgroundUserSessionForegrounded]
         for reason in reasons {
             let session = controller.startSession(state: .foreground)
             controller.endSession()
@@ -472,7 +473,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNotEqual(newFg.userSessionIdRaw, slicedBg.userSessionIdRaw)
 
         // The synthetic bg part's user session is ended when the foreground part begins.
-        XCTAssertEqual(syntheticBg.userSessionTerminationReason, TerminationReason.endBackground.rawValue)
+        XCTAssertEqual(syntheticBg.userSessionTerminationReason, TerminationReason.backgroundUserSessionForegrounded.rawValue)
     }
 
     func test_startSession_bgToFgWithinUserSessionBounds_doesNotSplit() throws {
@@ -674,6 +675,140 @@ final class SessionControllerTests: XCTestCase {
         // then the session upload data cached
         let uploadData = upload.cache.fetchAllUploadData()
         XCTAssertEqual(uploadData.count, 1)
+    }
+
+    // MARK: cold-start background split (bootstrap -> first part)
+
+    /// Seeds a persisted prior-process part for a foreground-origin user session that was backgrounded
+    /// and kept a background part running until `tailEnd`, crossing its inactivity cutoff. Returns the
+    /// owning user-session id and the cutoff `C` bootstrap should split at.
+    @discardableResult
+    private func seedForegroundOriginCrossedCutoff(base: Date, tailEnd: Date) -> (
+        userSessionId: EmbraceIdentifier, cutoff: Date
+    ) {
+        let maxDuration: TimeInterval = 12 * 3600
+        let inactivity: TimeInterval = 30 * 60
+        let userSessionStart = base
+        let fgEnd = base.addingTimeInterval(600)  // backgrounded 10min after start
+        let cutoff = fgEnd.addingTimeInterval(inactivity)  // inactivity cutoff (earlier than maxEnd)
+        let userSessionId = EmbraceIdentifier.random
+
+        let exp = expectation(description: "seed prior part")
+        storage.addSession(
+            id: .random,
+            processId: ProcessIdentifier.current,
+            state: .background,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: fgEnd,
+            endTime: tailEnd,
+            lastHeartbeatTime: tailEnd,
+            userSessionId: userSessionId,
+            userSessionStartTime: userSessionStart,
+            userSessionMaxDuration: maxDuration,
+            userSessionInactivityTimeout: inactivity,
+            userSessionLastForegroundEnd: fgEnd,
+            userSessionPartIndex: 2
+        ) { exp.fulfill() }
+        wait(for: [exp], timeout: 1)
+        return (userSessionId, cutoff)
+    }
+
+    private func drainStorage() {
+        let drained = expectation(description: "storage drained")
+        storage.coreData.performAsyncOperation { _ in drained.fulfill() }
+        wait(for: [drained], timeout: 1)
+    }
+
+    // Case C: cold launch in foreground, background-only tail still within its max.
+    func test_coldStart_foregroundLaunch_endsBackgroundOnlyTail_andStartsForegroundSession() throws {
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let tailEnd = base.addingTimeInterval(600 + 1800 + 600)  // 10min into the tail, well within max
+        let seed = seedForegroundOriginCrossedCutoff(base: base, tailEnd: tailEnd)
+
+        userSessionController.bootstrap(priorSession: storage.fetchLatestSession())
+        let s2 = try XCTUnwrap(userSessionController.currentUserSession)
+        XCTAssertTrue(s2.isBackgroundOnly)
+        XCTAssertEqual(s2.startTime, seed.cutoff)
+
+        controller.startSession(state: .foreground, startTime: tailEnd.addingTimeInterval(60))
+
+        let active = try XCTUnwrap(userSessionController.currentUserSession)
+        XCTAssertNotEqual(active.id, s2.id)
+        XCTAssertFalse(active.isBackgroundOnly)
+        XCTAssertEqual(active.partIndex, 1)
+
+        drainStorage()
+        let tail = try XCTUnwrap(storage.fetchAllSessions().first { $0.userSessionId == s2.id })
+        XCTAssertEqual(tail.userSessionTerminationReason, .backgroundUserSessionForegrounded)
+    }
+
+    // Case D: cold launch in foreground, background-only tail already past its own max — ended whole.
+    func test_coldStart_foregroundLaunch_tailPastMax_endsWholeUnsliced() throws {
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let tailEnd = base.addingTimeInterval(600 + 1800 + 12 * 3600 + 600)  // tail ran > 12h max
+        _ = seedForegroundOriginCrossedCutoff(base: base, tailEnd: tailEnd)
+
+        userSessionController.bootstrap(priorSession: storage.fetchLatestSession())
+        let s2 = try XCTUnwrap(userSessionController.currentUserSession)
+
+        controller.startSession(state: .foreground, startTime: tailEnd.addingTimeInterval(60))
+
+        let active = try XCTUnwrap(userSessionController.currentUserSession)
+        XCTAssertNotEqual(active.id, s2.id)
+        XCTAssertFalse(active.isBackgroundOnly)
+
+        drainStorage()
+        let tail = try XCTUnwrap(storage.fetchAllSessions().first { $0.userSessionId == s2.id })
+        XCTAssertEqual(tail.userSessionTerminationReason, .backgroundUserSessionForegrounded)
+        // The tail was never sliced at its own max: its duration exceeds the configured max.
+        let tailDuration = try XCTUnwrap(tail.endTime).timeIntervalSince(tail.startTime)
+        XCTAssertGreaterThan(tailDuration, 12 * 3600)
+    }
+
+    // Case E: cold launch in background, background-only tail still within its max — it continues.
+    func test_coldStart_backgroundLaunch_withinMax_continuesBackgroundOnlySession() throws {
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let tailEnd = base.addingTimeInterval(600 + 1800 + 600)  // within max
+        _ = seedForegroundOriginCrossedCutoff(base: base, tailEnd: tailEnd)
+
+        userSessionController.bootstrap(priorSession: storage.fetchLatestSession())
+        let s2 = try XCTUnwrap(userSessionController.currentUserSession)
+
+        controller.startSession(state: .background, startTime: tailEnd.addingTimeInterval(60))
+
+        // The new background part joins the existing background-only session.
+        let active = try XCTUnwrap(userSessionController.currentUserSession)
+        XCTAssertEqual(active.id, s2.id)
+        XCTAssertTrue(active.isBackgroundOnly)
+        XCTAssertEqual(active.partIndex, 2)
+
+        drainStorage()
+        let joined = try XCTUnwrap(storage.fetchLatestSession())
+        XCTAssertEqual(joined.userSessionId, s2.id)
+        XCTAssertEqual(joined.userSessionPartIndex, 2)
+    }
+
+    // Case F: cold launch in background, background-only tail already past its max — ends, new bg session.
+    func test_coldStart_backgroundLaunch_pastMax_endsTailAndStartsNewBackgroundSession() throws {
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let tailEnd = base.addingTimeInterval(600 + 1800 + 12 * 3600 + 600)  // tail ran > 12h max
+        _ = seedForegroundOriginCrossedCutoff(base: base, tailEnd: tailEnd)
+
+        userSessionController.bootstrap(priorSession: storage.fetchLatestSession())
+        let s2 = try XCTUnwrap(userSessionController.currentUserSession)
+
+        controller.startSession(state: .background, startTime: tailEnd.addingTimeInterval(60))
+
+        // The tail ended; a brand-new background-only session is active.
+        let active = try XCTUnwrap(userSessionController.currentUserSession)
+        XCTAssertNotEqual(active.id, s2.id)
+        XCTAssertTrue(active.isBackgroundOnly)
+        XCTAssertEqual(active.partIndex, 1)
+
+        drainStorage()
+        let tail = try XCTUnwrap(storage.fetchAllSessions().first { $0.userSessionId == s2.id })
+        XCTAssertEqual(tail.userSessionTerminationReason, .maxDurationReached)
     }
 
     // MARK: update

@@ -109,6 +109,11 @@ final class UserSessionController {
         let inactivityTimeout =
             latest.userSessionInactivityTimeout ?? config?.userSessionInactivityTimeout ?? UserSessionSemantics.defaultInactivityTimeoutSeconds
 
+        // A reconstructed user session is background-only when its last persisted part was a
+        // background part and it never recorded a foreground-part end. A foreground-origin session
+        // always carries a `userSessionLastForegroundEnd` once it has been backgrounded.
+        let isBackgroundOnly = latest.state == .background && latest.userSessionLastForegroundEnd == nil
+
         let snapshot = ImmutableUserSession(
             id: userSessionId,
             startTime: userSessionStartTime,
@@ -117,10 +122,53 @@ final class UserSessionController {
             lastForegroundPartEnd: latest.userSessionLastForegroundEnd,
             partIndex: max(latest.userSessionPartIndex, 1),
             endTime: nil,
-            terminationReason: nil
+            terminationReason: nil,
+            isBackgroundOnly: isBackgroundOnly
         )
 
         let now = dateProvider()
+
+        // Split at cold start: a foreground-origin user session whose background part ran past its
+        // cutoff `C` while the prior process was backgrounded must be sliced. The foreground-origin
+        // session is closed at `C`, and a background-only user session is materialized for the tail
+        // `[C, tailEnd]`. That background-only session becomes the active snapshot so this process's
+        // first part resolves against it via `attachPart` (continue it on a bg launch, end it whole on
+        // a fg launch or once it passes its own max) — exactly what the warm path does via
+        // `SessionController.applyBackgroundSplitIfNeeded`.
+        if !isBackgroundOnly,
+            latest.state == .background,
+            let lastForegroundEnd = latest.userSessionLastForegroundEnd
+        {
+            let maxEnd = userSessionStartTime.addingTimeInterval(maxDuration)
+            let inactivityCutoff = lastForegroundEnd.addingTimeInterval(inactivityTimeout)
+            let cutoff = min(maxEnd, inactivityCutoff)
+            let tailEnd = latest.endTime ?? latest.lastHeartbeatTime
+
+            if tailEnd > cutoff, cutoff > latest.startTime {
+                let s1Reason: TerminationReason = cutoff == maxEnd ? .maxDurationReached : .inactivity
+                let s2 = ImmutableUserSession(
+                    id: .random,
+                    startTime: cutoff,
+                    maxDuration: maxDuration,
+                    inactivityTimeout: inactivityTimeout,
+                    lastForegroundPartEnd: nil,
+                    partIndex: 1,
+                    endTime: nil,
+                    terminationReason: nil,
+                    isBackgroundOnly: true
+                )
+                sessionController?.writeColdStartBackgroundSplit(
+                    prior: latest,
+                    cutoff: cutoff,
+                    tailEnd: tailEnd,
+                    s1Reason: s1Reason,
+                    s2: s2
+                )
+                _state.withLock { $0.session = s2 }
+                return
+            }
+        }
+
         if let reason = Self.expiryReason(snapshot: snapshot, at: now) {
             internalEndUserSession(snapshot: snapshot, reason: reason, at: now)
             return
@@ -154,13 +202,23 @@ final class UserSessionController {
 
             // No active user session -> start new one
             guard let snapshot = mutableState.session else {
-                return startNewUserSession(state: &mutableState, at: startTime)
+                return startNewUserSession(state: &mutableState, partState: newPartState, at: startTime)
+            }
+
+            // A foreground part must never join a background-only user session: end it whole
+            // (regardless of expiry — a background-only session is never sliced at its own max) and
+            // start a fresh foreground user session. This is the foregrounding of the background-only
+            // sessions produced by split #1 — warm via `SessionController.applyBackgroundSplitIfNeeded`
+            // (which produces and ends one in a single transition) or at cold start via `bootstrap`.
+            if newPartState == .foreground, snapshot.isBackgroundOnly {
+                pendingEnd = (snapshot, .backgroundUserSessionForegrounded)
+                return startNewUserSession(state: &mutableState, partState: newPartState, at: startTime)
             }
 
             // Active user session should be terminated -> capture inputs, end after lock release
             if let reason = Self.expiryReason(snapshot: snapshot, at: startTime) {
                 pendingEnd = (snapshot, reason)
-                return startNewUserSession(state: &mutableState, at: startTime)
+                return startNewUserSession(state: &mutableState, partState: newPartState, at: startTime)
             }
 
             // Active user session still valid -> bump part index. Only foreground parts clear
@@ -234,7 +292,8 @@ final class UserSessionController {
     // MARK: - Private helpers
 
     /// Starts a brand-new user session. Mutates `state` in place. Caller holds the mutex.
-    private func startNewUserSession(state: inout State, at startTime: Date) -> ImmutableUserSession {
+    /// The session is background-only when its first part is a background part.
+    private func startNewUserSession(state: inout State, partState: SessionState, at startTime: Date) -> ImmutableUserSession {
         let maxDuration = config?.userSessionMaxDuration ?? UserSessionSemantics.defaultMaxDurationSeconds
         let inactivityTimeout = config?.userSessionInactivityTimeout ?? UserSessionSemantics.defaultInactivityTimeoutSeconds
 
@@ -246,7 +305,8 @@ final class UserSessionController {
             lastForegroundPartEnd: nil,
             partIndex: 1,
             endTime: nil,
-            terminationReason: nil
+            terminationReason: nil,
+            isBackgroundOnly: partState == .background
         )
         state.session = snapshot
         DispatchQueue.main.async {
@@ -312,14 +372,16 @@ extension ImmutableUserSession {
             lastForegroundPartEnd: lastForegroundPartEnd,
             partIndex: partIndex,
             endTime: endTime,
-            terminationReason: terminationReason
+            terminationReason: terminationReason,
+            isBackgroundOnly: isBackgroundOnly
         )
     }
 
     /// Clears `lastForegroundPartEnd` and bumps `partIndex`. Used when a foreground part joins
     /// an existing user session: an active fg part invalidates any pending inactivity cutoff
     /// (the cutoff only applies between foreground parts, not while one is active), and the
-    /// new index reflects the part being attached.
+    /// new index reflects the part being attached. A session that now holds a foreground part is no
+    /// longer background-only.
     fileprivate func cleared(partIndex: EMBInt) -> ImmutableUserSession {
         return ImmutableUserSession(
             id: id,
@@ -329,10 +391,14 @@ extension ImmutableUserSession {
             lastForegroundPartEnd: nil,
             partIndex: partIndex,
             endTime: endTime,
-            terminationReason: terminationReason
+            terminationReason: terminationReason,
+            isBackgroundOnly: false
         )
     }
 
+    /// Records the most recent foreground-part end. Recording a foreground-part end means the session
+    /// has held a foreground part, so it is no longer background-only (covers a cold-start session
+    /// that began in the background and was promoted to foreground within the launch grace period).
     fileprivate func setting(lastForegroundPartEnd: Date) -> ImmutableUserSession {
         return ImmutableUserSession(
             id: id,
@@ -342,7 +408,8 @@ extension ImmutableUserSession {
             lastForegroundPartEnd: lastForegroundPartEnd,
             partIndex: partIndex,
             endTime: endTime,
-            terminationReason: terminationReason
+            terminationReason: terminationReason,
+            isBackgroundOnly: false
         )
     }
 
@@ -355,7 +422,8 @@ extension ImmutableUserSession {
             lastForegroundPartEnd: lastForegroundPartEnd,
             partIndex: partIndex,
             endTime: endTime,
-            terminationReason: reason
+            terminationReason: reason,
+            isBackgroundOnly: isBackgroundOnly
         )
     }
 }
