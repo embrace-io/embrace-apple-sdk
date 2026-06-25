@@ -81,14 +81,29 @@ runs:
         PLATFORM_VERSION="${PLATFORM_VERSION:-latest}"
 
         case "$PLATFORM" in
-          iOS)          DESTINATION="platform=iOS Simulator,OS=${PLATFORM_VERSION},name=iPhone 16" ;;
-          tvOS)         DESTINATION="platform=tvOS Simulator,OS=${PLATFORM_VERSION},name=Apple TV" ;;
-          watchOS)      DESTINATION="platform=watchOS Simulator,OS=${PLATFORM_VERSION},name=Apple Watch Series 10 (46mm)" ;;
-          visionOS)     DESTINATION="platform=visionOS Simulator,OS=${PLATFORM_VERSION},name=Apple Vision Pro" ;;
+          iOS)          SIM_PLATFORM="iOS Simulator";      SIM_NAME="iPhone 16" ;;
+          tvOS)         SIM_PLATFORM="tvOS Simulator";     SIM_NAME="Apple TV" ;;
+          watchOS)      SIM_PLATFORM="watchOS Simulator";  SIM_NAME="Apple Watch Series 10 (46mm)" ;;
+          visionOS)     SIM_PLATFORM="visionOS Simulator"; SIM_NAME="Apple Vision Pro" ;;
           macOS)        DESTINATION="platform=macOS,arch=${ARCH}" ;;
           mac-catalyst) DESTINATION="platform=macOS,variant=Mac Catalyst,arch=${ARCH}" ;;
           *)            echo "::error::run-xcodebuild: unknown platform '$PLATFORM'"; exit 1 ;;
         esac
+
+        # Simulator platforms split by action. A `build` needs no concrete
+        # device — or even a populated runtime — so it targets the generic
+        # simulator destination, which is immune to runner-image device/runtime
+        # churn (e.g. an image that ships "iPhone 16e" but not "iPhone 16", or an
+        # `-downloadPlatform` runtime with no devices created against it — both
+        # of which broke cocoapod-lint on 2026-06-24). A `test` must run on a
+        # real device, so it resolves a named one against the latest runtime.
+        if [[ -n "${SIM_PLATFORM:-}" ]]; then
+          if [[ "$XCODE_ACTION" == "build" ]]; then
+            DESTINATION="generic/platform=${SIM_PLATFORM}"
+          else
+            DESTINATION="platform=${SIM_PLATFORM},OS=${PLATFORM_VERSION},name=${SIM_NAME}"
+          fi
+        fi
 
         # `-skip*Validation` flags suppress the interactive trust prompt for
         # SwiftPM plugins and Swift macros, which would hang non-interactive CI.
@@ -162,6 +177,18 @@ runs:
           echo "::warning::xcodebuild log not readable at $XCODEBUILD_LOG — failure summary unavailable"
           ls -la "$(dirname "$XCODEBUILD_LOG")" 2>&1 || true
           exit 0
+        fi
+
+        # A destination-resolution failure ("Unable to find a device matching
+        # …") is almost always runner-image device/runtime drift, not a code
+        # bug. Dump the devices that ARE available so the fix is copying the
+        # right name out of the log rather than a forensic dig. (Builds use a
+        # generic simulator destination and won't hit this; only the named
+        # test destination can.)
+        if grep -q "Unable to find a device matching" "$XCODEBUILD_LOG"; then
+          echo "::group::Available simulator devices (destination resolution failed)"
+          xcrun simctl list devices available || true
+          echo "::endgroup::"
         fi
 
         # `: error: ` is xcodebuild's diagnostic prefix and covers compile
