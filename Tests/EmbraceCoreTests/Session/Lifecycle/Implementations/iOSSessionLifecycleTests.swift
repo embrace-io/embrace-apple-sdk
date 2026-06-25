@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import TestSupport
 import XCTest
 
 @testable import EmbraceCore
@@ -55,12 +56,13 @@ import XCTest
             XCTAssertEqual(mockController.currentSession?.state, "foreground")
         }
 
-        @MainActor
-        func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() async {
-
-            await Task.detached {
-                self.lifecycle.startSession()
-            }.value
+        func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() {
+            let expectation = XCTestExpectation(description: "startSession called from background queue")
+            DispatchQueue.global(qos: .background).async { [self] in
+                lifecycle.startSession()
+                expectation.fulfill()
+            }
+            wait(for: [expectation], timeout: .longTimeout)
             XCTAssertTrue(mockController.didCallStartSession)
             XCTAssertEqual(mockController.currentSession?.state, "foreground")
         }
