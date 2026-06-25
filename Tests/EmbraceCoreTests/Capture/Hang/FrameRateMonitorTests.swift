@@ -53,13 +53,18 @@
             mockObserver.onHangStarted = { _, _ in hangStartedExpectation.fulfill() }
             mockObserver.onHangEnded = { _, _ in hangEndedExpectation.fulfill() }
 
-            setupMonitor(mockObserver, threshold: 0.05, hangAfter: 0.1, hangDuration: 0.2)
+            let threshold = 0.05
+            setupMonitor(mockObserver, threshold: threshold, hangAfter: 0.1, hangDuration: 0.2)
 
             wait(for: [hangStartedExpectation, hangEndedExpectation], timeout: .longTimeout)
 
             XCTAssertTrue(mockObserver.hangStartedCalled)
             XCTAssertTrue(mockObserver.hangEndedCalled)
-            XCTAssertGreaterThan(mockObserver.lastHangDuration, 0.1)
+            // lastHangDuration is the run-loop gap the monitor actually observed, not the
+            // scheduled hangDuration — sampling timing decides how much of the stall it captures.
+            // The monitor only fires once a gap exceeds the threshold, so the threshold is the
+            // one guaranteed lower bound on the reported duration.
+            XCTAssertGreaterThan(mockObserver.lastHangDuration, threshold)
         }
 
         func testHangUpdatedIsNeverCalled() {
