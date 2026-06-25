@@ -215,25 +215,6 @@ let package = Package(
             ]
         ),
 
-        // OTel ----------------------------------------------------------------------
-        .target(
-            name: "EmbraceOTelInternal",
-            dependencies: [
-                "EmbraceCommonInternal",
-                "EmbraceSemantics",
-                "EmbraceCoreDataInternal",
-                "EmbraceStorageInternal",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
-            ]
-        ),
-        .testTarget(
-            name: "EmbraceOTelInternalTests",
-            dependencies: [
-                "EmbraceOTelInternal",
-                "TestSupport"
-            ]
-        ),
-
         // storage -------------------------------------------------------------------
         .target(
             name: "EmbraceStorageInternal",
@@ -364,7 +345,6 @@ let package = Package(
             name: "TestSupport",
             dependencies: [
                 "EmbraceCore",
-                "EmbraceOTelInternal",
                 "EmbraceCommonInternal",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ],
