@@ -21,7 +21,8 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
     var serviceState: CaptureServiceState { get }
     var otel: EmbraceOpenTelemetry? { get }
 
-    var injectTracingHeader: Bool { get }
+    func shouldInjectHeader(for request: URLRequest) -> Bool
+    var isNSFEligible: Bool { get }
     var requestsDataSource: URLSessionRequestsDataSource? { get }
     var ignoredURLs: [String] { get }
 
@@ -114,12 +115,12 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
              The `{http.route}` corresponds to the template of the path so it's necessary to understand the templating system being employed.
              For instance, a template for a request such as http://embrace.io/users/12345?hello=world
              would be reported as /users/:userId (or /users/:userId? in other templating system).
-
+            
              Until a decision is made regarding the method to convey this information and the heuristics to extract it,
              the `.path` method will be utilized temporarily. This approach may introduce higher cardinality on the backend,
              which is less than optimal.
              It will be important to address this in the near future to enhance performance for the backend.
-
+            
              Additional information can be found at:
              - HTTP Name attribute: https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
              - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
@@ -141,8 +142,10 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             self.spans[task] = span
 
             // tracing header
-            if let tracingHader = self.addTracingHeader(task: task, span: span) {
-                span.setAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: .string(tracingHader))
+            if let traceparent = self.addTracingHeader(task: task, span: span),
+                self.dataSource?.isNSFEligible == true
+            {
+                span.setAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: .string(traceparent))
             }
 
             handled = true
@@ -265,29 +268,26 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     }
 
     func addTracingHeader(task: URLSessionTask, span: Span) -> String? {
-        guard dataSource?.injectTracingHeader == true,
-            task.originalRequest != nil
-        else {
-            return nil
-        }
+        guard let request = task.originalRequest else { return nil }
+        guard dataSource?.shouldInjectHeader(for: request) == true else { return nil }
 
-        // ignore if header is already present
-        let previousValue = task.originalRequest?.value(forHTTPHeaderField: W3C.traceparentHeaderName)
-        guard previousValue == nil else {
-            return previousValue
+        // Preserve upstream traceparent — leave the wire header untouched and return its value
+        // so NSF can forward the span linked to upstream's trace context.
+        if let upstream = request.value(forHTTPHeaderField: W3C.traceparentHeaderName) {
+            return upstream
         }
 
         let value = W3C.traceparent(from: span.context)
-
-        if EMBRURLSessionTaskHeaderInjector.injectHeader(
-            withKey: W3C.traceparentHeaderName,
-            value: value,
-            into: task
-        ) {
-            return value
+        guard
+            EMBRURLSessionTaskHeaderInjector.injectHeader(
+                withKey: W3C.traceparentHeaderName,
+                value: value,
+                into: task
+            )
+        else {
+            return nil
         }
-
-        return nil
+        return value
     }
 
     func shouldCapture(url: URL) -> Bool {

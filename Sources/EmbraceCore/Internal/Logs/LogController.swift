@@ -206,17 +206,21 @@ class LogController: LogControllable {
 }
 
 extension LogController {
-    func batchFinished(withLogs logs: [EmbraceLog]) {
+    func batchFinished(withLogs logs: [EmbraceLog], sessionId: EmbraceIdentifier?) {
         guard sdkStateProvider?.isEnabled == true else {
             return
         }
 
         do {
-            guard let sessionId = sessionController?.currentSession?.id, logs.isEmpty == false else {
+            // Use the provided session ID (passed at call time for session-boundary flushes)
+            // and fall back to the current session for normal mid-session batch rotations.
+            guard let resolvedSessionId = sessionId ?? sessionController?.currentSession?.id,
+                logs.isEmpty == false
+            else {
                 return
             }
-            let resourcePayload = try createResourcePayload(sessionId: sessionId)
-            let metadataPayload = try createMetadataPayload(sessionId: sessionId)
+            let resourcePayload = try createResourcePayload(sessionId: resolvedSessionId)
+            let metadataPayload = try createMetadataPayload(sessionId: resolvedSessionId)
             send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload, completion: {})
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
