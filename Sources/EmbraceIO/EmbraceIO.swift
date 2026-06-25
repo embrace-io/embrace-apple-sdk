@@ -66,12 +66,14 @@ public class EmbraceIO {
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     public static func setup(options: EmbraceIO.Options) throws {
 
+        // Consturct OTel resources
+        let otelResources = EmbraceDefaultResources.build(merging: options.otel?.resource)
+
         // Create the OTel bridge from the OTel options if provided.
         var bridge: EmbraceOTelBridge?
         if let otelOptions = options.otel {
-            let resource = EmbraceDefaultResources.build(merging: otelOptions.resource)
             bridge = EmbraceOTelBridge(
-                resource: resource,
+                resource: otelResources,
                 spanProcessors: [otelOptions.spanProcessor],
                 spanExporters: [otelOptions.spanExporter],
                 logProcessors: [otelOptions.logProcessor],
@@ -80,7 +82,7 @@ public class EmbraceIO {
         }
 
         if let internalOptions = Embrace.Options.from(options: options, bridge: bridge) {
-            try Embrace.setup(options: internalOptions)
+            try Embrace.setup(options: internalOptions, otelResources: otelResources.toEmbraceAttributes())
         }
 
         // Two-phase configuration: now that Embrace is initialized, wire the delegate, metadata

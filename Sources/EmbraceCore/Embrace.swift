@@ -101,6 +101,7 @@ package class Embrace {
         return try setup(options: options, otelResources: nil)
     }
 
+    @discardableResult
     package static func setup(options: Embrace.Options, otelResources: EmbraceAttributes?) throws -> Embrace {
 
         if !Thread.isMainThread {
