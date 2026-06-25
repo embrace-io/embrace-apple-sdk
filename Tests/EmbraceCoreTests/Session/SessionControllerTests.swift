@@ -55,6 +55,13 @@ final class SessionControllerTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        // Stop any in-flight/retrying uploads so their async retries (the error
+        // test uses retryCount -1) don't outlive the test and land in another
+        // iteration's mock request counts.
+        upload.spansQueue.cancelAllOperations()
+        upload.logsQueue.cancelAllOperations()
+        upload.attachmentsQueue.cancelAllOperations()
+
         storage.coreData.destroy()
         upload.cache.coreData.destroy()
         upload = nil
