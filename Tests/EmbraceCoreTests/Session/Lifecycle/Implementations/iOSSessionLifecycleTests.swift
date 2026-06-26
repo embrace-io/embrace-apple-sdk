@@ -56,9 +56,10 @@ import XCTest
             XCTAssertEqual(mockController.currentSession?.state, "foreground")
         }
 
-        func test_startSession_fromBackgroundQueue_callsControllerStartSession_andSetsSessionState() {
-            let expectation = XCTestExpectation(description: "startSession called from background queue")
-            DispatchQueue.global(qos: .background).async { [self] in
+        func test_startSession_fromNonMainThread_callsControllerStartSession_andSetsSessionState() {
+            let expectation = XCTestExpectation(description: "startSession called off the main thread")
+            DispatchQueue.global(qos: .default).async { [self] in
+                XCTAssertFalse(Thread.isMainThread)
                 lifecycle.startSession()
                 expectation.fulfill()
             }
