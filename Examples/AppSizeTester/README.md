@@ -23,8 +23,18 @@ To use this example project, you should follow these steps:
 
 Ensure that you have the following tools installed on your system:
 - **[Xcode](https://developer.apple.com/xcode/)**
-- **[Tuist](https://github.com/tuist/tuist/)**: Needed to set up and generate the Xcode project and workspace.
-- **[Bundler](https://bundler.io/)**: Used to manage Ruby dependencies and ensure that you can run `Fastlane`.
+- **[Tuist](https://github.com/tuist/tuist/)**: Needed to set up and generate the Xcode project and workspace. The default (remote-SDK) flow works with current Tuist; the local-SDK mode below has a version constraint.
+- **[Bundler](https://bundler.io/)**: Used to manage Ruby dependencies and ensure that you can run `Fastlane`. Versions are pinned in `Gemfile.lock`.
+
+### Which SDK gets measured
+
+By default the project resolves the Embrace SDK **remotely from the `main` branch**, so generation works with current Tuist. Two environment variables control the source:
+
+- `EMBRACE_APPSIZE_SDK_REF` — the remote branch to measure (default `main`).
+- `EMBRACE_APPSIZE_LOCAL_SDK=1` — measure the **working-tree** SDK (`../../../`) instead, e.g. to size uncommitted changes.
+
+> [!IMPORTANT]
+> Local-SDK mode requires **Tuist ≤ 4.181.1**. Tuist 4.182.0 introduced "preserve test targets for local SPM packages", which pulls the SDK's test targets into the generated graph; those depend on the test-only `TestSupport` helper that Tuist ignores by product type, so project generation fails with `Couldn't find target 'TestSupport'`. **This still fails as of Tuist 4.200.5 (latest verified 2026-06-26)**, so local mode stays constrained to ≤ 4.181.1 until a fix lands. The default remote mode is unaffected. (Track [tuist/tuist](https://github.com/tuist/tuist).)
 
 ### Steps
 
