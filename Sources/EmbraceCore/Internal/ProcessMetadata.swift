@@ -40,15 +40,4 @@ extension ProcessMetadata {
         return Date(timeIntervalSince1970: value)
     }()
 
-    /// The TimeInterval since this process was created
-    /// - Parameter date: A reference date to compare. Defaults to the current date
-    /// - Returns: Returns the time interval difference between the reference date and the ``ProcessMetadata.startTime``.
-    ///             This value could be negative if the date passed in is before the process start time
-    static func uptime(since date: Date = Date()) -> TimeInterval? {
-        guard let startTime = startTime else {
-            return nil
-        }
-        return date.timeIntervalSince(startTime)
-    }
-
 }

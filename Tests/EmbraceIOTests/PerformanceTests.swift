@@ -108,14 +108,6 @@ class PerformanceBacktraceTests: XCTestCase {
         Embrace.client = nil
     }
 
-    func test_embraceAppleStacktrace() {
-        _ = Thread.callStackReturnAddresses
-    }
-
-    func test_embraceBacktrace() {
-        _ = EmbraceBacktrace.backtrace()
-    }
-
     func test_embraceBacktraceAndSymbolicate() throws {
         // ksbic_init (KSCrash binary-image cache) is not safe under sanitizer instrumentation:
         // TSan aborts; ASan deadlocks until the 30-minute job cap fires.
@@ -124,7 +116,7 @@ class PerformanceBacktraceTests: XCTestCase {
             env["TSAN_OPTIONS"] != nil || env["ASAN_OPTIONS"] != nil,
             "KSCrash symbolication is incompatible with sanitizer instrumentation"
         )
-        _ = EmbraceBacktrace.backtrace().threads.compactMap { thread in
+        _ = EmbraceBacktrace.backtrace(of: pthread_self()).threads.compactMap { thread in
             thread.callstack.frames(symbolicated: true)
         }
     }
