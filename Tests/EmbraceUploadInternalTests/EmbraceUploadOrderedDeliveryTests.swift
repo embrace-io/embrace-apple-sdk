@@ -146,18 +146,16 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
             }
         }
 
-        wait(for: [completionExpectation], timeout: .defaultTimeout)
+        wait(for: [completionExpectation], timeout: .longTimeout)
 
-        // Wait for all operations to drain (fillQueue refills after each completion)
-        module.queue.sync {}
-        module.spansQueue.waitUntilAllOperationsAreFinished()
-        // Allow any remaining fillQueue cycles to complete
-        module.queue.sync {}
-        module.spansQueue.waitUntilAllOperationsAreFinished()
-
-        // All records should eventually be uploaded
-        let requests = EmbraceHTTPMock.requestsForUrl(spansUrl)
-        XCTAssertEqual(requests.count, totalRecords)
+        // fillQueue refills the capped queue after each completion, so the final
+        // request can land just after its completion callback fires. Poll the mock
+        // until every record has been uploaded rather than draining the queues,
+        // which races that refill cycle.
+        wait(timeout: .longTimeout, interval: .shortInterval) {
+            EmbraceHTTPMock.requestsForUrl(spansUrl).count == totalRecords
+        }
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(spansUrl).count, totalRecords)
     }
 
     // MARK: - 3. fillQueue excludes in-flight
