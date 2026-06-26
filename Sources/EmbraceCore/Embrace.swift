@@ -43,6 +43,12 @@ package class Embrace {
         return state == .started && remoteConfigEnabled
     }
 
+    // periphery:ignore
+    /// Returns the version of the Embrace SDK.
+    package class var sdkVersion: String {
+        return EmbraceMeta.sdkVersion
+    }
+
     /// Returns the current `EmbraceOTelSignalsHandler` used to generate spans and logs.
     package let otel: DefaultOTelSignalsHandler
 
