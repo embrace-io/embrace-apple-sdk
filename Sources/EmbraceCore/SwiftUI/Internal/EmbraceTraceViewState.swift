@@ -68,20 +68,4 @@ final class EmbraceTraceViewState<Value: Equatable> {
     /// A flag to indicate if we've cached the first value.
     var contentCompleteStoredFirstValue: Bool = false
 
-    // MARK: - Debugging
-
-    /// Returns a formatted string representation of the current state.
-    ///
-    /// Useful for debugging and logging purposes.
-    ///
-    /// - Returns: A multi-line string containing all tracked metrics
-    func debugDescription() -> String {
-        return """
-            EmbraceTraceViewState Debug Info:
-            ├─ Initialize: \(initialize) times, first at \(initializeTime?.description ?? "never")
-            ├─ Body: \(body) times, last at \(bodyTime?.description ?? "never")
-            ├─ Appear: \(appear) times, last at \(appearTime?.description ?? "never")
-            └─ Disappear: \(disappear) times, last at \(disappearTime?.description ?? "never")
-            """
-    }
 }

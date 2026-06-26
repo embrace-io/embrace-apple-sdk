@@ -555,11 +555,6 @@ class SessionController: SessionControllable {
         }
     }
 
-    func uploadSession() {
-        let session: EmbraceSession? = _session.withLock { $0.session }
-        lock.locked { uploadSessionNoLock(session) }
-    }
-
     func increaseAttachmentCount() {
         _attachmentCount += 1
     }
@@ -599,10 +594,6 @@ class SessionController: SessionControllable {
 }
 
 extension SessionController {
-    private func save() {
-        storage?.save()
-    }
-
     private func delete() {
         let info = _session.safeValue
         lock.locked { deleteNoLock(info.session) }

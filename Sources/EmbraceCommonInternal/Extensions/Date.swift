@@ -17,11 +17,6 @@ extension Date {
         self.timeIntervalSince1970 * Double(NSEC_PER_SEC)
     }
 
-    init(_ millisSince1970: Double) {
-        let interval = millisSince1970 / 1000
-        self.init(timeIntervalSince1970: interval)
-    }
-
     public var millisecondsSince1970Truncated: EMBInt {
         EMBInt(trunc(self.millisecondsSince1970))
     }
@@ -32,10 +27,6 @@ extension Date {
 
     public var serializedInterval: EMBInt {
         EMBInt(millisecondsSince1970.rounded(.down))
-    }
-
-    init(_ millisSince1970: EMBInt) {
-        self.init(Double(millisSince1970))
     }
 
 }

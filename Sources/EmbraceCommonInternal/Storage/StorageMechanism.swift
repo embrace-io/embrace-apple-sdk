@@ -29,16 +29,6 @@ extension StorageMechanism {
         }
     }
 
-    /// URL pointing to the folder where the storage will be saved
-    public var fileName: String? {
-        switch self {
-        case .onDisk(let name, _, _):
-            return name + ".sqlite"
-
-        default: return nil
-        }
-    }
-
     /// URL to the storage file
     public var fileURL: URL? {
         switch self {

@@ -10,7 +10,6 @@ struct EmbraceFileSystem {
     static let versionDirectoryName = "v7"
     static let storageDirectoryName = "storage"
     static let uploadsDirectoryName = "uploads"
-    static let crashesDirectoryName = "crashes"
     static let captureDirectoryName = "capture"
     static let configDirectoryName = "config"
     static let deviceIdName = "device-identifier"

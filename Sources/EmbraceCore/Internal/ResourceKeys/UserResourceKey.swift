@@ -8,8 +8,4 @@
 
 enum UserResourceKey: String, CaseIterable {
     case identifier = "emb.user.identifier"
-
-    static var allValues: [String] {
-        allCases.map(\.rawValue)
-    }
 }

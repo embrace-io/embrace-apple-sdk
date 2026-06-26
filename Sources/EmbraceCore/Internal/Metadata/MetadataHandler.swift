@@ -44,10 +44,6 @@ package class MetadataHandler {
         self.synchronizationQueue = syncronizationQueue
     }
 
-    func addCriticalResource(key: String, value: String) {
-        storage?.addCriticalResources([key: value], processId: ProcessIdentifier.current)
-    }
-
     /// Adds a property with the given key, value and lifespan.
     /// If there are 2 properties with the same key but different lifespans, the one with a shorter lifespan will be used.
     /// If the key is too long or no session is active for a `.session` lifespan, the property is dropped and a warning is logged.
