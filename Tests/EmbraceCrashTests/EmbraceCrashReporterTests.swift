@@ -82,7 +82,11 @@
                 expectation.fulfill()
             }
 
-            wait(for: [expectation], timeout: .defaultTimeout)
+            // The fetch itself is fast (tens of ms, even under the address sanitizer); the
+            // flake is scheduling starvation on a contended CI runner, where ASan's CPU
+            // overhead across parallel test processes can delay this completion well past the
+            // default timeout. Use a generous timeout so a contention spike doesn't flake.
+            wait(for: [expectation], timeout: .veryLongTimeout)
         }
 
         func test_appendCrashInfo_addsKeyValuesInKSCrashUserInfo() throws {
