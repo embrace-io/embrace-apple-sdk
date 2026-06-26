@@ -181,6 +181,38 @@ extension EmbraceBacktrace {
     }
 }
 
+extension EmbraceBacktrace {
+
+    static func takeSnapshotApple() -> [EmbraceBacktraceThread] {
+        let snap = _takeSnapshotApple()
+        return snap
+    }
+
+    static func _takeSnapshotApple() -> [EmbraceBacktraceThread] {
+
+        // Get the actual snapshot,
+        // remove the entries that are part of the SDK,
+        // get only the first N entries to not overload the system,
+        // clean 'em up.
+        let entries = 512
+        let addresses =
+            Thread.callStackReturnAddresses
+            .dropFirst(3)
+            .prefix(entries)
+            .compactMap { $0 as? UInt }
+
+        return [
+            EmbraceBacktraceThread(
+                index: 0,
+                callstack: EmbraceBacktraceThread.Callstack(
+                    addresses: addresses,
+                    count: addresses.count
+                )
+            )
+        ]
+    }
+}
+
 extension EmbraceBacktraceFrame {
 
     static let moduleNameKey = "m"

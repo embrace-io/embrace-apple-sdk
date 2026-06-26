@@ -143,5 +143,24 @@ struct EmbraceBacktrace: Codable {
             threads: takeSnapshot(of: thread, threadIndex: threadIndex)
         )
     }
+
+    // periphery:ignore
+    /// Captures a backtrace of the current thread using `Thread.callStackReturnAddresses`.
+    ///
+    /// This is the simplest capture path and does not require suspending any threads.
+    /// It’s useful for lightweight diagnostics or when called on the thread of interest.
+    ///
+    /// - Returns: A backtrace snapshot containing one `EmbraceBacktraceThread`
+    ///   derived from `Thread.callStackReturnAddresses`.
+    ///
+    /// - Note: The `timestamp` is sourced from `CLOCK_MONOTONIC_RAW` via
+    ///   `clock_gettime_nsec_np`, which is suitable for measuring intervals.
+    static func backtrace() -> EmbraceBacktrace {
+        EmbraceBacktrace(
+            timestampUnits: .nanoseconds,
+            timestamp: clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW),
+            threads: takeSnapshotApple()
+        )
+    }
 }
 extension EmbraceBacktrace: Sendable {}

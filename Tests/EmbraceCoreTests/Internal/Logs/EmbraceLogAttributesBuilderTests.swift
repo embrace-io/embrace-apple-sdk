@@ -172,14 +172,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
 
-        let backtrace = EmbraceBacktrace(
-            timestampUnits: .nanoseconds,
-            timestamp: 0,
-            threads: [
-                EmbraceBacktraceThread(index: 0, callstack: .init(addresses: [], count: 0))
-            ]
-        )
-        sut.addBacktrace(backtrace)
+        sut.addBacktrace(EmbraceBacktrace.backtrace())
         whenInvokingBuild()
 
         thenResultingAttributes(containsKey: "emb.stacktrace.ios")
