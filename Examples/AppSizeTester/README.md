@@ -30,7 +30,7 @@ Ensure that you have the following tools installed on your system:
 
 By default the project resolves the Embrace SDK **remotely from the `main` branch**, so generation works with current Tuist. Two environment variables control the source:
 
-- `EMBRACE_APPSIZE_SDK_REF` — the remote branch to measure (default `main`).
+- `EMBRACE_APPSIZE_SDK_REF` — the remote ref to measure: a branch (default `main`) or a release tag (e.g. `6.20.0`).
 - `EMBRACE_APPSIZE_LOCAL_SDK=1` — measure the **working-tree** SDK (`../../../`) instead, e.g. to size uncommitted changes.
 
 > [!IMPORTANT]

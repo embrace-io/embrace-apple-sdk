@@ -20,15 +20,22 @@ let environment = ProcessInfo.processInfo.environment
 // depend on the test-only `TestSupport` helper (which Tuist ignores by product type), so generation
 // fails. Remote dependencies are not affected by that feature.
 //
-// In remote mode, EMBRACE_APPSIZE_SDK_REF overrides the branch (default "main").
-// `Package` is ambiguous here because Tuist evaluates this manifest with `-D TUIST`, which imports
-// ProjectDescription (it also defines a `Package` type) — so qualify the SwiftPM one explicitly.
+// In remote mode, EMBRACE_APPSIZE_SDK_REF picks what to measure: a branch (default "main") or a
+// release tag. A semver-looking value is resolved as an exact tag; anything else as a branch.
+//
+// `Package`/`Version` are ambiguous here because Tuist evaluates this manifest with `-D TUIST`, which
+// imports ProjectDescription (it defines those types too) — so qualify the SwiftPM ones explicitly.
 let sdkDependency: PackageDescription.Package.Dependency
 if environment["EMBRACE_APPSIZE_LOCAL_SDK"] != nil {
     sdkDependency = .package(path: "../../../")
 } else {
     let ref = environment["EMBRACE_APPSIZE_SDK_REF"] ?? "main"
-    sdkDependency = .package(url: "https://github.com/embrace-io/embrace-apple-sdk", branch: ref)
+    let url = "https://github.com/embrace-io/embrace-apple-sdk"
+    if let tag = PackageDescription.Version(ref) {
+        sdkDependency = .package(url: url, exact: tag)
+    } else {
+        sdkDependency = .package(url: url, branch: ref)
+    }
 }
 
 let package = Package(
