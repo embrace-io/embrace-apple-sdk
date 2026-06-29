@@ -43,7 +43,9 @@ jobs:
       - name: Run variations x50
         run: |
           set +e
-          if [ "${{ matrix.mode }}" = "saturated" ]; then export EXPERIMENT_SATURATE=1; fi
+          # TEST_RUNNER_ prefix forwards the var into the simulator test process (a bare
+          # EXPERIMENT_SATURATE in the host shell never reaches it, so saturation wouldn't engage).
+          if [ "${{ matrix.mode }}" = "saturated" ]; then export TEST_RUNNER_EXPERIMENT_SATURATE=1; fi
           # Raw xcodebuild output is tee'd to the job log AND out.log so results are recoverable.
           xcodebuild test \
             -workspace .swiftpm/xcode/package.xcworkspace \
