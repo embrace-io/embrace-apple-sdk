@@ -56,7 +56,11 @@ import XCTest
 
         func test_startSession_fromNonMainThread_callsControllerStartSession_andSetsSessionState() {
             let expectation = XCTestExpectation(description: "startSession called off the main thread")
-            DispatchQueue.global(qos: .default).async { [self] in
+            // Use a dedicated thread instead of DispatchQueue.global: the global concurrent pool is
+            // a bounded, shared resource that can be exhausted under CI load, starving this block so
+            // the timeout flakes — which was a recurring source of CI failures here. A detached
+            // thread is always scheduled.
+            Thread.detachNewThread { [self] in
                 XCTAssertFalse(Thread.isMainThread)
                 lifecycle.startSession()
                 expectation.fulfill()
