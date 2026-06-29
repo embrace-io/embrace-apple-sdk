@@ -1,0 +1,104 @@
+# EXPERIMENT — not for merge. Finds a robust fix for the flaky
+# iOSSessionLifecycleTests off-main-thread test by stressing candidate variations in CI.
+# Runs only on the experiment branch (no PR) so the normal workflows stay off.
+name: EXPERIMENT flaky iOSSessionLifecycle
+
+on:
+  push:
+    branches:
+      - experiment/ios-session-lifecycle-nonmain-flake
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  ONLY: "EmbraceCoreTests/iOSSessionLifecycleConcurrencyExperimentTests"
+  DESTINATION: "platform=iOS Simulator,name=iPhone 17,OS=latest"
+
+jobs:
+  # Run the 4 variations x50 in two modes:
+  #   saturated → GCD pool deliberately exhausted (deterministic mechanism check)
+  #   isolated  → no saturation (do they pass alone, under normal load?)
+  variations:
+    name: variations-${{ matrix.mode }}
+    timeout-minutes: 40
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [saturated, isolated]
+    steps:
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.0.app
+      - name: Ensure iOS platform
+        run: |
+          xcodebuild -runFirstLaunch
+          for i in 1 2 3; do xcodebuild -downloadPlatform iOS && break; sleep 15; done
+          xcodebuild -runFirstLaunch
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Run variations x50
+        run: |
+          set +e
+          if [ "${{ matrix.mode }}" = "saturated" ]; then export EXPERIMENT_SATURATE=1; fi
+          xcodebuild test \
+            -workspace .swiftpm/xcode/package.xcworkspace \
+            -scheme EmbraceIO-Package \
+            -destination "$DESTINATION" \
+            -only-testing:"$ONLY" \
+            -test-iterations 50 \
+            -skipPackagePluginValidation -skipMacroValidation \
+            > out.log 2>&1
+          echo "## variations (${{ matrix.mode }}) — of 50 iterations" >> "$GITHUB_STEP_SUMMARY"
+          for v in v0_control_defaultGlobal v1_detachNewThread v2_dedicatedQueue v3_userInitiatedGlobal; do
+            p=$(grep -cE "test_${v}'\\)? passed" out.log)
+            f=$(grep -cE "test_${v}'\\)? failed" out.log)
+            echo "- test_${v}: ${p} passed / ${f} failed" >> "$GITHUB_STEP_SUMMARY"
+          done
+          cat "$GITHUB_STEP_SUMMARY"
+
+  # Soak: run the FULL suite many times as independent fresh-process samples (each ~= one real CI
+  # run) under genuine contention. The point isn't just to confirm the known fix — it's to give any
+  # OTHER, unknown failure mode a chance to surface against the candidate (V1). If V1 ever fails here
+  # for any reason while controls flake, that's a second problem to chase before we ship.
+  realsuite:
+    name: realsuite-${{ matrix.run }}
+    timeout-minutes: 40
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        run:
+          [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+    steps:
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.0.app
+      - name: Ensure iOS platform
+        run: |
+          xcodebuild -runFirstLaunch
+          for i in 1 2 3; do xcodebuild -downloadPlatform iOS && break; sleep 15; done
+          xcodebuild -runFirstLaunch
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Run full suite once
+        run: |
+          set +e
+          xcodebuild test \
+            -workspace .swiftpm/xcode/package.xcworkspace \
+            -scheme EmbraceIO-Package \
+            -destination "$DESTINATION" \
+            -skipPackagePluginValidation -skipMacroValidation \
+            > out.log 2>&1
+          echo "## realsuite run ${{ matrix.run }}" >> "$GITHUB_STEP_SUMMARY"
+          # experiment variations
+          for v in v0_control_defaultGlobal v1_detachNewThread v2_dedicatedQueue v3_userInitiatedGlobal; do
+            r=$(grep -oE "test_${v}'\\)? (passed|failed)" out.log | grep -oE "passed|failed" | head -1)
+            echo "- test_${v}: ${r:-not-run}" >> "$GITHUB_STEP_SUMMARY"
+          done
+          # the real shipping test (currently .default global)
+          rr=$(grep -oE "test_startSession_fromNonMainThread_callsControllerStartSession_andSetsSessionState'\\)? (passed|failed)" out.log | grep -oE "passed|failed" | head -1)
+          echo "- (real) test_startSession_fromNonMainThread: ${rr:-not-run}" >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"
