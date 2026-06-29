@@ -52,21 +52,42 @@ jobs:
       env:
         MATRIX_XCODE_VERSION: ${{ matrix.xcode_version }}
 
-    - name: Ensure the Platform is Downloaded
+    - name: Verify the simulator SDK is available
       if: ${{ matrix.platform != 'macOS' && matrix.platform != 'mac-catalyst' }}
       run: |
-        xcodebuild -runFirstLaunch
-        xcrun simctl list
-        for i in 1 2 3; do
-          xcodebuild -downloadPlatform "${MATRIX_PLATFORM}" && break
-          if [ "$i" -eq 3 ]; then
-            echo "::error title=downloadPlatform failed::all 3 attempts failed for ${MATRIX_PLATFORM}"
-            exit 1
-          fi
-          echo "::warning title=downloadPlatform retry::attempt $i failed for ${MATRIX_PLATFORM}; retrying in 15s"
-          sleep 15
-        done
-        xcodebuild -runFirstLaunch
+        # A `build` against `generic/platform=…Simulator` compiles against the
+        # simulator SDK and never boots a device, so it needs the SDK but not the
+        # multi-GB simulator runtime. Xcode 26 ships platforms as on-demand
+        # downloads (see EMBR-12799), but the hosted images bake the SDKs in for
+        # shipping Xcodes. We deliberately DON'T `-downloadPlatform` a missing
+        # one: an absent SDK means the pinned xcode_version is wrong or not yet
+        # baked into the image, and silently downloading it (minutes, multi-GB)
+        # would mask that drift. Fail fast and print what IS available so the fix
+        # is repinning xcode_version, not a forensic dig through the log.
+        if xcodebuild -showsdks 2>/dev/null | grep -qi "${MATRIX_PLATFORM} Simulator"; then
+          echo "${MATRIX_PLATFORM} Simulator SDK present."
+          exit 0
+        fi
+
+        selected=$(xcodebuild -version 2>/dev/null | tr '\n' ' ')
+        echo "::error title=${MATRIX_PLATFORM} Simulator SDK missing::${selected}has no ${MATRIX_PLATFORM} simulator SDK. Re-pin xcode_version in .github/matrices/builds.json to a version whose SDK is baked into the runner image (run the 'Xcode Inventory' workflow to see which versions qualify)."
+        {
+          echo "### ❌ ${MATRIX_PLATFORM} Simulator SDK not available"
+          echo ""
+          echo "Selected Xcode: \`${selected}\`"
+          echo ""
+          echo "Re-pin \`xcode_version\` in \`.github/matrices/builds.json\`, or run the **Xcode Inventory** workflow to see which Xcode has the SDK baked."
+          echo ""
+          echo "**Installed Xcode versions on this runner:**"
+          echo '```'
+          ls -d /Applications/Xcode_*.app 2>/dev/null || echo "(none found)"
+          echo '```'
+          echo "**SDKs available in the selected Xcode:**"
+          echo '```'
+          xcodebuild -showsdks 2>/dev/null || echo "(xcodebuild -showsdks failed)"
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+        exit 1
       env:
         MATRIX_PLATFORM: ${{ matrix.platform }}
 
