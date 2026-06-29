@@ -70,6 +70,7 @@ final class EmbraceTraceViewState<Value: Equatable> {
 
     // MARK: - Debugging
 
+    // periphery:ignore
     /// Returns a formatted string representation of the current state.
     ///
     /// Useful for debugging and logging purposes.
@@ -84,4 +85,5 @@ final class EmbraceTraceViewState<Value: Equatable> {
             └─ Disappear: \(disappear) times, last at \(disappearTime?.description ?? "never")
             """
     }
+
 }

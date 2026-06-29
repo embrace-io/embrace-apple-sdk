@@ -154,9 +154,6 @@ package class DefaultOTelSignalsHandler {
     }
     let cache = EmbraceMutex(Cache())
 
-    static let attachmentLimit: Int = 5
-    static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
-
     init(
         storage: EmbraceStorage?,
         sessionController: SessionControllable?,

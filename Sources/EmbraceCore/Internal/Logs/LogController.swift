@@ -33,10 +33,6 @@ class LogController: LogBatcherDelegate {
     /// Can be overridden in tests to use a fixed value.
     var maxLogsPerBatchProvider: () -> Int = { LogController.adaptiveMaxLogsPerBatch() }
 
-    var currentSessionId: EmbraceIdentifier? {
-        sessionController?.currentSession?.id
-    }
-
     private struct Constants {
         static let attachmentLimit: Int = 5
         static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB

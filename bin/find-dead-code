@@ -1,0 +1,116 @@
+#!/bin/bash
+set -e
+
+#
+#   Finds dead (unused) code in the SDK using Periphery (https://github.com/peripheryapp/periphery).
+#
+#   Much of the SDK is gated behind `#if os(...)` / `canImport(...)`, so a single-platform
+#   scan reports platform-specific code as "unused" when it is actually live elsewhere.
+#   To avoid that, this builds and scans every platform and reports the INTERSECTION:
+#   a declaration is only considered dead if it is unused on EVERY platform.
+#
+#   Public declarations are retained (see .periphery.yml) because the SDK's public API is
+#   consumed by external customers that Periphery cannot see. Results are therefore limited
+#   to non-public declarations.
+#
+#   Usage:
+#       bin/find-dead-code                       # all platforms (iOS tvOS watchOS macOS)
+#       bin/find-dead-code iOS macOS             # a subset
+#
+#   Requires: periphery (brew install periphery)
+#
+#   NOTE: Review results before deleting. Code reached only via the Objective-C runtime,
+#         associated objects, #selector, KVO, or C function pointers (e.g. signal handlers)
+#         can still appear here as a false positive.
+#
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CLONED_SOURCE_PACKAGES_DIR_PATH="$REPO_ROOT/.build"    # matches spm location `swift run` uses
+SCHEME="EmbraceIO-Package"
+OUTPUT_DIR="$REPO_ROOT/.build/dead-code"
+RESULT_FILE="$OUTPUT_DIR/dead-on-all-platforms.txt"
+
+if ! command -v periphery >/dev/null 2>&1; then
+    echo "error: periphery is not installed. Install it with: brew install periphery"
+    exit 1
+fi
+
+# Default to all platforms when none are provided.
+if [ $# -lt 1 ]; then
+    set -- iOS tvOS watchOS macOS
+fi
+
+# Validate platforms and normalize to their canonical casing (input is case-insensitive).
+PLATFORMS=()
+for INPUT in "$@"; do
+    case "$(echo "$INPUT" | tr '[:upper:]' '[:lower:]')" in
+        ios)     PLATFORMS+=("iOS") ;;
+        tvos)    PLATFORMS+=("tvOS") ;;
+        watchos) PLATFORMS+=("watchOS") ;;
+        macos)   PLATFORMS+=("macOS") ;;
+        *)
+            echo "error: invalid platform '$INPUT' (must be one of: iOS, watchOS, tvOS, macOS)"
+            exit 1
+            ;;
+    esac
+done
+
+destination_for() {
+    # macOS builds for the host; the rest build for their simulator (no code signing required).
+    if [ "$1" = "macOS" ]; then
+        echo "generic/platform=macOS"
+    else
+        echo "generic/platform=$1 Simulator"
+    fi
+}
+
+mkdir -p "$OUTPUT_DIR"
+SCAN_FILES=()
+
+for PLATFORM in "${PLATFORMS[@]}"; do
+    DERIVED_DATA_PATH="$REPO_ROOT/.build/DerivedData-deadcode-$PLATFORM"
+    BUILD_LOG="$OUTPUT_DIR/build-$PLATFORM.log"
+    SCAN_FILE="$OUTPUT_DIR/unused-$PLATFORM.txt"
+
+    echo "==> Building $SCHEME for $PLATFORM (index store enabled)..."
+    xcodebuild build \
+        -workspace . \
+        -scheme "$SCHEME" \
+        -destination "$(destination_for "$PLATFORM")" \
+        -clonedSourcePackagesDirPath "$CLONED_SOURCE_PACKAGES_DIR_PATH" \
+        -derivedDataPath "$DERIVED_DATA_PATH" \
+        -skipPackagePluginValidation \
+        CODE_SIGNING_ALLOWED=NO >"$BUILD_LOG" 2>&1 \
+        || { echo "error: build failed for $PLATFORM (see $BUILD_LOG)"; exit 1; }
+
+    echo "==> Scanning $PLATFORM..."
+    # Reuse the index store produced above (--index-store-path implies --skip-build).
+    # Keep only unused declarations in our own Sources (drop SPM dependency checkouts,
+    # unused imports, and unused parameters), then normalize to "<path>:<line> → <message>".
+    periphery scan \
+        --skip-build \
+        --index-store-path "$DERIVED_DATA_PATH/Index.noindex/DataStore" \
+        --quiet 2>/dev/null \
+        | { grep -E ": warning: Unused " || true; } \
+        | { grep "$REPO_ROOT/Sources/" || true; } \
+        | { grep -vE "Unused parameter|Unused import" || true; } \
+        | sed -E "s#^$REPO_ROOT/Sources/##; s/:[0-9]+: warning:/ →/" \
+        | sort -u > "$SCAN_FILE"
+
+    echo "    $(wc -l < "$SCAN_FILE" | tr -d ' ') unused declarations on $PLATFORM"
+    SCAN_FILES+=("$SCAN_FILE")
+done
+
+# Intersect the per-platform results: dead everywhere == truly dead.
+cp "${SCAN_FILES[0]}" "$RESULT_FILE"
+for FILE in "${SCAN_FILES[@]:1}"; do
+    comm -12 "$RESULT_FILE" "$FILE" > "$RESULT_FILE.tmp" && mv "$RESULT_FILE.tmp" "$RESULT_FILE"
+done
+
+echo
+echo "================================================================"
+echo " Dead on ALL scanned platforms: $(wc -l < "$RESULT_FILE" | tr -d ' ') declarations"
+echo "================================================================"
+cat "$RESULT_FILE"
+echo
+echo "Full result written to: $RESULT_FILE"

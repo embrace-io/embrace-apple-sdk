@@ -222,7 +222,6 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
 
     var baseClass: AnyClass
     private let handler: URLSessionTaskHandler
-    private var originalDelegate: URLSessionTaskDelegate?
 
     init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSessionTask.self) {
         self.handler = handler
