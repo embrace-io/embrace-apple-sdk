@@ -45,7 +45,7 @@ jobs:
 
     steps:
     - name: Select Xcode
-      # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
+      # See https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md
       run: |
         sudo xcode-select -s /Applications/Xcode_${MATRIX_XCODE_VERSION}.app
         xcodebuild -version

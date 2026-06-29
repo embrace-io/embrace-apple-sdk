@@ -104,7 +104,7 @@ jobs:
 
   build_release_candidate:
     name: Bump Version and Build Release
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
     needs:
       - extractor
@@ -158,7 +158,7 @@ jobs:
           git push
 
       - name: Select Xcode 26
-        run: sudo xcode-select -switch /Applications/Xcode_26.0.app
+        run: sudo xcode-select -switch /Applications/Xcode_26.5.app
 
       - name: Tag the release candidate version
         run: |
@@ -167,7 +167,7 @@ jobs:
 
   create_xcframeworks:
     name: Build XCFrameworks and Create Release Archive
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
     needs:
       - extractor
@@ -185,7 +185,7 @@ jobs:
           persist-credentials: false
 
       - name: Select Xcode 26
-        run: sudo xcode-select -switch /Applications/Xcode_26.0.app
+        run: sudo xcode-select -switch /Applications/Xcode_26.5.app
 
       - name: Install Ruby dependencies
         run: bundle install
@@ -306,7 +306,7 @@ jobs:
 
   push_podspec:
     name: Push Podspec to Cocoapods
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 30
     needs:
       - extractor
