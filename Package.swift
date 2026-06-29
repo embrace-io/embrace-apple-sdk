@@ -353,6 +353,7 @@ let package = Package(
         ),
         .target(
             name: "TestSupportObjc",
+            dependencies: ["EmbraceObjCUtilsInternal"],
             path: "Tests/TestSupport/Objc"
         )
     ]

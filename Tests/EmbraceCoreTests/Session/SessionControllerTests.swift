@@ -70,10 +70,20 @@ final class SessionControllerTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        // Stop any in-flight/retrying uploads so their async retries (the error
+        // test uses retryCount -1) don't outlive the test and land in another
+        // iteration's mock request counts.
+        upload.spansQueue.cancelAllOperations()
+        upload.logsQueue.cancelAllOperations()
+        upload.attachmentsQueue.cancelAllOperations()
+
         storage.coreData.destroy()
         upload.cache.coreData.destroy()
         upload = nil
         controller = nil
+
+        // EmbraceHTTPMock state is process-wide; reset between methods.
+        EmbraceHTTPMock.clearRequests()
     }
 
     func test_startSession_returnsNewSessionEveryTime() throws {
@@ -598,7 +608,6 @@ final class SessionControllerTests: XCTestCase {
     // completion on sessions.
     @MainActor
     func test_endSession_uploadsSession() throws {
-        try XCTSkipIfRunMoreThanOnce()
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSessionsUrl())
@@ -612,39 +621,24 @@ final class SessionControllerTests: XCTestCase {
         // when ending the session
         controller.endSession()
 
-        let expectation = expectation(description: "waiting for session to end")
-        // we need to wait for the controller to async send it data,
-        // as well as storgage (CoreData) to update the session info.
-        // we don't have a better async way than to tack onto their queue's,
-        // and just run a block at the end.
-        storage.coreData.performAsyncOperation { _ in
-            controller.queue.async { [self] in
-                storage.coreData.performAsyncOperation { _ in
-                    controller.queue.async { [self] in
-                        upload.queue.async {
-                            expectation.fulfill()
-                        }
-                    }
-                }
-            }
+        // Ending the session uploads it, removes it from storage, and clears its
+        // cached upload data — all asynchronous. Poll the observable end state
+        // rather than chaining onto the controller/storage/upload queues, which
+        // only approximates "settled" and races the mock's request bookkeeping.
+        wait(timeout: .longTimeout, interval: .shortInterval) { [self] in
+            EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count == 1
+                && storage.fetchSession(id: TestConstants.sessionId) == nil
+                && upload.cache.fetchAllUploadData().isEmpty
         }
-        wait(for: [expectation], timeout: .longTimeout)
-        wait { EmbraceHTTPMock.requestsForUrl(self.testSessionsUrl()).count == 1 }
 
         // then a session request was sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
 
         // then the session is no longer on storage
-        let session = storage.fetchSession(id: TestConstants.sessionId)
-        XCTAssertNil(session)
+        XCTAssertNil(storage.fetchSession(id: TestConstants.sessionId))
 
         // then the session upload data is no longer cached
-        wait { [self] in
-            let uploadData = upload.cache.fetchAllUploadData()
-            return uploadData.isEmpty
-        }
-        let uploadData = upload.cache.fetchAllUploadData()
-        XCTAssertEqual(uploadData.count, 0)
+        XCTAssertEqual(upload.cache.fetchAllUploadData().count, 0)
     }
 
     func test_endSession_uploadsSession_error() throws {
@@ -660,21 +654,24 @@ final class SessionControllerTests: XCTestCase {
 
         // when ending the session and the upload fails
         controller.endSession()
-        wait { EmbraceHTTPMock.requestsForUrl(self.testSessionsUrl()).count > 0 }
 
-        // then a session request was attempted
+        // the request is attempted asynchronously; wait for it, then confirm
+        // exactly one was sent. The upload retries on failure (retryCount -1),
+        // so assert the count here — before a retry can fire — rather than after
+        // the later waits.
+        wait(timeout: .longTimeout, interval: .shortInterval) { [self] in
+            EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count > 0
+        }
         XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
-
-        // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
 
-        // then the session is no longer on storage
-        let session = storage.fetchSession(id: TestConstants.sessionId)
-        XCTAssertNil(session)
-
-        // then the session upload data cached
-        let uploadData = upload.cache.fetchAllUploadData()
-        XCTAssertEqual(uploadData.count, 1)
+        // the session is removed from storage asynchronously; the failed
+        // upload's data stays cached for retry.
+        wait(timeout: .longTimeout, interval: .shortInterval) { [self] in
+            storage.fetchSession(id: TestConstants.sessionId) == nil
+        }
+        XCTAssertNil(storage.fetchSession(id: TestConstants.sessionId))
+        XCTAssertEqual(upload.cache.fetchAllUploadData().count, 1)
     }
 
     // MARK: cold-start background split (bootstrap -> first part)

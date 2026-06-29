@@ -36,8 +36,7 @@
 {
     if (sel_isEqual(aSelector, DID_FINISH_COLLECTING_METRICS) || sel_isEqual(aSelector, DID_RECEIVE_DATA_SELECTOR) ||
         sel_isEqual(aSelector, DID_FINISH_DOWNLOADING) || sel_isEqual(aSelector, DID_COMPLETE_WITH_ERROR) ||
-        sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR) || sel_isEqual(aSelector, WILL_PERFORM_REDIRECTION) ||
-        sel_isEqual(aSelector, DID_RECEIVE_CHALLENGE) || sel_isEqual(aSelector, DID_RECEIVE_TASK_CHALLENGE)) {
+        sel_isEqual(aSelector, DID_BECOME_INVALID_WITH_ERROR) || sel_isEqual(aSelector, WILL_PERFORM_REDIRECTION)) {
         return YES;
     }
     return [self.originalDelegate respondsToSelector:aSelector];
