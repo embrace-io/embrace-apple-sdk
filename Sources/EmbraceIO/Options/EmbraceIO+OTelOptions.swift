@@ -50,3 +50,22 @@ extension EmbraceIO {
 
     }
 }
+
+extension Resource {
+    func toEmbraceAttributes() -> EmbraceAttributes {
+        var result = EmbraceAttributes()
+        for (key, value) in self.attributes {
+            switch value {
+            case .string(let v): result[key] = v
+            case .bool(let v): result[key] = v
+            case .int(let v): result[key] = v
+            case .double(let v): result[key] = v
+            default:
+                // Arrays and other composite types are not representable
+                // as EmbraceAttributeValue primitives; skip them.
+                break
+            }
+        }
+        return result
+    }
+}
