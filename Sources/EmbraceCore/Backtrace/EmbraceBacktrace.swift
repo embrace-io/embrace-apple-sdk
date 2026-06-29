@@ -144,6 +144,7 @@ struct EmbraceBacktrace: Codable {
         )
     }
 
+    // periphery:ignore
     /// Captures a backtrace of the current thread using `Thread.callStackReturnAddresses`.
     ///
     /// This is the simplest capture path and does not require suspending any threads.
