@@ -41,6 +41,12 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_26.0.app
           xcodebuild -version
 
+      - name: Install iOS platform
+        # Xcode 26 ships platforms as on-demand downloads; the hosted runner image
+        # does not include the iOS device platform, so `archive -sdk iphoneos` finds
+        # no destinations. Idempotent: a no-op once the platform is present.
+        run: xcodebuild -downloadPlatform iOS
+
       - name: Checkout code
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         timeout-minutes: 5
