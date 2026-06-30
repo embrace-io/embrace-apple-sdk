@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ github.actor != 'dependabot[bot]' && 'macos-latest-xlarge' || 'macos-latest' }}
+    runs-on: ${{ github.actor != 'dependabot[bot]' && 'macos-26-xlarge' || 'macos-26' }}
     timeout-minutes: 30
     outputs:
       app_url: ${{ steps.upload_app.outputs.app_url }}
@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.0.app
+          sudo xcode-select -s /Applications/Xcode_26.5.app
           xcodebuild -version
 
       - name: Install iOS platform
@@ -265,7 +265,7 @@ jobs:
           retention-days: 2
 
   extract-results:
-    runs-on: ${{ github.actor != 'dependabot[bot]' && 'macos-latest-xlarge' || 'macos-latest' }}
+    runs-on: ${{ github.actor != 'dependabot[bot]' && 'macos-26-xlarge' || 'macos-26' }}
     needs: test
     if: success()
     timeout-minutes: 10

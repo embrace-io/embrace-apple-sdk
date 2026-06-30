@@ -12,11 +12,11 @@ jobs:
   build-brandgame-app:
     name: Build BrandGame App
     timeout-minutes: 20
-    runs-on: macos-15
+    runs-on: macos-26
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ["26.0"]
+        xcode_version: ["26.5"]
     env:
       PROJECT_DIR: ./Examples/BrandGame
       PROJECT_NAME: BrandGame.xcodeproj
@@ -37,7 +37,7 @@ jobs:
 
       - name: Select Xcode
         if: steps.check.outputs.skip != 'true'
-        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md
         run: |
           sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
           xcodebuild -version
@@ -54,11 +54,11 @@ jobs:
   build-demoobjc-app:
     name: Build Objc Demo App
     timeout-minutes: 20
-    runs-on: macos-15
+    runs-on: macos-26
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ["26.0"]
+        xcode_version: ["26.5"]
     env:
       PROJECT_DIR: ./Examples/DemoObjectiveC
       PROJECT_NAME: DemoObjectiveC.xcodeproj
@@ -79,7 +79,7 @@ jobs:
 
       - name: Select Xcode
         if: steps.check.outputs.skip != 'true'
-        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-15-Readme.md
+        # See https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md
         run: |
           sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
           xcodebuild -version
