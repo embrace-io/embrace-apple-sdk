@@ -44,7 +44,6 @@ extension StartupInstrumentation {
     }
 
     /// Method used to add attributes to the startup instrumentation root span.
-    /// If the root span is not found or an attribute fails to be set, a warning is logged.
     /// - Parameters:
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     package func addAttributesToStartupTrace(_ attributes: EmbraceAttributes) {
