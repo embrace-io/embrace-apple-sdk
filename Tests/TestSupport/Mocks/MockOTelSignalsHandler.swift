@@ -9,37 +9,12 @@ import Foundation
 
 public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
 
-    // These collections are appended from background queues (e.g. span delegate callbacks dispatched
-    // off the SUT's queues) while tests read them on the main thread, so guard them with a lock.
-    private let lock = NSLock()
-
-    private var _startedSpans: [EmbraceSpan] = []
-    public var startedSpans: [EmbraceSpan] {
-        lock.lock()
-        defer { lock.unlock() }
-        return _startedSpans
-    }
-
-    private var _endedSpans: [EmbraceSpan] = []
-    public var endedSpans: [EmbraceSpan] {
-        lock.lock()
-        defer { lock.unlock() }
-        return _endedSpans
-    }
-
-    private var _events: [EmbraceSpanEvent] = []
-    public var events: [EmbraceSpanEvent] {
-        lock.lock()
-        defer { lock.unlock() }
-        return _events
-    }
-
-    private var _logs: [EmbraceLog] = []
-    public var logs: [EmbraceLog] {
-        lock.lock()
-        defer { lock.unlock() }
-        return _logs
-    }
+    // Appended from background queues (e.g. span delegate callbacks dispatched off the SUT's queues)
+    // while tests read them on the main thread — see `TestLocked`.
+    @TestLocked public private(set) var startedSpans: [EmbraceSpan] = []
+    @TestLocked public private(set) var endedSpans: [EmbraceSpan] = []
+    @TestLocked public private(set) var events: [EmbraceSpanEvent] = []
+    @TestLocked public private(set) var logs: [EmbraceLog] = []
 
     public var currentSessionId: EmbraceIdentifier? = .random
     public var currentProcessId: EmbraceIdentifier = .random
@@ -79,12 +54,10 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
             delegate: self
         )
 
-        lock.lock()
-        _startedSpans.append(span)
+        startedSpans.append(span)
         if endTime != nil {
-            _endedSpans.append(span)
+            endedSpans.append(span)
         }
-        lock.unlock()
 
         return span
     }
@@ -103,9 +76,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
             timestamp: timestamp,
             attributes: attributes
         )
-        lock.lock()
-        _events.append(event)
-        lock.unlock()
+        events.append(event)
         return event
     }
 
@@ -131,15 +102,11 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
             processId: currentProcessId
         )
 
-        lock.lock()
-        _logs.append(log)
-        lock.unlock()
+        logs.append(log)
     }
 
     public func onSpanEnded(_ span: EmbraceSpan) {
-        lock.lock()
-        defer { lock.unlock() }
-        _endedSpans.append(span)
+        endedSpans.append(span)
     }
 
     public func autoTerminateSpans() {
