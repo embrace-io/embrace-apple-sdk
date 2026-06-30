@@ -84,7 +84,12 @@ package final class KSCrashReporter: CrashReporter {
                 $0.reportID = reportID
             }
         }
-        try reporter.install(with: config)
+        // `reporter.install` reaches `ksbic_init`, which rewrites KSCrash's unsynchronized
+        // `g_all_image_infos` global. Serialize against background log symbolication, which hits the
+        // same global concurrently during startup. See `KSCrashGlobalsLock`.
+        try KSCrashGlobalsLock.withLock {
+            try reporter.install(with: config)
+        }
         registerForHangs()
     }
 
