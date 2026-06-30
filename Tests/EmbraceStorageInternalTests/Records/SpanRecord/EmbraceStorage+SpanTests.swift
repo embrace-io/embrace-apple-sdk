@@ -108,4 +108,40 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
         XCTAssertEqual(allRecords.count, storage.options.spanLimitDefault)
     }
+
+    func test_upsertSpan_limitForType_doesNotEvictDeeperTypeSharingPrefix() throws {
+        // `.performance` (raw "performance") is a prefix of `.networkRequest`
+        // (raw "performance.network_request"). Enforcing the small `.performance` limit must NOT
+        // count or evict network-request spans, which keep their own (default 1500) limit.
+        storage.options.spanLimits[.performance] = 3
+
+        let base = Date(timeIntervalSince1970: 0)
+
+        // three OLDER network-request spans (deeper type that shares the "performance" prefix)
+        for i in 0..<3 {
+            storage.upsertSpan(
+                MockSpan(
+                    name: "network \(i)",
+                    type: .networkRequest,
+                    startTime: base.addingTimeInterval(TimeInterval(i))
+                ))
+        }
+
+        // one NEWER bare `.performance` span — enforcing its limit of 3 should not touch the network spans
+        storage.upsertSpan(
+            MockSpan(
+                name: "performance",
+                type: .performance,
+                startTime: base.addingTimeInterval(100)
+            ))
+
+        let request = SpanRecord.createFetchRequest()
+        let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
+
+        XCTAssertEqual(allRecords.count, 4)
+        XCTAssertEqual(
+            Set(allRecords.map(\.name)),
+            ["network 0", "network 1", "network 2", "performance"]
+        )
+    }
 }
