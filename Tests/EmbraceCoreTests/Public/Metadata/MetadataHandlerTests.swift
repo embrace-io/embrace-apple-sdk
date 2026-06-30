@@ -279,4 +279,56 @@ final class MetadataHandlerTests: XCTestCase {
         let metadata: [MetadataRecord] = storage.fetchAll()
         XCTAssertEqual(metadata.count, 0)
     }
+
+    // MARK: Key / value validation
+
+    func test_addProperty_keyExceedingMaxLength_isDropped() throws {
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+
+        // a key at the 128-char limit is stored
+        let okKey = String(repeating: "k", count: 128)
+        handler.addProperty(key: okKey, value: "v", lifespan: .session)
+
+        // a key over the limit (129) is dropped
+        let longKey = String(repeating: "k", count: 129)
+        handler.addProperty(key: longKey, value: "v", lifespan: .session)
+
+        let records = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        XCTAssertNotNil(records.first { $0.key == okKey })
+        XCTAssertNil(records.first { $0.key == longKey })
+    }
+
+    func test_addProperty_valueExceedingMaxLength_isTruncatedWithEllipsis() throws {
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+
+        handler.addProperty(key: "big", value: String(repeating: "a", count: 2000), lifespan: .session)
+
+        // first 1020+1 characters are preserved, then an ellipsis is appended -> 1024 chars total
+        let record = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+            .first { $0.key == "big" }
+        XCTAssertEqual(record?.value, String(repeating: "a", count: 1021) + "...")
+    }
+
+    func test_addProperty_valueAtMaxLength_isStoredUnchanged() throws {
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+
+        let value = String(repeating: "a", count: 1024)
+        handler.addProperty(key: "exact", value: value, lifespan: .session)
+
+        let record = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+            .first { $0.key == "exact" }
+        XCTAssertEqual(record?.value, value)
+    }
 }
