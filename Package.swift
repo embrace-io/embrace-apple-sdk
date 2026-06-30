@@ -226,7 +226,7 @@ let package = Package(
         ),
         .testTarget(
             name: "EmbraceStorageInternalTests",
-            dependencies: ["EmbraceStorageInternal", "TestSupport"],
+            dependencies: ["EmbraceStorageInternal", "EmbraceCoreDataInternal", "TestSupport"],
             resources: [
                 .copy("Mocks/")
             ]
