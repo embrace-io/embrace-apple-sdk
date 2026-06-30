@@ -403,7 +403,7 @@ extension EmbraceStorage {
         let limit = options.spanLimits[type, default: limitByType(type)]
 
         let request = SpanRecord.createFetchRequest()
-        request.predicate = NSPredicate(format: "typeRaw BEGINSWITH %@", type.rawValue)
+        request.predicate = NSPredicate(format: "typeRaw == %@", type.rawValue)
         let count = coreData.count(withRequest: request)
 
         if count >= limit {
