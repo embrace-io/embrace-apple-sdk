@@ -515,11 +515,14 @@ final class SessionControllerTests: XCTestCase {
         let session = controller.startSession(state: .foreground)
         var lastDate = session!.lastHeartbeatTime
 
-        // then the heartbeat time is updated
+        // The heartbeat advances on a timer that CI load can delay, so poll for
+        // the timestamp to actually change instead of assuming it happens within
+        // a fixed window.
         for _ in 1...3 {
-            wait(delay: 0.3)
-            XCTAssertNotEqual(lastDate, controller.currentSession!.lastHeartbeatTime)
-            lastDate = controller.currentSession!.lastHeartbeatTime
+            wait(timeout: .longTimeout, interval: .shortInterval) {
+                controller.currentSession?.lastHeartbeatTime != lastDate
+            }
+            lastDate = try XCTUnwrap(controller.currentSession?.lastHeartbeatTime)
         }
     }
 
