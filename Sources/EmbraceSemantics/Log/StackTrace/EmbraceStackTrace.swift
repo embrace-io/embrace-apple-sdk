@@ -32,7 +32,7 @@ public struct EmbraceStackTrace {
     /// - Parameter frames: An array of frames strings, following the format of `Thread.callStackSymbols`.
     /// - Important: A stacktrace can't have more than `maximumAmountOfFrames` (200); if that happens, we'll trim the exceeding frames.
     /// - Important: The stacktrace can fail to be constructed if any of the frames have an unexpected format
-    /// - Important: The stacktrace can fail to be consutrcted if any of the frames is longer than `maximumFrameLength` (10.000 characters).
+    /// - Important: Returns `nil` if any of the frames is longer than `maximumFrameLength` (10,000 characters).
     public init?(frames: [String]) {
         do {
             let trimmedStackTrace = EmbraceStackTrace.trimStackTrace(frames)
