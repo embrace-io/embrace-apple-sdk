@@ -141,4 +141,33 @@
         }
     }
 
+    class WebViewCaptureServiceTests_Five: WebViewCaptureServiceTests {
+
+        // `getUrlString` is private and swizzle-independent, so we verify it through the event that
+        // `didLoad` emits rather than the swizzle path — no `checkTestAllowed()` gating needed.
+        func test_didLoad_stripQueryParams_controlsQueryInCapturedURL() {
+            let url = URL(string: "https://example.com/path?token=secret&id=42")!
+
+            // stripQueryParams = true -> the query (which can carry auth tokens / PII) is removed
+            let stripping = WebViewCaptureService(options: .init(stripQueryParams: true))
+            let strippingOtel = MockOTelSignalsHandler()
+            stripping.install(otel: strippingOtel)
+            stripping.didLoad(url: url, statusCode: 200)
+            XCTAssertEqual(
+                strippingOtel.events.last!.attributes["webview.url"]!.description,
+                "https://example.com/path"
+            )
+
+            // stripQueryParams = false -> the full query string is preserved
+            let preserving = WebViewCaptureService(options: .init(stripQueryParams: false))
+            let preservingOtel = MockOTelSignalsHandler()
+            preserving.install(otel: preservingOtel)
+            preserving.didLoad(url: url, statusCode: 200)
+            XCTAssertEqual(
+                preservingOtel.events.last!.attributes["webview.url"]!.description,
+                url.absoluteString
+            )
+        }
+    }
+
 #endif
