@@ -4,10 +4,11 @@
 
 import EmbraceConfigInternal
 import EmbraceConfiguration
-import EmbraceCore
 import EmbraceSemantics
 import TestSupport
 import XCTest
+
+@testable import EmbraceCore
 
 final class Embrace_OptionsTests: XCTestCase {
 
@@ -34,5 +35,39 @@ final class Embrace_OptionsTests: XCTestCase {
         )
 
         XCTAssertTrue(mockObj === options.runtimeConfiguration)
+    }
+
+    func test_validate_validAppId_doesNotThrow() throws {
+        // "myApp" is exactly 5 characters
+        let options = Embrace.Options(appId: "myApp", captureServices: [], crashReporter: nil)
+        XCTAssertNoThrow(try options.validate())
+    }
+
+    func test_validate_appIdWrongLength_throwsInvalidAppId() throws {
+        let options = Embrace.Options(appId: "abc", captureServices: [], crashReporter: nil)
+        XCTAssertThrowsError(try options.validate()) { error in
+            guard let setupError = error as? EmbraceSetupError, case .invalidAppId = setupError else {
+                return XCTFail("expected EmbraceSetupError.invalidAppId, got \(error)")
+            }
+        }
+    }
+
+    func test_validate_emptyAppGroupId_throwsInvalidAppGroupId() throws {
+        let options = Embrace.Options(appId: "myApp", appGroupId: "", captureServices: [], crashReporter: nil)
+        XCTAssertThrowsError(try options.validate()) { error in
+            guard let setupError = error as? EmbraceSetupError, case .invalidAppGroupId = setupError else {
+                return XCTFail("expected EmbraceSetupError.invalidAppGroupId, got \(error)")
+            }
+        }
+    }
+
+    func test_validate_nilAppId_doesNotThrow() throws {
+        // the local-configuration initializer leaves appId nil, which is valid
+        let options = Embrace.Options(
+            captureServices: [],
+            crashReporter: nil,
+            runtimeConfiguration: MockEmbraceConfigurable()
+        )
+        XCTAssertNoThrow(try options.validate())
     }
 }
