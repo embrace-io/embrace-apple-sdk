@@ -236,7 +236,7 @@ public class CaptureServicesOptionsBuilder: NSObject {
             map[.pushNotification] = nil
         }
 
-        if type == LowPowerModeCaptureService.self {
+        if type == LowMemoryWarningCaptureService.self {
             map[.lowMemoryWarning] = nil
         }
 
