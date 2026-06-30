@@ -247,44 +247,105 @@ class CapturingSpanProcessor: SpanProcessor {
     var isStartRequired: Bool { true }
     var isEndRequired: Bool { true }
 
-    private(set) var startedSpanNames: [String] = []
-    private(set) var endedSpanNames: [String] = []
-    private(set) var didForceFlush = false
-    private(set) var didShutdown = false
+    // EmbraceSpanProcessor forwards to child processors on a background queue while tests read these
+    // on the main thread, so guard them with a lock.
+    private let lock = NSLock()
+
+    private var _startedSpanNames: [String] = []
+    var startedSpanNames: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _startedSpanNames
+    }
+
+    private var _endedSpanNames: [String] = []
+    var endedSpanNames: [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _endedSpanNames
+    }
+
+    private var _didForceFlush = false
+    var didForceFlush: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _didForceFlush
+    }
+
+    private var _didShutdown = false
+    var didShutdown: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _didShutdown
+    }
 
     func onStart(parentContext: SpanContext?, span: ReadableSpan) {
-        startedSpanNames.append(span.name)
+        lock.lock()
+        defer { lock.unlock() }
+        _startedSpanNames.append(span.name)
     }
 
     func onEnd(span: ReadableSpan) {
-        endedSpanNames.append(span.name)
+        lock.lock()
+        defer { lock.unlock() }
+        _endedSpanNames.append(span.name)
     }
 
     func forceFlush(timeout: TimeInterval?) {
-        didForceFlush = true
+        lock.lock()
+        defer { lock.unlock() }
+        _didForceFlush = true
     }
 
     func shutdown(explicitTimeout: TimeInterval?) {
-        didShutdown = true
+        lock.lock()
+        defer { lock.unlock() }
+        _didShutdown = true
     }
 }
 
 class CapturingSpanExporter: SpanExporter {
-    private(set) var exportedSpans: [SpanData] = []
-    private(set) var didFlush = false
-    private(set) var didShutdown = false
+    // `export` is called on a background queue while tests read these on the main thread; guard them.
+    private let lock = NSLock()
+
+    private var _exportedSpans: [SpanData] = []
+    var exportedSpans: [SpanData] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _exportedSpans
+    }
+
+    private var _didFlush = false
+    var didFlush: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _didFlush
+    }
+
+    private var _didShutdown = false
+    var didShutdown: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _didShutdown
+    }
 
     func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
-        exportedSpans.append(contentsOf: spans)
+        lock.lock()
+        defer { lock.unlock() }
+        _exportedSpans.append(contentsOf: spans)
         return .success
     }
 
     func flush(explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
-        didFlush = true
+        lock.lock()
+        defer { lock.unlock() }
+        _didFlush = true
         return .success
     }
 
     func shutdown(explicitTimeout: TimeInterval?) {
-        didShutdown = true
+        lock.lock()
+        defer { lock.unlock() }
+        _didShutdown = true
     }
 }

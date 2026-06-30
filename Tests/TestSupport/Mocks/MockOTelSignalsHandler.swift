@@ -9,10 +9,37 @@ import Foundation
 
 public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
 
-    private(set) public var startedSpans: [EmbraceSpan] = []
-    private(set) public var endedSpans: [EmbraceSpan] = []
-    private(set) public var events: [EmbraceSpanEvent] = []
-    private(set) public var logs: [EmbraceLog] = []
+    // These collections are appended from background queues (e.g. span delegate callbacks dispatched
+    // off the SUT's queues) while tests read them on the main thread, so guard them with a lock.
+    private let lock = NSLock()
+
+    private var _startedSpans: [EmbraceSpan] = []
+    public var startedSpans: [EmbraceSpan] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _startedSpans
+    }
+
+    private var _endedSpans: [EmbraceSpan] = []
+    public var endedSpans: [EmbraceSpan] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _endedSpans
+    }
+
+    private var _events: [EmbraceSpanEvent] = []
+    public var events: [EmbraceSpanEvent] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _events
+    }
+
+    private var _logs: [EmbraceLog] = []
+    public var logs: [EmbraceLog] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _logs
+    }
 
     public var currentSessionId: EmbraceIdentifier? = .random
     public var currentProcessId: EmbraceIdentifier = .random
@@ -52,11 +79,12 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
             delegate: self
         )
 
-        startedSpans.append(span)
-
+        lock.lock()
+        _startedSpans.append(span)
         if endTime != nil {
-            endedSpans.append(span)
+            _endedSpans.append(span)
         }
+        lock.unlock()
 
         return span
     }
@@ -75,7 +103,9 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
             timestamp: timestamp,
             attributes: attributes
         )
-        events.append(event)
+        lock.lock()
+        _events.append(event)
+        lock.unlock()
         return event
     }
 
@@ -101,11 +131,15 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
             processId: currentProcessId
         )
 
-        logs.append(log)
+        lock.lock()
+        _logs.append(log)
+        lock.unlock()
     }
 
     public func onSpanEnded(_ span: EmbraceSpan) {
-        endedSpans.append(span)
+        lock.lock()
+        defer { lock.unlock() }
+        _endedSpans.append(span)
     }
 
     public func autoTerminateSpans() {

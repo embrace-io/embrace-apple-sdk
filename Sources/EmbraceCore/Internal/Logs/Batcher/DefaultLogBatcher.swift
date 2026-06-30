@@ -32,7 +32,25 @@ class DefaultLogBatcher: LogBatcher {
     weak var delegate: LogBatcherDelegate?
 
     private var batchDeadlineWorkItem: DispatchWorkItem?
-    var batch: LogsBatch?
+
+    // Internal access to `batch` is serialized on `processorQueue`, but the property is also read
+    // externally (e.g. tests observing the in-flight batch). Guard it with a lock so those reads
+    // can't race the queue's writes. A lock — not `processorQueue.sync` — to avoid deadlocking the
+    // queue against its own `batch` access.
+    private let batchLock = NSLock()
+    private var _batch: LogsBatch?
+    var batch: LogsBatch? {
+        get {
+            batchLock.lock()
+            defer { batchLock.unlock() }
+            return _batch
+        }
+        set {
+            batchLock.lock()
+            defer { batchLock.unlock() }
+            _batch = newValue
+        }
+    }
 
     init(
         logBatchLimits: LogBatchLimits = LogBatchLimits(),
