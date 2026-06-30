@@ -187,7 +187,7 @@ final class OTelSpanAdapterTests: XCTestCase {
         adapter.setStatus(.ok)
         adapter.addEvent(name: "event", type: nil, timestamp: Date(), attributes: [:])
         adapter.addLink(spanId: "abc", traceId: "def", attributes: [:])
-        try adapter.setAttribute(key: "k", value: "v")
+        adapter.setAttribute(key: "k", value: "v")
         adapter.end()
         // Status remains unset since mutation is a no-op
         XCTAssertEqual(adapter.status, .unset)

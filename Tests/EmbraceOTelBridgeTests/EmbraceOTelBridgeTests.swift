@@ -487,7 +487,7 @@ class MockEmbraceSpan: EmbraceSpan {
     func setStatus(_ status: EmbraceSpanStatus) {}
     func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: EmbraceAttributes) -> EmbraceSpanEvent? { nil }
     func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) -> EmbraceSpanLink? { nil }
-    func setAttribute(key: String, value: EmbraceAttributeValue?) throws {}
+    func setAttribute(key: String, value: EmbraceAttributeValue?) {}
     func end(endTime: Date) {}
     func end() {}
 }

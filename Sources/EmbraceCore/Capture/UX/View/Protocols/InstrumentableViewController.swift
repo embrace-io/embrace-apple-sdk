@@ -25,18 +25,14 @@
         ///    - endTime: The end time of the span, if any.
         ///    - attributes: A dictionary of attributes to set on the span.
         /// - Returns: An new `EmbraceSpan`.
-        /// - Throws: `ViewCaptureService.noServiceFound` if no `ViewCaptureService` is active.
-        /// - Throws: `ViewCaptureService.firstRenderInstrumentationDisabled` if this functionallity was not enabled when setting up the `ViewCaptureService`, or the remote configuration for this feature was not enabled.
-        /// - Throws: `ViewCaptureService.parentSpanNotFound` if no parent span was found for this `UIViewController`.
-        ///           This could mean the `UIViewController` was already rendered / deemed interactive, or the `UIViewController` has already disappeared.
         public func createChildSpan(
             name: String,
             type: EmbraceType = .viewLoad,
             startTime: Date = Date(),
             endTime: Date? = nil,
             attributes: EmbraceAttributes = [:]
-        ) throws -> EmbraceSpan? {
-            return try Embrace.client?.captureServices.createChildSpan(
+        ) -> EmbraceSpan? {
+            return try? Embrace.client?.captureServices.createChildSpan(
                 for: self,
                 name: name,
                 type: type,
@@ -51,13 +47,9 @@
         ///
         /// - Parameters:
         ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
-        /// - Throws: `ViewCaptureService.serviceNotFound` if no `ViewCaptureService` is active.
-        /// - Throws: `ViewCaptureService.firstRenderInstrumentationDisabled` if this functionallity was not enabled when setting up the `ViewCaptureService`, or the remote configuration for this feature was not enabled.
-        /// - Throws: `ViewCaptureService.parentSpanNotFound` if no parent span was found for this `UIViewController`.
-        ///            This could mean the `UIViewController` was already rendered / deemed interactive, or the `UIViewController` has already disappeared.
         /// - Note: Attributes added using this method are specific to the ongoing trace associated with this `UIViewController`.
-        public func addAttributesToTrace(_ attributes: [String: String]) throws {
-            try Embrace.client?.captureServices.addAttributesToTrace(
+        public func addAttributesToTrace(_ attributes: [String: String]) {
+            try? Embrace.client?.captureServices.addAttributesToTrace(
                 for: self,
                 attributes: attributes
             )

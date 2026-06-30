@@ -213,12 +213,16 @@ class DefaultEmbraceSpan: EmbraceSpan {
         }
     }
 
-    open func setAttribute(key: String, value: EmbraceAttributeValue?) throws {
-        try _setAttribute(
-            key: key,
-            value: value,
-            isInternal: false
-        )
+    open func setAttribute(key: String, value: EmbraceAttributeValue?) {
+        do {
+            try _setAttribute(
+                key: key,
+                value: value,
+                isInternal: false
+            )
+        } catch {
+            Embrace.logger.warning("Failed to set attribute to span '\(self.name)': \(error.localizedDescription)")
+        }
     }
 
     func _setAttribute(key: String, value: EmbraceAttributeValue?, isInternal: Bool) throws {

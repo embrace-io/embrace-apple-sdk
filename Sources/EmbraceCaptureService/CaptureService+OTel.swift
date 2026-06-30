@@ -26,7 +26,6 @@ extension CaptureService {
     ///   - attributes: Attributes of the span.
     ///   - autoTerminationCode: If a code is passed, the span will be automatically ended when the current Embrace session ends and will have a special attribute with the given code.
     /// - Returns: The newly created `EmbraceSpan`.
-    /// - Throws: `EmbraceOTelError.spanLimitReached` if the span limit has been reached for the current Embrace session.
     @discardableResult
     public func createSpan(
         name: String,
@@ -39,8 +38,8 @@ extension CaptureService {
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil
-    ) throws -> EmbraceSpan? {
-        return try otel?._createSpan(
+    ) -> EmbraceSpan? {
+        return try? otel?._createSpan(
             name: name,
             parentSpan: parentSpan,
             type: type,
@@ -105,7 +104,6 @@ extension CaptureService {
     ///   - attachment: Attachment data for the log
     ///   - attributes: Attributes of the log
     ///   - stackTraceBehavior: Behavior that detemines if a stack trace has to be generated for the log.
-    /// - Throws: `EmbraceOTelError.logLimitReached` if the log limit has been reached for the current Embrace session.
     public func log(
         _ message: String,
         severity: EmbraceLogSeverity = .info,
@@ -114,8 +112,8 @@ extension CaptureService {
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default
-    ) throws {
-        try otel?._log(
+    ) {
+        try? otel?._log(
             message,
             severity: severity,
             type: type,

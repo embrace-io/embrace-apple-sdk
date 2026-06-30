@@ -330,7 +330,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         let span = testSpan
 
         // when setting a new attribute
-        try span.setAttribute(key: "key", value: "value")
+        span.setAttribute(key: "key", value: "value")
 
         // then the attribute is set
         // the internal counter doesn't increase
@@ -347,16 +347,10 @@ class DefaultEmbraceSpanTests: XCTestCase {
 
         // when setting a new attribute that would fail
         handler.validateAttributeError = EmbraceOTelError.spanAttributeLimitReached("test")
+        span.setAttribute(key: "key", value: "value")
 
-        XCTAssertThrowsError(try span.setAttribute(key: "key", value: "value")) { error in
-
-            // then the correct error is thrown
-            XCTAssert(error is EmbraceOTelError)
-            XCTAssertEqual((error as! EmbraceOTelError).errorCode, -5)
-            XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
-            XCTAssertEqual(handler.validateAttributeCallCount, 1)
-            XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 0)
-        }
+        // then the attribute is not set
+        XCTAssertNotEqual(span.attributes["key"] as? String, "value")
     }
 
     func test_setAttribute_delete() throws {
@@ -364,7 +358,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         let span = testSpan
 
         // when deleting an attribute
-        try span.setAttribute(key: "myKey", value: nil)
+        span.setAttribute(key: "myKey", value: nil)
 
         // then the attribute is deleted
         // the internal counte doesn't change

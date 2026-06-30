@@ -47,26 +47,16 @@ extension StartupInstrumentation {
     /// If the root span is not found or an attribute fails to be set, a warning is logged.
     /// - Parameters:
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
-    /// - Returns: A boolean indicating if the operation was succesful.
-    @discardableResult
-    package func addAttributesToStartupTrace(_ attributes: EmbraceAttributes) -> Bool {
+    package func addAttributesToStartupTrace(_ attributes: EmbraceAttributes) {
 
         return state.withLock {
             guard let rootSpan = $0.rootSpan else {
-                return false
+                return
             }
 
-            var success = true
             for (key, value) in attributes {
-                do {
-                    try rootSpan.setAttribute(key: key, value: value)
-                } catch {
-                    Embrace.logger.warning("Failed to add attribute '\(key)' to startup trace: \(error.localizedDescription)")
-                    success = false
-                }
+                rootSpan.setAttribute(key: key, value: value)
             }
-
-            return success
         }
     }
 }
