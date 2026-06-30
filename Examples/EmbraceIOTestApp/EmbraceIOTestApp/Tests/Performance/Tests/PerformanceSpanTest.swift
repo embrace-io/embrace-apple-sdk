@@ -75,7 +75,7 @@ class PerformanceSpanTest: PayloadTest {
                     var hasher = Hasher()
                     hasher.combine(UUID())
                     let hash = hasher.finalize()
-                    _ = try? span?.setAttribute(key: "hashed_number", value: hash)
+                    span?.setAttribute(key: "hashed_number", value: hash)
                     span?.end()
                 }
                 lock.lock()
