@@ -62,8 +62,8 @@ public protocol EmbraceConfigurable: AnyObject {
 
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:
-    ///     - completion: A completion block that takes two parameters (didChange, error). Completion block should pass `true`
-    ///     if the configuration now has different values and `false` if not in the case of an error updating, the completion block should
-    ///     return `false` and an Error object describing the issue.
-    func update(completion: @escaping (Bool, Error?) -> Void)
+    ///     - completion: A completion block that receives a `Result`. On success it carries `true`
+    ///     if the configuration now has different values and `false` if not. On failure it carries an
+    ///     `Error` describing the issue that prevented the update.
+    func update(completion: @escaping (Result<Bool, Error>) -> Void)
 }

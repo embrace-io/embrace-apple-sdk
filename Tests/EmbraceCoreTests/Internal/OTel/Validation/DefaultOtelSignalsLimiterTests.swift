@@ -41,7 +41,7 @@ class DefaultOtelSignalsLimiterTests: XCTestCase {
         // when the config is updated
         let config = EditableConfig()
         config.spanEventTypeLimits = SpanEventTypeLimits(breadcrumb: 5)
-        config.logSeverityLimits = LogSeverityLimits(info: 1, warning: 2, error: 3)
+        config.logSeverityLimits = LogSeverityLimits(info: 1, warn: 2, error: 3)
         NotificationCenter.default.post(name: .embraceConfigUpdated, object: config)
 
         // then the limits are updated
@@ -140,7 +140,7 @@ class DefaultOtelSignalsLimiterTests: XCTestCase {
 
     func test_shouldCreateLog_success() throws {
         // given a limiter with a limit of 5 logs for each severity
-        let limiter = DefaultOtelSignalsLimiter(logSeverityLimits: LogSeverityLimits(info: 5, warning: 5, error: 5))
+        let limiter = DefaultOtelSignalsLimiter(logSeverityLimits: LogSeverityLimits(info: 5, warn: 5, error: 5))
 
         // when creating a log for each severity that wouldn't reach the limit
         let result1 = limiter.shouldCreateLog(type: .message, severity: .info)
@@ -158,7 +158,7 @@ class DefaultOtelSignalsLimiterTests: XCTestCase {
 
     func test_shouldCreateLog_failure() throws {
         // given a limiter with a limit of 5 logs for each severity
-        let limiter = DefaultOtelSignalsLimiter(logSeverityLimits: LogSeverityLimits(info: 5, warning: 5, error: 5))
+        let limiter = DefaultOtelSignalsLimiter(logSeverityLimits: LogSeverityLimits(info: 5, warn: 5, error: 5))
 
         // when creating a log for each severity that would reach the limit
         limiter.state.safeValue.logCounter = [
@@ -181,7 +181,7 @@ class DefaultOtelSignalsLimiterTests: XCTestCase {
 
     func test_shouldCreateLog_specialTypes() throws {
         // given a limiter with a limit of 5 logs for each severity
-        let limiter = DefaultOtelSignalsLimiter(logSeverityLimits: LogSeverityLimits(info: 5, warning: 5, error: 5))
+        let limiter = DefaultOtelSignalsLimiter(logSeverityLimits: LogSeverityLimits(info: 5, warn: 5, error: 5))
 
         // when creating logs of special types that would reach the limits
         limiter.state.safeValue.logCounter = [

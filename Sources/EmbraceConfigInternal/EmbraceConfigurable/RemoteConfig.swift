@@ -142,7 +142,7 @@ extension RemoteConfig: EmbraceConfigurable {
     public var logSeverityLimits: LogSeverityLimits {
         LogSeverityLimits(
             info: UInt(max(payload.logsInfoLimit, 0)),
-            warning: UInt(max(payload.logsWarningLimit, 0)),
+            warn: UInt(max(payload.logsWarningLimit, 0)),
             error: UInt(max(payload.logsErrorLimit, 0))
         )
     }
@@ -165,9 +165,9 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var userSessionInactivityTimeout: TimeInterval { payload.userSessionInactivityTimeoutSeconds }
 
-    public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
+    public func update(completion: @escaping (Result<Bool, Error>) -> Void) {
         guard updating == false else {
-            completion(false, nil)
+            completion(.success(false))
             return
         }
 
@@ -175,12 +175,12 @@ extension RemoteConfig: EmbraceConfigurable {
         fetcher.fetch { [weak self] newPayload, data in
             defer { self?.updating.store(false) }
             guard let strongSelf = self else {
-                completion(false, nil)
+                completion(.success(false))
                 return
             }
 
             guard let newPayload = newPayload else {
-                completion(false, nil)
+                completion(.success(false))
                 return
             }
 
@@ -191,7 +191,7 @@ extension RemoteConfig: EmbraceConfigurable {
             }
             strongSelf.saveToCache(data)
 
-            completion(didUpdate, nil)
+            completion(.success(didUpdate))
         }
     }
 }

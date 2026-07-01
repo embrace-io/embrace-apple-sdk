@@ -57,8 +57,8 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let traceparentInjectionEnabled: Bool = false
 
-    public func update(completion: (Bool, (any Error)?) -> Void) {
-        completion(false, nil)
+    public func update(completion: (Result<Bool, Error>) -> Void) {
+        completion(.success(false))
     }
 
     public init() {}

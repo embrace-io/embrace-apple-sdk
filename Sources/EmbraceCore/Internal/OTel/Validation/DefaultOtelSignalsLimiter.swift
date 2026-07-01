@@ -177,7 +177,7 @@ class DefaultOtelSignalsLimiter: OTelSignalsLimiter {
 
     private func limitForLogSeverity(_ severity: EmbraceLogSeverity, limits: LogSeverityLimits) -> UInt {
         if severity == .warn {
-            return limits.warning
+            return limits.warn
         }
 
         if severity == .error || severity == .fatal {
