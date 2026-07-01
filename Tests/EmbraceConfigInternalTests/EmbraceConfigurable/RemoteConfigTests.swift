@@ -135,7 +135,7 @@ final class RemoteConfigTests: XCTestCase {
 
         XCTAssertEqual(
             config.logSeverityLimits,
-            LogSeverityLimits(info: 10, warning: 20, error: 30)
+            LogSeverityLimits(info: 10, warn: 20, error: 30)
         )
     }
 

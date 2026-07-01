@@ -346,8 +346,12 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     public var updateCallCount = 0
     public var updateCompletionParamDidUpdate: Bool
     public var updateCompletionParamError: Error?
-    public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
+    public func update(completion: @escaping (Result<Bool, Error>) -> Void) {
         updateCallCount += 1
-        completion(updateCompletionParamDidUpdate, updateCompletionParamError)
+        if let error = updateCompletionParamError {
+            completion(.failure(error))
+        } else {
+            completion(.success(updateCompletionParamDidUpdate))
+        }
     }
 }

@@ -66,8 +66,8 @@ public class EmbraceConfig {
 
     public func update() {
         self.queue.async { [weak self] in
-            self?.configurable.update { [weak self] didChange, error in
-                if let error = error {
+            self?.configurable.update { [weak self] result in
+                if case .failure(let error) = result {
                     self?.logger.error(
                         "Failed update in EmbraceConfig",
                         attributes: ["error.message": error.localizedDescription]
@@ -76,7 +76,7 @@ public class EmbraceConfig {
 
                 self?.lastUpdateTime.store(Date().timeIntervalSince1970)
 
-                if didChange {
+                if case .success(true) = result {
                     self?.notificationCenter.post(name: .embraceConfigUpdated, object: self?.configurable)
                 }
             }
