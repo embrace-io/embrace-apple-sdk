@@ -89,15 +89,15 @@ extension EmbraceStackTraceBehavior: @retroactive CaseIterable {
     }
 
     private static var customStackTrace: EmbraceStackTrace {
-        do {
-            let stackTrace = try EmbraceStackTrace(frames: [
+        guard
+            let stackTrace = EmbraceStackTrace(frames: [
                 "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
                 "1 Random Library 0x0000000001234abc [Random init]"
             ])
-            return stackTrace
-        } catch {
+        else {
             fatalError()
         }
+        return stackTrace
     }
 }
 

@@ -30,8 +30,8 @@ class InternalEmbraceSpan: DefaultEmbraceSpan {
         )
     }
 
-    override func setAttribute(key: String, value: EmbraceAttributeValue?) throws {
-        try _setAttribute(
+    override func setAttribute(key: String, value: EmbraceAttributeValue?) {
+        try? _setAttribute(
             key: key,
             value: value,
             isInternal: true

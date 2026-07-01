@@ -193,12 +193,12 @@ final class EmbraceIOTestLogsUITests: XCTestCase {
     /// Custom Stack Trace
     ///
 
-    /// Force try is unsafe but this hardcoded scenario *should* always work.
+    /// Force unwrap is unsafe but this hardcoded scenario *should* always work.
     private var customStackTrace: EmbraceStackTrace {
-        try! EmbraceStackTrace(frames: [
+        EmbraceStackTrace(frames: [
             "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
             "1 Random Library 0x0000000001234abc [Random init]"
-        ])
+        ])!
     }
 
     func test_logCapture_trace_customStack_notExpected() {

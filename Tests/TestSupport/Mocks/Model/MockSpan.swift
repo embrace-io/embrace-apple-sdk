@@ -91,14 +91,14 @@ public class MockSpan: EmbraceSpan {
         end(endTime: Date())
     }
 
-    public func setAttribute(key: String, value: EmbraceAttributeValue?) throws {
+    public func setAttribute(key: String, value: EmbraceAttributeValue?) {
         attributes[key] = value
     }
 }
 
 extension MockSpan: EmbraceSpanInternalAttributes {
     public func _setInternalAttribute(key: String, value: EmbraceAttributeValue?) {
-        try? setAttribute(key: key, value: value)
+        setAttribute(key: key, value: value)
     }
 }
 

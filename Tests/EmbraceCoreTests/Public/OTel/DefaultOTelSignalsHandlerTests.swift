@@ -655,7 +655,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_log_customStackTrace() throws {
         // given a handler
         // when creating a non-warn/error log with custom stack trace
-        let stackTrace = try EmbraceStackTrace(frames: customFrames)
+        let stackTrace = try XCTUnwrap(EmbraceStackTrace(frames: customFrames))
         handler.log("test", severity: .info, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is not added
@@ -666,7 +666,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_warnLog_customStackTrace() throws {
         // given a handler
         // when creating a warn log with custom stack trace
-        let stackTrace = try EmbraceStackTrace(frames: customFrames)
+        let stackTrace = try XCTUnwrap(EmbraceStackTrace(frames: customFrames))
         handler.log("test", severity: .warn, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is added
@@ -677,7 +677,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     func test_errorLog_customStackTrace() throws {
         // given a handler
         // when creating a error log with custom stack trace
-        let stackTrace = try EmbraceStackTrace(frames: customFrames)
+        let stackTrace = try XCTUnwrap(EmbraceStackTrace(frames: customFrames))
         handler.log("test", severity: .error, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is added

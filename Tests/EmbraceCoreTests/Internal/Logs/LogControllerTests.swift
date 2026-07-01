@@ -343,7 +343,7 @@ class LogControllerTests: XCTestCase {
     func testWarnAndErrorLogs_createLogByWithCustomStacktrace_alwaysAddStackTraceToAttributes() throws {
         givenLogController()
 
-        let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
+        let customStackTrace = try XCTUnwrap(EmbraceStackTrace(frames: Thread.callStackSymbols))
 
         let expectation = XCTestExpectation()
         whenCreatingLog(severity: .error, stackTraceBehavior: .custom(customStackTrace)) { log in
@@ -357,7 +357,7 @@ class LogControllerTests: XCTestCase {
     func testInfoLogs_createLogByWithCustomStacktrace_wontAddStackTraceToAttributes() throws {
         givenLogController()
 
-        let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
+        let customStackTrace = try XCTUnwrap(EmbraceStackTrace(frames: Thread.callStackSymbols))
 
         let expectation = XCTestExpectation()
         whenCreatingLog(severity: .info, stackTraceBehavior: .custom(customStackTrace)) { log in

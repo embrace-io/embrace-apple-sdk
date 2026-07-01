@@ -221,8 +221,7 @@ class StartupInstrumentationTests: XCTestCase {
         provider.firstFrameTime = nil
         instrumentation.buildMainSpans()
 
-        let result = instrumentation.addAttributesToStartupTrace(["key1": "value1", "key2": "value2"])
-        XCTAssertTrue(result)
+        instrumentation.addAttributesToStartupTrace(["key1": "value1", "key2": "value2"])
 
         provider.firstFrameTime = Date(timeIntervalSince1970: 15)
 

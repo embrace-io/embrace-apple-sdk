@@ -30,14 +30,17 @@ public struct EmbraceStackTrace {
     /// ```
     ///
     /// - Parameter frames: An array of frames strings, following the format of `Thread.callStackSymbols`.
-    /// - Throws: An `EmbraceStackTraceError.invalidFormat` if any of the frames are not in the expected format
-    /// - Throws: An `EmbraceStackTraceError.frameIsTooLong` if any of the frames has more than the `maximumFrameLength` (10.000 characters).
-    ///
     /// - Important: A stacktrace can't have more than `maximumAmountOfFrames` (200); if that happens, we'll trim the exceeding frames.
-    public init(frames: [String]) throws {
-        let trimmedStackTrace = EmbraceStackTrace.trimStackTrace(frames)
-        try EmbraceStackTrace.validateStackFrames(trimmedStackTrace)
-        self.frames = trimmedStackTrace
+    /// - Important: Returns `nil` if any of the frames have an unexpected format
+    /// - Important: Returns `nil` if any of the frames is longer than `maximumFrameLength` (10,000 characters).
+    public init?(frames: [String]) {
+        do {
+            let trimmedStackTrace = EmbraceStackTrace.trimStackTrace(frames)
+            try EmbraceStackTrace.validateStackFrames(trimmedStackTrace)
+            self.frames = trimmedStackTrace
+        } catch {
+            return nil
+        }
     }
 
     private static func validateStackFrames(_ frames: [String]) throws {
