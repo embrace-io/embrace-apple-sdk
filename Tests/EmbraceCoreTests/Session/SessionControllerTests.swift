@@ -245,8 +245,11 @@ final class SessionControllerTests: XCTestCase {
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSessionsUrl())
 
-        // given a started session
-        let controller = SessionController(storage: storage, upload: upload, config: nil)
+        // given a started session. A synchronous upload queue keeps the end-session
+        // upload dispatch on the calling thread instead of hopping through the shared
+        // GCD pool, which can be starved under CI load and leave the request unsent.
+        let controller = SessionController(
+            storage: storage, upload: upload, config: nil, queue: MockQueue())
         controller.sdkStateProvider = sdkStateProvider
         controller.startSession(state: .foreground)
 
@@ -278,8 +281,11 @@ final class SessionControllerTests: XCTestCase {
         // mock error requests
         EmbraceHTTPMock.mock(url: testSessionsUrl(), errorCode: 500)
 
-        // given a started session
-        let controller = SessionController(storage: storage, upload: upload, config: nil)
+        // given a started session. A synchronous upload queue keeps the end-session
+        // upload dispatch on the calling thread instead of hopping through the shared
+        // GCD pool, which can be starved under CI load and leave the request unsent.
+        let controller = SessionController(
+            storage: storage, upload: upload, config: nil, queue: MockQueue())
         controller.sdkStateProvider = sdkStateProvider
         controller.startSession(state: .foreground)
 
