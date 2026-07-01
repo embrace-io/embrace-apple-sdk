@@ -20,7 +20,7 @@ import Foundation
 /// ```swift
 /// import EmbraceIO
 ///
-/// let options = EmbraceIO.Options(appId: "appId")
+/// let options = EmbraceIO.Options.withAppId("appId")
 /// try EmbraceIO.setup(options: options)
 /// ```
 public class EmbraceIO {
