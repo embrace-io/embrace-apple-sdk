@@ -267,6 +267,36 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         XCTAssertFalse(options.lowPowerMode)
     }
 
+    func test_lowMemoryWarning_removeOfType() throws {
+        // given a builder with default services
+        let builder = CaptureServicesOptionsBuilder()
+        builder.addDefaults()
+
+        // when removing low memory warning via the class-type overload
+        builder.remove(ofType: LowMemoryWarningCaptureService.self)
+
+        // then only low memory warning is removed; low power mode is untouched
+        let options = builder.build()
+
+        XCTAssertFalse(options.lowMemoryWarning)
+        XCTAssertTrue(options.lowPowerMode)
+    }
+
+    func test_lowPowerMode_removeOfType() throws {
+        // given a builder with default services
+        let builder = CaptureServicesOptionsBuilder()
+        builder.addDefaults()
+
+        // when removing low power mode via the class-type overload
+        builder.remove(ofType: LowPowerModeCaptureService.self)
+
+        // then only low power mode is removed; low memory warning is untouched
+        let options = builder.build()
+
+        XCTAssertFalse(options.lowPowerMode)
+        XCTAssertTrue(options.lowMemoryWarning)
+    }
+
     #if !os(watchOS) && !os(macOS)
         func test_hang() throws {
             // given a builder

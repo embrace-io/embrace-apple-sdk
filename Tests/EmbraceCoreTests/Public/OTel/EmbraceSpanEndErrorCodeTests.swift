@@ -8,7 +8,7 @@ import XCTest
 
 class EmbraceSpanEndErrorCodeTests: XCTestCase {
 
-    func end_withErrorCode() throws {
+    func test_end_withErrorCode_failure() throws {
         // given a span
         let span = MockSpan(name: "test")
 
@@ -21,10 +21,38 @@ class EmbraceSpanEndErrorCodeTests: XCTestCase {
         // and has the error code attribute
         XCTAssertEqual(span.endTime, endTime)
         XCTAssertEqual(span.status, .error)
-        XCTAssertEqual(span.attributes["emb.error_code"] as! String, "faliure")
+        XCTAssertEqual(span.attributes["emb.error_code"] as! String, "failure")
     }
 
-    func end_withErrorCode_nil() throws {
+    func test_end_withErrorCode_userAbandon() throws {
+        // given a span
+        let span = MockSpan(name: "test")
+
+        // when ending it with the user-abandon error code
+        let endTime = Date(timeIntervalSince1970: 50)
+        span.end(errorCode: .userAbandon, endTime: endTime)
+
+        // then it ends correctly with status "error" and the matching attribute
+        XCTAssertEqual(span.endTime, endTime)
+        XCTAssertEqual(span.status, .error)
+        XCTAssertEqual(span.attributes["emb.error_code"] as! String, "user_abandon")
+    }
+
+    func test_end_withErrorCode_unknown() throws {
+        // given a span
+        let span = MockSpan(name: "test")
+
+        // when ending it with the unknown error code
+        let endTime = Date(timeIntervalSince1970: 50)
+        span.end(errorCode: .unknown, endTime: endTime)
+
+        // then it ends correctly with status "error" and the matching attribute
+        XCTAssertEqual(span.endTime, endTime)
+        XCTAssertEqual(span.status, .error)
+        XCTAssertEqual(span.attributes["emb.error_code"] as! String, "unknown")
+    }
+
+    func test_end_withErrorCode_nil() throws {
         // given a span
         let span = MockSpan(name: "test")
 

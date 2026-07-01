@@ -76,4 +76,26 @@ class EncodableJSONTests: XCTestCase {
         XCTAssertEqual(result["double"] as! Double, 11)
         XCTAssertEqual(result["null"] as! NSNull, NSNull())
     }
+
+    func test_encoding_unsupportedValueInDictionary_throwsInvalidValue() {
+        // Date is not a JSON-encodable primitive in our switch -> hits the `default` throw
+        let model = TestableEncodable(with: ["bad": Date()])
+
+        XCTAssertThrowsError(try JSONEncoder().encode(model)) { error in
+            guard let encodingError = error as? EncodingError, case .invalidValue = encodingError else {
+                return XCTFail("expected EncodingError.invalidValue, got \(error)")
+            }
+        }
+    }
+
+    func test_encoding_unsupportedValueInArray_throwsInvalidValue() {
+        // the unkeyed-container path has its own `default` throw for non-JSON array elements
+        let model = TestableEncodable(with: ["arr": [Date()]])
+
+        XCTAssertThrowsError(try JSONEncoder().encode(model)) { error in
+            guard let encodingError = error as? EncodingError, case .invalidValue = encodingError else {
+                return XCTFail("expected EncodingError.invalidValue, got \(error)")
+            }
+        }
+    }
 }

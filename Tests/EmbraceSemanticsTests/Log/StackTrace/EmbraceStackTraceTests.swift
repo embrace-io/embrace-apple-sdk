@@ -8,24 +8,17 @@ import XCTest
 class EmbraceStackTraceTests: XCTestCase {
     // MARK:  - Overall behaviour
 
-    func test_init_withEmptyFramesShouldntThrow() {
-        XCTAssertNoThrow(try EmbraceStackTrace(frames: []))
+    func test_init_withEmptyFrames_returnsInstance() {
+        XCTAssertNotNil(EmbraceStackTrace(frames: []))
     }
 
-    func test_init_withRandomFramesShouldThrow() {
-        XCTAssertThrowsError(try EmbraceStackTrace(frames: [UUID().uuidString])) { error in
-            if let error = error as? EmbraceStackTraceError {
-                XCTAssertTrue(error == .invalidFormat)
-            } else {
-                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
-            }
-        }
+    func test_init_withRandomFrames_returnsNil() {
+        XCTAssertNil(EmbraceStackTrace(frames: [UUID().uuidString]))
     }
 
     func test_init_shouldBeAbleToBeGeneratedWithThreadCallStackAndKeepInformation() throws {
         let threadStackTrace = Thread.callStackSymbols
-        // Implicit `XCTAssertNoThrow`
-        let embraceStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
+        let embraceStackTrace = try XCTUnwrap(EmbraceStackTrace(frames: threadStackTrace))
         XCTAssertEqual(embraceStackTrace.frames.count, threadStackTrace.count)
     }
 
@@ -65,28 +58,22 @@ class EmbraceStackTraceTests: XCTestCase {
             "30  Foundation                          0x000000018bb13668 NSExtensionMain + 204",
             "31  dyld                                0x000000018a4fb154 start + 2476"
         ]
-        let embraceStackTrace = try EmbraceStackTrace(frames: customStackTrace)
+        let embraceStackTrace = try XCTUnwrap(EmbraceStackTrace(frames: customStackTrace))
         XCTAssertEqual(embraceStackTrace.frames.count, customStackTrace.count)
     }
 
-    func test_init_ifOneFrameIsInvalid_shouldThrow() {
+    func test_init_ifOneFrameIsInvalid_returnsNil() {
         let invalidStackTrace = [
             "0   Page_Contents                       0x000000010af45dec main + 136",  // valid frame
             "a",  // invalid frame
             "2   CoreFoundation                      0x000000018a965070 __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ + 28"  // valid frame
         ]
-        XCTAssertThrowsError(try EmbraceStackTrace(frames: invalidStackTrace)) { error in
-            if let error = error as? EmbraceStackTraceError {
-                XCTAssertTrue(error == .invalidFormat)
-            } else {
-                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
-            }
-        }
+        XCTAssertNil(EmbraceStackTrace(frames: invalidStackTrace))
     }
 
     func test_initWithHugeStackTrace_shouldTrimToTwoHundredFrames() throws {
-        let stackTrace = try EmbraceStackTrace(
-            frames: generateRandomStackFrames(numberOfFrames: .random(in: 201...10000)))
+        let stackTrace = try XCTUnwrap(
+            EmbraceStackTrace(frames: generateRandomStackFrames(numberOfFrames: .random(in: 201...10000))))
         XCTAssertEqual(stackTrace.frames.count, 200)
         XCTAssertTrue(stackTrace.frames.first!.starts(with: "0"))
         XCTAssertTrue(stackTrace.frames.last!.starts(with: "199"))
@@ -96,107 +83,59 @@ class EmbraceStackTraceTests: XCTestCase {
 
     func test_stackFrame_shouldStartWithNumber() {
         let invalidFrame = "   EmbraceApp    0x0000000001234abc  -[MyClass myMethod] + 48"
-        XCTAssertThrowsError(try EmbraceStackTrace(frames: [invalidFrame])) { error in
-            if let error = error as? EmbraceStackTraceError {
-                XCTAssertTrue(error == .invalidFormat)
-            } else {
-                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
-            }
-        }
+        XCTAssertNil(EmbraceStackTrace(frames: [invalidFrame]))
     }
 
     func test_stackFrame_shouldHaveSpaceAfterFrameNumber() {
         let invalidFrame = "0EmbraceApp    0x0000000001234abc  -[MyClass myMethod] + 48"
-        XCTAssertThrowsError(try EmbraceStackTrace(frames: [invalidFrame])) { error in
-            if let error = error as? EmbraceStackTraceError {
-                XCTAssertTrue(error == .invalidFormat)
-            } else {
-                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
-            }
-        }
+        XCTAssertNil(EmbraceStackTrace(frames: [invalidFrame]))
     }
 
     func test_stackFrame_shouldContainModuleName() {
         let invalidFrame = "0   0x0000000001234abc  -[MyClass myMethod] + 48"
-        XCTAssertThrowsError(try EmbraceStackTrace(frames: [invalidFrame])) { error in
-            if let error = error as? EmbraceStackTraceError {
-                XCTAssertTrue(error == .invalidFormat)
-            } else {
-                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
-            }
-        }
+        XCTAssertNil(EmbraceStackTrace(frames: [invalidFrame]))
     }
 
     func test_stackFrame_shouldAllowSpacesInModuleName() {
         let validFrame = "0   Embrace SDK    0x0000000001234abc  -[MyClass myMethod] + 48"
-        XCTAssertNoThrow(try EmbraceStackTrace(frames: [validFrame]))
+        XCTAssertNotNil(EmbraceStackTrace(frames: [validFrame]))
     }
 
     func test_stackFrame_shouldAllowUnicodeCharsInModuleName() {
         let validFrame = "0   xx    0x0000000001234abc  -[MyClass myMethod] + 48"
-        XCTAssertNoThrow(try EmbraceStackTrace(frames: [validFrame]))
+        XCTAssertNotNil(EmbraceStackTrace(frames: [validFrame]))
     }
 
     func test_stackFrame_shouldHaveSpaceBeforeMemoryAddress() {
         let invalidFrame = "0   EmbraceApp0x0000000001234abc  -[MyClass myMethod] + 48"
-        XCTAssertThrowsError(try EmbraceStackTrace(frames: [invalidFrame])) { error in
-            if let error = error as? EmbraceStackTraceError {
-                XCTAssertTrue(error == .invalidFormat)
-            } else {
-                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
-            }
-        }
+        XCTAssertNil(EmbraceStackTrace(frames: [invalidFrame]))
     }
 
     func test_stackFrame_shouldHaveHexAddress() {
         let invalidFrame = "0   EmbraceApp    1234abc  -[MyClass myMethod] + 48"
-        XCTAssertThrowsError(try EmbraceStackTrace(frames: [invalidFrame])) { error in
-            if let error = error as? EmbraceStackTraceError {
-                XCTAssertTrue(error == .invalidFormat)
-            } else {
-                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
-            }
-        }
+        XCTAssertNil(EmbraceStackTrace(frames: [invalidFrame]))
     }
 
     func test_stackFrame_shouldHaveSpaceBeforeSymbol() {
         let invalidFrame = "0   EmbraceApp    0x0000000001234abc-[MyClass myMethod] + 48"
-        XCTAssertThrowsError(try EmbraceStackTrace(frames: [invalidFrame])) { error in
-            if let error = error as? EmbraceStackTraceError {
-                XCTAssertTrue(error == .invalidFormat)
-            } else {
-                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
-            }
-        }
+        XCTAssertNil(EmbraceStackTrace(frames: [invalidFrame]))
     }
 
     func test_stackFrame_shouldHaveFunctionSymbol() {
         let invalidFrame = "0   EmbraceApp    0x0000000001234abc  "
-        XCTAssertThrowsError(try EmbraceStackTrace(frames: [invalidFrame])) { error in
-            if let error = error as? EmbraceStackTraceError {
-                XCTAssertTrue(error == .invalidFormat)
-            } else {
-                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
-            }
-        }
+        XCTAssertNil(EmbraceStackTrace(frames: [invalidFrame]))
     }
 
     func test_stackFrame_couldHaveSlideOffsetForSymbol() {
         let symbolWithSlideOffsetFrame = "0   EmbraceApp    0x0000000001234abc  + 48"
         let symbolWithoutSlideOffsetFrame = "0   EmbraceApp    0x0000000001234abc  + 48"
-        XCTAssertNoThrow(try EmbraceStackTrace(frames: [symbolWithSlideOffsetFrame]))
-        XCTAssertNoThrow(try EmbraceStackTrace(frames: [symbolWithoutSlideOffsetFrame]))
+        XCTAssertNotNil(EmbraceStackTrace(frames: [symbolWithSlideOffsetFrame]))
+        XCTAssertNotNil(EmbraceStackTrace(frames: [symbolWithoutSlideOffsetFrame]))
     }
 
     func test_stackFrame_cantHaveMoreThanTenThousandCharacters() {
         let longFrame = String(repeating: "A", count: 10001)
-        XCTAssertThrowsError(try EmbraceStackTrace(frames: [longFrame])) { error in
-            if let error = error as? EmbraceStackTraceError {
-                XCTAssertTrue(error == .frameIsTooLong)
-            } else {
-                XCTFail("Error should be `EmbraceStackTraceError.invalidFormat`")
-            }
-        }
+        XCTAssertNil(EmbraceStackTrace(frames: [longFrame]))
     }
 }
 

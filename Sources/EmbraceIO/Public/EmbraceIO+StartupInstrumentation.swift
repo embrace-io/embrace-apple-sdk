@@ -16,6 +16,7 @@ extension EmbraceIO {
     /// - Parameters:
     ///    - name: The name of the span.
     ///    - startTime: The start time of the span.
+    ///    - endTime: The end time of the span, if already known. Defaults to `nil`.
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: An `EmbraceSpan` or nil if the root span was not found.
     public func createStartupChildSpan(
@@ -36,9 +37,7 @@ extension EmbraceIO {
     /// If the root span is not found or an attribute fails to be set, a warning is logged.
     /// - Parameters:
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
-    /// - Returns: A boolean indicating if the operation was succesful.
-    @discardableResult
-    public func addAttributesToStartupTrace(_ attributes: EmbraceAttributes) -> Bool {
-        Embrace.client?.startupInstrumentation.addAttributesToStartupTrace(attributes) ?? false
+    public func addAttributesToStartupTrace(_ attributes: EmbraceAttributes) {
+        Embrace.client?.startupInstrumentation.addAttributesToStartupTrace(attributes)
     }
 }

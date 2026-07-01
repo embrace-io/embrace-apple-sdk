@@ -365,7 +365,7 @@ package class Embrace {
     /// Method used to stop the Embrace SDK from capturing and generating data.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Note: This method won't do anything if the Embrace SDK was already stopped.
-    /// - Note: The SDK can't be started again once stopped.
+    /// - Note: Once stopped, the SDK can't be started again in the same process.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     package func stop() throws -> Embrace {
@@ -428,11 +428,6 @@ package class Embrace {
             guard self.userSessionController.canManuallyEnd(now: now) else { return }
             self.sessionController.rollPartForUserSessionExpiry(reason: .manual, at: now)
         }
-    }
-
-    /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
-    package func resetUploadCache() {
-        Embrace.resetUploadCache = true
     }
 
     /// Waits synchronously for all queued SDK work to drain.

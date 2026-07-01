@@ -98,7 +98,7 @@ class SimonGameModel {
             // fail
             gameState = .roundFail
             roundSpan?.end(errorCode: .failure)
-            try? gameSpan?.setAttribute(key: "round.number", value: String(roundNumber))
+            gameSpan?.setAttribute(key: "round.number", value: String(roundNumber))
             gameSpan?.end()
             Timer.scheduledTimer(withTimeInterval: 2.4, repeats: false) { _ in
                 self.reset()

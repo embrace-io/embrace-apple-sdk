@@ -78,7 +78,7 @@ class InternalEmbraceSpanTests: XCTestCase {
         let span = testSpan
 
         // when setting a new attribute
-        try span.setAttribute(key: "key", value: "value")
+        span.setAttribute(key: "key", value: "value")
 
         // then the attribute is set
         // the internal counter increases

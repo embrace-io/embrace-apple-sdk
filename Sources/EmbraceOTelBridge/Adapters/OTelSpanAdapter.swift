@@ -103,7 +103,7 @@ class OTelSpanAdapter: EmbraceSpan {
     @discardableResult
     func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) -> EmbraceSpanLink? { nil }
 
-    func setAttribute(key: String, value: EmbraceAttributeValue?) throws {}
+    func setAttribute(key: String, value: EmbraceAttributeValue?) {}
     func end(endTime: Date) {}
     func end() {}
 }

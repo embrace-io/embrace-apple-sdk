@@ -76,7 +76,7 @@ public protocol EmbraceSpan {
 
     /// Sets an attribute to the span
     /// Can fail if the attribute limit is reached.
-    func setAttribute(key: String, value: EmbraceAttributeValue?) throws
+    func setAttribute(key: String, value: EmbraceAttributeValue?)
 
     /// Ends the span with the given `endTime`
     func end(endTime: Date)

@@ -337,7 +337,7 @@ class ImmutableSpanRecord: EmbraceSpan {
         // no op
     }
 
-    func setAttribute(key: String, value: EmbraceAttributeValue?) throws {
+    func setAttribute(key: String, value: EmbraceAttributeValue?) {
         // no op
     }
 }
