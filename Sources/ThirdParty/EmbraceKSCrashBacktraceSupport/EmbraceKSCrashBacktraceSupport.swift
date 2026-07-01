@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
+
 #if canImport(KSCrash)
     import KSCrash
 #else
@@ -38,7 +42,11 @@ public class KSCrashBacktracing {
         if thread == pthread_self() {
             addresses = Thread.callStackReturnAddresses.compactMap { $0 as? UInt }
         } else {
-            let count = captureBacktrace(thread: thread, addresses: &addresses, count: Int32(entries))
+            // `captureBacktrace` reaches KSCrash's binary-image cache; serialize against the
+            // crash-reporter install and symbolication paths. See `KSCrashGlobalsLock`.
+            let count = KSCrashGlobalsLock.withLock {
+                captureBacktrace(thread: thread, addresses: &addresses, count: Int32(entries))
+            }
             addresses = Array(addresses[0..<Int(count)])
         }
         return addresses
@@ -46,21 +54,25 @@ public class KSCrashBacktracing {
 
     package func resolve(address: UInt) -> SymbolicatedFrame? {
 
-        var result = SymbolInformation()
-        guard symbolicate(address: UInt(address), result: &result) else {
-            return nil
-        }
+        // `symbolicate` (-> `ksbt_symbolicateAddress` -> `ksbic_init`) and the Swift demangler both
+        // touch unsynchronized KSCrash globals; serialize against install/capture. See `KSCrashGlobalsLock`.
+        KSCrashGlobalsLock.withLock {
+            var result = SymbolInformation()
+            guard symbolicate(address: UInt(address), result: &result) else {
+                return nil
+            }
 
-        return SymbolicatedFrame(
-            returnAddress: result.returnAddress,
-            callInstruction: result.callInstruction,
-            symbolAddress: result.symbolAddress,
-            symbolName: result.symbolName.flatMap { backtraceDemangle(String(cString: $0)) },
-            imageName: result.imageName.flatMap { String(cString: $0) },
-            imageUUID: NSUUID(uuidBytes: result.imageUUID).uuidString,
-            imageAddress: result.imageAddress,
-            imageSize: result.imageSize
-        )
+            return SymbolicatedFrame(
+                returnAddress: result.returnAddress,
+                callInstruction: result.callInstruction,
+                symbolAddress: result.symbolAddress,
+                symbolName: result.symbolName.flatMap { backtraceDemangle(String(cString: $0)) },
+                imageName: result.imageName.flatMap { String(cString: $0) },
+                imageUUID: NSUUID(uuidBytes: result.imageUUID).uuidString,
+                imageAddress: result.imageAddress,
+                imageSize: result.imageSize
+            )
+        }
     }
 
     private func backtraceDemangle(_ symbol: String?) -> String {
