@@ -16,6 +16,26 @@ extension XCTestCase {
 }
 
 extension XCTestCase {
+    /// Skips the test when it runs under ThreadSanitizer or AddressSanitizer.
+    ///
+    /// Xcode injects `TSAN_OPTIONS` / `ASAN_OPTIONS` into the test process when the
+    /// corresponding sanitizer is enabled, so their presence is a reliable signal.
+    ///
+    /// Use this for tests that are fundamentally incompatible with sanitizer runs:
+    /// - Performance tests (`measure(...)`): the instrumentation dominates timing and
+    ///   I/O, so the numbers are meaningless, and some `XCTMetric` teardown paths crash
+    ///   (e.g. `XCTStorageMetric` BUS-faults in `objc_release` under TSan).
+    /// - Code paths the sanitizers can't handle, such as KSCrash's binary-image cache
+    ///   (TSan aborts; ASan deadlocks until the job timeout fires).
+    public func XCTSkipIfSanitizing(_ message: String? = nil) throws {
+        let env = ProcessInfo.processInfo.environment
+        guard env["TSAN_OPTIONS"] == nil, env["ASAN_OPTIONS"] == nil else {
+            throw XCTSkip(message ?? "Skipping test under sanitizer instrumentation")
+        }
+    }
+}
+
+extension XCTestCase {
     // this makes it easy to guard against watchOS without warnings
     public static func isWatchOS() -> Bool {
         #if os(watchOS)
