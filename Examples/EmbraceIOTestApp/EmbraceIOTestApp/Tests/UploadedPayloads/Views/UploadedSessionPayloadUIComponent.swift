@@ -71,7 +71,11 @@ struct UploadedSessionPayloadUIComponent: View {
                 TestScreenButtonView(viewModel: viewModel)
                     .disabled(viewModel.testButtonDisabled)
                     .onAppear {
+                        // `dataCollector` is only available here (not at init), so refresh the
+                        // posted-session list now — otherwise sessions posted before this page
+                        // opened stay invisible until the next payload arrives.
                         viewModel.dataCollector = dataCollector
+                        viewModel.refresh()
                     }
                     .padding(.bottom, 140)
             }

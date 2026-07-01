@@ -8,7 +8,7 @@ import EmbraceCore
 import OpenTelemetrySdk
 import SwiftUI
 
-@Observable class TestSpanExporter: SpanExporter {
+@Observable final class TestSpanExporter: SpanExporter {
     var cachedExportedSpans: [String: [SpanData]] {
         Dictionary(grouping: _cachedSpans, by: { $0.name })
     }

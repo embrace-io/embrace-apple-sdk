@@ -33,8 +33,12 @@ class FinishedSessionTest: PayloadTest {
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 
+        // Match on `emb.session_part_id` — the part UUID that `currentSessionId` returns. The
+        // exported `emb-session` span deliberately does NOT carry `session.id` / `emb.user_session_id`;
+        // those are stamped only at payload-build time from the stored `SessionRecord.userSessionId`.
+        // See `UploadedSessionPayloadTest` for the identity assertions on the uploaded payload.
         let (resultItem, sessionSpan) = evaluateSpanExistence(
-            identifiedBy: currentSession, underAttributeKey: "session.id", on: spans)
+            identifiedBy: currentSession, underAttributeKey: "emb.session_part_id", on: spans)
         testItems.append(resultItem)
 
         guard let sessionSpan = sessionSpan else {
@@ -57,7 +61,7 @@ class FinishedSessionTest: PayloadTest {
 
         testItems.append(evaluate("emb.type", expecting: "ux.session", on: sessionSpan.attributes))
         testItems.append(evaluate("emb.state", expecting: "foreground", on: sessionSpan.attributes))
-        testItems.append(evaluate("session.id", expecting: currentSession, on: sessionSpan.attributes))
+        testItems.append(evaluate("emb.session_part_id", expecting: currentSession, on: sessionSpan.attributes))
         testItems.append(evaluate("emb.heartbeat_time_unix_nano", expectedToExist: true, on: sessionSpan.attributes))
         testItems.append(evaluate("emb.cold_start", expectedToExist: true, on: sessionSpan.attributes))
         testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(sessionSpan.attributes))

@@ -89,10 +89,81 @@ class UploadedSessionPayloadTest: PayloadTest {
         let jsonType = (postedJsons.first { $0["type"] as? String != nil })?["type"] as? String
         testItems.append(.init(target: "type", expected: "spans", recorded: jsonType))
 
+        testSessionIdentity(on: postedJsons, testItems: &testItems)
+
         let resources =
             postedJsons.first { $0["resource"] as? JsonDictionary != nil }?["resource"] as? JsonDictionary ?? [:]
         testResourceInclussion(on: resources, testItems: &testItems)
         return .init(items: testItems)
+    }
+
+    /// Validates the session-identity attributes that are stamped onto the `emb-session` span at
+    /// payload-build time (they are NOT present on the exported span). In v7 `session.id` carries
+    /// the user-session UUID, `emb.user_session_id` mirrors it, and `emb.session_part_id` carries
+    /// the individual part UUID. `sessionIdToTest` is the payload's `session.id`, so it is also the
+    /// expected user-session id.
+    private func testSessionIdentity(on postedJsons: [JsonDictionary], testItems: inout [TestReportItem]) {
+        let sessionSpanAttributesList = postedJsons.compactMap { sessionSpanAttributes(in: $0) }
+        guard !sessionSpanAttributesList.isEmpty else {
+            testItems.append(.init(target: "emb-session span in payload", expected: "Found", recorded: "Missing"))
+            return
+        }
+
+        sessionSpanAttributesList.forEach { attributes in
+            let sessionId = attributes["session.id"]
+            testItems.append(
+                .init(
+                    target: "session.id",
+                    expected: sessionIdToTest,
+                    recorded: sessionId ?? "missing",
+                    result: sessionId == sessionIdToTest ? .success : .fail))
+
+            // In v7 `emb.user_session_id` mirrors `session.id`.
+            let userSessionId = attributes["emb.user_session_id"]
+            testItems.append(
+                .init(
+                    target: "emb.user_session_id",
+                    expected: sessionIdToTest,
+                    recorded: userSessionId ?? "missing",
+                    result: userSessionId == sessionIdToTest ? .success : .fail))
+
+            // The part UUID must be present and distinct from the user-session id.
+            let partId = attributes["emb.session_part_id"] ?? ""
+            let partIdValid = !partId.isEmpty && partId != sessionIdToTest
+            testItems.append(
+                .init(
+                    target: "emb.session_part_id",
+                    expected: "non-empty part id (≠ session.id)",
+                    recorded: partId.isEmpty ? "missing" : partId,
+                    result: partIdValid ? .success : .fail))
+
+            testItems.append(.init(target: "emb.type", expected: "ux.session", recorded: attributes["emb.type"] ?? "missing"))
+            testItems.append(
+                .init(
+                    target: "emb.user_session_part_index",
+                    expected: "exists",
+                    recorded: attributes["emb.user_session_part_index"] != nil ? "exists" : "missing",
+                    result: attributes["emb.user_session_part_index"] != nil ? .success : .fail))
+        }
+    }
+
+    /// Extracts the `emb-session` span's attributes (key → value) from a posted payload, checking
+    /// both closed spans and span snapshots.
+    private func sessionSpanAttributes(in postedJson: JsonDictionary) -> [String: String]? {
+        let data = postedJson["data"] as? JsonDictionary
+        let spans = (data?["spans"] as? [JsonDictionary]) ?? []
+        let snapshots = (data?["span_snapshots"] as? [JsonDictionary]) ?? []
+        guard
+            let sessionSpan = (spans + snapshots).first(where: { $0["name"] as? String == "emb-session" }),
+            let attributes = sessionSpan["attributes"] as? [[String: String]]
+        else {
+            return nil
+        }
+        return attributes.reduce(into: [String: String]()) { result, attribute in
+            if let key = attribute["key"], let value = attribute["value"] {
+                result[key] = value
+            }
+        }
     }
 
     private func missingSpanTestResult(_ name: String) -> TestResult {
