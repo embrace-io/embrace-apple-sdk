@@ -64,7 +64,7 @@ public class EmbraceIO {
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Throws: `EmbraceSetupError.invalidAppId` if the provided `appId` is invalid.
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
-    public static func setup(options: EmbraceIO.Options) throws {
+    public static func start(options: EmbraceIO.Options) throws {
 
         // Consturct OTel resources
         let otelResources = EmbraceDefaultResources.build(merging: options.otel?.resource)
@@ -95,17 +95,17 @@ public class EmbraceIO {
             )
         }
 
-        try EmbraceIO.shared.start()
+        try EmbraceIO.shared._start()
     }
 
-    private func start() throws {
+    private func _start() throws {
         try Embrace.client?.start()
     }
 
     /// Method used to stop the Embrace SDK from capturing and generating data.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Note: This method won't do anything if the Embrace SDK was already stopped.
-    /// - Note: The SDK can't be started again once stopped.
+    /// - Note: Once stopped, The SDK can't be started again in the same process.
     public func stop() throws {
         try Embrace.client?.stop()
     }
