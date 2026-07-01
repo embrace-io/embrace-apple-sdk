@@ -119,11 +119,6 @@ public class EmbraceIO {
         Embrace.client?.endUserSession()
     }
 
-    /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
-    public func resetUploadCache() {
-        Embrace.client?.resetUploadCache()
-    }
-
     /// Waits synchronously for all queued SDK work to drain.
     ///
     /// SPI for benchmarks and tests — not part of the public SDK surface.

@@ -80,8 +80,7 @@ extension Embrace {
             journalMode: configuration.isWalModeEnabled ? .wal : .delete
         )
 
-        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism, resetCache: resetUploadCache)
-        resetUploadCache = false
+        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism)
 
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
@@ -109,12 +108,6 @@ extension Embrace {
             ManualSessionLifecycle(controller: controller)
         }
     #endif
-
-    static let resetUploadCacheKey = "emb.reset-upload-cache"
-    static var resetUploadCache: Bool {
-        get { UserDefaults.standard.bool(forKey: Embrace.resetUploadCacheKey) }
-        set { UserDefaults.standard.set(newValue, forKey: Embrace.resetUploadCacheKey) }
-    }
 }
 
 /// Extension to handle observability of SDK startup

@@ -430,11 +430,6 @@ package class Embrace {
         }
     }
 
-    /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
-    package func resetUploadCache() {
-        Embrace.resetUploadCache = true
-    }
-
     /// Waits synchronously for all queued SDK work to drain.
     ///
     /// Drains the internal processing queue and the OTel bridge's span pipeline so the SDK
