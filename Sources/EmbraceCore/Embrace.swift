@@ -365,7 +365,7 @@ package class Embrace {
     /// Method used to stop the Embrace SDK from capturing and generating data.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Note: This method won't do anything if the Embrace SDK was already stopped.
-    /// - Note: The SDK can't be started again once stopped.
+    /// - Note: Once stopped, the SDK can't be started again in the same process.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     package func stop() throws -> Embrace {

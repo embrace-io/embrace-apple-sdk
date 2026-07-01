@@ -12,7 +12,7 @@ struct BrandGameApp: App {
 
     init() {
         do {
-            try EmbraceIO.setup(options: embraceOptions)
+            try EmbraceIO.start(options: embraceOptions)
 
             addGitInfoProperties()
             smokeTestIfNecessary()

@@ -105,7 +105,7 @@ extension EmbraceInitScreen {
             let services = CaptureServicesOptionsBuilder()
                 .addDefaults()
                 .build()
-            try EmbraceIO.setup(
+            try EmbraceIO.start(
                 options:
                     .withAppId(
                         viewModel.appId,

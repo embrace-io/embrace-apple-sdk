@@ -13,7 +13,7 @@ struct Embrace_tvOS_TestAppApp: App {
     @State private var navigator = AppNavigator()
 
     init() {
-        _ = try? EmbraceIO.setup(options: .withAppId("ejqby"))
+        _ = try? EmbraceIO.start(options: .withAppId("ejqby"))
     }
 
     var body: some Scene {
