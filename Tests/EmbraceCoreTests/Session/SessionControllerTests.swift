@@ -612,8 +612,11 @@ final class SessionControllerTests: XCTestCase {
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSessionsUrl())
 
-        // given a started session
-        let controller = SessionController(storage: storage, upload: upload, config: nil)
+        // given a started session. A synchronous upload queue keeps the end-session
+        // upload dispatch on the calling thread instead of hopping through the shared
+        // GCD pool, which can be starved under CI load and leave the request unsent.
+        let controller = SessionController(
+            storage: storage, upload: upload, config: nil, queue: MockQueue())
         controller.sdkStateProvider = sdkStateProvider
         controller.otel = otel
         controller.startSession(state: .foreground)
@@ -646,8 +649,11 @@ final class SessionControllerTests: XCTestCase {
         // mock error requests
         EmbraceHTTPMock.mock(url: testSessionsUrl(), errorCode: 500)
 
-        // given a started session
-        let controller = SessionController(storage: storage, upload: upload, config: nil)
+        // given a started session. A synchronous upload queue keeps the end-session
+        // upload dispatch on the calling thread instead of hopping through the shared
+        // GCD pool, which can be starved under CI load and leave the request unsent.
+        let controller = SessionController(
+            storage: storage, upload: upload, config: nil, queue: MockQueue())
         controller.sdkStateProvider = sdkStateProvider
         controller.otel = otel
         controller.startSession(state: .foreground)
@@ -1081,11 +1087,14 @@ final class SessionControllerTests: XCTestCase {
         let session = controller.startSession(state: .foreground)
         var lastDate = session!.lastHeartbeatTime
 
-        // then the heartbeat time is updated
+        // The heartbeat advances on a timer that CI load can delay, so poll for
+        // the timestamp to actually change instead of assuming it happens within
+        // a fixed window.
         for _ in 1...3 {
-            wait(delay: 0.3)
-            XCTAssertNotEqual(lastDate, controller.currentSession!.lastHeartbeatTime)
-            lastDate = controller.currentSession!.lastHeartbeatTime
+            wait(timeout: .longTimeout, interval: .shortInterval) {
+                controller.currentSession?.lastHeartbeatTime != lastDate
+            }
+            lastDate = try XCTUnwrap(controller.currentSession?.lastHeartbeatTime)
         }
     }
 }
