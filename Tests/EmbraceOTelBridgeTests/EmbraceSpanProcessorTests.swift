@@ -4,6 +4,7 @@
 
 import OpenTelemetryApi
 import OpenTelemetrySdk
+import TestSupport
 import XCTest
 
 @testable import EmbraceCommonInternal
@@ -247,10 +248,12 @@ class CapturingSpanProcessor: SpanProcessor {
     var isStartRequired: Bool { true }
     var isEndRequired: Bool { true }
 
-    private(set) var startedSpanNames: [String] = []
-    private(set) var endedSpanNames: [String] = []
-    private(set) var didForceFlush = false
-    private(set) var didShutdown = false
+    // EmbraceSpanProcessor forwards to child processors on a background queue while tests read these
+    // on the main thread, so guard them with a lock.
+    @TestLocked var startedSpanNames: [String] = []
+    @TestLocked var endedSpanNames: [String] = []
+    @TestLocked var didForceFlush = false
+    @TestLocked var didShutdown = false
 
     func onStart(parentContext: SpanContext?, span: ReadableSpan) {
         startedSpanNames.append(span.name)
@@ -270,9 +273,10 @@ class CapturingSpanProcessor: SpanProcessor {
 }
 
 class CapturingSpanExporter: SpanExporter {
-    private(set) var exportedSpans: [SpanData] = []
-    private(set) var didFlush = false
-    private(set) var didShutdown = false
+    // `export` is called on a background queue while tests read these on the main thread; guard them.
+    @TestLocked var exportedSpans: [SpanData] = []
+    @TestLocked var didFlush = false
+    @TestLocked var didShutdown = false
 
     func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
         exportedSpans.append(contentsOf: spans)

@@ -198,7 +198,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         // then the log is created ignoring limits
         wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.batch!.logs[0]
+            let log = self.logController.batcher.currentBatch()!.logs[0]
 
             return log.body == "test" && log.severity == .debug && log.type == .message && log.timestamp == timestamp && log.attributes["key"] as! String == "value"
                 && log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.state"] as! String == "foreground"
@@ -236,7 +236,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         // then the log is forwarded to the bridge without it being added to the batch
         wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.batch)
+        XCTAssertNil(logController.batcher.currentBatch())
         XCTAssertEqual(bridge.createLogCallCount, 1)
 
         // then the log is not saved
@@ -825,7 +825,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         // then the log is added to the batch and saved correctly
         wait(delay: .defaultTimeout)
-        XCTAssertEqual(logController.batcher.batch!.logs.count, 1)
+        XCTAssertEqual(logController.batcher.currentBatch()!.logs.count, 1)
         XCTAssertEqual(storage.fetchAllLogs().count, 1)
     }
 
@@ -842,7 +842,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         // then the log is not added to the batch nor saved
         wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.batch)
+        XCTAssertNil(logController.batcher.currentBatch())
         XCTAssertEqual(storage.fetchAllLogs().count, 0)
     }
 }

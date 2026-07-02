@@ -56,7 +56,8 @@ private final class SpyLogBatcher: LogBatcher {
 
     let logBatchLimits = LogBatchLimits()
     weak var delegate: LogBatcherDelegate?
-    var batch: LogsBatch?
+
+    func currentBatch() -> LogsBatch? { nil }
 
     func addLog(_ log: EmbraceLog) {
         addedLogs.append(log)

@@ -8,35 +8,11 @@ import OpenTelemetrySdk
 
 public class MockSpanProcessor: SpanProcessor {
 
-    private let lock = NSLock()
-
-    private var _startedSpans = [SpanData]()
-    public var startedSpans: [SpanData] {
-        lock.lock()
-        defer { lock.unlock() }
-        return _startedSpans
-    }
-
-    private var _endedSpans = [SpanData]()
-    public var endedSpans: [SpanData] {
-        lock.lock()
-        defer { lock.unlock() }
-        return _endedSpans
-    }
-
-    private var _didShutdown = false
-    public var didShutdown: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return _didShutdown
-    }
-
-    private var _didForceFlush = false
-    public var didForceFlush: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return _didForceFlush
-    }
+    // Appended from background queues while tests read them on the main thread — see `TestLocked`.
+    @TestLocked public private(set) var startedSpans = [SpanData]()
+    @TestLocked public private(set) var endedSpans = [SpanData]()
+    @TestLocked public private(set) var didShutdown = false
+    @TestLocked public private(set) var didForceFlush = false
 
     public init() {}
 
@@ -45,29 +21,19 @@ public class MockSpanProcessor: SpanProcessor {
     public let isEndRequired: Bool = true
 
     public func onStart(parentContext: SpanContext?, span: ReadableSpan) {
-        let data = span.toSpanData()
-        lock.lock()
-        defer { lock.unlock() }
-        _startedSpans.append(data)
+        startedSpans.append(span.toSpanData())
     }
 
     public func onEnd(span: ReadableSpan) {
-        let data = span.toSpanData()
-        lock.lock()
-        defer { lock.unlock() }
-        _endedSpans.append(data)
+        endedSpans.append(span.toSpanData())
     }
 
     public func forceFlush(timeout: TimeInterval?) {
-        lock.lock()
-        defer { lock.unlock() }
-        _didForceFlush = true
+        didForceFlush = true
     }
 
     public func shutdown(explicitTimeout: TimeInterval?) {
-        lock.lock()
-        defer { lock.unlock() }
-        _didShutdown = true
+        didShutdown = true
     }
 
 }

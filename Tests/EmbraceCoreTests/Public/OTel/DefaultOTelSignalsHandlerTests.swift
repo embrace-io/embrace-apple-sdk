@@ -480,7 +480,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the log is created correctly
         wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.batch!.logs[0]
+            let log = self.logController.batcher.currentBatch()!.logs[0]
 
             return log.body == "test" && log.severity == .debug && log.type == .message && log.timestamp == timestamp && log.attributes["key"] as! String == "value"
                 && log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.state"] as! String == "foreground"
@@ -511,7 +511,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // and no log is created
         wait(delay: .shortTimeout)
-        if let batch = logController.batcher.batch {
+        if let batch = logController.batcher.currentBatch() {
             XCTAssertEqual(batch.logs.count, 0)
         }
         XCTAssertEqual(storage.fetchAllLogs().count, 0)
@@ -526,7 +526,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // then the attributes are sanitized
         // then the log is created correctly
         wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.batch!.logs[0]
+            let log = self.logController.batcher.currentBatch()!.logs[0]
 
             return log.attributes["key"] == nil && log.attributes["sanitizedKey"] as! String == "sanitizedValue"
         }
@@ -546,7 +546,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the correct internal attributes are kept
         wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.batch!.logs[0]
+            let log = self.logController.batcher.currentBatch()!.logs[0]
 
             return log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue
                 && log.attributes["emb.state"] as! String == "foreground"
@@ -561,7 +561,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the correct internal attributes are set
         wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.batch!.logs[0]
+            let log = self.logController.batcher.currentBatch()!.logs[0]
 
             return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] as! String == "4" && log.attributes["emb.attachment_error_code"] == nil
         }
@@ -575,7 +575,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the correct internal attributes are set
         wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.batch!.logs[0]
+            let log = self.logController.batcher.currentBatch()!.logs[0]
 
             return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] as! String == "4"
                 && log.attributes["emb.attachment_error_code"] as! String == "OVER_MAX_ATTACHMENTS"
@@ -594,7 +594,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the correct internal attributes are set
         wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.batch!.logs[0]
+            let log = self.logController.batcher.currentBatch()!.logs[0]
 
             return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] as! String == "1048600"
                 && log.attributes["emb.attachment_error_code"] as! String == "ATTACHMENT_TOO_LARGE"
@@ -609,7 +609,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the correct internal attributes are set
         wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.batch!.logs[0]
+            let log = self.logController.batcher.currentBatch()!.logs[0]
 
             return log.attributes["emb.attachment_id"] as! String == "test" && log.attributes["emb.attachment_url"] as! String == url.absoluteString && log.attributes["emb.attachment_size"] == nil
                 && log.attributes["emb.attachment_error_code"] == nil
@@ -624,7 +624,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+        XCTAssertNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
     }
 
     func test_warnLog_defaultStackTrace() throws {
@@ -634,7 +634,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
-        XCTAssertNotNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+        XCTAssertNotNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
     }
 
     func test_errorLog_defaultStackTrace() throws {
@@ -644,7 +644,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
-        XCTAssertNotNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+        XCTAssertNotNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
     }
 
     let customFrames = [
@@ -660,7 +660,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+        XCTAssertNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
     }
 
     func test_warnLog_customStackTrace() throws {
@@ -671,7 +671,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
-        XCTAssertNotNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+        XCTAssertNotNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
     }
 
     func test_errorLog_customStackTrace() throws {
@@ -682,7 +682,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the stack trace is added
         wait(delay: .defaultTimeout)
-        XCTAssertNotNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+        XCTAssertNotNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
     }
 
     func test_log_noStackTrace() throws {
@@ -692,7 +692,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+        XCTAssertNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
     }
 
     func test_warnLog_noStackTrace() throws {
@@ -702,7 +702,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+        XCTAssertNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
     }
 
     func test_errorLog_noStackTrace() throws {
@@ -712,6 +712,6 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the stack trace is not added
         wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.batch!.logs[0].attributes["emb.stacktrace.ios"])
+        XCTAssertNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
     }
 }

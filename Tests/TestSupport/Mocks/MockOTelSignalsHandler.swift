@@ -9,10 +9,12 @@ import Foundation
 
 public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
 
-    private(set) public var startedSpans: [EmbraceSpan] = []
-    private(set) public var endedSpans: [EmbraceSpan] = []
-    private(set) public var events: [EmbraceSpanEvent] = []
-    private(set) public var logs: [EmbraceLog] = []
+    // Appended from background queues (e.g. span delegate callbacks dispatched off the SUT's queues)
+    // while tests read them on the main thread — see `TestLocked`.
+    @TestLocked public private(set) var startedSpans: [EmbraceSpan] = []
+    @TestLocked public private(set) var endedSpans: [EmbraceSpan] = []
+    @TestLocked public private(set) var events: [EmbraceSpanEvent] = []
+    @TestLocked public private(set) var logs: [EmbraceLog] = []
 
     public var currentSessionId: EmbraceIdentifier? = .random
     public var currentProcessId: EmbraceIdentifier = .random
@@ -53,7 +55,6 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         )
 
         startedSpans.append(span)
-
         if endTime != nil {
             endedSpans.append(span)
         }

@@ -22,7 +22,9 @@ protocol LogBatcher: AnyObject {
 
     var logBatchLimits: LogBatchLimits { get }
     var delegate: LogBatcherDelegate? { get set }
-    var batch: LogsBatch? { get }
+
+    /// Test-only: the in-flight batch, read synchronized on the batcher's processing queue.
+    func currentBatch() -> LogsBatch?
 }
 
 class DefaultLogBatcher: LogBatcher {
@@ -32,7 +34,10 @@ class DefaultLogBatcher: LogBatcher {
     weak var delegate: LogBatcherDelegate?
 
     private var batchDeadlineWorkItem: DispatchWorkItem?
-    var batch: LogsBatch?
+
+    // Mutated and read exclusively on `processorQueue` by the SDK. Tests observe it via
+    // `currentBatch()`, which hops onto that same queue so the read can't race these writes.
+    private var batch: LogsBatch?
 
     init(
         logBatchLimits: LogBatchLimits = LogBatchLimits(),
@@ -40,6 +45,12 @@ class DefaultLogBatcher: LogBatcher {
     ) {
         self.logBatchLimits = logBatchLimits
         self.processorQueue = processorQueue
+    }
+
+    /// Test-only synchronized read of `batch`: hops onto `processorQueue` (which owns every `batch`
+    /// mutation) so test-thread reads establish happens-before instead of racing the writes.
+    func currentBatch() -> LogsBatch? {
+        processorQueue.sync { batch }
     }
 }
 
