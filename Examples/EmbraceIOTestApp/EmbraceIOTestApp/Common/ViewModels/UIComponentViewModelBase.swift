@@ -9,20 +9,6 @@ import SwiftUI
 
 @Observable class UIComponentViewModelBase: NSObject, UIComponentViewModelType {
     var dataCollector: DataCollector?
-
-    /// Bump to force SwiftUI to re-evaluate views observing this view model.
-    ///
-    /// Works around an `@Observable` class-inheritance limitation: SwiftUI tracks the *base*
-    /// class's observation registrar, so mutating a *subclass*'s stored properties doesn't trigger
-    /// a re-render on its own. A subclass that mutates its own published-style state outside of a
-    /// SwiftUI binding (e.g. from a notification callback) should call `triggerViewRefresh()`, and
-    /// the view must read `viewRefreshToken` somewhere in its `body` to establish the dependency.
-    private(set) var viewRefreshToken: Int = 0
-
-    func triggerViewRefresh() {
-        viewRefreshToken &+= 1
-    }
-
     private(set) var testReport: TestReport = .init(items: [])
     var readyToTest: Bool = false {
         didSet {
