@@ -101,6 +101,7 @@
 		4D6338632DE1157700557BDC /* NetworkingTestUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6338092DE1157700557BDC /* NetworkingTestUIComponent.swift */; };
 		4D6338642DE1157700557BDC /* NetworkingTestsDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D63380B2DE1157700557BDC /* NetworkingTestsDataModel.swift */; };
 		4D6338652DE1157700557BDC /* FinishedSessionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D63380D2DE1157700557BDC /* FinishedSessionTest.swift */; };
+		4DAA00012DE1157700557BDC /* UserSessionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DAA00022DE1157700557BDC /* UserSessionTest.swift */; };
 		4D6338662DE1157700557BDC /* SessionTestFinishedSessionTestViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D63380F2DE1157700557BDC /* SessionTestFinishedSessionTestViewModel.swift */; };
 		4D6338672DE1157700557BDC /* SessionTestFinishedSessionUIComponent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6338112DE1157700557BDC /* SessionTestFinishedSessionUIComponent.swift */; };
 		4D6338682DE1157700557BDC /* SessionTestsDataModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6338132DE1157700557BDC /* SessionTestsDataModel.swift */; };
@@ -245,6 +246,7 @@
 		4D6338092DE1157700557BDC /* NetworkingTestUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkingTestUIComponent.swift; sourceTree = "<group>"; };
 		4D63380B2DE1157700557BDC /* NetworkingTestsDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkingTestsDataModel.swift; sourceTree = "<group>"; };
 		4D63380D2DE1157700557BDC /* FinishedSessionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinishedSessionTest.swift; sourceTree = "<group>"; };
+		4DAA00022DE1157700557BDC /* UserSessionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSessionTest.swift; sourceTree = "<group>"; };
 		4D63380F2DE1157700557BDC /* SessionTestFinishedSessionTestViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTestFinishedSessionTestViewModel.swift; sourceTree = "<group>"; };
 		4D6338112DE1157700557BDC /* SessionTestFinishedSessionUIComponent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTestFinishedSessionUIComponent.swift; sourceTree = "<group>"; };
 		4D6338132DE1157700557BDC /* SessionTestsDataModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTestsDataModel.swift; sourceTree = "<group>"; };
@@ -762,6 +764,7 @@
 			isa = PBXGroup;
 			children = (
 				4D63380D2DE1157700557BDC /* FinishedSessionTest.swift */,
+				4DAA00022DE1157700557BDC /* UserSessionTest.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -1179,6 +1182,7 @@
 				4D6338632DE1157700557BDC /* NetworkingTestUIComponent.swift in Sources */,
 				4D6338642DE1157700557BDC /* NetworkingTestsDataModel.swift in Sources */,
 				4D6338652DE1157700557BDC /* FinishedSessionTest.swift in Sources */,
+				4DAA00012DE1157700557BDC /* UserSessionTest.swift in Sources */,
 				4D6338662DE1157700557BDC /* SessionTestFinishedSessionTestViewModel.swift in Sources */,
 				4D1E16B82E67AFF2001295A1 /* PerformanceTestLogsUIComponent.swift in Sources */,
 				4D6338672DE1157700557BDC /* SessionTestFinishedSessionUIComponent.swift in Sources */,
