@@ -25,7 +25,6 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
             if selectedPartId.isEmpty || !postedParts.contains(selectedPartId) {
                 selectedPartId = postedParts.last ?? ""
             }
-            triggerViewRefresh()
         }
     }
 
@@ -34,14 +33,12 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
             if oldValue != nil {
                 self.lastSessionId = oldValue
             }
-            triggerViewRefresh()
         }
     }
 
     var selectedPartId: String {
         didSet {
             testObject.partIdToTest = selectedPartId
-            triggerViewRefresh()
         }
     }
 
@@ -55,7 +52,6 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         didSet {
             EmbraceIO.shared.userIdentifier = userInfoIdentifier.isEmpty ? nil : userInfoIdentifier
             updatedUserInfo()
-            triggerViewRefresh()
         }
     }
 

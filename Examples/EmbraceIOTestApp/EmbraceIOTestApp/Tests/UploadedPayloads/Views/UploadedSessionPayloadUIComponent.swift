@@ -82,10 +82,6 @@ struct UploadedSessionPayloadUIComponent: View {
                     .padding(.bottom, 140)
             }
         }
-        // Non-elidable dependency on the base observation registrar: subclass-only state changes
-        // (picker list, current/previous session) bump `viewRefreshToken`, forcing a re-render.
-        // See `UIComponentViewModelBase.viewRefreshToken`.
-        .onChange(of: viewModel.viewRefreshToken) {}
         .onChange(of: scenePhase) {
             viewModel.refresh()
         }
