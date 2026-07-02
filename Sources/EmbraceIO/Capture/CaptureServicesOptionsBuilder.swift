@@ -210,47 +210,47 @@ public class CaptureServicesOptionsBuilder: NSObject {
     /// Removes a previously added `CaptureService` of the given type, if any.
     /// - Parameter type: Type of the `CaptureService` to remove.
     @discardableResult
-    public func remove(ofType type: AnyClass) -> Self {
+    public func remove(ofType: AnyClass) -> Self {
 
-        if type == URLSessionCaptureService.self {
+        if ofType == URLSessionCaptureService.self {
             map[.urlSession] = nil
         }
 
         #if canImport(UIKit) && !os(watchOS)
-            if type == TapCaptureService.self {
+            if ofType == TapCaptureService.self {
                 map[.tap] = nil
             }
 
-            if type == ViewCaptureService.self {
+            if ofType == ViewCaptureService.self {
                 map[.view] = nil
             }
         #endif
 
         #if canImport(WebKit)
-            if type == WebViewCaptureService.self {
+            if ofType == WebViewCaptureService.self {
                 map[.webView] = nil
             }
         #endif
 
-        if type == PushNotificationCaptureService.self {
+        if ofType == PushNotificationCaptureService.self {
             map[.pushNotification] = nil
         }
 
-        if type == LowMemoryWarningCaptureService.self {
+        if ofType == LowMemoryWarningCaptureService.self {
             map[.lowMemoryWarning] = nil
         }
 
-        if type == LowPowerModeCaptureService.self {
+        if ofType == LowPowerModeCaptureService.self {
             map[.lowPowerMode] = nil
         }
 
         #if !os(watchOS) && !os(macOS)
-            if type == HangCaptureService.self {
+            if ofType == HangCaptureService.self {
                 map[.hang] = nil
             }
         #endif
 
-        customServices.removeAll(where: { $0.isKind(of: type) })
+        customServices.removeAll(where: { type(of: $0) == ofType })
 
         return self
     }

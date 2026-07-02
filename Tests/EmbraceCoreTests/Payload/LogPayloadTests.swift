@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import XCTest
 
 @testable import EmbraceCore
@@ -11,8 +12,8 @@ class LogPayloadTests: XCTestCase {
     func test_encodeToJSONProperly() throws {
         let payloadStruct = LogPayload(
             timeUnixNano: "123456789",
-            severityNumber: LogSeverity.info.number,
-            severityText: LogSeverity.info.text,
+            severityNumber: EmbraceLogSeverity.info.rawValue,
+            severityText: EmbraceLogSeverity.info.name,
             body: "Hello World",
             attributes: [
                 .init(key: "hello", value: "world")

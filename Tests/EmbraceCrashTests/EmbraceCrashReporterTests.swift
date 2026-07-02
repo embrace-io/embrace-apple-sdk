@@ -9,6 +9,7 @@
     import EmbraceCommonInternal
     import TestSupport
     import XCTest
+    import EmbraceSemantics
 
     @testable import EmbraceCore
     @testable import EmbraceCrash
@@ -38,6 +39,39 @@
 
             // then KSCrash's user info is properly set
             XCTAssertEqual(crashReporter.getCrashInfo(key: CrashReporterInfoKey.sessionId), sessionId.stringValue)
+        }
+
+        func test_currentUserSessionId_writesEmbUsi() {
+            givenCrashReporter()
+
+            let userSessionId = EmbraceIdentifier.random
+            crashReporter.currentUserSessionId = userSessionId.stringValue
+
+            XCTAssertEqual(
+                crashReporter.getCrashInfo(key: CrashReporterInfoKey.userSessionId),
+                userSessionId.stringValue
+            )
+            XCTAssertEqual(crashReporter.currentUserSessionId, userSessionId.stringValue)
+        }
+
+        func test_currentUserSessionId_clearsWhenSetToNil() {
+            givenCrashReporter()
+
+            crashReporter.currentUserSessionId = "U1"
+            XCTAssertEqual(crashReporter.currentUserSessionId, "U1")
+
+            crashReporter.currentUserSessionId = nil
+            XCTAssertNil(crashReporter.currentUserSessionId)
+        }
+
+        func test_currentUserSessionId_cannotBeOverriddenByPlainAppendCrashInfo() {
+            givenCrashReporter()
+
+            crashReporter.currentUserSessionId = "real-user-session"
+            // External callers cannot overwrite the internal keys via the generic API.
+            crashReporter.appendCrashInfo(key: CrashReporterInfoKey.userSessionId, value: "spoofed")
+
+            XCTAssertEqual(crashReporter.currentUserSessionId, "real-user-session")
         }
 
         func test_sdkVersion() {

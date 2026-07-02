@@ -16,9 +16,7 @@
     // ignoring linting rule to have a lowercase letter first on the class name
     // since we want to use 'iOS'...
 
-    // swiftlint:disable type_name
     final class iOSSessionLifecycle: SessionLifecycle {
-        // swiftlint:enable type_name
 
         var active: Bool = false
         weak var controller: SessionControllable?
@@ -136,11 +134,9 @@
                 return
             }
 
-            if let currentSession = controller.currentSession,
-                let currentState = SessionState(rawValue: currentSession.state)
-            {
+            if let currentSession = controller.currentSession {
 
-                if currentState == .foreground {
+                if currentSession.state == .foreground {
                     // if current session is already foreground, do nothing
                     return
                 }
@@ -177,7 +173,7 @@
 
             // if current session is already background, do nothing
             if let currentSession = controller.currentSession,
-                SessionState(rawValue: currentSession.state) == SessionState.background
+                currentSession.state == .background
             {
                 return
             }

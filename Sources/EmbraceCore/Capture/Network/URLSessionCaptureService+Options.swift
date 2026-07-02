@@ -7,8 +7,7 @@ import Foundation
 extension URLSessionCaptureService {
 
     /// Configuration for W3C `traceparent` header propagation on captured network requests.
-    @objc(EMBURLSessionCaptureServiceTraceparentOptions)
-    public final class Traceparent: NSObject {
+    public struct Traceparent {
         /// First-party domain allowlist. When not nil, only requests whose host matches one of these entries
         /// get a `traceparent` header.
         ///
@@ -22,12 +21,10 @@ extension URLSessionCaptureService {
         /// Nil list (default) = no allowlist filter; the header is sent on every captured
         /// request that passes the other gates.
         /// An empty list means no domains should be captured.
-        @objc public let onlyAllowDomains: [String]?
+        public let onlyAllowDomains: [String]?
 
-        @objc public init(onlyAllowDomains: [String]? = nil) {
+        public init(onlyAllowDomains: [String]? = nil) {
             self.onlyAllowDomains = Traceparent.validated(onlyAllowDomains)
-
-            super.init()
         }
 
         private static func validated(_ entries: [String]?) -> [String]? {
@@ -64,22 +61,21 @@ extension URLSessionCaptureService {
         }
     }
 
-    /// Class used to setup a URLSessionCaptureService.
-    @objc(EMBURLSessionCaptureServiceOptions)
-    public final class Options: NSObject {
+    /// Used to setup a URLSessionCaptureService.
+    public struct Options {
 
         /// `URLSessionRequestsDataSource` instance that will manipulate all network requests
         /// before the Embrace SDK captures their data.
-        @objc public let requestsDataSource: URLSessionRequestsDataSource?
+        public let requestsDataSource: URLSessionRequestsDataSource?
 
         /// List of urls to be ignored by this service.
         /// Any request's url that contains any of these strings will not be captured.
-        @objc public let ignoredURLs: [String]
+        public let ignoredURLs: [String]
 
         /// Options for W3C `traceparent` header propagation.
-        @objc public let traceparent: Traceparent
+        public let traceparent: Traceparent
 
-        @objc public init(
+        public init(
             requestsDataSource: URLSessionRequestsDataSource? = nil,
             ignoredURLs: [String] = [],
             traceparent: Traceparent = Traceparent()
@@ -87,58 +83,6 @@ extension URLSessionCaptureService {
             self.requestsDataSource = requestsDataSource
             self.ignoredURLs = ignoredURLs
             self.traceparent = traceparent
-        }
-
-        /// - Note: `injectTracingHeader` is ignored. Injection rate is now controlled by remote
-        ///   config (`traceparent_injection_pct_enabled`) for managed customers, or by a custom
-        ///   `EmbraceConfigurable.traceparentInjectionEnabled` impl for non-managed setups.
-        @available(
-            *,
-            deprecated,
-            message: "Use init(requestsDataSource:ignoredURLs:traceparent:) instead. injectTracingHeader is ignored."
-        )
-        @objc public init(
-            injectTracingHeader: Bool,
-            requestsDataSource: URLSessionRequestsDataSource?,
-            ignoredURLs: [String],
-            traceparent: Traceparent = Traceparent()
-        ) {
-            self.requestsDataSource = requestsDataSource
-            self.ignoredURLs = ignoredURLs
-            self.traceparent = traceparent
-            Options.logDeprecatedInjectTracingHeaderOnce()
-        }
-
-        @objc public convenience override init() {
-            self.init(requestsDataSource: nil, ignoredURLs: [], traceparent: Traceparent())
-        }
-
-        /// Deprecated. Injection rate is now controlled by remote config. This setter is a no-op.
-        @available(
-            *,
-            deprecated,
-            message:
-                "Injection rate is now controlled via remote config (traceparent_injection_pct_enabled) for managed customers, or via EmbraceConfigurable.traceparentInjectionEnabled for non-managed setups. This property is now a no-op."
-        )
-        @objc public var injectTracingHeader: Bool {
-            get { false }
-            set { Options.logDeprecatedInjectTracingHeaderOnce() }
-        }
-
-        private static let _deprecationLogger: Void = {
-            Embrace.logger.warning(
-                """
-                Options.injectTracingHeader is deprecated and has no effect. \
-                Injection rate is controlled by remote config (traceparent_injection_pct_enabled) \
-                for managed customers, or via a custom EmbraceConfigurable.traceparentInjectionEnabled \
-                for non-managed setups. \
-                NSF customers: you can safely remove this property — server-side migration preserves your settings.
-                """
-            )
-        }()
-
-        internal static func logDeprecatedInjectTracingHeaderOnce() {
-            _ = _deprecationLogger
         }
     }
 }

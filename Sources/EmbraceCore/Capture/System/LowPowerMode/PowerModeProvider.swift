@@ -8,7 +8,7 @@ public protocol PowerModeProvider {
     var isLowPowerModeEnabled: Bool { get }
 }
 
-@objc(EMBDefaultPowerModeProvider)
-public class DefaultPowerModeProvider: NSObject, PowerModeProvider {
-    @objc public var isLowPowerModeEnabled: Bool { ProcessInfo.processInfo.isLowPowerModeEnabled }
+public final class DefaultPowerModeProvider: PowerModeProvider {
+    public init() {}
+    public var isLowPowerModeEnabled: Bool { ProcessInfo.processInfo.isLowPowerModeEnabled }
 }

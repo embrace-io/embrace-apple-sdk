@@ -7,11 +7,10 @@
 
     extension ViewCaptureService {
         /// Class used to setup a `ViewCaptureService`.
-        @objc(EMBViewCaptureServiceOptions)
-        public final class Options: NSObject {
+        public struct Options {
             /// When enabled, the capture service will generate spans that measure the visible period of a `UIViewController`.
             /// The spans start  on `viewDidAppear` and end on `viewDidDisappear`.
-            @objc public let instrumentVisibility: Bool
+            public let instrumentVisibility: Bool
 
             /// When enabled, the capture service will generate spans that measure the loading process of a `UIViewController`
             /// until it renders for the first time.
@@ -25,27 +24,20 @@
             /// The implementers will need to call `setInteractionReady()` on the `UIViewController` to mark the end time.
             /// If the `UIViewController` disappears before the interaction is set as ready, the span status will be set to `error`
             /// with the `userAbandon` error code.
-            @objc public var instrumentFirstRender: Bool
+            public var instrumentFirstRender: Bool
 
             /// Any `UIViewController` contained in this block list will be ignored by the capture service.
             /// Use the `blockHostingControllers` paramenter to determine if `UIHostingControllers` and their child controllers should be captured.
-            @objc public var viewControllerBlockList: ViewControllerBlockList
+            public var viewControllerBlockList: ViewControllerBlockList
 
-            @objc public init(
-                instrumentVisibility: Bool,
-                instrumentFirstRender: Bool,
+            public init(
+                instrumentVisibility: Bool = true,
+                instrumentFirstRender: Bool = true,
                 viewControllerBlockList: ViewControllerBlockList = ViewControllerBlockList()
             ) {
                 self.instrumentVisibility = instrumentVisibility
                 self.instrumentFirstRender = instrumentFirstRender
                 self.viewControllerBlockList = viewControllerBlockList
-            }
-
-            @objc public convenience override init() {
-                self.init(
-                    instrumentVisibility: true,
-                    instrumentFirstRender: true
-                )
             }
         }
     }

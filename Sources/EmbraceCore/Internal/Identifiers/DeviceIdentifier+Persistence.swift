@@ -5,11 +5,11 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
-extension EmbraceIdentifier {
-    static func retrieveDeviceId(fileURL: URL?) -> EmbraceIdentifier {
+class DeviceIdentifierProvider {
+    static func retrieve(fileURL: URL?) -> EmbraceIdentifier {
 
         // retrieve from file
         if let fileURL = fileURL,

@@ -83,34 +83,26 @@ extension SessionAttributesView {
     }
 
     fileprivate func execute() {
-        do {
-            switch action {
-            case .add:
-                try addProperty()
-            case .update:
-                try updateProperty()
-            case .delete:
-                try deleteProperty()
-            }
-            showPopUp = true
-            property.key = ""
-            property.value = ""
-        } catch let exception {
-            print(exception.localizedDescription)
+        switch action {
+        case .add, .update:
+            setProperty()
+        case .delete:
+            deleteProperty()
         }
+        showPopUp = true
+        property.key = ""
+        property.value = ""
     }
 
-    fileprivate func addProperty() throws {
-        let metadata = Embrace.client?.metadata
+    fileprivate func setProperty() {
         switch property.type {
         case .resource:
-            try metadata?.addResource(
-                key: property.key,
-                value: property.value,
-                lifespan: metadataLifespan
-            )
+            // TODO 7.0: Resource runtime mutation is not exposed on the EmbraceIO public surface
+            // (resources are now provided at SDK setup via OTel options). Re-enable when/if
+            // EmbraceIO exposes a runtime resource API.
+            break
         case .sessionProperty:
-            try metadata?.addProperty(
+            EmbraceIO.shared.setProperty(
                 key: property.key,
                 value: property.value,
                 lifespan: metadataLifespan
@@ -118,42 +110,20 @@ extension SessionAttributesView {
         }
     }
 
-    fileprivate func updateProperty() throws {
-        let metadata = Embrace.client?.metadata
+    fileprivate func deleteProperty() {
         switch property.type {
         case .resource:
-            try metadata?.updateResource(
-                key: property.key,
-                value: property.value,
-                lifespan: metadataLifespan
-            )
-        case .sessionProperty:
-            try metadata?.updateProperty(
-                key: property.key,
-                value: property.value,
-                lifespan: metadataLifespan
-            )
-        }
-    }
-
-    fileprivate func deleteProperty() throws {
-        let metadata = Embrace.client?.metadata
-        switch property.type {
-        case .resource:
-            if appliesToAllAttributes {
-                metadata?.removeAllResources(lifespans: [metadataLifespan])
-            } else {
-                try metadata?.removeResource(
-                    key: property.key,
-                    lifespan: metadataLifespan
-                )
-            }
+            // TODO 7.0: Resource runtime mutation is not exposed on the EmbraceIO public surface
+            // (resources are now provided at SDK setup via OTel options). Re-enable when/if
+            // EmbraceIO exposes a runtime resource API.
+            break
         case .sessionProperty:
             if appliesToAllAttributes {
-                metadata?.removeAllProperties(lifespans: [metadataLifespan])
+                EmbraceIO.shared.removeAllProperties(lifespans: [metadataLifespan])
             } else {
-                try metadata?.removeProperty(
+                EmbraceIO.shared.setProperty(
                     key: property.key,
+                    value: nil,
                     lifespan: metadataLifespan
                 )
             }

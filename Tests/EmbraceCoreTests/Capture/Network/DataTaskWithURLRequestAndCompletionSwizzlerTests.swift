@@ -69,9 +69,7 @@ class DataTaskWithURLRequestAndCompletionSwizzlerTests: SwizzlerTestCase {
         givenProxiedUrlSession()
         givenSuccessfulRequest()
         whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
-            // swiftlint:disable force_try
             try! self.thenDataTaskShouldHaveEmbraceHeaders()
-            // swiftlint:enable force_try
             expectation.fulfill()
         })
         wait(for: [expectation])

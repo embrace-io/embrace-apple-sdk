@@ -10,9 +10,7 @@ import XCTest
 
 #if os(iOS) || os(tvOS)
 
-    // swiftlint:disable type_name
     final class iOSSessionLifecycleTests: XCTestCase {
-        // swiftlint:enable type_name
 
         var mockController = MockSessionController()
         var lifecycle: iOSSessionLifecycle!
@@ -42,7 +40,7 @@ import XCTest
             lifecycle.startSession()
 
             XCTAssertTrue(mockController.didCallStartSession)
-            XCTAssertEqual(mockController.currentSession?.state, "foreground")
+            XCTAssertEqual(mockController.currentSession?.state, .foreground)
         }
 
         func test_startSession_whenControllerHasCurrentSession_callsEndSession_andThenStartSession() {
@@ -53,7 +51,7 @@ import XCTest
             XCTAssertTrue(mockController.didCallEndSession)
             XCTAssertTrue(mockController.didCallStartSession)
             XCTAssertNotNil(mockController.currentSession?.state)
-            XCTAssertEqual(mockController.currentSession?.state, "foreground")
+            XCTAssertEqual(mockController.currentSession?.state, .foreground)
         }
 
         func test_startSession_fromNonMainThread_callsControllerStartSession_andSetsSessionState() {
@@ -69,7 +67,7 @@ import XCTest
             }
             wait(for: [expectation], timeout: .longTimeout)
             XCTAssertTrue(mockController.didCallStartSession)
-            XCTAssertEqual(mockController.currentSession?.state, "foreground")
+            XCTAssertEqual(mockController.currentSession?.state, .foreground)
         }
 
         // MARK: endSession
@@ -119,7 +117,7 @@ import XCTest
 
             XCTAssertTrue(mockController.didCallStartSession)
             XCTAssertNotNil(mockController.currentSession)
-            XCTAssertEqual(mockController.currentSession?.state, "foreground")
+            XCTAssertEqual(mockController.currentSession?.state, .foreground)
         }
 
         func test_appDidBecomeActive_hasCurrentSession_withStateForeground_doesNothing() {
@@ -131,7 +129,7 @@ import XCTest
 
             XCTAssertFalse(mockController.didCallStartSession)
             XCTAssertEqual(session!.id, mockController.currentSession!.id)
-            XCTAssertEqual(mockController.currentSession?.state, "foreground")
+            XCTAssertEqual(mockController.currentSession?.state, .foreground)
         }
 
         func test_appDidBecomeActive_hasCurrentSession_coldStartTrue_gracePeriodTrue_callsUpdateToForegroundState_keepsSameSession() {
@@ -170,7 +168,7 @@ import XCTest
             XCTAssertNotEqual(session!.id, mockController.currentSession!.id)
             XCTAssertTrue(mockController.didCallStartSession)
             XCTAssertTrue(mockController.didCallEndSession)
-            XCTAssertEqual(mockController.currentSession!.state, "foreground")
+            XCTAssertEqual(mockController.currentSession!.state, .foreground)
             XCTAssertFalse(mockController.didCallUpdateSession)
         }
 
@@ -185,7 +183,7 @@ import XCTest
             XCTAssertTrue(mockController.didCallEndSession)
             XCTAssertTrue(mockController.didCallStartSession)
             XCTAssertNotEqual(session!.id, mockController.currentSession!.id)
-            XCTAssertEqual(mockController.currentSession?.state, "foreground")
+            XCTAssertEqual(mockController.currentSession?.state, .foreground)
         }
 
         // MARK: appDidEnterBackground
@@ -208,7 +206,7 @@ import XCTest
             XCTAssertNotNil(mockController.currentSession)
             XCTAssertTrue(mockController.didCallStartSession)
             XCTAssertFalse(mockController.didCallEndSession)
-            XCTAssertEqual(mockController.currentSession?.state, "background")
+            XCTAssertEqual(mockController.currentSession?.state, .background)
         }
 
         func test_appDidEnterBackground_hasCurrentSession_withStateBackground_doesNothing() {
@@ -221,7 +219,7 @@ import XCTest
             XCTAssertFalse(mockController.didCallStartSession)
             XCTAssertFalse(mockController.didCallEndSession)
             XCTAssertEqual(session!.id, mockController.currentSession!.id)
-            XCTAssertEqual(mockController.currentSession?.state, "background")
+            XCTAssertEqual(mockController.currentSession?.state, .background)
         }
 
         func test_appDidEnterBackground_hasCurrentSession_withStateForeground_createsNewBackgroundSession() {
@@ -233,7 +231,7 @@ import XCTest
             XCTAssertTrue(mockController.didCallStartSession)
             XCTAssertTrue(mockController.didCallEndSession)
             XCTAssertNotEqual(session!.id, mockController.currentSession!.id)
-            XCTAssertEqual(mockController.currentSession?.state, "background")
+            XCTAssertEqual(mockController.currentSession?.state, .background)
         }
 
         // MARK: appWillTerminate

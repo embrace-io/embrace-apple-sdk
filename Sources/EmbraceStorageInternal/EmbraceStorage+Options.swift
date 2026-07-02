@@ -5,6 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
 #endif
 
@@ -19,7 +20,7 @@ extension EmbraceStorage {
         public let enableBackgroundTasks: Bool
 
         /// Dictionary containing the storage limits per span type
-        public var spanLimits: [SpanType: Int] = [:]
+        public var spanLimits: [EmbraceType: Int] = [:]
 
         /// Default storage limit for unspecified span type
         public var spanLimitDefault: Int = 1500

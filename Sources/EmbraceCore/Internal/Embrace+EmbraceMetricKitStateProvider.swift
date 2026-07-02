@@ -7,23 +7,23 @@
 #endif
 
 extension Embrace: EmbraceMetricKitStateProvider {
-    var isMetricKitInternalMetricsCaptureEnabled: Bool {
-        config.isMetricKitInternalMetricsCaptureEnabled
-    }
-
-    public var isMetricKitEnabled: Bool {
+    var isMetricKitEnabled: Bool {
         config.isMetrickKitEnabled
     }
 
-    public var isMetricKitCrashCaptureEnabled: Bool {
+    var isMetricKitCrashCaptureEnabled: Bool {
         config.isMetricKitCrashCaptureEnabled
     }
 
-    public var metricKitCrashSignals: [Int] {
+    var metricKitCrashSignals: [Int] {
         config.metricKitCrashSignals.map { $0.rawValue }
     }
 
-    public var isMetricKitHangCaptureEnabled: Bool {
+    var isMetricKitHangCaptureEnabled: Bool {
         config.isMetricKitHangCaptureEnabled
+    }
+
+    var isMetricKitInternalMetricsCaptureEnabled: Bool {
+        config.isMetricKitInternalMetricsCaptureEnabled
     }
 }

@@ -8,11 +8,14 @@ import SwiftUI
 
 enum SessionTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     case finishedSessionPayload
+    case userSession
 
     var title: String {
         switch self {
         case .finishedSessionPayload:
             "Finished Session Payload"
+        case .userSession:
+            "End User Session"
         }
     }
 
@@ -20,6 +23,8 @@ enum SessionTestsDataModel: Int, TestScreenDataModel, CaseIterable {
         switch self {
         case .finishedSessionPayload:
             "finishedSessionPayloadTestButton"
+        case .userSession:
+            "userSessionTestButton"
         }
     }
 
@@ -27,6 +32,8 @@ enum SessionTestsDataModel: Int, TestScreenDataModel, CaseIterable {
         switch self {
         case .finishedSessionPayload:
             SessionTestFinishedSessionUIComponent(dataModel: self)
+        case .userSession:
+            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: UserSessionTest()))
         }
     }
 }

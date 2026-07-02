@@ -14,7 +14,7 @@ class EmbraceLogAttributesBuilder {
     private weak var sessionControllable: SessionControllable?
     private var session: EmbraceSession?
     private var crashReport: EmbraceCrashReport?
-    internal var attributes: [String: String]
+    internal var attributes: EmbraceAttributes
 
     private var currentSession: EmbraceSession? {
         session ?? sessionControllable?.currentSession
@@ -23,7 +23,7 @@ class EmbraceLogAttributesBuilder {
     init(
         storage: EmbraceStorageMetadataFetcher?,
         sessionControllable: SessionControllable,
-        initialAttributes: [String: String]
+        initialAttributes: EmbraceAttributes
     ) {
         self.storage = storage
         self.sessionControllable = sessionControllable
@@ -34,7 +34,7 @@ class EmbraceLogAttributesBuilder {
         session: EmbraceSession?,
         crashReport: EmbraceCrashReport? = nil,
         storage: EmbraceStorageMetadataFetcher? = nil,
-        initialAttributes: [String: String]
+        initialAttributes: EmbraceAttributes
     ) {
         self.session = session
         self.storage = storage
@@ -73,12 +73,8 @@ class EmbraceLogAttributesBuilder {
     }
 
     /// Makes sure that `emb.type` attribute is not already set in attributes
-    /// If not set, will set the `emb.type` to the value
     @discardableResult
-    func addLogType(_ logType: LogType) -> Self {
-        guard attributes[LogSemantics.keyEmbraceType] == nil else {
-            return self
-        }
+    func addLogType(_ logType: EmbraceType) -> Self {
         attributes[LogSemantics.keyEmbraceType] = logType.rawValue
         return self
     }
@@ -115,41 +111,42 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addApplicationState() -> Self {
-        guard attributes[LogSemantics.keyState] == nil else {
-            return self
-        }
-
         return addApplicationState(currentSession?.state)
     }
 
     @discardableResult
-    func addApplicationState(_ state: String?) -> Self {
-        guard let state = state,
-            attributes[LogSemantics.keyState] == nil
-        else {
+    func addApplicationState(_ state: SessionState?) -> Self {
+        guard let state = state else {
             return self
         }
-        attributes[LogSemantics.keyState] = state
+        attributes[LogSemantics.keyState] = state.rawValue
         return self
     }
 
     @discardableResult
     func addSessionIdentifier() -> Self {
-        guard attributes[LogSemantics.keySessionId] == nil else {
-            return self
-        }
-
-        return addSessionIdentifier(currentSession?.idRaw)
+        return addSessionIdentifier(
+            partId: currentSession?.id,
+            userSessionId: currentSession?.userSessionId
+        )
     }
 
     @discardableResult
-    func addSessionIdentifier(_ sessionId: String?) -> Self {
-        guard let sessionId = sessionId,
-            attributes[LogSemantics.keySessionId] == nil
-        else {
-            return self
-        }
-        attributes[LogSemantics.keySessionId] = sessionId
+    func addSessionIdentifier(_ sessionId: EmbraceIdentifier?) -> Self {
+        return addSessionIdentifier(partId: sessionId, userSessionId: currentSession?.userSessionId)
+    }
+
+    /// Stamps the three identity keys on the log. All three are always present (empty strings
+    /// when unknown) so the backend can correlate every log back to a user session/part.
+    /// `session.id` carries the user-session UUID in v7; `emb.session_part_id` carries the
+    /// part UUID (the value `session.id` had pre-v7).
+    @discardableResult
+    func addSessionIdentifier(partId: EmbraceIdentifier?, userSessionId: EmbraceIdentifier?) -> Self {
+        let userSessionValue = userSessionId?.stringValue ?? ""
+        let partValue = partId?.stringValue ?? ""
+        attributes[LogSemantics.keySessionId] = userSessionValue
+        attributes[LogSemantics.keyUserSessionId] = userSessionValue
+        attributes[LogSemantics.keyPartId] = partValue
         return self
     }
 
@@ -218,7 +215,7 @@ class EmbraceLogAttributesBuilder {
         return self
     }
 
-    func build() -> [String: String] {
+    func build() -> EmbraceAttributes {
         attributes
     }
 }

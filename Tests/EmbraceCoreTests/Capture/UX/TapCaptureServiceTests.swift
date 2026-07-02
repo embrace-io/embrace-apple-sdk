@@ -6,18 +6,15 @@
     import XCTest
     import UIKit
     @testable import EmbraceCore
-    import EmbraceOTelInternal
     import TestSupport
-
-    // swiftlint:disable force_cast
 
     final class TapCaptureServiceTests: SwizzlerTestCase {
 
-        private var otel: MockEmbraceOpenTelemetry!
+        private var otel: MockOTelSignalsHandler!
 
         override func setUpWithError() throws {
             try super.setUpWithError()
-            otel = MockEmbraceOpenTelemetry()
+            otel = MockOTelSignalsHandler()
         }
 
         override func tearDownWithError() throws {
@@ -161,7 +158,7 @@
             XCTAssertEqual(otel.events.count, 1)
             let event = try XCTUnwrap(otel.events.first)
 
-            XCTAssertEqual(event.attributes["view.name"], .string(viewName))
+            XCTAssertEqual(event.attributes["view.name"] as! String, viewName)
             XCTAssertNotNil(event.attributes["tap.coords"])
         }
 
@@ -181,8 +178,8 @@
             XCTAssertEqual(otel.events.count, 1)
             let event = try XCTUnwrap(otel.events.first)
 
-            XCTAssertEqual(event.attributes["view.name"], .string(viewName))
-            XCTAssertEqual(event.attributes["emb.type"], .string("ux.tap"))
+            XCTAssertEqual(event.attributes["view.name"] as! String, viewName)
+            XCTAssertEqual(event.attributes["emb.type"] as! String, "ux.tap")
             XCTAssertNil(event.attributes["tap.coords"])
         }
     }
@@ -203,7 +200,5 @@
             return shouldCaptureNextCoordinates
         }
     }
-
-// swiftlint:enable force_cast
 
 #endif

@@ -11,35 +11,18 @@ import os
     import EmbraceCommonInternal
     import EmbraceSemantics
     import EmbraceConfigInternal
-    import EmbraceOTelInternal
     import EmbraceConfiguration
     import EmbraceObjCUtilsInternal
 #endif
 
-protocol LogControllable: LogBatcherDelegate {
-    func uploadAllPersistedLogs(_ completion: (() -> Void)?)
-    func createLog(
-        _ message: String,
-        severity: LogSeverity,
-        type: LogType,
-        timestamp: Date,
-        attachment: Data?,
-        attachmentId: String?,
-        attachmentUrl: URL?,
-        attributes: [String: String],
-        stackTraceBehavior: StackTraceBehavior,
-        queue: DispatchQueue
-    )
-}
-
-class LogController: LogControllable {
-    private(set) weak var sessionController: SessionControllable?
-    private weak var storage: Storage?
-    private weak var upload: EmbraceLogUploader?
+class LogController: LogBatcherDelegate {
+    weak var storage: Storage?
+    weak var upload: EmbraceLogUploader?
+    weak var sessionController: SessionControllable?
+    let batcher: LogBatcher
+    let queue: DispatchQueue
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
-
-    var otel: EmbraceOTelBridge = EmbraceOTel()  // var so we can inject a mock for testing
 
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
@@ -50,27 +33,40 @@ class LogController: LogControllable {
     /// Can be overridden in tests to use a fixed value.
     var maxLogsPerBatchProvider: () -> Int = { LogController.adaptiveMaxLogsPerBatch() }
 
-    struct MutableState {
-        var limits: LogsLimits = LogsLimits()
+    private struct Constants {
+        static let attachmentLimit: Int = 5
+        static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
     }
-    private let state = EmbraceMutex(MutableState())
-
-    var limits: LogsLimits {
-        get { state.withLock { $0.limits } }
-        set { state.withLock { $0.limits = newValue } }
-    }
-
-    static let attachmentLimit: Int = 5
-    static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
 
     init(
         storage: Storage?,
         upload: EmbraceLogUploader?,
-        controller: SessionControllable
+        sessionController: SessionControllable,
+        batcher: LogBatcher = DefaultLogBatcher(),
+        queue: DispatchQueue
     ) {
         self.storage = storage
         self.upload = upload
-        self.sessionController = controller
+        self.sessionController = sessionController
+        self.batcher = batcher
+        self.queue = queue
+
+        self.batcher.delegate = self
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onSessionEnd),
+            name: Notification.Name.embraceSessionPartWillEnd,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc func onSessionEnd() {
+        batcher.forceEndCurrentBatch(waitUntilFinished: true)
     }
 
     func uploadAllPersistedLogs(_ completion: (() -> Void)? = nil) {
@@ -79,7 +75,7 @@ class LogController: LogControllable {
             return
         }
 
-        let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: ProcessIdentifier.current)
+        let logs: [EmbraceLog] = storage.fetchAllLogs(excludingProcessIdentifier: ProcessIdentifier.current)
         if logs.isEmpty == false {
             let batchSize = maxLogsPerBatchProvider()
             send(batches: divideInBatches(logs, maxLogsPerBatch: batchSize)) {
@@ -90,17 +86,16 @@ class LogController: LogControllable {
         }
     }
 
-    public func createLog(
+    func createLog(
         _ message: String,
-        severity: LogSeverity,
-        type: LogType = .message,
+        severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
         timestamp: Date = Date(),
-        attachment: Data? = nil,
-        attachmentId: String? = nil,
-        attachmentUrl: URL? = nil,
-        attributes: [String: String] = [:],
-        stackTraceBehavior: StackTraceBehavior = .default,
-        queue: DispatchQueue
+        attachment: EmbraceLogAttachment? = nil,
+        attributes: EmbraceAttributes = [:],
+        stackTraceBehavior: EmbraceStackTraceBehavior = .default,
+        send: Bool = true,
+        completion: ((EmbraceLog?) -> Void)? = nil
     ) {
 
         guard severity != .critical else {
@@ -109,6 +104,7 @@ class LogController: LogControllable {
         }
 
         guard let sessionController = sessionController else {
+            completion?(nil)
             return
         }
 
@@ -131,21 +127,11 @@ class LogController: LogControllable {
         let addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
         switch stackTraceBehavior {
         case .default where severity == .warn || severity == .error:
-            if EmbraceBacktrace.isAvailable {
-                let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), threadIndex: 0)
-                addStacktraceBlock = { $0.addBacktrace(backtrace) }
-            } else {
-                let stacktrace = Thread.callStackSymbols
-                addStacktraceBlock = { $0.addStackTrace(stacktrace) }
-            }
+            let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), threadIndex: 0)
+            addStacktraceBlock = { $0.addBacktrace(backtrace) }
         case .main where severity == .warn || severity == .error:
-            if EmbraceBacktrace.isAvailable {
-                let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), threadIndex: 0)
-                addStacktraceBlock = { $0.addBacktrace(backtrace) }
-            } else {
-                addStacktraceBlock = nil
-                Embrace.logger.warning("stackTraceBehavior .main is unavailable without EmbraceBacktrace")
-            }
+            let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), threadIndex: 0)
+            addStacktraceBlock = { $0.addBacktrace(backtrace) }
         case .custom(let customStackTrace) where severity == .warn || severity == .error:
             let stackTrace = customStackTrace.frames
             addStacktraceBlock = { $0.addStackTrace(stackTrace) }
@@ -166,61 +152,79 @@ class LogController: LogControllable {
                 .build()
 
             // handle attachment data
-            if let attachment = attachment {
+            if let attachment {
 
-                let id = UUID().withoutHyphen
-                finalAttributes[LogSemantics.keyAttachmentId] = id
+                // embrace hosted data
+                if let data = attachment.data {
+                    finalAttributes[LogSemantics.keyAttachmentId] = attachment.id
 
-                let size = attachment.count
-                finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
+                    let size = data.count
+                    finalAttributes[LogSemantics.keyAttachmentSize] = String(size)
 
-                // check attachment count limit
-                if sessionController.attachmentCount >= Self.attachmentLimit {
-                    finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
+                    // check attachment count limit
+                    if sessionController.attachmentCount >= Constants.attachmentLimit {
+                        finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentLimitReached
 
-                    // check attachment size limit
-                } else if size > Self.attachmentSizeLimit {
-                    finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
+                        // check attachment size limit
+                    } else if size > Constants.attachmentSizeLimit {
+                        finalAttributes[LogSemantics.keyAttachmentErrorCode] = LogSemantics.attachmentTooLarge
+                    }
+
+                    // upload attachment
+                    else {
+                        upload?.uploadAttachment(id: attachment.id, data: data, completion: nil)
+                    }
+
+                    sessionController.increaseAttachmentCount()
                 }
 
-                // upload attachment
-                else {
-                    upload?.uploadAttachment(id: id, data: attachment, completion: nil)
+                // pre-hosted attachment
+                else if let url = attachment.url {
+                    finalAttributes[LogSemantics.keyAttachmentId] = attachment.id
+                    finalAttributes[LogSemantics.keyAttachmentUrl] = url.absoluteString
                 }
-
-                sessionController.increaseAttachmentCount()
             }
 
-            // handle pre-uploaded attachment
-            else if let attachmentId = attachmentId,
-                let attachmentUrl = attachmentUrl
-            {
+            // create log
+            let log = DefaultEmbraceLog(
+                id: EmbraceIdentifier.random.stringValue,
+                severity: severity,
+                type: type,
+                timestamp: timestamp,
+                body: message,
+                attributes: finalAttributes,
+                sessionId: sessionController.currentSession?.id
+            )
 
-                finalAttributes[LogSemantics.keyAttachmentId] = attachmentId
-                finalAttributes[LogSemantics.keyAttachmentUrl] = attachmentUrl.absoluteString
+            if send {
+                addLog(log)
             }
 
-            otel.log(message, severity: severity, timestamp: timestamp, attributes: finalAttributes)
+            completion?(log)
         }
+    }
+
+    func addLog(_ log: EmbraceLog) {
+        // save log
+        storage?.saveLog(log)
+
+        // add to batch
+        batcher.addLog(log)
     }
 }
 
 extension LogController {
-    func batchFinished(withLogs logs: [EmbraceLog], sessionId: EmbraceIdentifier?) {
-        guard sdkStateProvider?.isEnabled == true else {
+    func batchFinished(withLogs logs: [EmbraceLog]) {
+        guard sdkStateProvider?.isEnabled == true,
+            logs.isEmpty == false,
+            let sessionId = sessionController?.currentSession?.id
+        else {
             return
         }
 
         do {
-            // Use the provided session ID (passed at call time for session-boundary flushes)
-            // and fall back to the current session for normal mid-session batch rotations.
-            guard let resolvedSessionId = sessionId ?? sessionController?.currentSession?.id,
-                logs.isEmpty == false
-            else {
-                return
-            }
-            let resourcePayload = try createResourcePayload(sessionId: resolvedSessionId)
-            let metadataPayload = try createMetadataPayload(sessionId: resolvedSessionId)
+            let resourcePayload = try createResourcePayload(sessionId: sessionId)
+            let metadataPayload = try createMetadataPayload(sessionId: sessionId)
             send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload, completion: {})
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
@@ -241,7 +245,7 @@ extension LogController {
 
         for batch in batches {
             autoreleasepool {
-                guard !batch.logs.isEmpty, let processId = batch.logs[0].processId else {
+                guard !batch.logs.isEmpty else {
                     return
                 }
 
@@ -253,12 +257,13 @@ extension LogController {
                 // and assume all of them come from the same session.
                 //
                 // If we can't find a sessionId, we use the processId instead
+                let processId = batch.logs[0].processId
 
                 do {
                     var sessionId: EmbraceIdentifier?
-                    if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
-                        if let id = log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw {
-                            sessionId = EmbraceIdentifier(stringValue: id)
+                    if let log = batch.logs.first(where: { $0.attributes[LogSemantics.keySessionId] != nil }) {
+                        if let value = log.attributes[LogSemantics.keySessionId] as? String {
+                            sessionId = EmbraceIdentifier(stringValue: value)
                         }
                     }
 
@@ -360,9 +365,11 @@ extension LogController {
                 batch = LogsBatch(limits: .init(), logs: [log])
             }
         }
+
         if batch.batchState != .closed && !batch.logs.isEmpty {
             batches.append(batch)
         }
+
         return batches
     }
 
@@ -413,7 +420,7 @@ extension LogController {
             return ""
         }
 
-        let types = logs.compactMap { $0.attribute(forKey: LogSemantics.keyEmbraceType)?.valueRaw }
+        let types = logs.compactMap { $0.attributes[LogSemantics.keyEmbraceType] as? String }
         let set = Set(types)
         return set.joined(separator: ",")
     }
@@ -427,11 +434,11 @@ extension LogController {
         case couldntCreatePayload(reason: String)
         case couldntAccessBatches(reason: String)
 
-        public static var errorDomain: String {
+        static var errorDomain: String {
             return "Embrace"
         }
 
-        public var errorCode: Int {
+        var errorCode: Int {
             switch self {
             case .couldntAccessStorageModule:
                 -1
@@ -446,7 +453,7 @@ extension LogController {
             }
         }
 
-        public var errorDescription: String? {
+        var errorDescription: String? {
             switch self {
             case .couldntAccessStorageModule:
                 "Couldn't access to the storage layer"
@@ -461,7 +468,7 @@ extension LogController {
             }
         }
 
-        public var localizedDescription: String {
+        var localizedDescription: String {
             return self.errorDescription ?? "No Matching Error"
         }
 

@@ -3,25 +3,23 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 
 /// Service that generates OpenTelemetry spans when the phone is running in low power mode.
-@objc(EMBLowPowerModeCaptureService)
-public class LowPowerModeCaptureService: CaptureService {
+public final class LowPowerModeCaptureService: CaptureService {
     public let provider: PowerModeProvider
 
     private let wasLowPowerModeEnabled = EmbraceAtomic(false)
-    internal let _currentSpan = EmbraceMutex<Span?>(nil)
-    internal var currentSpan: Span? {
+    internal let _currentSpan = EmbraceMutex<EmbraceSpan?>(nil)
+    internal var currentSpan: EmbraceSpan? {
         _currentSpan.withLock { $0 }
     }
+
     public init(provider: PowerModeProvider = DefaultPowerModeProvider()) {
         self.provider = provider
     }
@@ -70,19 +68,14 @@ public class LowPowerModeCaptureService: CaptureService {
 
         let reason = wasManuallyFetched ? SpanSemantics.LowPower.systemQuery : SpanSemantics.LowPower.systemNotification
 
-        guard
-            let builder = buildSpan(
+        _currentSpan.withLock {
+            $0 = try? otel?.createInternalSpan(
                 name: SpanSemantics.LowPower.name,
                 type: .lowPower,
-                attributes: [SpanSemantics.LowPower.keyStartReason: reason]
+                attributes: [
+                    SpanSemantics.LowPower.keyStartReason: reason
+                ]
             )
-        else {
-            Embrace.logger.warning("Error trying to create low power mode span!")
-            return
-        }
-
-        _currentSpan.withLock {
-            $0 = builder.startSpan()
         }
     }
 

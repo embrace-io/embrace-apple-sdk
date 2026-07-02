@@ -5,24 +5,23 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    @_exported import EmbraceCore  // so users don't have to import EmbraceIO AND EmbraceCore
+    @_exported import EmbraceCore
     import EmbraceCommonInternal
+    import EmbraceOTelBridge
+    @_exported import EmbraceSemantics
 #endif
 
 /// Main class used to interact with the Embrace SDK.
 ///
-/// To start the SDK you first need to configure it using an `EmbraceIO.Options` instance passed in the `setup` static method.
-/// Once the SDK is setup, you can start it by calling the `EmbraceIO.shared.start()`
-///
-/// **Please note that even if you setup the SDK, an Embrace session will not begin until `start` is called. This means data may not be correctly attached to that session.**
+/// To start the SDK call `EmbraceIO.setup(options:)` passing an `EmbraceIO.Options` instance.
+/// The SDK is configured and started in a single step.
 ///
 /// Example:
 /// ```swift
 /// import EmbraceIO
 ///
-/// let options = EmbraceIO.Options(appId: "appId")
+/// let options = EmbraceIO.Options.withAppId("appId")
 /// try EmbraceIO.setup(options: options)
-/// try EmbraceIO.shared.start()
 /// ```
 public class EmbraceIO {
 
@@ -34,7 +33,7 @@ public class EmbraceIO {
     }
 
     /// Used to control the verbosity level of the Embrace SDK console logs.
-    public var logLevel: LogLevel = .error {
+    public var logLevel: EmbraceLogLevel = .error {
         didSet {
             Embrace.setLogLevel(logLevel)
         }
@@ -60,47 +59,71 @@ public class EmbraceIO {
         Embrace.client?.currentSessionId()
     }
 
-    /// Method used to configure the Embrace SDK.
+    /// Method used to configure and start the Embrace SDK.
     /// - Parameter options: `EmbraceIO.Options` to be used by the SDK.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Throws: `EmbraceSetupError.invalidAppId` if the provided `appId` is invalid.
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
-    public static func setup(options: EmbraceIO.Options) throws {
-        if let internalOptions = Embrace.Options.from(options: options) {
-            try Embrace.setup(options: internalOptions, otelResources: options.otel?.resource)
+    public static func start(options: EmbraceIO.Options) throws {
+
+        // Consturct OTel resources
+        let otelResources = EmbraceDefaultResources.build(merging: options.otel?.resource)
+
+        // Create the OTel bridge from the OTel options if provided.
+        var bridge: EmbraceOTelBridge?
+        if let otelOptions = options.otel {
+            bridge = EmbraceOTelBridge(
+                resource: otelResources,
+                spanProcessors: [otelOptions.spanProcessor],
+                spanExporters: [otelOptions.spanExporter],
+                logProcessors: [otelOptions.logProcessor],
+                logExporters: [otelOptions.logExporter]
+            )
         }
+
+        if let internalOptions = Embrace.Options.from(options: options, bridge: bridge) {
+            try Embrace.setup(options: internalOptions, otelResources: otelResources.toEmbraceAttributes())
+        }
+
+        // Two-phase configuration: now that Embrace is initialized, wire the delegate, metadata
+        // provider, and the captureServicesGroup that gates child span forwarding.
+        if let bridge, let otel = Embrace.client?.otel {
+            bridge.setup(
+                delegate: otel,
+                metadataProvider: otel,
+                criticalResourceGroup: Embrace.client?.captureServicesGroup
+            )
+        }
+
+        try EmbraceIO.shared._start()
     }
 
-    /// Method used to start the Embrace SDK.
-    /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
-    /// - Note: This method won't do anything if the Embrace SDK was already started or if it was disabled via the remote configurations.
-    public func start() throws {
+    private func _start() throws {
         try Embrace.client?.start()
     }
 
     /// Method used to stop the Embrace SDK from capturing and generating data.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Note: This method won't do anything if the Embrace SDK was already stopped.
-    /// - Note: The SDK can't be started again once stopped.
+    /// - Note: Once stopped, The SDK can't be started again in the same process.
     public func stop() throws {
         try Embrace.client?.stop()
     }
 
-    /// Forces the Embrace SDK to start a new session.
-    /// - Note: If there was a session running, it will be ended before starting a new one.
-    /// - Note: This method won't do anything if the SDK is stopped.
-    public func startNewSession() {
-        Embrace.client?.startNewSession()
+    /// Ends the current user session immediately. The current part is closed and a new part
+    /// (with the same foreground/background state) is started under a fresh user session.
+    /// - Note: This call is rate-limited to once per 5 seconds. Calls within 5 seconds of the
+    ///   previous one are ignored silently.
+    /// - Note: This method has no effect if the SDK is stopped.
+    public func endUserSession() {
+        Embrace.client?.endUserSession()
     }
 
-    /// Forces the Embrace SDK to stop the current session, if any.
-    /// - Note: This method won't do anything if the SDK is stopped.
-    public func endCurrentSession() {
-        Embrace.client?.endCurrentSession()
-    }
-
-    /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
-    public func resetUploadCache() {
-        Embrace.client?.resetUploadCache()
+    /// Waits synchronously for all queued SDK work to drain.
+    ///
+    /// SPI for benchmarks and tests — not part of the public SDK surface.
+    @_spi(Private)
+    public func waitForAllWork() {
+        Embrace.client?.waitForAllWork()
     }
 }

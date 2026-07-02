@@ -2,12 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
-#endif
-
-extension SpanEventType {
-    public static let tap = SpanEventType(ux: "tap")
+extension EmbraceType {
+    public static let tap = EmbraceType(ux: "tap")
 }
 
 extension SpanEventSemantics {
@@ -16,9 +12,4 @@ extension SpanEventSemantics {
         public static let keyViewName = "view.name"
         public static let keyCoordinates = "tap.coords"
     }
-}
-
-extension SpanType {
-    @available(*, deprecated, renamed: "SpanEventType.tap", message: "Has been moved to `SpanEventType.tap`")
-    public static let tap = SpanType(ux: "tap")
 }

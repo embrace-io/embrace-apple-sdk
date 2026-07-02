@@ -5,8 +5,8 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceStorageInternal
     import EmbraceConfigInternal
     import EmbraceConfiguration
@@ -15,16 +15,16 @@ import Foundation
 class BaseInternalLogger: InternalLogger {
 
     #if DEBUG
-        var level: LogLevel = .debug
+        var level: EmbraceLogLevel = .debug
     #else
-        var level: LogLevel = .error
+        var level: EmbraceLogLevel = .error
     #endif
 
-    var otel: EmbraceOpenTelemetry?
+    var otel: EmbraceOTelSignalsHandler?
 
     struct MutableState {
         var limits: InternalLogLimits = InternalLogLimits()
-        var counter: [LogLevel: Int] = [:]
+        var counter: [EmbraceLogLevel: Int] = [:]
         var currentSession: EmbraceSession?
     }
     private let state = EmbraceMutex(MutableState())
@@ -38,14 +38,14 @@ class BaseInternalLogger: InternalLogger {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionStart),
-            name: .embraceSessionDidStart,
+            name: .embraceSessionPartDidStart,
             object: nil
         )
 
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionEnd),
-            name: .embraceSessionWillEnd,
+            name: .embraceSessionPartWillEnd,
             object: nil
         )
     }
@@ -67,12 +67,12 @@ class BaseInternalLogger: InternalLogger {
         }
     }
 
-    func output(_ message: String, level: LogLevel, customExport: Bool) {
+    func output(_ message: String, level: EmbraceLogLevel, customExport: Bool) {
         print(message)
     }
 
     @discardableResult func log(
-        level: LogLevel,
+        level: EmbraceLogLevel,
         message: String,
         attributes: [String: String] = [:],
         customExport: Bool = false
@@ -125,21 +125,21 @@ class BaseInternalLogger: InternalLogger {
         return log(level: .error, message: message)
     }
 
-    @discardableResult @objc func startup(_ message: String, attributes: [String: String] = [:]) -> Bool {
+    @discardableResult func startup(_ message: String, attributes: [String: String] = [:]) -> Bool {
         return log(level: .info, message: message, attributes: attributes, customExport: true)
     }
-    @discardableResult @objc func startup(_ message: String) -> Bool {
+    @discardableResult func startup(_ message: String) -> Bool {
         return log(level: .info, message: message, customExport: true)
     }
 
-    @discardableResult @objc func critical(_ message: String, attributes: [String: String] = [:]) -> Bool {
+    @discardableResult func critical(_ message: String, attributes: [String: String] = [:]) -> Bool {
         return log(level: .critical, message: message, attributes: attributes, customExport: true)
     }
-    @discardableResult @objc func critical(_ message: String) -> Bool {
+    @discardableResult func critical(_ message: String) -> Bool {
         return log(level: .critical, message: message, customExport: true)
     }
 
-    private func sendOTelLog(level: LogLevel, message: String, attributes: [String: String]) {
+    private func sendOTelLog(level: EmbraceLogLevel, message: String, attributes: [String: String]) {
 
         let (proceed, currentSession) = state.withLock {
             let limit = $0.limits.limit(for: level)
@@ -177,19 +177,17 @@ class BaseInternalLogger: InternalLogger {
             .build()
 
         // send log
-        otel?.log(
+        try? otel?.internalLog(
             message,
             severity: level.severity,
             type: .internal,
-            attributes: attributes,
-            stackTraceBehavior: .default
+            attributes: attributes
         )
-
     }
 }
 
 extension InternalLogLimits {
-    func limit(for level: LogLevel) -> UInt {
+    func limit(for level: EmbraceLogLevel) -> UInt {
         switch level {
         case .trace: return trace
         case .debug: return debug

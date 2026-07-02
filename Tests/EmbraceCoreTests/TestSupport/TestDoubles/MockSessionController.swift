@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import Foundation
 import TestSupport
@@ -24,6 +25,8 @@ class MockSessionController: SessionControllable {
 
     weak var storage: EmbraceStorage?
     var currentSession: EmbraceSession?
+    var currentSessionSpan: EmbraceSpan?
+    weak var spanHandler: EmbraceSpanHandler?
 
     func clear() {}
 
@@ -68,15 +71,49 @@ class MockSessionController: SessionControllable {
 
         currentSession = session
 
+        currentSessionSpan = InternalEmbraceSpan(
+            context: EmbraceSpanContext(
+                spanId: TestConstants.spanId,
+                traceId: TestConstants.traceId
+            ),
+            name: "emb-session",
+            type: .session,
+            status: .ok,
+            startTime: startTime,
+            attributes: [
+                "session.id": session!.id.stringValue,
+                "emb.state": state.rawValue,
+                "emb.cold_start": String(nextSessionColdStart),
+                "emb.terminated": String(nextSessionAppTerminated)
+            ],
+            sessionId: session!.id,
+            processId: ProcessIdentifier.current,
+            handler: spanHandler
+        )
+        if let storage {
+            storage.upsertSpan(currentSessionSpan!)
+        }
+
         return session
     }
 
     @discardableResult
     func endSession() -> Date {
+        return endSession(at: Date())
+    }
+
+    @discardableResult
+    func endSession(at endTime: Date) -> Date {
         didCallEndSession = true
         currentSession = nil
 
-        return Date()
+        if let span = currentSessionSpan {
+            span.end(endTime: endTime)
+            storage?.upsertSpan(span)
+        }
+        currentSessionSpan = nil
+
+        return endTime
     }
 
     func update(state: SessionState) {

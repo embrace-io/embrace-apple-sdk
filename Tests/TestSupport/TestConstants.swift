@@ -3,10 +3,9 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 import OpenTelemetryApi
-
-// swiftlint:disable line_length
 
 public struct TestConstants {
     public static let domain = "com.test.embrace"
@@ -41,5 +40,3 @@ public struct TestConstants {
     public static let rsaSanitizedPublicKey =
         "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAn1Mbg+uF2GAZ2BZvFzKE2gyE6cQOESpWTAuzXp0u9jCMJO+/LcKv6d3oaP/vZRDTtGPAfxYgc0tBiAYdOtklhiNQvb4puA34ai7h3jbBWsZgA0P5UtYflhR79CCXHH/1SuzaX4G6YYDdfQKYxAF/vLNpi7q8LMt8iSGCFxsMyKs+gfMPqUQVy0At7LjGnrBMV50SRu0lCslbtb+LSb1vF5EEpmw3d8M58dZkPUwgN9XU/nbfQt2X1tPg8SvZGLBxZHqVzaIQLCZr9O/XUq33/TsOrZSTNdw/K6bs6nBzYnagbcoeHBVWYT8l1xvHE3b1Rnc3r5MCTaLUM7Tqb7anqwIDAQAB"
 }
-
-// swiftlint:enable line_length

@@ -4,8 +4,8 @@
 
 import Foundation
 
-@objc
-public final class NetworkPayloadCaptureRule: NSObject, Decodable {
+public struct NetworkPayloadCaptureRule: Equatable, Decodable {
+
     public let id: String
     public let urlRegex: String
     public let statusCodes: [Int]?
@@ -34,6 +34,10 @@ public final class NetworkPayloadCaptureRule: NSObject, Decodable {
         self.expiration = expiration
         self.publicKey = publicKey
     }
+
+    public static func == (lhs: NetworkPayloadCaptureRule, rhs: NetworkPayloadCaptureRule) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 extension NetworkPayloadCaptureRule {
@@ -44,11 +48,5 @@ extension NetworkPayloadCaptureRule {
         case method
         case expiration = "expires_in"
         case publicKey = "public_key"
-    }
-}
-
-extension NetworkPayloadCaptureRule /* Equatable */ {
-    public static func == (lhs: NetworkPayloadCaptureRule, rhs: NetworkPayloadCaptureRule) -> Bool {
-        lhs.id == rhs.id
     }
 }

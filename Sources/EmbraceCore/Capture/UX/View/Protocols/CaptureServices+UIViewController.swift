@@ -5,7 +5,6 @@
 #if canImport(UIKit) && !os(watchOS)
     import Foundation
     import UIKit
-    import OpenTelemetryApi
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
         import EmbraceSemantics
@@ -52,13 +51,14 @@
             viewCaptureService.onViewBecameInteractive(vc)
         }
 
-        func buildChildSpan(
+        func createChildSpan(
             for vc: UIViewController,
             name: String,
-            type: SpanType = .viewLoad,
+            type: EmbraceType = .viewLoad,
             startTime: Date = Date(),
-            attributes: [String: String] = [:]
-        ) throws -> SpanBuilder? {
+            endTime: Date? = nil,
+            attributes: EmbraceAttributes = [:]
+        ) throws -> EmbraceSpan? {
             guard let viewCaptureService = try validateCaptureService() else {
                 return nil
             }
@@ -67,59 +67,18 @@
                 throw parentSpanNotFoundError
             }
 
-            guard
-                let builder = viewCaptureService.otel?.buildSpan(
-                    name: name,
-                    type: type,
-                    attributes: attributes,
-                    autoTerminationCode: nil
-                )
-            else {
-                return nil
-            }
-
-            builder.setParent(parentSpan)
-
-            return builder
-        }
-
-        func recordCompletedChildSpan(
-            for vc: UIViewController,
-            name: String,
-            type: SpanType = .viewLoad,
-            startTime: Date,
-            endTime: Date,
-            attributes: [String: String] = [:]
-        ) throws {
-            guard let viewCaptureService = try validateCaptureService() else {
-                return
-            }
-
-            guard let parentSpan = viewCaptureService.parentSpan(for: vc) else {
-                throw parentSpanNotFoundError
-            }
-
-            guard
-                let builder = viewCaptureService.otel?.buildSpan(
-                    name: name,
-                    type: type,
-                    attributes: attributes,
-                    autoTerminationCode: nil
-                )
-            else {
-                return
-            }
-
-            builder.setStartTime(time: startTime)
-            builder.setParent(parentSpan)
-
-            let span = builder.startSpan()
-            span.end(time: endTime)
+            return try? viewCaptureService.otel?.createInternalSpan(
+                name: name,
+                parentSpan: parentSpan,
+                type: type,
+                startTime: startTime,
+                attributes: attributes
+            )
         }
 
         func addAttributesToTrace(
             for viewController: UIViewController,
-            attributes: [String: String]
+            attributes: EmbraceAttributes
         ) throws {
             guard let viewCaptureService = try validateCaptureService() else {
                 return
@@ -129,7 +88,9 @@
                 throw parentSpanNotFoundError
             }
 
-            attributes.forEach { parentSpan.setAttribute(key: $0.key, value: .string($0.value)) }
+            attributes.forEach {
+                parentSpan.setAttribute(key: $0.key, value: $0.value)
+            }
         }
     }
 

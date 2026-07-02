@@ -8,7 +8,6 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceStorageInternal
     import EmbraceUploadInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 
@@ -19,8 +18,8 @@ class UnsentDataHandler {
     static func sendUnsentData(
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?,
-        logController: LogControllable? = nil,
+        otel: InternalOTelSignalsHandler?,
+        logController: LogController? = nil,
         currentSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil,
         completion: UnsentDataHandlerCompletion? = nil
@@ -88,7 +87,7 @@ class UnsentDataHandler {
     static private func sendCrashReports(
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?,
+        otel: InternalOTelSignalsHandler?,
         currentSessionId: EmbraceIdentifier?,
         crashReporter: EmbraceCrashReporter,
         crashReports: [EmbraceCrashReport],
@@ -103,13 +102,19 @@ class UnsentDataHandler {
 
             var session: EmbraceSession?
 
-            // link session with crash report if possible
-            if let sessionId = report.sessionId {
-                if let fetchedSession = storage.fetchSession(id: EmbraceIdentifier(stringValue: sessionId)) {
+            // link session with crash report if possible. The linked part is, by construction,
+            // the last part of its user session — stamp `.crash` as the termination reason so
+            // the payload's `emb.user_session_termination_reason` reflects the crash. The
+            // stamp overrides any prior end-reason (e.g. `.maxDurationReached` set by the
+            // heartbeat detector) because the crash is the authoritative cause.
+            if let rawId = report.sessionId {
+                let sessionId = EmbraceIdentifier(stringValue: rawId)
+                if let fetchedSession = storage.fetchSession(id: sessionId) {
                     session = storage.updateSession(
                         session: fetchedSession,
                         endTime: report.timestamp,
-                        crashReportId: report.id.uuidString
+                        crashReportId: report.id.uuidString,
+                        userSessionTerminationReason: .crash
                     )
                 }
             }
@@ -152,13 +157,13 @@ class UnsentDataHandler {
         }
     }
 
-    static public func sendCrashLog(
+    static func sendCrashLog(
         report: EmbraceCrashReport,
         reporter: EmbraceCrashReporter?,
         session: EmbraceSession?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?,
+        otel: InternalOTelSignalsHandler?,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
         let timestamp = (report.timestamp ?? session?.lastHeartbeatTime) ?? Date()
@@ -182,7 +187,7 @@ class UnsentDataHandler {
         do {
             let payload = LogPayloadBuilder.build(
                 timestamp: timestamp,
-                severity: LogSeverity.fatal,
+                severity: EmbraceLogSeverity.fatal,
                 body: "",
                 attributes: attributes,
                 storage: storage,
@@ -190,7 +195,7 @@ class UnsentDataHandler {
             )
             let payloadData = try JSONEncoder().encode(payload).gzipped()
 
-            upload.uploadLog(id: report.id.uuidString, data: payloadData, payloadTypes: LogType.crash.rawValue) { result in
+            upload.uploadLog(id: report.id.uuidString, data: payloadData, payloadTypes: EmbraceType.crash.rawValue) { result in
                 switch result {
                 case .success:
                     // remove crash report
@@ -214,12 +219,12 @@ class UnsentDataHandler {
     }
 
     static private func createLogCrashAttributes(
-        otel: EmbraceOpenTelemetry?,
+        otel: InternalOTelSignalsHandler?,
         storage: EmbraceStorage?,
         report: EmbraceCrashReport,
         session: EmbraceSession?,
         timestamp: Date
-    ) -> [String: String] {
+    ) -> EmbraceAttributes {
 
         let attributesBuilder = EmbraceLogAttributesBuilder(
             session: session,
@@ -237,13 +242,12 @@ class UnsentDataHandler {
             .addCrashReportProperties()
             .build()
 
-        otel?.log(
+        otel?.exportLog(
             "",
             severity: .fatal,
             type: .crash,
             timestamp: timestamp,
-            attributes: attributes,
-            stackTraceBehavior: .default
+            attributes: attributes
         )
 
         return attributes
@@ -295,7 +299,7 @@ class UnsentDataHandler {
         }
     }
 
-    static public func sendSession(
+    static func sendSession(
         _ session: EmbraceSession,
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
@@ -309,7 +313,7 @@ class UnsentDataHandler {
         do {
             payloadData = try JSONEncoder().encode(payload).gzipped()
         } catch {
-            Embrace.logger.warning("Error encoding session \(session.idRaw):\n" + error.localizedDescription)
+            Embrace.logger.warning("Error encoding session \(session.id.stringValue):\n" + error.localizedDescription)
             completion?()
             return
         }
@@ -326,24 +330,21 @@ class UnsentDataHandler {
 
         // upload session spans
         guard let upload = upload else {
-            if let sessionId = session.id {
-                storage.deleteSession(id: sessionId)
-            }
+            storage.deleteSession(id: session.id)
             completion?()
             return
         }
-        upload.uploadSpans(id: session.idRaw, data: payloadData) { result in
+
+        upload.uploadSpans(id: session.id.stringValue, data: payloadData) { result in
             switch result {
             case .success:
                 // remove session from storage
                 // we can remove this immediately because the upload module will cache it until the upload succeeds
-                if let sessionId = session.id {
-                    storage.deleteSession(id: sessionId)
-                }
+                storage.deleteSession(id: session.id)
 
             case .failure(let error):
                 Embrace.logger.warning(
-                    "Error trying to upload session \(session.idRaw):\n\(error.localizedDescription)")
+                    "Error trying to upload session \(session.id.stringValue):\n\(error.localizedDescription)")
             }
 
             completion?()
@@ -406,7 +407,7 @@ class UnsentDataHandler {
         let id = EmbraceIdentifier.random.stringValue
         let attributes: [String: String] = [
             LogSemantics.keyId: id,
-            LogSemantics.keyEmbraceType: LogType.internal.rawValue
+            LogSemantics.keyEmbraceType: EmbraceType.internal.rawValue
         ]
 
         let payload = LogPayloadBuilder.build(
@@ -421,7 +422,7 @@ class UnsentDataHandler {
         // send log
         do {
             let payloadData = try JSONEncoder().encode(payload).gzipped()
-            upload.uploadLog(id: id, data: payloadData, payloadTypes: LogType.internal.rawValue) { _ in
+            upload.uploadLog(id: id, data: payloadData, payloadTypes: EmbraceType.internal.rawValue) { _ in
                 completion?()
             }
         } catch {
@@ -436,8 +437,8 @@ extension UnsentDataHandler {
     static func sendUnsentData(
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?,
-        logController: LogControllable? = nil,
+        otel: InternalOTelSignalsHandler?,
+        logController: LogController? = nil,
         currentSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil
     ) async {
@@ -463,7 +464,7 @@ extension UnsentDataHandler {
         }
     }
 
-    static public func sendSession(
+    static func sendSession(
         _ session: EmbraceSession,
         storage: EmbraceStorage,
         upload: EmbraceUpload,
@@ -476,13 +477,13 @@ extension UnsentDataHandler {
         }
     }
 
-    static public func sendCrashLog(
+    static func sendCrashLog(
         report: EmbraceCrashReport,
         reporter: EmbraceCrashReporter?,
         session: EmbraceSession?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?
+        otel: InternalOTelSignalsHandler?
     ) async {
         await withCheckedContinuation { continuation in
             sendCrashLog(

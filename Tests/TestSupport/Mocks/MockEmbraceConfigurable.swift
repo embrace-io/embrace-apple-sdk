@@ -23,15 +23,17 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         metricKitCrashSignals: [String] = [],
         isMetricKitHangCaptureEnabled: Bool = false,
         isMetricKitInternalMetricsCaptureEnabled: Bool = false,
-        spanEventsLimits: SpanEventsLimits = SpanEventsLimits(),
-        logsLimits: LogsLimits = LogsLimits(),
+        spanEventTypeLimits: SpanEventTypeLimits = SpanEventTypeLimits(),
+        logSeverityLimits: LogSeverityLimits = LogSeverityLimits(),
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         updateCompletionParamDidUpdate: Bool = false,
         updateCompletionParamError: Error? = nil,
         hangLimits: HangLimits = HangLimits(),
         useLegacyUrlSessionProxy: Bool = false,
-        useNewStorageForSpanEvents: Bool = false
+        useNewStorageForSpanEvents: Bool = false,
+        userSessionMaxDuration: TimeInterval = 12 * 3600,
+        userSessionInactivityTimeout: TimeInterval = 30 * 60
     ) {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -46,13 +48,15 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._metricKitCrashSignals = metricKitCrashSignals
         self._isMetricKitHangCaptureEnabled = isMetricKitHangCaptureEnabled
         self._isMetricKitInternalMetricsCaptureEnabled = isMetricKitInternalMetricsCaptureEnabled
-        self._spanEventsLimits = spanEventsLimits
-        self._logsLimits = logsLimits
+        self._spanEventTypeLimits = spanEventTypeLimits
+        self._logSeverityLimits = logSeverityLimits
         self._internalLogLimits = internalLogLimits
         self._hangLimits = hangLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self._useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
         self._useNewStorageForSpanEvents = useNewStorageForSpanEvents
+        self._userSessionMaxDuration = userSessionMaxDuration
+        self._userSessionInactivityTimeout = userSessionInactivityTimeout
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
         self.updateCompletionParamError = updateCompletionParamError
     }
@@ -223,27 +227,27 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
-    private var _spanEventsLimits: SpanEventsLimits
-    public let spanEventsLimitsExpectation = XCTestExpectation(description: "spanEventsLimits called")
-    public var spanEventsLimits: SpanEventsLimits {
+    private var _spanEventTypeLimits: SpanEventTypeLimits
+    public let spanEventTypeLimitsExpectation = XCTestExpectation(description: "spanEventTypeLimits called")
+    public var spanEventTypeLimits: SpanEventTypeLimits {
         get {
-            spanEventsLimitsExpectation.fulfill()
-            return _spanEventsLimits
+            spanEventTypeLimitsExpectation.fulfill()
+            return _spanEventTypeLimits
         }
         set {
-            _spanEventsLimits = newValue
+            _spanEventTypeLimits = newValue
         }
     }
 
-    private var _logsLimits: LogsLimits
-    public let logsLimitsExpectation = XCTestExpectation(description: "logsLimits called")
-    public var logsLimits: LogsLimits {
+    private var _logSeverityLimits: LogSeverityLimits
+    public let logSeverityLimitsExpectation = XCTestExpectation(description: "logSeverityLimits called")
+    public var logSeverityLimits: LogSeverityLimits {
         get {
-            logsLimitsExpectation.fulfill()
-            return _logsLimits
+            logSeverityLimitsExpectation.fulfill()
+            return _logSeverityLimits
         }
         set {
-            _logsLimits = newValue
+            _logSeverityLimits = newValue
         }
     }
 
@@ -311,13 +315,43 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
+    private var _userSessionMaxDuration: TimeInterval
+    public let userSessionMaxDurationExpectation = XCTestExpectation(
+        description: "userSessionMaxDuration called")
+    public var userSessionMaxDuration: TimeInterval {
+        get {
+            userSessionMaxDurationExpectation.fulfill()
+            return _userSessionMaxDuration
+        }
+        set {
+            _userSessionMaxDuration = newValue
+        }
+    }
+
+    private var _userSessionInactivityTimeout: TimeInterval
+    public let userSessionInactivityTimeoutExpectation = XCTestExpectation(
+        description: "userSessionInactivityTimeout called")
+    public var userSessionInactivityTimeout: TimeInterval {
+        get {
+            userSessionInactivityTimeoutExpectation.fulfill()
+            return _userSessionInactivityTimeout
+        }
+        set {
+            _userSessionInactivityTimeout = newValue
+        }
+    }
+
     public var traceparentInjectionEnabled: Bool = false
 
     public var updateCallCount = 0
     public var updateCompletionParamDidUpdate: Bool
     public var updateCompletionParamError: Error?
-    public func update(completion: @escaping (Bool, (any Error)?) -> Void) {
+    public func update(completion: @escaping (Result<Bool, Error>) -> Void) {
         updateCallCount += 1
-        completion(updateCompletionParamDidUpdate, updateCompletionParamError)
+        if let error = updateCompletionParamError {
+            completion(.failure(error))
+        } else {
+            completion(.success(updateCompletionParamDidUpdate))
+        }
     }
 }

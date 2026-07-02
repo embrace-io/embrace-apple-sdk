@@ -2,12 +2,8 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
-#endif
-
-extension SpanType {
-    public static let hang = SpanType(performance: "thread_blockage")
+extension EmbraceType {
+    public static let hang = EmbraceType(performance: "thread_blockage")
 }
 
 extension SpanSemantics {

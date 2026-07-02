@@ -5,7 +5,7 @@
 import Foundation
 
 /// Object passed to the active crash reporter during setup
-@objc public final class CrashReporterContext: NSObject {
+public struct CrashReporterContext {
 
     public let appId: String?
     public let sdkVersion: String

@@ -2,57 +2,50 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import Foundation
-import OpenTelemetryApi
+import TestSupport
 import XCTest
 
 @testable import EmbraceCore
-@testable import EmbraceOTelInternal
-@testable import OpenTelemetrySdk
-
-// swiftlint:disable force_cast
 
 class SpanPayloadTests: XCTestCase {
 
-    var testAttributes: [String: AttributeValue] {
+    var testAttributes: [String: String] {
         return [
-            "bool": .bool(true),
-            "double": .double(123.456),
-            "int": .int(123456),
-            "string": .string("test")
+            "bool": "true",
+            "double": "123.456",
+            "int": "123456",
+            "string": "test"
         ]
     }
 
-    var testSpan: SpanData {
-        return SpanData(
-            traceId: TraceId.random(),
-            spanId: SpanId.random(),
-            parentSpanId: SpanId.random(),
+    var testSpan: EmbraceSpan {
+        return MockSpan(
+            id: .randomSpanId(),
+            traceId: .randomTraceId(),
+            parentSpanId: .randomSpanId(),
             name: "test-span",
-            kind: .internal,
+            type: .performance,
+            status: .ok,
             startTime: Date(timeIntervalSince1970: 0),
-            attributes: testAttributes,
+            endTime: Date(timeIntervalSince1970: 60),
             events: [
-                SpanData.Event(
+                EmbraceSpanEvent(
                     name: "test-span-event",
                     timestamp: Date(timeIntervalSince1970: 20),
                     attributes: testAttributes
                 )
             ],
             links: [
-                SpanData.Link(
-                    context: .create(
-                        traceId: .random(),
-                        spanId: .random(),
-                        traceFlags: .init(),
-                        traceState: .init()),
-                    attributes: testAttributes
-                )
+                EmbraceSpanLink(
+                    spanId: .randomSpanId(),
+                    traceId: .randomTraceId(),
+                    attributes: testAttributes)
             ],
-            status: .ok,
-            endTime: Date(timeIntervalSince1970: 60),
-            hasEnded: true
-        )
+            sessionId: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            attributes: testAttributes)
     }
 
     func testAttributes(_ attributes: [Attribute]) {
@@ -102,13 +95,13 @@ class SpanPayloadTests: XCTestCase {
         let payload = SpanPayload(from: span)
 
         // then the properties are correctly set
-        XCTAssertEqual(payload.traceId, span.traceId.hexString)
-        XCTAssertEqual(payload.spanId, span.spanId.hexString)
-        XCTAssertEqual(payload.parentSpanId, span.parentSpanId?.hexString)
+        XCTAssertEqual(payload.traceId, span.context.traceId)
+        XCTAssertEqual(payload.spanId, span.context.spanId)
+        XCTAssertEqual(payload.parentSpanId, span.parentSpanId)
         XCTAssertEqual(payload.name, span.name)
         XCTAssertEqual(payload.status, span.status.name)
         XCTAssertEqual(payload.startTime, span.startTime.nanosecondsSince1970Truncated)
-        XCTAssertEqual(payload.endTime, span.endTime.nanosecondsSince1970Truncated)
+        XCTAssertEqual(payload.endTime, span.endTime!.nanosecondsSince1970Truncated)
 
         // attributes
         testAttributes(payload.attributes)
@@ -121,8 +114,8 @@ class SpanPayloadTests: XCTestCase {
 
         // links
         XCTAssertEqual(payload.links.count, 1)
-        XCTAssertEqual(payload.links[0].traceId, span.links[0].context.traceId.hexString)
-        XCTAssertEqual(payload.links[0].spanId, span.links[0].context.spanId.hexString)
+        XCTAssertEqual(payload.links[0].traceId, span.links[0].context.traceId)
+        XCTAssertEqual(payload.links[0].spanId, span.links[0].context.spanId)
         testAttributes(payload.links[0].attributes)
     }
 
@@ -178,5 +171,3 @@ class SpanPayloadTests: XCTestCase {
         XCTAssertEqual(payload.endTime, now.nanosecondsSince1970Truncated)
     }
 }
-
-// swiftlint:enable force_cast

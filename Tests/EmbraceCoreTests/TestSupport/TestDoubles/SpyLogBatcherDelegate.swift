@@ -4,14 +4,13 @@
 
 import EmbraceCommonInternal
 import EmbraceConfiguration
+import EmbraceSemantics
 
 @testable import EmbraceCore
 
 class SpyLogBatcherDelegate: LogBatcherDelegate {
     var didCallBatchFinished: Bool = false
-    func batchFinished(withLogs logs: [EmbraceLog], sessionId: EmbraceIdentifier?) {
+    func batchFinished(withLogs logs: [EmbraceLog]) {
         didCallBatchFinished = true
     }
-
-    var limits = LogsLimits()
 }

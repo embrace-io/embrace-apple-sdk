@@ -2,12 +2,8 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
-#endif
-
-extension SpanType {
-    public static let lowPower = SpanType(system: "low_power")
+extension EmbraceType {
+    public static let lowPower = EmbraceType(system: "low_power")
 }
 
 extension SpanSemantics {

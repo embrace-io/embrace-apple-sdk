@@ -62,7 +62,7 @@ class CrashesTests: PayloadTest {
 
     private func recordCrash() {
         UserDefaults.standard.setValue(true, forKey: "CrashTriggered")
-        UserDefaults.standard.setValue(Embrace.client?.currentSessionId() ?? "INVALID", forKey: "CrashedSessionId")
+        UserDefaults.standard.setValue(EmbraceIO.shared.currentSessionId ?? "INVALID", forKey: "CrashedSessionId")
         UserDefaults.standard.synchronize()
 
     }

@@ -8,10 +8,9 @@
     import UIKit
 
     /// Delegate used to control which taps are allowed to be captured by a `TapCaptureService`.
-    @objc(EMBTapCaptureServiceDelegate)
-    public protocol TapCaptureServiceDelegate: NSObjectProtocol {
-        @objc func shouldCaptureTap(onView: UIView) -> Bool
-        @objc func shouldCaptureTapCoordinates(onView: UIView) -> Bool
+    public protocol TapCaptureServiceDelegate: AnyObject {
+        func shouldCaptureTap(onView: UIView) -> Bool
+        func shouldCaptureTapCoordinates(onView: UIView) -> Bool
     }
 
 #endif

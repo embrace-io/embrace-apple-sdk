@@ -7,23 +7,20 @@
     import EmbraceCommonInternal
     import EmbraceConfiguration
     import EmbraceSemantics
-    import OpenTelemetryApi
-    import OpenTelemetrySdk
     import TestSupport
     import XCTest
 
     @testable import EmbraceCore
-    @testable import EmbraceOTelInternal
 
     // MARK: - HangCaptureService Tests
 
     final class HangCaptureServiceTests: XCTestCase {
 
-        private var otel: MockEmbraceOpenTelemetry!
+        private var otel: MockOTelSignalsHandler!
 
         override func setUp() {
             super.setUp()
-            otel = MockEmbraceOpenTelemetry()
+            otel = MockOTelSignalsHandler()
         }
 
         override func tearDown() {
@@ -58,10 +55,10 @@
             service.hangStarted(at: Date(), duration: 0.5)
 
             wait(timeout: .defaultTimeout) {
-                self.otel.spanProcessor.startedSpans.contains { $0.name == SpanSemantics.Hang.name }
+                self.otel.startedSpans.contains { $0.name == SpanSemantics.Hang.name }
             }
 
-            XCTAssertEqual(otel.spanProcessor.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 1)
+            XCTAssertEqual(otel.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 1)
         }
 
         func test_hangEnded_endsSpan() {
@@ -72,10 +69,10 @@
             service.hangEnded(at: start.addingTimeInterval(0.5), duration: 0.5)
 
             wait(timeout: .defaultTimeout) {
-                self.otel.spanProcessor.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
+                self.otel.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
             }
 
-            let span = otel.spanProcessor.endedSpans.first { $0.name == SpanSemantics.Hang.name }
+            let span = otel.endedSpans.first { $0.name == SpanSemantics.Hang.name }
             XCTAssertNotNil(span)
             XCTAssertEqual(span?.startTime, start)
             XCTAssertEqual(span?.endTime, start.addingTimeInterval(0.5))
@@ -90,7 +87,7 @@
         }
 
         func test_hangStarted_withoutOTel_doesNotCrash() {
-            // Service never installed — buildSpan returns nil, should not crash
+            // Service never installed — createInternalSpan returns nil, should not crash
             let service = HangCaptureService()
             service.hangStarted(at: Date(), duration: 0.5)
             wait(delay: 0.2)
@@ -112,38 +109,37 @@
             service.hangEnded(at: Date(), duration: 0.5)
 
             wait(timeout: .defaultTimeout) {
-                self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count >= 2
+                self.otel.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count >= 2
             }
 
             // Give extra time to ensure no third span appears
             wait(delay: 0.3)
-            XCTAssertEqual(otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
+            XCTAssertEqual(otel.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
         }
 
         func test_onSessionStart_resetsHangCount() {
             let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 1))
-            let mockSession = MockSession.with(id: .random, state: .foreground)
 
             // Use the one allowed hang
             service.hangStarted(at: Date(), duration: 0.5)
             service.hangEnded(at: Date(), duration: 0.5)
 
             wait(timeout: .defaultTimeout) {
-                self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 1
+                self.otel.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 1
             }
 
             // Reset via new session
-            service.onSessionStart(mockSession)
+            service.onSessionStart()
 
             // A new hang should now be captured
             service.hangStarted(at: Date(), duration: 0.5)
             service.hangEnded(at: Date(), duration: 0.5)
 
             wait(timeout: .defaultTimeout) {
-                self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 2
+                self.otel.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 2
             }
 
-            XCTAssertEqual(otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
+            XCTAssertEqual(otel.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
         }
 
         // MARK: - Config disables monitor
@@ -162,7 +158,7 @@
             service.hangEnded(at: Date(), duration: 0.5)
 
             wait(delay: 0.3)
-            XCTAssertEqual(otel.spanProcessor.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 0)
+            XCTAssertEqual(otel.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 0)
         }
     }
 

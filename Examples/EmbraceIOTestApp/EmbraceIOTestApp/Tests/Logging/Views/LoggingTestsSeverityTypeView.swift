@@ -4,15 +4,15 @@
 //
 //
 
-import EmbraceCommonInternal
+import EmbraceSemantics
 import SwiftUI
 
 struct LoggingTestsSeverityTypeView: View {
-    @Binding var logSeverity: LogSeverity
+    @Binding var logSeverity: EmbraceLogSeverity
     var body: some View {
         Picker("", selection: $logSeverity) {
-            ForEach(LogSeverity.allCases, id: \.self) { option in
-                Text((option == .critical ? "CRITICAL" : option.text).lowercased())
+            ForEach(EmbraceLogSeverity.allCases, id: \.self) { option in
+                Text((option == .critical ? "CRITICAL" : option.name).lowercased())
                     .accessibilityIdentifier(identifier(for: option))
             }
         }
@@ -20,7 +20,7 @@ struct LoggingTestsSeverityTypeView: View {
         .padding(.bottom, 20)
     }
 
-    private func identifier(for severity: LogSeverity) -> String {
+    private func identifier(for severity: EmbraceLogSeverity) -> String {
         switch severity {
         case .trace:
             return "LogSeverity_Trace"
@@ -41,6 +41,6 @@ struct LoggingTestsSeverityTypeView: View {
 }
 
 #Preview {
-    @Previewable @State var severity: LogSeverity = .debug
+    @Previewable @State var severity: EmbraceLogSeverity = .debug
     return LoggingTestsSeverityTypeView(logSeverity: $severity)
 }

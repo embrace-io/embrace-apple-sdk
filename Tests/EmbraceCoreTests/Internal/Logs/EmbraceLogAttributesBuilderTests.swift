@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
@@ -13,7 +14,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
     private var sut: EmbraceLogAttributesBuilder!
     private var storage: MockMetadataFetcher!
     private var controller: MockSessionController!
-    private var result: [String: String]!
+    private var result: EmbraceAttributes!
 
     // MARK: - Test Build Alone
 
@@ -36,10 +37,17 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddSessionIdentifier()
         whenInvokingBuild()
 
-        thenResultingAttributes(is: ["session.id": identifier.stringValue])
+        // `session.id` carries the user-session UUID in v7 (empty here because the mock has
+        // no user session); `emb.session_part_id` carries the part UUID. All three identity
+        // keys are always present.
+        thenResultingAttributes(is: [
+            "session.id": "",
+            "emb.user_session_id": "",
+            "emb.session_part_id": identifier.stringValue
+        ])
     }
 
-    func testOnNotHavingSession_addSessionIdentifier_addsNothingToAttributes() {
+    func testOnNotHavingSession_addSessionIdentifier_addsEmptyStringsToAttributes() {
         givenSessionControllerWithNoSession()
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
@@ -47,7 +55,12 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddSessionIdentifier()
         whenInvokingBuild()
 
-        thenResultingAttributes(is: .empty())
+        // Spec requires the three keys be present even as empty strings when no session is active.
+        thenResultingAttributes(is: [
+            "session.id": "",
+            "emb.user_session_id": "",
+            "emb.session_part_id": ""
+        ])
     }
 
     // MARK: - addApplicationProperties Tests
@@ -56,13 +69,13 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         let sessionId = EmbraceIdentifier.random
         givenSessionController(sessionWithId: sessionId)
         givenMetadataFetcher(with: [
-            MockMetadata.createSessionPropertyRecord(key: "custom_prop_int", value: .int(1), sessionId: sessionId),
+            MockMetadata.createSessionPropertyRecord(key: "custom_prop_int", value: "1", sessionId: sessionId),
             MockMetadata.createSessionPropertyRecord(
-                key: "custom_prop_bool", value: .bool(false), sessionId: sessionId),
+                key: "custom_prop_bool", value: "false", sessionId: sessionId),
             MockMetadata.createSessionPropertyRecord(
-                key: "custom_prop_double", value: .double(3.0), sessionId: sessionId),
+                key: "custom_prop_double", value: "3.0", sessionId: sessionId),
             MockMetadata.createSessionPropertyRecord(
-                key: "custom_prop_string", value: .string("hello"), sessionId: sessionId)
+                key: "custom_prop_string", value: "hello", sessionId: sessionId)
         ]
         )
         givenEmbraceLogAttributesBuilder()
@@ -93,7 +106,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         givenSessionControllerWithNoSession()
         // Shouldnt happen to have custom session properties with no session, but just in case :)
         givenMetadataFetcher(with: [
-            MockMetadata.createSessionPropertyRecord(key: "custom_prop_string", value: .string("hello"))
+            MockMetadata.createSessionPropertyRecord(key: "custom_prop_string", value: "hello")
         ])
         givenEmbraceLogAttributesBuilder()
 
@@ -174,20 +187,8 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddLogType(.message)
         whenInvokingBuild()
 
-        thenResultingAttributes(is: ["emb.type": LogType.message.rawValue])
+        thenResultingAttributes(is: ["emb.type": EmbraceType.message.rawValue])
     }
-
-    func test_onAddLogType_whenAlreadySet_doesNotChangeValue() {
-        givenSessionController()
-        givenMetadataFetcher()
-        givenEmbraceLogAttributesBuilder(withInitialAttributes: ["emb.type": LogType.crash.rawValue])
-
-        whenInvokingAddLogType(.message)
-        whenInvokingBuild()
-
-        thenResultingAttributes(is: ["emb.type": LogType.crash.rawValue])
-    }
-
 }
 
 extension EmbraceLogAttributesBuilderTests {
@@ -231,12 +232,15 @@ extension EmbraceLogAttributesBuilderTests {
         sut.addApplicationState()
     }
 
-    fileprivate func whenInvokingAddLogType(_ logType: LogType) {
+    fileprivate func whenInvokingAddLogType(_ logType: EmbraceType) {
         sut.addLogType(logType)
     }
 
-    fileprivate func thenResultingAttributes(is dict: [String: String]) {
-        XCTAssertEqual(result, dict)
+    fileprivate func thenResultingAttributes(is dict: EmbraceAttributes) {
+        XCTAssertEqual(result.count, dict.count)
+        for key in result.keys {
+            XCTAssertEqual("\(result[key]!)", "\(dict[key]!)")
+        }
     }
 
     fileprivate func thenResultingAttributes(containsKey key: String) {

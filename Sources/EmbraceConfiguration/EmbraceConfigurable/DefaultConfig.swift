@@ -2,6 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
 public class DefaultConfig: EmbraceConfigurable {
     public var hangLimits: HangLimits = HangLimits()
 
@@ -33,9 +39,9 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public var isMetricKitInternalMetricsCaptureEnabled: Bool = false
 
-    public let spanEventsLimits = SpanEventsLimits()
+    public let spanEventTypeLimits = SpanEventTypeLimits()
 
-    public let logsLimits = LogsLimits()
+    public let logSeverityLimits = LogSeverityLimits()
 
     public let internalLogLimits = InternalLogLimits()
 
@@ -45,10 +51,14 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let useNewStorageForSpanEvents = false
 
+    public let userSessionMaxDuration: TimeInterval = UserSessionSemantics.defaultMaxDurationSeconds
+
+    public let userSessionInactivityTimeout: TimeInterval = UserSessionSemantics.defaultInactivityTimeoutSeconds
+
     public let traceparentInjectionEnabled: Bool = false
 
-    public func update(completion: (Bool, (any Error)?) -> Void) {
-        completion(false, nil)
+    public func update(completion: (Result<Bool, Error>) -> Void) {
+        completion(.success(false))
     }
 
     public init() {}

@@ -2,22 +2,17 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceIO
 import SwiftUI
 
-#if COCOAPODS
-    import EmbraceIO
-#else
-    import EmbraceCore
-#endif
-
 struct CrashExampleTest: View {
-    @State private var selectedExample: ExampleCrash = .fatalError
+    @State private var selectedExample: EmbraceExampleCrash = .fatalError
     @State private var showAddCrashInfo: Bool = false
 
     var body: some View {
         Form {
             Section("Crash Type") {
-                List(ExampleCrash.allCases, id: \.self) { crashExample in
+                List(EmbraceExampleCrash.allCases, id: \.self) { crashExample in
                     HStack {
                         Text(title(for: crashExample))
                         Spacer()
@@ -43,7 +38,7 @@ struct CrashExampleTest: View {
 
             Section {
                 Button {
-                    Embrace.client?.crash(type: selectedExample)
+                    EmbraceCrashHelper.crash(example: selectedExample)
                 } label: {
                     Text("Submit")
                 }
@@ -63,7 +58,7 @@ struct CrashExampleTest: View {
         .navigationTitle("Crash Examples")
     }
 
-    func title(for example: ExampleCrash) -> String {
+    func title(for example: EmbraceExampleCrash) -> String {
         switch example {
         case .fatalError: "Swift Fatal Error"
         case .unwrapOptional: "Force Unwrap Optional"

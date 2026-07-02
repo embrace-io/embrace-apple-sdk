@@ -21,9 +21,11 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertTrue(config.isMetricKitCrashCaptureEnabled)
         XCTAssertEqual(config.metricKitCrashSignals, ["SIGKILL"])
         XCTAssertFalse(config.isMetricKitHangCaptureEnabled)
-        XCTAssertEqual(config.spanEventsLimits, SpanEventsLimits())
-        XCTAssertEqual(config.logsLimits, LogsLimits())
+        XCTAssertEqual(config.spanEventTypeLimits, SpanEventTypeLimits())
+        XCTAssertEqual(config.logSeverityLimits, LogSeverityLimits())
         XCTAssertEqual(config.internalLogLimits, InternalLogLimits())
         XCTAssertTrue(config.networkPayloadCaptureRules.isEmpty)
+        XCTAssertEqual(config.userSessionMaxDuration, 12 * 3600)
+        XCTAssertEqual(config.userSessionInactivityTimeout, 30 * 60)
     }
 }

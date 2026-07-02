@@ -12,16 +12,16 @@ import Foundation
 
 struct LogPayloadBuilder {
     static func build(log: EmbraceLog) -> LogPayload {
-        var finalAttributes: [Attribute] = log.allAttributes().map { entry in
-            Attribute(key: entry.key, value: entry.valueRaw)
+        var finalAttributes: [Attribute] = log.attributes.map { entry in
+            Attribute(key: entry.key, value: String(describing: entry.value))
         }
 
-        finalAttributes.append(.init(key: LogSemantics.keyId, value: log.idRaw))
+        finalAttributes.append(.init(key: LogSemantics.keyId, value: log.id))
 
         return .init(
             timeUnixNano: String(EMBInt(log.timestamp.nanosecondsSince1970)),
-            severityNumber: log.severity.number,
-            severityText: log.severity.text,
+            severityNumber: log.severity.rawValue,
+            severityText: log.severity.name,
             body: log.body,
             attributes: finalAttributes)
 
@@ -29,9 +29,9 @@ struct LogPayloadBuilder {
 
     static func build(
         timestamp: Date,
-        severity: LogSeverity,
+        severity: EmbraceLogSeverity,
         body: String,
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         storage: EmbraceStorage?,
         sessionId: EmbraceIdentifier?
     ) -> PayloadEnvelope<[LogPayload]> {
@@ -55,13 +55,13 @@ struct LogPayloadBuilder {
         }
 
         let finalAttributes: [Attribute] = attributes.map { entry in
-            Attribute(key: entry.key, value: entry.value)
+            Attribute(key: entry.key, value: String(describing: entry.value))
         }
 
         let logPayload = LogPayload(
             timeUnixNano: String(timestamp.nanosecondsSince1970Truncated),
             severityNumber: severity.rawValue,
-            severityText: severity.text,
+            severityText: severity.name,
             body: body,
             attributes: finalAttributes
         )

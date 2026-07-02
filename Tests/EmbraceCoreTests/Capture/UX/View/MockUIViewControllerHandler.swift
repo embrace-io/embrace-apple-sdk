@@ -7,13 +7,13 @@
     import Foundation
     import UIKit
     @testable import EmbraceCore
-    import OpenTelemetryApi
+    import EmbraceSemantics
 
     class MockUIViewControllerHandler: UIViewControllerHandler {
 
-        var parentSpan: Span?
+        var parentSpan: EmbraceSpan?
         var parentSpanCalled = false
-        override func parentSpan(for vc: UIViewController) -> Span? {
+        override func parentSpan(for vc: UIViewController) -> EmbraceSpan? {
             parentSpanCalled = true
             return parentSpan
         }

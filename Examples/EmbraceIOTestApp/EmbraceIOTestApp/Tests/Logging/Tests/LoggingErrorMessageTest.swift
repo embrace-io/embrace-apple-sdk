@@ -1,5 +1,5 @@
-import EmbraceCommonInternal
 import EmbraceIO
+import EmbraceSemantics
 //
 //  LoggingErrorMessageTest.swift
 //  EmbraceIOTestApp
@@ -13,26 +13,27 @@ class LoggingErrorMessageTest: PayloadTest {
     var testType: TestType { .Logs }
     var requiresCleanup: Bool { true }
     var loggedMessage: String
-    var loggedMessageSeverity: LogSeverity
+    var loggedMessageSeverity: EmbraceLogSeverity
     var logProperties: [String: String] = [:]
-    var stackTraceBehavior: StackTraceBehavior = .default
+    var stackTraceBehavior: EmbraceStackTraceBehavior = .default
     var includeAttachment: Bool = false
     var attachmentSize: Int = 0
-    init(_ loggedMessage: String, severity: LogSeverity) {
+    init(_ loggedMessage: String, severity: EmbraceLogSeverity) {
         self.loggedMessage = loggedMessage
         self.loggedMessageSeverity = severity
     }
 
     func runTestPreparations() {
         if includeAttachment {
-            Embrace.client?.log(
+            let attachment = EmbraceLogAttachment(data: createDummyDataOfSize(attachmentSize))
+            EmbraceIO.shared.log(
                 loggedMessage,
                 severity: loggedMessageSeverity,
-                attachment: createDummyDataOfSize(attachmentSize),
+                attachment: attachment,
                 attributes: logProperties,
                 stackTraceBehavior: stackTraceBehavior)
         } else {
-            Embrace.client?.log(
+            EmbraceIO.shared.log(
                 loggedMessage,
                 severity: loggedMessageSeverity,
                 attributes: logProperties,
@@ -81,12 +82,10 @@ class LoggingErrorMessageTest: PayloadTest {
             testItems.append(evaluate(property.key, expecting: property.value, on: log.attributes))
         }
 
-        MetadataResourceTest.testMetadataInclussion(on: log.resource, testItems: &testItems)
-
         return .init(items: testItems)
     }
 
-    private func expectedSeverityText(_ severity: LogSeverity) -> String {
+    private func expectedSeverityText(_ severity: EmbraceLogSeverity) -> String {
         switch severity {
 
         case .trace:

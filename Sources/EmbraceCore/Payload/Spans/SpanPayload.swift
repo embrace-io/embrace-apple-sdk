@@ -3,11 +3,8 @@
 //
 
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
     import EmbraceSemantics
     import EmbraceCommonInternal
 #endif
@@ -37,10 +34,10 @@ struct SpanPayload: Encodable {
         case links
     }
 
-    init(from span: SpanData, endTime: Date? = nil, failed: Bool = false) {
-        self.traceId = span.traceId.hexString
-        self.spanId = span.spanId.hexString
-        self.parentSpanId = span.parentSpanId?.hexString
+    init(from span: EmbraceSpan, endTime: Date? = nil, failed: Bool = false) {
+        self.traceId = span.context.traceId
+        self.spanId = span.context.spanId
+        self.parentSpanId = span.parentSpanId
         self.name = span.name
         self.startTime = span.startTime.nanosecondsSince1970Truncated
         self.events = span.events.map { SpanEventPayload(from: $0) }
@@ -49,22 +46,22 @@ struct SpanPayload: Encodable {
         if span.status == .ok || !failed {
             self.status = span.status.name
         } else {
-            self.status = Status.sessionCrashedError().name
+            self.status = EmbraceSpanStatus.error.name
         }
 
-        if let endTime = endTime {
-            self.endTime = endTime.nanosecondsSince1970Truncated
-        } else if span.hasEnded {
-            self.endTime = span.endTime.nanosecondsSince1970Truncated
+        let end = endTime ?? span.endTime
+        if let end {
+            self.endTime = end.nanosecondsSince1970Truncated
         } else {
             self.endTime = nil
         }
 
-        var attributeArray = PayloadUtils.convertSpanAttributes(span.attributes)
+        var attributeArray: [Attribute] = span.attributes.map { entry in
+            Attribute(key: entry.key, value: String(describing: entry.value))
+        }
         if failed {
             attributeArray.append(Attribute(key: SpanSemantics.keyErrorCode, value: "failure"))
         }
-
         self.attributes = attributeArray
     }
 
@@ -84,7 +81,7 @@ struct SpanPayload: Encodable {
 }
 
 extension SpanPayload: Equatable {
-    public static func == (lhs: SpanPayload, rhs: SpanPayload) -> Bool {
+    static func == (lhs: SpanPayload, rhs: SpanPayload) -> Bool {
         return
             lhs.traceId == rhs.traceId && lhs.spanId == rhs.spanId && lhs.parentSpanId == rhs.parentSpanId
             && lhs.name == rhs.name && lhs.status == rhs.status && lhs.endTime == rhs.endTime

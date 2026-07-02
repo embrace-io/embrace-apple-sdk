@@ -3,11 +3,10 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
+    import EmbraceSemantics
     import EmbraceConfiguration
 #endif
 
@@ -22,11 +21,10 @@ import OpenTelemetryApi
 ///
 /// This base class provides the necessary functionality and structure that should be used
 /// by all capture services.
-@objc(EMBCaptureService)
-open class CaptureService: NSObject {
+open class CaptureService {
 
-    /// Getter for the OTel handler used by the capture service.
-    private(set) public weak var otel: EmbraceOpenTelemetry?
+    /// Getter for the OTel signals handler used by the capture service.
+    private(set) package weak var otel: EmbraceOTelSignalsHandler?
 
     /// `EmbraceConsoleLogger` instance used to generate internal logs.
     private(set) public weak var logger: InternalLogger?
@@ -34,7 +32,9 @@ open class CaptureService: NSObject {
     /// Getter for the state of the capture service.
     public let state: EmbraceAtomic<CaptureServiceState> = EmbraceAtomic(.uninstalled)
 
-    public func install(otel: EmbraceOpenTelemetry?, logger: InternalLogger? = nil) {
+    public init() {}
+
+    package func install(otel: EmbraceOTelSignalsHandler?, logger: InternalLogger? = nil) {
 
         guard
             state.compareExchange(
@@ -51,7 +51,7 @@ open class CaptureService: NSObject {
         onInstall()
     }
 
-    public func start() {
+    package func start() {
 
         // Allow to go from installed -> active
         if state.compareExchange(expected: .installed, desired: .active) {
@@ -66,7 +66,7 @@ open class CaptureService: NSObject {
         }
     }
 
-    public func stop() {
+    package func stop() {
         guard
             state.compareExchange(
                 expected: .active,
@@ -82,31 +82,31 @@ open class CaptureService: NSObject {
     /// This method will be called once when the Embrace SDK starts.
     /// You should override this method if your `CaptureService` needs some sort of
     /// setup process before it can start generating data.
-    @objc open func onInstall() {
+    open func onInstall() {
 
     }
 
     /// This method is called by the Embrace SDK when it's been setup and started capturing data.
     /// You should override this method if your `CaptureService` needs to do something when started.
-    @objc open func onStart() {
+    open func onStart() {
 
     }
 
     /// This method is called by the Embrace SDK when it stops capturing data.
     /// You should override this method if your `CaptureService` needs to do something when stopped.
-    @objc open func onStop() {
+    open func onStop() {
 
     }
 
     /// This method is called by the Embrace SDK when a new session starts.
     /// You should override this method if your `CaptureService` needs to do something on a new session.
-    open func onSessionStart(_ session: EmbraceSession) {
+    open func onSessionStart() {
 
     }
 
     /// This method is called by the Embrace SDK when a session will end.
     /// You should override this method if your `CaptureService` needs to do something before a session ends.
-    open func onSessionWillEnd(_ session: EmbraceSession) {
+    open func onSessionWillEnd() {
 
     }
 
@@ -133,53 +133,5 @@ extension CaptureService {
 
     public var isPaused: Bool {
         state.load() == .paused
-    }
-}
-
-extension CaptureService {
-
-    /// Creates a `SpanBuilder` with the given parameters.
-    /// Use this method to generate spans with the capture service.
-    /// - Parameters:
-    ///   - name: Name of the span.
-    ///   - type: Type of the span.
-    ///   - attributes: Attributes of the span.
-    /// - Returns: The newly created `SpanBuilder` instance, or `nil` if the capture service is not active.
-    public func buildSpan(name: String, type: SpanType, attributes: [String: String]) -> SpanBuilder? {
-        guard isActive else {
-            return nil
-        }
-
-        return otel?.buildSpan(name: name, type: type, attributes: attributes, autoTerminationCode: nil)
-    }
-
-    /// Adds the given event to the session.
-    /// Use this method to generate events with the capture service.
-    /// - Parameters:
-    ///   - event: `RecordingSpanEvent` instance to add.
-    /// - Returns: Boolean indicating if the event was successfully added. If the capture service is not active, this method always returns false.
-    @discardableResult
-    public func add(event: RecordingSpanEvent) -> Bool {
-        guard isActive else {
-            return false
-        }
-
-        otel?.add(event: event)
-        return true
-    }
-
-    /// Adds the given events to the session.
-    /// Use this method to generate events with the capture service.
-    /// - Parameters:
-    ///   - events: Array of `RecordingSpanEvents` to add.
-    /// - Returns: Boolean indicating if the events were successfully added. If the capture service is not active, this method always returns false.
-    @discardableResult
-    public func add(events: [RecordingSpanEvent]) -> Bool {
-        guard isActive else {
-            return false
-        }
-
-        otel?.add(events: events)
-        return true
     }
 }

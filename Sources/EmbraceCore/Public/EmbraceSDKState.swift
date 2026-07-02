@@ -5,7 +5,7 @@
 import Foundation
 
 /// Enum used to represent the current state of the Embrace SDK
-@objc public enum EmbraceSDKState: Int {
+public enum EmbraceSDKState: Int {
     /// The SDK was not setup yet
     case notInitialized
 

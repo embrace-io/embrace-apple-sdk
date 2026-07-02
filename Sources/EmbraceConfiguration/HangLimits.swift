@@ -5,7 +5,7 @@
 import Foundation
 
 /// HangLimits manages limits for the app hangs generated through the SDK
-@objc public class HangLimits: NSObject {
+public struct HangLimits: Equatable {
 
     /// Minimum duration (in seconds) a frame delay must exceed to be reported as a hang.
     public let hangThreshold: TimeInterval
@@ -24,14 +24,5 @@ import Foundation
         self.hangThreshold = hangThreshold
         self.hangPerSession = hangPerSession
         self.reportsWatchdogEvents = reportsWatchdogEvents
-    }
-
-    public override func isEqual(_ object: Any?) -> Bool {
-        guard let other = object as? Self else {
-            return false
-        }
-        return hangThreshold == other.hangThreshold
-            && hangPerSession == other.hangPerSession
-            && reportsWatchdogEvents == other.reportsWatchdogEvents
     }
 }

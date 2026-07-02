@@ -2,19 +2,17 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 #if canImport(UIKit) && !os(watchOS)
+    import Foundation
     import UIKit
     import SwiftUI
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
+        import EmbraceSemantics
         import EmbraceCaptureService
         import EmbraceCommonInternal
-        import EmbraceOTelInternal
         import EmbraceConfigInternal
         import EmbraceConfiguration
     #endif
-    import OpenTelemetryApi
-    import Foundation
 
-    @objc(EMBViewCaptureService)
     public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDataSource {
         public let options: ViewCaptureService.Options
         private let handler: UIViewControllerHandler
@@ -37,12 +35,8 @@
 
         var blockList = EmbraceMutex(ViewControllerBlockList())
 
-        @objc public convenience init(options: ViewCaptureService.Options) {
+        public convenience init(options: ViewCaptureService.Options = ViewCaptureService.Options()) {
             self.init(options: options, lock: NSLock())
-        }
-
-        public convenience override init() {
-            self.init(lock: NSLock())
         }
 
         init(
@@ -66,7 +60,7 @@
             updateBlockList(config: Embrace.client?.config.configurable)
         }
 
-        @objc public override func onConfigUpdated(_ config: EmbraceConfigurable) {
+        public override func onConfigUpdated(_ config: EmbraceConfigurable) {
             updateBlockList(config: config)
         }
 
@@ -96,7 +90,7 @@
             handler.onViewBecameInteractive(vc)
         }
 
-        func parentSpan(for vc: UIViewController) -> Span? {
+        func parentSpan(for vc: UIViewController) -> EmbraceSpan? {
             return handler.parentSpan(for: vc)
         }
 

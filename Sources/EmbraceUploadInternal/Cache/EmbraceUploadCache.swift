@@ -6,7 +6,6 @@ import CoreData
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
     import EmbraceCommonInternal
     import EmbraceCoreDataInternal
 #endif
@@ -25,13 +24,6 @@ class EmbraceUploadCache {
         // remove old GRDB sqlite file
         if let url = options.storageMechanism.baseUrl?.appendingPathComponent("db.sqlite") {
             try? FileManager.default.removeItem(at: url)
-        }
-
-        // remove active cache if needed
-        if options.resetCache,
-            let cacheUrl = options.storageMechanism.fileURL
-        {
-            try? FileManager.default.removeItem(at: cacheUrl)
         }
 
         // create core data stack
@@ -68,7 +60,7 @@ class EmbraceUploadCache {
 
         // fetch
         var result: [ImmutableUploadDataRecord] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
             // convert to immutable struct
             result = records.map {
                 $0.toImmutable()
@@ -104,7 +96,7 @@ class EmbraceUploadCache {
         }
 
         var result: [ImmutableUploadDataRecord] = []
-        coreData.fetchAndPerform(withRequest: request) { records in
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
             result = records.map { $0.toImmutable() }
         }
         return result
@@ -122,18 +114,7 @@ class EmbraceUploadCache {
         let deleteCount = recordsToDelete.count
 
         if deleteCount > 0 {
-            let span = EmbraceOTel().buildSpan(
-                name: "emb-upload-cache-vacuum",
-                type: .performance,
-                attributes: ["removed": "\(deleteCount)"]
-            )
-            .markAsPrivate()
-            span.setStartTime(time: Date())
-
-            let startedSpan = span.startSpan()
             coreData.deleteRecords(recordsToDelete)
-            startedSpan.end()
-
             return UInt(deleteCount)
         }
 

@@ -4,6 +4,7 @@
 
 import EmbraceCommonInternal
 import EmbraceObjCUtilsInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import XCTest
 

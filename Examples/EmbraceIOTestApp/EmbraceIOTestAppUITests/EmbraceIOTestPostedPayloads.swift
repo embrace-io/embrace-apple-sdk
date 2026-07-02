@@ -60,28 +60,6 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(removeAllButton))
         removeAllButton.tap()
 
-        // Enter Username
-        let usernameTextField = app.textFields["SessionTests_UserInfo_Username"]
-        XCTAssertTrue(usernameTextField.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.scrollUntilHittableElementVisible(usernameTextField))
-        usernameTextField.tap()
-
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-
-        usernameTextField.typeText("TestUsername123")
-        usernameTextField.typeText(XCUIKeyboardKey.return.rawValue)
-
-        // Enter Email
-        let emailTextField = app.textFields["SessionTests_UserInfo_Email"]
-        XCTAssertTrue(emailTextField.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.scrollUntilHittableElementVisible(emailTextField))
-        emailTextField.tap()
-
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-
-        emailTextField.typeText("Some@Email.com")
-        emailTextField.typeText(XCUIKeyboardKey.return.rawValue)
-
         // Enter User ID
         let identifierTextField = app.textFields["SessionTests_UserInfo_Identifier"]
         XCTAssertTrue(identifierTextField.waitForExistence(timeout: 10))
