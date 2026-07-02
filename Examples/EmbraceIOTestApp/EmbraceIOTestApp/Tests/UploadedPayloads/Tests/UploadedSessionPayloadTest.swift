@@ -159,6 +159,18 @@ class UploadedSessionPayloadTest: PayloadTest {
                     expected: "exists",
                     recorded: attributes["emb.user_session_part_index"] != nil ? "exists" : "missing",
                     result: attributes["emb.user_session_part_index"] != nil ? .success : .fail))
+
+            // Unlike the live span (where the heartbeat attribute only appears after the first timer
+            // tick), the payload always carries `emb.heartbeat_time_unix_nano`, derived from the
+            // part's `lastHeartbeatTime` (initialized to its start time). Require a positive value.
+            let heartbeat = attributes["emb.heartbeat_time_unix_nano"]
+            let heartbeatValid = (heartbeat.flatMap { UInt64($0) } ?? 0) > 0
+            testItems.append(
+                .init(
+                    target: "emb.heartbeat_time_unix_nano",
+                    expected: "positive timestamp",
+                    recorded: heartbeat ?? "missing",
+                    result: heartbeatValid ? .success : .fail))
         }
     }
 
