@@ -157,8 +157,6 @@ extension RemoteConfig: EmbraceConfigurable {
         )
     }
 
-    public var useLegacyUrlSessionProxy: Bool { payload.useLegacyUrlSessionProxy }
-
     public var useNewStorageForSpanEvents: Bool { payload.useNewStorageForSpanEvents }
 
     public var userSessionMaxDuration: TimeInterval { payload.userSessionMaxDurationSeconds }

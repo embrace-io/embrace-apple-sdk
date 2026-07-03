@@ -47,8 +47,6 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
 
-    public let useLegacyUrlSessionProxy = false
-
     public let useNewStorageForSpanEvents = false
 
     public let userSessionMaxDuration: TimeInterval = UserSessionSemantics.defaultMaxDurationSeconds
