@@ -4,12 +4,19 @@
 
 import Foundation
 
+/// The kind of crash that `EmbraceCrashHelper.crash(example:)` should trigger.
+/// - Note: For testing purposes only.
 public enum EmbraceExampleCrash: String, CaseIterable {
+    /// Crashes by calling `fatalError`.
     case fatalError
+    /// Crashes by force-unwrapping a `nil` optional.
     case unwrapOptional
+    /// Crashes by accessing an array index that is out of bounds.
     case indexOutOfBounds
 }
 
+/// Helper used to crash the app on demand.
+/// - Note: For testing purposes only.
 public enum EmbraceCrashHelper {
     /// Crash the app in the prescribed manner.
     /// This method is used to test the Embrace Crash Reporter.
