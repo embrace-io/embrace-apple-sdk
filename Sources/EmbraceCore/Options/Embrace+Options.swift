@@ -17,7 +17,6 @@ extension Embrace {
     /// Internal options used to setup the Embrace SDK. Not part of the public API.
     package struct Options {
         package let appId: String?
-        package let appGroupId: String?
         package let platform: EmbracePlatform
         package let endpoints: EmbraceEndpoints?
         package let services: [CaptureService]
@@ -31,7 +30,6 @@ extension Embrace {
 
         package init(
             appId: String,
-            appGroupId: String? = nil,
             platform: EmbracePlatform = .default,
             endpoints: EmbraceEndpoints? = nil,
             captureServices: [CaptureService],
@@ -39,7 +37,6 @@ extension Embrace {
             logLevel: EmbraceLogLevel = .default
         ) {
             self.appId = appId
-            self.appGroupId = appGroupId
             self.platform = platform
             self.endpoints = endpoints ?? EmbraceEndpoints(appId: appId)
             self.services = captureServices
@@ -56,7 +53,6 @@ extension Embrace {
             runtimeConfiguration: EmbraceConfigurable = .default
         ) {
             self.appId = nil
-            self.appGroupId = nil
             self.platform = platform
             self.endpoints = nil
             self.services = captureServices
@@ -71,7 +67,6 @@ extension Embrace.Options {
     /// Validate Options object to make sure it has not been configured ambiguously
     func validate() throws {
         try validateAppId()
-        try validateGroupId()
     }
 
     func validateAppId() throws {
@@ -81,16 +76,6 @@ extension Embrace.Options {
 
         if appId.count != 5 {
             throw EmbraceSetupError.invalidAppId("`appId` must be 5 characters in length if provided")
-        }
-    }
-
-    func validateGroupId() throws {
-        guard let groupId = appGroupId else {
-            return
-        }
-
-        if groupId.isEmpty {
-            throw EmbraceSetupError.invalidAppGroupId("`appGroupId` must not be empty if provided")
         }
     }
 }

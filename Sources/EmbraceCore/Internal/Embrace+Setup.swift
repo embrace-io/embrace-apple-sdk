@@ -19,8 +19,7 @@ extension Embrace {
 
         let partitionId = options.appId ?? EmbraceFileSystem.defaultPartitionId
         if let storageUrl = EmbraceFileSystem.storageDirectoryURL(
-            partitionId: partitionId,
-            appGroupId: options.appGroupId
+            partitionId: partitionId
         ) {
             let storageMechanism: StorageMechanism = .onDisk(
                 name: "EmbraceStorage",
@@ -31,7 +30,7 @@ extension Embrace {
             let storage = try EmbraceStorage(options: storageOptions, logger: Embrace.logger)
             return storage
         } else {
-            throw EmbraceSetupError.failedStorageCreation(partitionId: partitionId, appGroupId: options.appGroupId)
+            throw EmbraceSetupError.failedStorageCreation(partitionId: partitionId)
         }
     }
 
@@ -66,8 +65,7 @@ extension Embrace {
         // cache
         guard
             let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
-                partitionIdentifier: appId,
-                appGroupId: options.appGroupId
+                partitionIdentifier: appId
             )
         else {
             Embrace.logger.critical("Failed to initialize upload cache!")

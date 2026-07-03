@@ -13,14 +13,11 @@ import Foundation
 /// that can then be read from later.
 class EmbraceFilePathProvider: FilePathProvider {
     let partitionId: String
-    let appGroupId: String?
 
     /// - Parameters:
     ///   - partitionId: The base directory this file path provider should use.
-    ///   - appGroupId: An optional app group identifier to use if the provider should create file paths in the app group container.
-    init(partitionId: String, appGroupId: String?) {
+    init(partitionId: String) {
         self.partitionId = partitionId
-        self.appGroupId = appGroupId
     }
 
     /// Returns a file URL for the given scope and name.
@@ -36,8 +33,7 @@ class EmbraceFilePathProvider: FilePathProvider {
     ///   - scope: The directory scope to create a reference to
     func directoryURL(for scope: String) -> URL? {
         let captureURL = EmbraceFileSystem.captureDirectoryURL(
-            partitionIdentifier: partitionId,
-            appGroupId: appGroupId)
+            partitionIdentifier: partitionId)
         return captureURL?.appendingPathComponent(scope)
     }
 }

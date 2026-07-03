@@ -93,7 +93,6 @@ package class Embrace {
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Throws: `EmbraceSetupError.invalidAppId` if the provided `appId` is invalid.
-    /// - Throws: `EmbraceSetupError.invalidAppGroupId` if the provided `appGroupId` is invalid.
     /// - Throws: `EmbraceSetupError.invalidOptions` when providing more than one `CrashReporter`.
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     /// - Returns: The `Embrace` client instance.

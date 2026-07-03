@@ -11,7 +11,6 @@ extension BombAppDelegate {
         var embraceOptions: Embrace.Options {
             return .init(
                 appId: "dcdt4",
-                appGroupId: nil,
                 platform: .default,
                 endpoints: Embrace.Endpoints.fromInfoPlist(),
                 captureServices: .automatic,
@@ -24,7 +23,6 @@ extension BombAppDelegate {
         var embraceOptions: Embrace.Options {
             return .init(
                 appId: "kj9hd",
-                appGroupId: nil,
                 platform: .default,
                 captureServices: .automatic,
                 crashReporter: CrashlyticsReporter()
