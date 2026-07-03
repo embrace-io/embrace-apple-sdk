@@ -8,12 +8,16 @@ import Foundation
 /// This is broken into the major log severities so each can be managed.
 public struct LogSeverityLimits: Equatable {
 
+    /// Maximum number of info-level logs. Includes trace, debug and info logs.
     public let info: UInt
-    /// Includes trace, debug and info logs
-    public let warn: UInt
-    public let error: UInt
-    /// Includes error and critical logs
 
+    /// Maximum number of warn-level logs.
+    public let warn: UInt
+
+    /// Maximum number of error-level logs. Includes error and critical logs.
+    public let error: UInt
+
+    /// Creates a new `LogSeverityLimits` with the given per-severity limits.
     public init(info: UInt = 100, warn: UInt = 200, error: UInt = 500) {
         self.info = info
         self.warn = warn

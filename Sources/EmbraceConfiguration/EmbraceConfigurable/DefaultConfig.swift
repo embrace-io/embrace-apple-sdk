@@ -8,6 +8,7 @@ import Foundation
     import EmbraceSemantics
 #endif
 
+/// Default `EmbraceConfigurable` implementation providing Embrace's built-in configuration values.
 public class DefaultConfig: EmbraceConfigurable {
     public var hangLimits: HangLimits = HangLimits()
 
@@ -65,6 +66,7 @@ public class DefaultConfig: EmbraceConfigurable {
 }
 
 extension EmbraceConfigurable where Self == DefaultConfig {
+    /// A `DefaultConfig` instance exposed as an `EmbraceConfigurable`.
     public static var `default`: EmbraceConfigurable {
         return DefaultConfig()
     }
