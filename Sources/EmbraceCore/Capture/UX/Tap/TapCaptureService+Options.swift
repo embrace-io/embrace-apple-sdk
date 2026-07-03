@@ -38,7 +38,7 @@ import Foundation
             /// Defines a list of UIView types to be ignored by this service. Any taps done on views of these types will not be recorded.
             public let ignoredViewTypes: [AnyClass]
 
-            /// Defines wether the service should capture the coordinates of the taps.
+            /// Defines whether the service should capture the coordinates of the taps.
             public let captureTapCoordinates: Bool
 
             /// Delegate used to decide if each individual tap should be recorded or not.
@@ -47,6 +47,12 @@ import Foundation
             /// Specifies when a tap should be recorded.
             public let tapPhase: TapPhase
 
+            /// Creates a new `Options` with the given values.
+            /// - Parameters:
+            ///   - ignoredViewTypes: `UIView` types whose taps are ignored.
+            ///   - captureTapCoordinates: Whether the coordinates of the taps are captured.
+            ///   - tapPhase: When a tap should be recorded.
+            ///   - delegate: Delegate used to decide if each individual tap is captured.
             public init(
                 ignoredViewTypes: [AnyClass] = [],
                 captureTapCoordinates: Bool = true,

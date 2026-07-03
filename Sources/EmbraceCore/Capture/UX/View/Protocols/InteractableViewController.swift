@@ -7,6 +7,7 @@
     import Foundation
     import UIKit
 
+    /// Conform a `UIViewController` to this protocol to signal when the view is ready for user interaction.
     public protocol InteractableViewController: UIViewController {
 
     }

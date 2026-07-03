@@ -56,6 +56,11 @@ extension View {
         ) { self }
     }
 
+    /// Wraps the view in an `EmbraceTraceView` that ends the trace when `contentComplete` changes.
+    /// - Parameters:
+    ///   - viewName: Name used for the generated trace.
+    ///   - attributes: Attributes to set on the trace.
+    ///   - contentComplete: Value whose change signals that the content has finished loading.
     public func embraceTrace<V: Equatable>(
         _ viewName: String,
         attributes: EmbraceAttributes? = nil,

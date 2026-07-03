@@ -15,6 +15,7 @@
     /// Service that generates OpenTelemetry span events when a `WKWebView` loads an URL or throws an error.
     public final class WebViewCaptureService: CaptureService {
 
+        /// The options used to configure this service.
         public let options: WebViewCaptureService.Options
         private static let knownBadProxies = [
             "SafeDKWKNavigationDelegateInterceptor"
@@ -22,6 +23,10 @@
         private let lock: NSLocking
         private var swizzlers: [any Swizzlable] = []
 
+        /// Creates a new `WebViewCaptureService` with the given options.
+        /// - Parameters:
+        ///   - options: The options used to configure the service.
+        ///   - lock: Lock used to synchronize swizzling. Exposed for testing.
         public init(
             options: WebViewCaptureService.Options = WebViewCaptureService.Options(),
             lock: NSLocking = NSLock()

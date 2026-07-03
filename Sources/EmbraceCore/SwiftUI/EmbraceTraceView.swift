@@ -79,6 +79,11 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
         }
     }
 
+    /// Creates a new `EmbraceTraceView` that traces its content without a content-complete trigger.
+    /// - Parameters:
+    ///   - viewName: Name used for the generated trace.
+    ///   - attributes: Attributes to set on the trace.
+    ///   - content: The content view to trace.
     public init(
         _ viewName: String,
         attributes: EmbraceAttributes? = nil,

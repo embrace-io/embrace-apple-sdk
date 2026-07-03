@@ -21,6 +21,8 @@ import Foundation
     /// Service that generates OpenTelemetry span events for hangs.
     public final class HangCaptureService: CaptureService {
 
+        /// Creates a new `HangCaptureService` with the given limits.
+        /// - Parameter limits: The hang detection limits applied by the service.
         public init(
             limits: HangLimits = HangLimits()
         ) {
@@ -93,6 +95,7 @@ import Foundation
         private let spanQueue = DispatchQueue(label: "io.embrace.hang.service")
         private var span: EmbraceSpan?
 
+        /// The hang detection limits currently applied by the service.
         public var limits: HangLimits {
             get {
                 limitData.withLock { $0.limits }

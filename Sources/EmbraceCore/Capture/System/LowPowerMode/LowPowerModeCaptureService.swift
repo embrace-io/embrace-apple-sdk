@@ -12,6 +12,7 @@ import Foundation
 
 /// Service that generates OpenTelemetry spans when the phone is running in low power mode.
 public final class LowPowerModeCaptureService: CaptureService {
+    /// Provider used to read the device's Low Power Mode state.
     public let provider: PowerModeProvider
 
     private let wasLowPowerModeEnabled = EmbraceAtomic(false)
@@ -20,6 +21,8 @@ public final class LowPowerModeCaptureService: CaptureService {
         _currentSpan.withLock { $0 }
     }
 
+    /// Creates a new `LowPowerModeCaptureService` with the given provider.
+    /// - Parameter provider: Provider used to read the device's Low Power Mode state.
     public init(provider: PowerModeProvider = DefaultPowerModeProvider()) {
         self.provider = provider
     }

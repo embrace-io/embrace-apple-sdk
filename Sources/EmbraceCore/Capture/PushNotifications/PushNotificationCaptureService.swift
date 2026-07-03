@@ -13,11 +13,16 @@ import UserNotifications
 /// Service that generates OpenTelemetry span events when notifications are received through the `UNUserNotificationCenter`.
 public final class PushNotificationCaptureService: CaptureService {
 
+    /// The options used to configure this service.
     public let options: PushNotificationCaptureService.Options
     private let lock: NSLocking
     private var swizzlers: [any Swizzlable] = []
     var proxy: UNUserNotificationCenterDelegateProxy
 
+    /// Creates a new `PushNotificationCaptureService` with the given options.
+    /// - Parameters:
+    ///   - options: The options used to configure the service.
+    ///   - lock: Lock used to synchronize swizzling. Exposed for testing.
     public init(
         options: PushNotificationCaptureService.Options = PushNotificationCaptureService.Options(),
         lock: NSLocking = NSLock()

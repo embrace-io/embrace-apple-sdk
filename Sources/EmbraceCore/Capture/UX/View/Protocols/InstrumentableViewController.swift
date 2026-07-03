@@ -11,6 +11,7 @@
         import EmbraceSemantics
     #endif
 
+    /// Conform a `UIViewController` to this protocol to add custom child spans and attributes to its view-instrumentation trace.
     public protocol InstrumentableViewController: UIViewController {
 
     }
@@ -24,7 +25,7 @@
         ///    - startTime: The start time of the span.
         ///    - endTime: The end time of the span, if any.
         ///    - attributes: A dictionary of attributes to set on the span.
-        /// - Returns: An new `EmbraceSpan`.
+        /// - Returns: A new `EmbraceSpan`, or `nil` if the parent span could not be found.
         public func createChildSpan(
             name: String,
             type: EmbraceType = .viewLoad,
