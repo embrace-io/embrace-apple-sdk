@@ -25,7 +25,7 @@ extension CaptureService {
     ///   - links: Links for the span.
     ///   - attributes: Attributes of the span.
     ///   - autoTerminationCode: If a code is passed, the span will be automatically ended when the current Embrace session ends and will have a special attribute with the given code.
-    /// - Returns: The newly created `EmbraceSpan`.
+    /// - Returns: The newly created `EmbraceSpan`, or `nil` if the span could not be created.
     @discardableResult
     public func createSpan(
         name: String,
@@ -103,7 +103,7 @@ extension CaptureService {
     ///   - timestamp: Timestamp of the log
     ///   - attachment: Attachment data for the log
     ///   - attributes: Attributes of the log
-    ///   - stackTraceBehavior: Behavior that detemines if a stack trace has to be generated for the log.
+    ///   - stackTraceBehavior: Behavior that determines if a stack trace has to be generated for the log.
     public func log(
         _ message: String,
         severity: EmbraceLogSeverity = .info,
