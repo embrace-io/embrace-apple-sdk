@@ -13,6 +13,7 @@ public enum EmbraceSpanErrorCode: Int {
     /// Span ended in some other way
     case unknown = 3
 
+    /// The serialized string value of the error code (e.g. `"failure"`, `"user_abandon"`, `"unknown"`).
     public var name: String {
         switch self {
         case .failure: "failure"
@@ -21,6 +22,7 @@ public enum EmbraceSpanErrorCode: Int {
         }
     }
 
+    /// Creates an `EmbraceSpanErrorCode` from its serialized `name`, or `nil` if the name is unrecognized.
     public init?(name: String) {
         switch name {
         case "failure": self = .failure

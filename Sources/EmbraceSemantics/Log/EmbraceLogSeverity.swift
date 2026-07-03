@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+/// Severity levels for logs emitted through the Embrace SDK.
 public enum EmbraceLogSeverity: Int, Codable {
     case trace = 1
     case debug = 5

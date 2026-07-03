@@ -4,14 +4,21 @@
 
 import Foundation
 
-/// Levels ordered by severity
+/// Verbosity levels for the Embrace SDK's console logs, ordered by increasing severity.
 public enum EmbraceLogLevel: Int {
+    /// Disables all console logs.
     case none
+    /// Fine-grained tracing messages.
     case trace
+    /// Debugging messages.
     case debug
+    /// Informational messages.
     case info
+    /// Warnings about unexpected but recoverable situations.
     case warning
+    /// Errors that prevented an operation from completing.
     case error
+    /// Critical failures.
     case critical
 
     #if DEBUG

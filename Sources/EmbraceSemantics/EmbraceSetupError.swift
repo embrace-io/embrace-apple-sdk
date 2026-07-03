@@ -4,6 +4,7 @@
 
 import Foundation
 
+/// Errors thrown while setting up the Embrace SDK.
 public enum EmbraceSetupError: Error, Equatable {
     case invalidAppId(_ description: String)
     case invalidAppGroupId(_ description: String)

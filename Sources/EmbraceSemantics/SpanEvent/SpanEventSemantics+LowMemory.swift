@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension SpanEventSemantics {
+    /// Attribute keys and values for low memory warning span events.
     public struct LowMemory {
         public static let name = "emb-device-low-memory"
     }

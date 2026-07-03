@@ -8,6 +8,7 @@ extension EmbraceType {
 }
 
 extension LogSemantics {
+    /// Attribute keys and values for crash logs.
     public struct Crash {
         public static let keyId = "log.record.uid"
         public static let keyProvider = "emb.provider"

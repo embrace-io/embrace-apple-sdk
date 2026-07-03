@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension SpanSemantics {
+    /// Attribute keys and values for app startup spans.
     public struct Startup {
         public static let parentName = "emb-app-startup"
 

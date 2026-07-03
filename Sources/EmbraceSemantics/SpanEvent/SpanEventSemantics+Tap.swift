@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension SpanEventSemantics {
+    /// Attribute keys and values for tap span events.
     public struct Tap {
         public static let name = "emb-ui-tap"
         public static let keyViewName = "view.name"

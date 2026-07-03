@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension SpanSemantics {
+    /// Attribute keys and values for hang spans.
     public struct Hang {
         public static let name = "emb-thread-blockage"
 

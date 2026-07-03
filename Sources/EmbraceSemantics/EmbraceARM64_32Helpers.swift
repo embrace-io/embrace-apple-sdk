@@ -14,9 +14,13 @@ import Foundation
 
 // MARK: - Platform-Specific Type Aliases
 #if arch(arm64_32)
+    /// Platform `Int` used by Embrace. Aliased to `Int64` on arm64_32 (watchOS) where `Int` is 32-bit.
     public typealias EMBInt = Int64
+    /// Platform `UInt` used by Embrace. Aliased to `UInt64` on arm64_32 (watchOS) where `UInt` is 32-bit.
     public typealias EMBUInt = UInt64
 #else
+    /// Platform `Int` used by Embrace.
     public typealias EMBInt = Int
+    /// Platform `UInt` used by Embrace.
     public typealias EMBUInt = UInt
 #endif
