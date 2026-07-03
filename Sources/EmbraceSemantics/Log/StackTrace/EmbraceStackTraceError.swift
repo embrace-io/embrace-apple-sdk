@@ -5,7 +5,7 @@
 import Foundation
 
 /// Errors thrown when validating a custom stack trace.
-private enum EmbraceStackTraceError: Error {
+package enum EmbraceStackTraceError: Error {
     case invalidFormat
     case frameIsTooLong
 }
