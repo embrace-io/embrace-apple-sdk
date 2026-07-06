@@ -54,8 +54,6 @@ public protocol EmbraceConfigurable: AnyObject {
 
     var hangLimits: HangLimits { get }
 
-    var useLegacyUrlSessionProxy: Bool { get }
-
     var useNewStorageForSpanEvents: Bool { get }
 
     var traceparentInjectionEnabled: Bool { get }

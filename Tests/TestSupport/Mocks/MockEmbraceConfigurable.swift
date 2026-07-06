@@ -30,7 +30,6 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         updateCompletionParamDidUpdate: Bool = false,
         updateCompletionParamError: Error? = nil,
         hangLimits: HangLimits = HangLimits(),
-        useLegacyUrlSessionProxy: Bool = false,
         useNewStorageForSpanEvents: Bool = false,
         userSessionMaxDuration: TimeInterval = 12 * 3600,
         userSessionInactivityTimeout: TimeInterval = 30 * 60
@@ -53,7 +52,6 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._internalLogLimits = internalLogLimits
         self._hangLimits = hangLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
-        self._useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
         self._useNewStorageForSpanEvents = useNewStorageForSpanEvents
         self._userSessionMaxDuration = userSessionMaxDuration
         self._userSessionInactivityTimeout = userSessionInactivityTimeout
@@ -286,19 +284,6 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _networkPayloadCaptureRules = newValue
-        }
-    }
-
-    private var _useLegacyUrlSessionProxy: Bool
-    public let useLegacyUrlSessionProxyExpectation = XCTestExpectation(
-        description: "useLegacyUrlSessionProxy called")
-    public var useLegacyUrlSessionProxy: Bool {
-        get {
-            useLegacyUrlSessionProxyExpectation.fulfill()
-            return _useLegacyUrlSessionProxy
-        }
-        set {
-            _useLegacyUrlSessionProxy = newValue
         }
     }
 

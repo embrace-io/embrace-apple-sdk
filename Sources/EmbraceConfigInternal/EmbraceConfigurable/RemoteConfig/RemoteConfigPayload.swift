@@ -47,8 +47,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
-    var useLegacyUrlSessionProxy: Bool
-
     var useNewStorageForSpanEvents: Bool
 
     var userSessionMaxDurationSeconds: TimeInterval
@@ -106,7 +104,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         case networkPayLoadCapture = "network_capture"
-        case useLegacyUrlSessionProxy = "use_legacy_urlsession_proxy"
         case useNewStorageForSpanEvents = "use_new_storage_for_span_events"
 
         case userSession = "user_session"
@@ -353,13 +350,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             metricKitCrashSignals = defaultPayload.metricKitCrashSignals
         }
 
-        // use old url session proxy
-        useLegacyUrlSessionProxy =
-            try rootContainer.decodeIfPresent(
-                Bool.self,
-                forKey: .useLegacyUrlSessionProxy
-            ) ?? defaultPayload.useLegacyUrlSessionProxy
-
         // use new storage for span events
         useNewStorageForSpanEvents =
             try rootContainer.decodeIfPresent(
@@ -459,7 +449,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         hangLimitsReportsWatchdogEvents = false
 
         networkPayloadCaptureRules = []
-        useLegacyUrlSessionProxy = false
         useNewStorageForSpanEvents = false
 
         userSessionMaxDurationSeconds = UserSessionSemantics.defaultMaxDurationSeconds
