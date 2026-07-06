@@ -24,7 +24,7 @@ extension URLSessionCaptureService {
         public let onlyAllowDomains: [String]?
 
         /// Creates a new `Traceparent` configuration.
-        /// - Parameter onlyAllowDomains: First-party domain allowlist. When not `nil`, only requests to these domains get a `traceparent` header.
+        /// - Parameter onlyAllowDomains: First-party domain allowlist. When not `nil`, only requests to these domains get a `traceparent` header. Subdomains will also be matched.
         public init(onlyAllowDomains: [String]? = nil) {
             self.onlyAllowDomains = Traceparent.validated(onlyAllowDomains)
         }
