@@ -35,28 +35,35 @@ final class EmbraceDefaultResourcesTests: XCTestCase {
         }
     }
 
-    // MARK: - User resource overrides defaults
+    // MARK: - Embrace defaults can't be overriden by the user resource
 
-    func test_build_userServiceName_overridesDefault() {
+    func test_build_userServiceName_doesNotOverrideDefault() {
         let userResource = Resource(attributes: ["service.name": .string("my-custom-app")])
         let resource = EmbraceDefaultResources.build(merging: userResource)
-        XCTAssertEqual(resource.attributes["service.name"], .string("my-custom-app"))
+        let expected = [Bundle.main.bundleIdentifier, ProcessInfo.processInfo.processName]
+            .compactMap { $0 }
+            .joined(separator: ":")
+        XCTAssertEqual(resource.attributes["service.name"], .string(expected))
     }
 
-    func test_build_userSdkLanguage_overridesDefault() {
+    func test_build_userSdkLanguage_doesNotOverrideDefault() {
         let userResource = Resource(attributes: ["telemetry.sdk.language": .string("objective-c")])
         let resource = EmbraceDefaultResources.build(merging: userResource)
-        XCTAssertEqual(resource.attributes["telemetry.sdk.language"], .string("objective-c"))
-    }
-
-    // MARK: - Partial override: missing user keys still get defaults
-
-    func test_build_userOverridesServiceName_defaultSdkLanguageStillPresent() {
-        let userResource = Resource(attributes: ["service.name": .string("custom")])
-        let resource = EmbraceDefaultResources.build(merging: userResource)
-        XCTAssertEqual(resource.attributes["service.name"], .string("custom"))
         XCTAssertEqual(resource.attributes["telemetry.sdk.language"], .string("swift"))
     }
+
+    func test_build_userServiceVersion_doesNotOverrideDefault() throws {
+        // service.version is only set by Embrace when CFBundleShortVersionString is present.
+        // When present, the Embrace default must win over the user-provided value.
+        guard let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String else {
+            throw XCTSkip("CFBundleShortVersionString not available in this bundle")
+        }
+        let userResource = Resource(attributes: ["service.version": .string("9.9.9")])
+        let resource = EmbraceDefaultResources.build(merging: userResource)
+        XCTAssertEqual(resource.attributes["service.version"], .string(version))
+    }
+
+    // MARK: - User keys other than the Embrace defaults are preserved
 
     func test_build_userAddsNewKey_defaultsStillPresent() {
         let userResource = Resource(attributes: ["my.custom.key": .string("custom-value")])
