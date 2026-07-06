@@ -49,7 +49,7 @@ extension EmbraceIO {
     /// Adds a persona tag with the given value and lifespan.
     /// If the persona tag is too long or no session is active for a `.session` lifespan, the persona is dropped and a warning is logged.
     /// - Parameters:
-    ///   - value: The value of the persona tag to add.
+    ///   - persona: The value of the persona tag to add.
     ///   - lifespan: The lifespan of the persona tag to add.
     public func addPersona(_ persona: String, lifespan: MetadataLifespan) {
         Embrace.client?.metadata.add(persona: persona, lifespan: lifespan)
@@ -58,7 +58,7 @@ extension EmbraceIO {
     /// Removes a persona tag in the given lifespan.
     /// If no session is active for a `.session` lifespan, the removal is dropped and a warning is logged.
     /// - Parameters:
-    ///   - value: The value of the persona tag to remove.
+    ///   - persona: The value of the persona tag to remove.
     ///   - lifespan: The lifespan of the persona tag to remove.
     /// - Note: It is only possible to remove personas/metadata from the currently active session or process. It is not possible to edit
     /// metadata that belongs to a session or process that has ended. If you remove a persona with a process
@@ -75,7 +75,8 @@ extension EmbraceIO {
         Embrace.client?.metadata.removeAllPersonas(lifespans: lifespans)
     }
 
-    /// Asynchronously retrieve the current set of persona tags as strings.
+    /// Asynchronously retrieves the current set of persona tags as strings.
+    /// - Parameter completion: Closure called with the current persona tags, or an empty array if the SDK is not initialized.
     public func getCurrentPersonas(completion: @escaping ([String]) -> Void) {
         guard let client = Embrace.client else {
             completion([])

@@ -7,7 +7,7 @@ import Foundation
 /// Represents the context for a `EmbraceSpan`.
 public class EmbraceSpanContext {
 
-    /// Span idenfifier
+    /// Span identifier
     public let spanId: String
 
     /// Trace identifier

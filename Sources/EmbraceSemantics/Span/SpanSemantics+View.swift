@@ -8,6 +8,7 @@ extension EmbraceType {
 }
 
 extension SpanSemantics {
+    /// Attribute keys and values for view spans.
     public struct View {
         public static let screenName = "emb-screen-view"
         public static let timeToFirstRenderName = "emb-NAME-time-to-first-render"
@@ -21,6 +22,7 @@ extension SpanSemantics {
         public static let keyViewName = "view.name"
     }
 
+    /// Attribute keys and values for SwiftUI view spans.
     public struct SwiftUIView {
         /// A span that begins the first time an instrumented body is encountered,
         /// and ends on the next tick of the run loop.

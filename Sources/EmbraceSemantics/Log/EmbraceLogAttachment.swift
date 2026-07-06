@@ -7,8 +7,13 @@ import Foundation
 /// Class used to add attachments when creating `EmbraceLogs`.
 public class EmbraceLogAttachment {
 
+    /// Unique identifier of the attachment.
     public let id: String
+
+    /// The attachment's raw data, when the attachment is hosted by Embrace.
     public let data: Data?
+
+    /// The download URL of the attachment, when it is hosted outside of Embrace.
     public let url: URL?
 
     /// Creates a new `EmbraceLogAttachment` with the given `Data`.
@@ -21,10 +26,10 @@ public class EmbraceLogAttachment {
     }
 
     /// Creates a new `EmbraceLogAttachment` with the given `URL`.
-    /// Use this method for attachment data that is hosted outisde of Embrace.
+    /// Use this method for attachment data that is hosted outside of Embrace.
     /// - Parameters:
     ///   - id: Identifier of the attachment
-    ///   - url: Download url for th attachment data
+    ///   - url: Download url for the attachment data
     public init(id: String, url: URL) {
         self.id = id
         self.data = nil

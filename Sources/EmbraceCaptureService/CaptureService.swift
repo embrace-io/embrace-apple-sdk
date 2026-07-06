@@ -119,18 +119,22 @@ open class CaptureService {
 
 extension CaptureService {
 
+    /// Whether the service is currently in the `.installed` state.
     public var isInstalled: Bool {
         state.load() == .installed
     }
 
+    /// Whether the service is currently in the `.uninstalled` state.
     public var isUninstalled: Bool {
         state.load() == .uninstalled
     }
 
+    /// Whether the service is currently in the `.active` state.
     public var isActive: Bool {
         state.load() == .active
     }
 
+    /// Whether the service is currently in the `.paused` state.
     public var isPaused: Bool {
         state.load() == .paused
     }

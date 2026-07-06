@@ -23,12 +23,15 @@ class EmbraceDummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 /// Service that generates OpenTelemetry spans for network requests that use `URLSession`.
 public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandlerDataSource {
 
+    /// The options used to configure this service.
     public let options: URLSessionCaptureService.Options
     private let lock: NSLocking
     private let swizzlerProvider: URLSessionSwizzlerProvider
     private(set) var swizzlers: [any URLSessionSwizzler] = []
     private var handler: URLSessionTaskHandler?
 
+    /// Creates a new `URLSessionCaptureService` with the given options.
+    /// - Parameter options: The options used to configure the service.
     public convenience init(options: URLSessionCaptureService.Options = URLSessionCaptureService.Options()) {
         self.init(options: options, lock: NSLock())
     }

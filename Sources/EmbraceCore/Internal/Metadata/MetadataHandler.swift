@@ -12,6 +12,7 @@ import Foundation
     import EmbraceCoreDataInternal
 #endif
 
+/// Defines how long a piece of metadata persists.
 public enum MetadataLifespan: Int {
     /// The resource will be removed when the session ends.
     case session

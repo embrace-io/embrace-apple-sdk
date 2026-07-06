@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension SpanSemantics {
+    /// Attribute keys and values for network request spans.
     public struct NetworkRequest {
         public static let keyUrl = "url.full"
         public static let keyMethod = "http.request.method"

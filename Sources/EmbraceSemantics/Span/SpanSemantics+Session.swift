@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension SpanSemantics {
+    /// Attribute keys and values for session spans.
     public struct Session {
         public static let name = "emb-session"
 

@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension SpanEventSemantics {
+    /// Attribute keys and values for web view span events.
     public struct WebView {
         public static let name = "emb-web-view"
         public static let keyUrl = "webview.url"

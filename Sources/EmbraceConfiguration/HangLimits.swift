@@ -16,6 +16,11 @@ public struct HangLimits: Equatable {
     /// Collects crash reports for Hangs that do not recover.
     public let reportsWatchdogEvents: Bool
 
+    /// Creates a new `HangLimits`.
+    /// - Parameters:
+    ///   - hangThreshold: Minimum duration (in seconds) a frame delay must exceed to be reported as a hang.
+    ///   - hangPerSession: Maximum number of captured hangs in a session.
+    ///   - reportsWatchdogEvents: Whether crash reports are collected for hangs that do not recover.
     public init(
         hangThreshold: TimeInterval = 0.249,
         hangPerSession: UInt = 20,

@@ -2,6 +2,7 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+/// Namespace for the OpenTelemetry attribute keys used on Embrace spans.
 public struct SpanSemantics {
     public static let keyEmbraceType = "emb.type"
     public static let keySessionId = "session.id"

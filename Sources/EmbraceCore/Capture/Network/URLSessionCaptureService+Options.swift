@@ -23,6 +23,8 @@ extension URLSessionCaptureService {
         /// An empty list means no domains should be captured.
         public let onlyAllowDomains: [String]?
 
+        /// Creates a new `Traceparent` configuration.
+        /// - Parameter onlyAllowDomains: First-party domain allowlist. When not `nil`, only requests to these domains get a `traceparent` header. Subdomains will also be matched.
         public init(onlyAllowDomains: [String]? = nil) {
             self.onlyAllowDomains = Traceparent.validated(onlyAllowDomains)
         }
@@ -75,6 +77,11 @@ extension URLSessionCaptureService {
         /// Options for W3C `traceparent` header propagation.
         public let traceparent: Traceparent
 
+        /// Creates a new `Options` with the given values.
+        /// - Parameters:
+        ///   - requestsDataSource: Data source used to manipulate requests before they are captured.
+        ///   - ignoredURLs: Requests whose URL contains any of these strings are not captured.
+        ///   - traceparent: W3C `traceparent` header propagation options.
         public init(
             requestsDataSource: URLSessionRequestsDataSource? = nil,
             ignoredURLs: [String] = [],

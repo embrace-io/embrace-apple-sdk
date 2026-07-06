@@ -13,7 +13,7 @@ import Foundation
 
 /// Main class used to interact with the Embrace SDK.
 ///
-/// To start the SDK call `EmbraceIO.setup(options:)` passing an `EmbraceIO.Options` instance.
+/// To start the SDK call `EmbraceIO.start(options:)` passing an `EmbraceIO.Options` instance.
 /// The SDK is configured and started in a single step.
 ///
 /// Example:
@@ -21,10 +21,11 @@ import Foundation
 /// import EmbraceIO
 ///
 /// let options = EmbraceIO.Options.withAppId("appId")
-/// try EmbraceIO.setup(options: options)
+/// try EmbraceIO.start(options: options)
 /// ```
 public class EmbraceIO {
 
+    /// The shared `EmbraceIO` instance used to access the SDK's instance-level APIs.
     public static let shared = EmbraceIO()
 
     /// Returns the current state of the SDK.

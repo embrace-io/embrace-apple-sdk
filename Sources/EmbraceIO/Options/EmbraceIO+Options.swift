@@ -28,13 +28,28 @@ extension EmbraceIO {
 
     /// Class used to setup the Embrace SDK.
     public final class Options {
+        /// The `appId` of the project, if any.
         public let appId: String?
+
+        /// The platform in which the app is running.
         public let platform: EmbracePlatform
+
+        /// The endpoints used to upload data. When `nil`, defaults to the standard Embrace endpoints for the given `appId`.
         public let endpoints: EmbraceEndpoints?
+
+        /// Determines which `CaptureServices` are installed and how they behave.
         public let captureServices: EmbraceIO.CaptureServicesOptions
+
+        /// The crash reporter installed by the SDK.
         public let crashReporter: EmbraceIO.CrashReporter
+
+        /// The severity level used for the Embrace SDK console logs.
         public let logLevel: EmbraceLogLevel
+
+        /// Configuration for the OpenTelemetry SDK through Embrace, if any.
         public let otel: EmbraceIO.OTelOptions?
+
+        /// Local configuration used when the SDK runs without an `appId`. Ignored when an `appId` is provided.
         public let runtimeConfiguration: EmbraceConfigurable?
 
         /// Default initializer for `EmbraceIO.Options` that requires an `appId`.
@@ -71,7 +86,7 @@ extension EmbraceIO {
         /// Default initializer for `EmbraceIO.Options` without using an `appId`.
         /// Note that to use the SDK in this mode, you'll need to define the local configuration by passing an object following
         /// the `EmbraceConfigurable` protocol.
-        /// On top of this, you should pass exportes in the `EmbraceIO.OTelOptions` to make sure the generated
+        /// On top of this, you should pass exporters in the `EmbraceIO.OTelOptions` to make sure the generated
         /// data is handled since it will not be uploaded to the Embrace servers.
         ///
         /// - Parameters:

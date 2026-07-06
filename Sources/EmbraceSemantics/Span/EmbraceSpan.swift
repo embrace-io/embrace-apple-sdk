@@ -37,10 +37,10 @@ public protocol EmbraceSpan {
     /// Attributes of the span
     var attributes: EmbraceAttributes { get }
 
-    /// Identifier of the active Embrace Session when the log was emitted, if any.
+    /// Identifier of the active Embrace Session when the span was started, if any.
     var sessionId: EmbraceIdentifier? { get }
 
-    /// Identifier of the process when the log was emitted.
+    /// Identifier of the process when the span was started.
     var processId: EmbraceIdentifier { get }
 
     /// Updates the status of the span

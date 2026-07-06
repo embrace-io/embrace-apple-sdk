@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension LogSemantics {
+    /// Attribute keys and values for network capture logs.
     public struct NetworkCapture {
         public static let keyUrl = "url"
         public static let keyEncryptionMechanism = "encryption-mechanism"

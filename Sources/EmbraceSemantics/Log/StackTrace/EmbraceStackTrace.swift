@@ -4,7 +4,7 @@
 
 import Foundation
 
-/// Class used to add custom stack traces to `EmbraceLogs`.
+/// Used to add custom stack traces to `EmbraceLogs`.
 public struct EmbraceStackTrace {
     /// The maximum amount of characters a stack trace frame can have.
     private static let maximumFrameLength = 10000

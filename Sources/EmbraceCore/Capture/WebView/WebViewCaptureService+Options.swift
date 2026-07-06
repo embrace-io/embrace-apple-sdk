@@ -6,11 +6,13 @@
     import Foundation
 
     extension WebViewCaptureService {
-        /// Class used to setup a WebViewCaptureService.
+        /// Used to setup a WebViewCaptureService.
         public struct Options {
-            /// Defines wether or not the Embrace SDK should remove the query params when capturing URLs from a web view.
+            /// Defines whether or not the Embrace SDK should remove the query params when capturing URLs from a web view.
             public let stripQueryParams: Bool
 
+            /// Creates a new `Options` with the given values.
+            /// - Parameter stripQueryParams: Whether the SDK should remove query params when capturing URLs from a web view.
             public init(stripQueryParams: Bool = false) {
                 self.stripQueryParams = stripQueryParams
             }

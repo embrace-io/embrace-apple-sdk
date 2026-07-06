@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension LogSemantics {
+    /// Attribute keys and values for MetricKit metric logs.
     public struct MetricKitMetrics {
         public static let keyId = "log.record.uid"
         public static let keyProvider = "emb.provider"

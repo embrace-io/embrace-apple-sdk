@@ -4,15 +4,28 @@
 
 import Foundation
 
+/// A rule that determines which network request/response payloads the SDK captures.
 public struct NetworkPayloadCaptureRule: Equatable, Decodable {
 
+    /// Unique identifier of the rule.
     public let id: String
+
+    /// Regular expression matched against the request URL to decide if the payload is captured.
     public let urlRegex: String
+
+    /// HTTP status codes the rule applies to. `nil` matches any status code.
     public let statusCodes: [Int]?
+
+    /// HTTP method the rule applies to. `nil` matches any method.
     public let method: String?
+
+    /// Time interval (in seconds) after creation before the rule expires.
     public let expiration: Double
+
+    /// Public key used to encrypt the captured payload.
     public let publicKey: String
 
+    /// The date at which the rule expires, computed from its creation time and `expiration`.
     public var expirationDate: Date {
         return creationDate.addingTimeInterval(expiration)
     }

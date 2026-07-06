@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension SpanEventSemantics {
+    /// Attribute keys and values for push notification span events.
     public struct PushNotification {
         public static let name = "emb-push-notification"
 

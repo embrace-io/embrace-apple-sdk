@@ -19,7 +19,7 @@ public final class EmbraceSpanEvent {
     /// Embrace specific type of the event, if any
     public let type: EmbraceType?
 
-    /// Date when the event occured
+    /// Date when the event occurred
     public let timestamp: Date
 
     /// Attributes of the event

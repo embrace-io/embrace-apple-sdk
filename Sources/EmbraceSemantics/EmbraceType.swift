@@ -10,33 +10,49 @@ import Foundation
 /// - The primary category is required, but the secondary category is optional.
 public class EmbraceType: RawRepresentable, Hashable {
 
+    /// The primary (top-level) category of the type.
     public let primary: PrimaryType
+
+    /// The optional secondary (sub) category of the type.
     public let secondary: String?
 
+    /// Creates a new `EmbraceType` with the given primary and optional secondary categories.
+    /// - Parameters:
+    ///   - primary: The primary category.
+    ///   - secondary: The optional secondary category.
     public init(primary: PrimaryType, secondary: String? = nil) {
         self.primary = primary
         self.secondary = secondary
     }
 
     // MARK: Convenience initializers
+
+    /// Creates a new `EmbraceType` with a `.performance` primary category and the given secondary category.
     public convenience init(performance secondary: String) {
         self.init(primary: .performance, secondary: secondary)
     }
 
+    /// Creates a new `EmbraceType` with a `.ux` primary category and the given secondary category.
     public convenience init(ux secondary: String) {
         self.init(primary: .ux, secondary: secondary)
     }
 
+    /// Creates a new `EmbraceType` with a `.system` primary category and the given secondary category.
     public convenience init(system secondary: String) {
         self.init(primary: .system, secondary: secondary)
     }
 
+    /// An `EmbraceType` with a `.performance` primary category and no secondary category.
     public static var performance: EmbraceType {
         .init(primary: .performance, secondary: nil)
     }
+
+    /// An `EmbraceType` with a `.ux` primary category and no secondary category.
     public static var ux: EmbraceType {
         .init(primary: .ux, secondary: nil)
     }
+
+    /// An `EmbraceType` with a `.system` primary category and no secondary category.
     public static var system: EmbraceType {
         .init(primary: .system, secondary: nil)
     }
@@ -88,6 +104,8 @@ public enum PrimaryType: Int, CaseIterable {
         }
     }
 
+    /// Creates a `PrimaryType` from its serialized name (`"perf"`, `"ux"`, or `"sys"`).
+    /// Unknown names default to `.performance`.
     public init(name: String) {
         switch name {
         case "ux": self = .ux

@@ -13,11 +13,16 @@
     /// Note that any taps done on a keyboard view will be automatically ignored.
     public final class TapCaptureService: CaptureService {
 
+        /// The options used to configure this service.
         public let options: TapCaptureService.Options
 
         private var swizzler: UIWindowSendEventSwizzler?
         private let lock: NSLocking
 
+        /// Creates a new `TapCaptureService` with the given options.
+        /// - Parameters:
+        ///   - options: The options used to configure the service.
+        ///   - lock: Lock used to synchronize swizzling. Exposed for testing.
         public init(
             options: TapCaptureService.Options = TapCaptureService.Options(),
             lock: NSLock = NSLock()

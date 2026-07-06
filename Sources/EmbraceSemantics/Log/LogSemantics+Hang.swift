@@ -3,6 +3,7 @@
 //
 
 extension LogSemantics {
+    /// Attribute keys and values for hang logs.
     public struct Hang {
         public static let keyId = "log.record.uid"
         public static let keyProvider = "emb.provider"

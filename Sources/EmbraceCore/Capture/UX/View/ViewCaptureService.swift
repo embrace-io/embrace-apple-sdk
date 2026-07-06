@@ -13,7 +13,9 @@
         import EmbraceConfiguration
     #endif
 
+    /// Service that generates OpenTelemetry spans to instrument `UIViewController` load time and visibility.
     public final class ViewCaptureService: CaptureService, UIViewControllerHandlerDataSource {
+        /// The options used to configure this service.
         public let options: ViewCaptureService.Options
         private let handler: UIViewControllerHandler
         private let swizzler: EmbraceSwizzler
@@ -35,6 +37,8 @@
 
         var blockList = EmbraceMutex(ViewControllerBlockList())
 
+        /// Creates a new `ViewCaptureService` with the given options.
+        /// - Parameter options: The options used to configure the service.
         public convenience init(options: ViewCaptureService.Options = ViewCaptureService.Options()) {
             self.init(options: options, lock: NSLock())
         }

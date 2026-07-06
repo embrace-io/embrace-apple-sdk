@@ -7,6 +7,7 @@ extension EmbraceType {
 }
 
 extension SpanSemantics {
+    /// Attribute keys and values for low power mode spans.
     public struct LowPower {
         public static let name = "emb-device-low-power"
         public static let keyStartReason = "start_reason"

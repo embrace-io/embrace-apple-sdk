@@ -6,7 +6,7 @@
     import UIKit
 
     extension ViewCaptureService {
-        /// Class used to setup a `ViewCaptureService`.
+        /// Used to setup a `ViewCaptureService`.
         public struct Options {
             /// When enabled, the capture service will generate spans that measure the visible period of a `UIViewController`.
             /// The spans start  on `viewDidAppear` and end on `viewDidDisappear`.
@@ -30,6 +30,11 @@
             /// Use the `blockHostingControllers` paramenter to determine if `UIHostingControllers` and their child controllers should be captured.
             public var viewControllerBlockList: ViewControllerBlockList
 
+            /// Creates a new `Options` with the given values.
+            /// - Parameters:
+            ///   - instrumentVisibility: Whether spans are generated for view visibility.
+            ///   - instrumentFirstRender: Whether spans are generated for the view's time-to-first-render.
+            ///   - viewControllerBlockList: `UIViewController`s excluded from instrumentation.
             public init(
                 instrumentVisibility: Bool = true,
                 instrumentFirstRender: Bool = true,

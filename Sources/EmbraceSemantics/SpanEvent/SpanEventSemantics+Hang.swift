@@ -3,6 +3,7 @@
 //
 
 extension SpanEventSemantics {
+    /// Attribute keys and values for hang span events.
     public struct Hang {
         public static let name = "thread_blockage_sample"
 
