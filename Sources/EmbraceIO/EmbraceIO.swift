@@ -54,9 +54,9 @@ public class EmbraceIO {
         Embrace.client?.currentDeviceId()
     }
 
-    /// Returns the identifier for the current Embrace session, if any.
-    public var currentSessionId: String? {
-        Embrace.client?.currentSessionId()
+    /// Returns the identifier for the current Embrace user session, if any.
+    public var currentUserSessionId: String? {
+        Embrace.client?.currentUserSessionId()
     }
 
     /// Method used to configure and start the Embrace SDK.

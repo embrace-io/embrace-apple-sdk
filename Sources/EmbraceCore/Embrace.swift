@@ -406,6 +406,15 @@ package class Embrace {
         return sessionController.currentSession?.id.stringValue
     }
 
+    /// Returns the current user session identifier, if any.
+    package func currentUserSessionId() -> String? {
+        guard isSDKEnabled else {
+            return nil
+        }
+
+        return userSessionController.currentUserSessionId?.stringValue
+    }
+
     /// Returns the current device identifier.
     package func currentDeviceId() -> String? {
         return deviceId.stringValue
