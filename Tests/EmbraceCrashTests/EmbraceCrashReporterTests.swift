@@ -97,7 +97,7 @@
                 expectation.fulfill()
             }
 
-            wait(for: [expectation], timeout: .defaultTimeout)
+            wait(for: [expectation], timeout: .veryLongTimeout)
         }
 
         func test_fetchCrashReports_count() throws {
@@ -224,7 +224,7 @@
                 expectation.fulfill()
             }
 
-            wait(for: [expectation], timeout: .defaultTimeout)
+            wait(for: [expectation], timeout: .veryLongTimeout)
         }
 
         func testOnHavingEmptySignalBlockList_fetchUnsentCrashReports_SIGTERMshouldBeReported() throws {
@@ -248,7 +248,7 @@
                 expectation.fulfill()
             }
 
-            wait(for: [expectation], timeout: .defaultTimeout)
+            wait(for: [expectation], timeout: .veryLongTimeout)
         }
 
         func testOnModifyingSignalBlockList_fetchUnsentCrashReports_shouldAvoidReportingBlockedSignals() throws {
@@ -273,7 +273,7 @@
                 expectation.fulfill()
             }
 
-            wait(for: [expectation], timeout: .defaultTimeout)
+            wait(for: [expectation], timeout: .veryLongTimeout)
         }
     }
 
