@@ -8,8 +8,12 @@ import OpenTelemetrySdk
 
 enum EmbraceDefaultResources {
 
-    /// Builds an OTel `Resource` containing Embrace's standard default attributes, with the
-    /// optional user-provided resource merged on top so that user values always win.
+    /// Builds an OTel `Resource` containing Embrace's standard default attributes, merged with the
+    /// optional user-provided resource.
+    ///
+    /// User values are kept for any attribute they define, except for the default attributes listed
+    /// below: those are always set by Embrace and take precedence over any colliding user value, so
+    /// they can't be overriden externally.
     ///
     /// Default attributes set by Embrace:
     /// - `service.name`: `<bundleId>:<processName>` (or just `<processName>` if no bundle ID)
@@ -29,12 +33,13 @@ enum EmbraceDefaultResources {
             attributes["service.version"] = .string(version)
         }
 
-        var result = Resource(attributes: attributes)
+        let embraceResources = Resource(attributes: attributes)
 
-        if let userResource {
-            result.merge(other: userResource)
+        if var resources = userResource {
+            resources.merge(other: embraceResources)
+            return resources
         }
 
-        return result
+        return embraceResources
     }
 }
