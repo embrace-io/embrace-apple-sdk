@@ -43,8 +43,6 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
 
-    public var useLegacyUrlSessionProxy: Bool = false
-
     public var useNewStorageForSpanEvents: Bool = false
 
     public var userSessionMaxDuration: TimeInterval = 12 * 3600
@@ -71,7 +69,6 @@ public class EditableConfig: EmbraceConfigurable {
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         hangLimits: HangLimits = HangLimits(),
-        useLegacyUrlSessionProxy: Bool = false,
         useNewStorageForSpanEvents: Bool = false,
         userSessionMaxDuration: TimeInterval = 12 * 3600,
         userSessionInactivityTimeout: TimeInterval = 30 * 60
@@ -89,7 +86,6 @@ public class EditableConfig: EmbraceConfigurable {
         self.internalLogLimits = internalLogLimits
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
         self.hangLimits = hangLimits
-        self.useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
         self.useNewStorageForSpanEvents = useNewStorageForSpanEvents
         self.userSessionMaxDuration = userSessionMaxDuration
         self.userSessionInactivityTimeout = userSessionInactivityTimeout

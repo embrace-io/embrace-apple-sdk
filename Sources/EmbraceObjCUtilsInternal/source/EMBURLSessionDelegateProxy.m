@@ -2,11 +2,11 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#import "EMBURLSessionNewDelegateProxy.h"
+#import "EMBURLSessionDelegateProxy.h"
 #import <Foundation/Foundation.h>
 #import "objc/runtime.h"
 
-@implementation EMBURLSessionNewDelegateProxy
+@implementation EMBURLSessionDelegateProxy
 
 - (instancetype)initWithDelegate:(id<NSURLSessionDelegate>)delegate handler:(id<URLSessionTaskHandler>)handler
 {

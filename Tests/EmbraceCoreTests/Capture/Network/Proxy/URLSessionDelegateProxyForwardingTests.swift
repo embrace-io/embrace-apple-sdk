@@ -14,7 +14,7 @@ import XCTest
 /// More tests on the specific forwarding behavior for each method can be found in the `URLSessionDelegateProxyTests` class.
 class URLSessionDelegateProxyForwardingTests: XCTestCase {
     private var originalDelegate: NotImplementedURLSessionDelegate!
-    private var sut: EMBURLSessionDelegateProxy!
+    private var sut: EMBURLSessionDelegateProxyType!
     private var handler: MockURLSessionTaskHandler!
 
     func test_onExecutingMethodImplementedOnlyInProxy_shouldExecuteJustTheProxy() {

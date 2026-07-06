@@ -7,10 +7,9 @@ import Foundation
 /// Errors thrown while setting up the Embrace SDK.
 public enum EmbraceSetupError: Error, Equatable {
     case invalidAppId(_ description: String)
-    case invalidAppGroupId(_ description: String)
     case invalidThread(_ description: String)
     case invalidOptions(_ description: String)
-    case failedStorageCreation(partitionId: String, appGroupId: String?)
+    case failedStorageCreation(partitionId: String)
     case failedUploadModuleCreation(_ description: String)
     case unableToInitialize(_ description: String)
     case initializationNotAllowed(_ description: String)
@@ -25,8 +24,6 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
 
     public var errorCode: Int {
         switch self {
-        case .invalidAppGroupId:
-            return -1
         case .invalidAppId:
             return -2
         case .invalidThread:
@@ -46,8 +43,6 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidAppGroupId(let description):
-            return description
         case .invalidAppId(let description):
             return description
         case .invalidThread(let description):
@@ -56,8 +51,8 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
             return description
         case .unableToInitialize(let description):
             return description
-        case .failedStorageCreation(let partitionId, let appGroupId):
-            return "Failed to create Storage Directory. partitionId: '\(partitionId)' appGroupId: '\(appGroupId ?? "")'"
+        case .failedStorageCreation(let partitionId):
+            return "Failed to create Storage Directory. partitionId: '\(partitionId)'"
         case .initializationNotAllowed(let description):
             return description
         case .failedUploadModuleCreation(let description):

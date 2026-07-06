@@ -19,17 +19,11 @@ struct EmbraceFileSystem {
     static let defaultPartitionId = "default"
 
     /// Returns the path to the system directory that is the root directory for storage.
-    /// When `appGroupId` is present, will be a URL to an app group container
-    /// If not present, will be a path to the user's application support directory.
+    /// This will be a path to the user's application support directory.
     ///
-    /// - Note: On tvOS, if `appGroupId` is not present this will be a path to the user's Cache directory.
+    /// - Note: On tvOS this will be a path to the user's Cache directory.
     ///                tvOS is an always connected system an long term persisted data is not permitted
-    private static func systemDirectory(appGroupId: String? = nil) -> URL? {
-        // if the app group identifier is set, we use the shared container provided by the OS
-        if let appGroupId = appGroupId {
-            return FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupId)
-        }
-
+    private static func systemDirectory() -> URL? {
         #if os(tvOS)
             //  tvOS is an "always connected" system, therefore Apple does not let data
             //      be stored outside of the "Caches" directory
@@ -47,8 +41,8 @@ struct EmbraceFileSystem {
         }
     }
 
-    static func rootURL(appGroupId: String? = nil) -> URL? {
-        return systemDirectory(appGroupId: appGroupId)?.appendingPathComponent(rootDirectoryName)
+    static func rootURL() -> URL? {
+        return systemDirectory()?.appendingPathComponent(rootDirectoryName)
     }
 
     /// Returns a subpath within the root directory of the Embrace SDK.
@@ -58,9 +52,8 @@ struct EmbraceFileSystem {
     /// - Parameters:
     ///    - name: The name of the subdirectory
     ///    - partitionId: The main partition identifier to use
-    ///    - appGroupId: The app group identifier if using an app group container.
-    static func directoryURL(name: String, partitionId: String, appGroupId: String? = nil) -> URL? {
-        guard let baseURL = systemDirectory(appGroupId: appGroupId) else {
+    static func directoryURL(name: String, partitionId: String) -> URL? {
+        guard let baseURL = systemDirectory() else {
             return nil
         }
 
@@ -73,13 +66,11 @@ struct EmbraceFileSystem {
     /// io.embrace.data/<version>/<partition-id>/storage
     /// ```
     static func storageDirectoryURL(
-        partitionId: String,
-        appGroupId: String? = nil
+        partitionId: String
     ) -> URL? {
         return directoryURL(
             name: storageDirectoryName,
-            partitionId: partitionId,
-            appGroupId: appGroupId
+            partitionId: partitionId
         )
     }
 
@@ -88,13 +79,11 @@ struct EmbraceFileSystem {
     /// io.embrace.data/<version>/<partition-id>/uploads
     /// ```
     static func uploadsDirectoryPath(
-        partitionIdentifier: String,
-        appGroupId: String? = nil
+        partitionIdentifier: String
     ) -> URL? {
         return directoryURL(
             name: uploadsDirectoryName,
-            partitionId: partitionIdentifier,
-            appGroupId: appGroupId
+            partitionId: partitionIdentifier
         )
     }
 
@@ -102,11 +91,10 @@ struct EmbraceFileSystem {
     /// ```
     /// io.embrace.data/<version>/<partition-id>/capture
     /// ```
-    static func captureDirectoryURL(partitionIdentifier: String, appGroupId: String? = nil) -> URL? {
+    static func captureDirectoryURL(partitionIdentifier: String) -> URL? {
         return directoryURL(
             name: captureDirectoryName,
-            partitionId: partitionIdentifier,
-            appGroupId: appGroupId
+            partitionId: partitionIdentifier
         )
     }
 
@@ -114,11 +102,10 @@ struct EmbraceFileSystem {
     /// ```
     /// io.embrace.data/<version>/<partition-id>/config
     /// ```
-    static func configDirectoryURL(partitionIdentifier: String, appGroupId: String? = nil) -> URL? {
+    static func configDirectoryURL(partitionIdentifier: String) -> URL? {
         return directoryURL(
             name: configDirectoryName,
-            partitionId: partitionIdentifier,
-            appGroupId: appGroupId
+            partitionId: partitionIdentifier
         )
     }
 
@@ -159,7 +146,7 @@ struct EmbraceFileSystem {
     static func oldVersionsDirectories() -> [URL] {
         var result: [URL] = []
 
-        guard let baseURL = systemDirectory(appGroupId: nil) else {
+        guard let baseURL = systemDirectory() else {
             return result
         }
 

@@ -46,17 +46,6 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
         self.swizzlerProvider = swizzlerProvider
     }
 
-    /// `UserDefaults` key that stores whether the legacy `URLSession` proxy implementation should be used.
-    package static let EMBUseLegacyURLSessionProxyKey = "EMBUseLegacyURLSessionProxy"
-
-    public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
-        // This key is used in EMBURLSessionDelegateProtocol.m in order to decide
-        // which url session proxy class to use. Depending on the situation,
-        // the change itself in the proxy will take place on the next restart
-        // since we don't want to have new and legacy proxies wunning at the same time.
-        UserDefaults.standard.set(config.useLegacyUrlSessionProxy, forKey: Self.EMBUseLegacyURLSessionProxyKey)
-    }
-
     public override func onInstall() {
         lock.lock()
         defer {
@@ -156,8 +145,8 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 }
 
                 // Add protection against re-proxying our own proxy
-                guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
-                    if let newDelegate = proxiedDelegate as? EMBURLSessionDelegateProxy,
+                guard !(proxiedDelegate is EMBURLSessionDelegateProxyType) else {
+                    if let newDelegate = proxiedDelegate as? EMBURLSessionDelegateProxyType,
                         let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate
                     {
                         return originalImplementation(urlSession, Self.selector, configuration, originalDelegate, queue)

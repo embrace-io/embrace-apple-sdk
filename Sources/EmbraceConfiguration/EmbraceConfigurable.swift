@@ -72,9 +72,6 @@ public protocol EmbraceConfigurable: AnyObject {
     /// Limits for the app hangs captured through the SDK.
     var hangLimits: HangLimits { get }
 
-    /// Whether the legacy `URLSession` proxy implementation is used.
-    var useLegacyUrlSessionProxy: Bool { get }
-
     /// Whether span events are persisted using the new storage backend.
     var useNewStorageForSpanEvents: Bool { get }
 
