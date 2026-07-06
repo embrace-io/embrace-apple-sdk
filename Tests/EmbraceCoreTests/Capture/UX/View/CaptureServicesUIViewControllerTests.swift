@@ -14,7 +14,7 @@
         let context = CrashReporterContext(
             appId: nil,
             sdkVersion: TestConstants.sdkVersion,
-            filePathProvider: EmbraceFilePathProvider(partitionId: "test", appGroupId: nil),
+            filePathProvider: EmbraceFilePathProvider(partitionId: "test"),
             notificationCenter: NotificationCenter.default
         )
         let enabledOptions = ViewCaptureService.Options(instrumentVisibility: true, instrumentFirstRender: true)

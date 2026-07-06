@@ -44,8 +44,7 @@ extension Embrace {
         }
 
         let cacheLocation = EmbraceFileSystem.configDirectoryURL(
-            partitionIdentifier: appId,
-            appGroupId: options.appGroupId
+            partitionIdentifier: appId
         )
 
         let options = RemoteConfig.Options(

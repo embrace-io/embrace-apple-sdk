@@ -46,8 +46,7 @@ final class CaptureServices {
             appId: options.appId,
             sdkVersion: EmbraceMeta.sdkVersion,
             filePathProvider: EmbraceFilePathProvider(
-                partitionId: partitionIdentifier,
-                appGroupId: options.appGroupId
+                partitionId: partitionIdentifier
             ),
             notificationCenter: Embrace.notificationCenter
         )

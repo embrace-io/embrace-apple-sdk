@@ -152,7 +152,6 @@ extension Embrace.Options {
         if let appId = options.appId {
             var result = Embrace.Options(
                 appId: appId,
-                appGroupId: nil,
                 platform: options.platform,
                 endpoints: options.endpoints,
                 captureServices: options.captureServices.list,

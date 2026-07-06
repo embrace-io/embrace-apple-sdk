@@ -52,15 +52,6 @@ final class Embrace_OptionsTests: XCTestCase {
         }
     }
 
-    func test_validate_emptyAppGroupId_throwsInvalidAppGroupId() throws {
-        let options = Embrace.Options(appId: "myApp", appGroupId: "", captureServices: [], crashReporter: nil)
-        XCTAssertThrowsError(try options.validate()) { error in
-            guard let setupError = error as? EmbraceSetupError, case .invalidAppGroupId = setupError else {
-                return XCTFail("expected EmbraceSetupError.invalidAppGroupId, got \(error)")
-            }
-        }
-    }
-
     func test_validate_nilAppId_doesNotThrow() throws {
         // the local-configuration initializer leaves appId nil, which is valid
         let options = Embrace.Options(
