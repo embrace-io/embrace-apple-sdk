@@ -35,9 +35,32 @@ DIFF_RANGE ?= $(shell \
 )
 
 # Define the default target
-.PHONY: format check-format check-format-changes swift-format check-swift-format check-swift-format-changes install-hooks uninstall-hooks
+.PHONY: format check-format check-format-changes swift-format check-swift-format check-swift-format-changes notice check-notice install-hooks uninstall-hooks
 
 all: format swift-format
+
+# LicensePlist command (output configured via license_plist.yml)
+# brew install licenseplist
+LICENSE_PLIST := $(shell command -v license-plist 2> /dev/null)
+
+# Regenerate NOTICE.md from the current SwiftPM dependencies
+notice:
+ifeq ($(LICENSE_PLIST),)
+	@echo "Error: license-plist is not installed. Run 'brew install licenseplist' and try again."
+	@exit 1
+else
+	@echo "Generating NOTICE.md with license-plist..."
+	@$(LICENSE_PLIST) --config-path license_plist.yml
+endif
+
+# Verify NOTICE.md is up to date with the current dependencies (for CI)
+check-notice: notice
+	@if ! git diff --quiet -- NOTICE.md; then \
+		echo "Error: NOTICE.md is out of date. Run 'make notice' and commit the result."; \
+		git --no-pager diff -- NOTICE.md; \
+		exit 1; \
+	fi
+	@echo "NOTICE.md is up to date."
 
 # Format source code using clang-format
 format:
