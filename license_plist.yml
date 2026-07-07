@@ -1,0 +1,10 @@
+# LicensePlist config used to generate NOTICE.md from the SwiftPM dependencies.
+# Run `make notice` to regenerate. Note: LicensePlist only reads these settings
+# under the `options:` section; top-level keys are silently ignored.
+options:
+  markdownPath: NOTICE.md
+  singlePage: true
+  addVersionNumbers: true
+  outputPath: .build/license-plist-output
+  suppressOpeningDirectory: true
+  force: true
