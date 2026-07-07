@@ -109,14 +109,35 @@ For this first you'll need to install SwiftLint in your local environment. Follo
 * Use `make check-lint` to get a report on all the issues.
 * Use `make lint` to fix issues automatically when possible.
 
-### Setup pre-commit hook
+### Third-party licenses
 
-We strongly recommend to use a pre-commit hook to make sure all the modified files follow the guidelines before pushing.
-We have provided an example pre-commit hook in `.githooks/pre-commit`. Note that depending on your local environment, you might need to edit the pre-commit file to set the path to `swiftlint`.
+The [`NOTICE.md`](NOTICE.md) file lists the licenses of our third-party dependencies. It is generated from
+the SwiftPM dependencies with [LicensePlist](https://github.com/mono0926/LicensePlist) (installed via
+`brew bundle`, configured via `license_plist.yml`).
+
+Whenever you add, remove, or update a dependency, regenerate it and commit the result:
 
 ```sh
-cp .githooks/pre-commit .git/hooks/pre-commit
+make notice
 ```
+
+The pre-push hook (see below) runs `make check-notice` automatically when a dependency manifest changes, so
+you'll be reminded if `NOTICE.md` is out of date before the push leaves your machine.
+
+### Setup git hooks
+
+We strongly recommend installing the provided git hooks so changes are checked before they leave your machine:
+
+- `pre-commit` formats and lints the files you're committing.
+- `pre-push` runs `make check-notice` when a dependency manifest changes, so `NOTICE.md` stays in sync.
+
+Install all hooks (symlinks everything in `.githooks/`) with:
+
+```sh
+make install-hooks
+```
+
+Note that depending on your local environment, you might need to edit `.githooks/pre-commit` to set the path to `swiftlint`. To install a single hook manually instead, copy it into place, e.g. `cp .githooks/pre-commit .git/hooks/pre-commit`.
 
 **Alternatives on how to setup the hook:**
 * Use the `core.hooksPath` setting to change the hooks path (`git config core.hooksPath .githooks`)
