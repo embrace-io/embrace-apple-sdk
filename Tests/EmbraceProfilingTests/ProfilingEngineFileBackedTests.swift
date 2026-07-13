@@ -53,8 +53,9 @@
             XCTAssertEqual(handle.status, .recoverable)
             XCTAssertGreaterThan(handle.byteSize, 0)
 
-            guard case let .recovered(result) = ProfilingEngine.shared.recover(handle) else {
-                return XCTFail("expected .recovered, got \(ProfilingEngine.shared.recover(handle))")
+            let recovery = ProfilingEngine.shared.recover(handle)
+            guard case let .recovered(result) = recovery else {
+                return XCTFail("expected .recovered, got \(recovery)")
             }
             XCTAssertEqual(result.samples.count, 1)
             XCTAssertEqual(result.samples[0].threadState, .running)

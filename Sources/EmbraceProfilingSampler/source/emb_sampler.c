@@ -218,7 +218,8 @@ static void *sampler_thread_func(void *arg) {
             void *stack_top = pthread_get_stackaddr_np(g_main_pthread_cached);
             void *stack_bottom = (uint8_t *)stack_top - stack_size;
 
-            // Capture the main thread's run state BEFORE suspending it (THREAD-STATE.md §3):
+            // Capture the main thread's run state BEFORE suspending it
+            // (PROFILING-THREAD-STATE.md §2):
             // thread_info is a mach_msg RPC, not async-signal-safe, so it must not run inside the
             // suspend window. Held in locals consumed by the post-resume write below.
             uint8_t thread_state = EMB_THREAD_RUN_STATE_UNKNOWN;

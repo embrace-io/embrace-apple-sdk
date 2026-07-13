@@ -102,17 +102,30 @@ extension ProfilingEngine {
             }
 
             // Snapshot the active file name under the gate so we don't race start()/teardown.
-            var activeName: String?
-            if acquireGate() { activeName = activeSessionFileName; releaseGate() }
+            // If we can't acquire the gate we can't prove which file is live, so we must not risk
+            // handing the caller the active session's file — bail conservatively (contention is
+            // extremely rare and the caller can retry). A successful acquire with a nil name simply
+            // means nothing is active, which is safe.
+            guard acquireGate() else { return [] }
+            let activeName = activeSessionFileName
+            releaseGate()
 
             var sessions: [RecoverableSession] = []
-            for url in entries where url.pathExtension == "embprof" && url.lastPathComponent != activeName {
+            for url in entries
+                where url.pathExtension == Self.sessionFileExtension && url.lastPathComponent != activeName {
                 let peek = url.path.withCString { emb_profile_peek($0) }
                 let status: RecoverableSession.Status
                 switch peek {
                 case EMB_PROFILE_PEEK_RECOVERABLE: status = .recoverable
                 case EMB_PROFILE_PEEK_FINALIZED: status = .finalized
-                default: continue  // not ours / unreadable → skip
+                case EMB_PROFILE_PEEK_INDETERMINATE:
+                    // Couldn't read the file this launch (e.g. still locked under data protection at
+                    // boot, or a transient I/O error). It may be one of ours and recoverable — we just
+                    // can't tell yet — so skip it this pass rather than misclassify it. It stays on disk
+                    // (we never delete here) and is re-examined on the next launch. Kept distinct from
+                    // NOT_OURS so retention/cleanup logic won't treat it as safe to delete.
+                    continue
+                default: continue  // not ours → skip
                 }
                 let values = try? url.resourceValues(forKeys: Set(keys))
                 sessions.append(RecoverableSession(
@@ -156,8 +169,12 @@ extension ProfilingEngine {
         #if os(watchOS)
             return false
         #else
-            var activeName: String?
-            if acquireGate() { activeName = activeSessionFileName; releaseGate() }
+            // Gate acquisition failure means we can't confirm the file isn't the live session, so
+            // treat it as a hard "don't delete" rather than falling through to a nil active name
+            // (which would let us delete the currently-active file — a data-loss bug).
+            guard acquireGate() else { return false }
+            let activeName = activeSessionFileName
+            releaseGate()
             guard session.url.lastPathComponent != activeName else { return false }
             return (try? FileManager.default.removeItem(at: session.url)) != nil
         #endif

@@ -64,13 +64,13 @@ extern "C" {
 /// Control block holding the writer/reader positions. Relocated out of
 /// emb_ring_buffer_t so it can be backed either by a small anonymous allocation
 /// (in-memory buffers) or by a file-backed mapped footer page (persistent buffers,
-/// PROFILING-DISK-FORMAT.md §3.1) — the same struct, only the backing differs.
+/// PROFILING-DISK-FORMAT.md §3) — the same struct, only the backing differs.
 typedef struct {
     _Atomic uint64_t write_pos;  // Monotonically increasing write position.
     _Atomic uint64_t oldest_pos; // Position of the oldest surviving record.
     uint64_t next_seq;           // Writer-local seqlock counter (single-writer).
     _Atomic uint32_t status_flags; // Reserved (file-backed lifecycle is signaled via the footer
-                                 // format_version, not here — PROFILING-DISK-FORMAT.md §8).
+                                 // format_version, not here — PROFILING-DISK-FORMAT.md §5).
 } emb_ring_control_t;
 
 typedef struct {
@@ -91,7 +91,7 @@ typedef struct {
 /// includes this header and consumes the value from here.
 #define EMB_MAX_STACK_FRAMES 1024
 
-/// Main-thread run state captured per sample (see THREAD-STATE.md). Values mirror
+/// Main-thread run state captured per sample (see PROFILING-THREAD-STATE.md). Values mirror
 /// the Mach `TH_STATE_*` constants so the stored byte equals
 /// `thread_basic_info.run_state`. 255 = "couldn't capture" — Mach never returns it.
 typedef enum {
@@ -142,7 +142,7 @@ typedef struct {
 _Static_assert(sizeof(uintptr_t) == 8,
                "Ring buffer record layout requires 64-bit pointers");
 // The header must stay exactly 16 bytes: seq(4) + frame_count(2) + thread_state(1)
-// + flags(1) + timestamp_ns(8). The on-disk format (PROFILING-DISK-FORMAT.md §3.2)
+// + flags(1) + timestamp_ns(8). The on-disk format (PROFILING-DISK-FORMAT.md §4)
 // mirrors this byte-for-byte and the trailer records sizeof() for recovery.
 _Static_assert(sizeof(emb_ring_record_header_t) == 16,
                "Ring buffer record header must stay 16 bytes");

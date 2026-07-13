@@ -107,6 +107,48 @@
             XCTAssertEqual(status, EMB_PROFILE_RECOVER_IO_ERROR)
         }
 
+        // MARK: - Peek (cheap identity-only classification)
+
+        func test_peek_crashedSession_returnsRecoverable() {
+            let path = tempPath()
+            defer { try? FileManager.default.removeItem(atPath: path) }
+
+            var err: Int32 = 0
+            guard let store = emb_profile_store_create(path, 256 * 1024, nil, &err) else { return XCTFail() }
+            ringWrite(emb_profile_store_buffer(store), 100, [0x11], 1, 1, 0)
+            emb_profile_store_destroy(store)  // crash-like: version stays 1
+
+            XCTAssertEqual(emb_profile_peek(path), EMB_PROFILE_PEEK_RECOVERABLE)
+        }
+
+        func test_peek_finalizedSession_returnsFinalized() {
+            let path = tempPath()
+            defer { try? FileManager.default.removeItem(atPath: path) }
+
+            var err: Int32 = 0
+            guard let store = emb_profile_store_create(path, 256 * 1024, nil, &err) else { return XCTFail() }
+            emb_profile_store_finalize(store)  // clean stop → version 0
+            emb_profile_store_destroy(store)
+
+            XCTAssertEqual(emb_profile_peek(path), EMB_PROFILE_PEEK_FINALIZED)
+        }
+
+        /// A readable regular file whose magic doesn't match is *definitively* not ours.
+        func test_peek_notOurFile_returnsNotOurs() throws {
+            let path = tempPath()
+            defer { try? FileManager.default.removeItem(atPath: path) }
+            try Data(count: 64 * 1024).write(to: URL(fileURLWithPath: path))
+
+            XCTAssertEqual(emb_profile_peek(path), EMB_PROFILE_PEEK_NOT_OURS)
+        }
+
+        /// A file we can't even open is INDETERMINATE, not NOT_OURS: it may be one of ours that is
+        /// temporarily unreadable (e.g. locked under data protection at launch), so the caller must be
+        /// able to tell "couldn't determine" apart from "confirmed not ours" and retry later.
+        func test_peek_unreadableFile_returnsIndeterminate() {
+            XCTAssertEqual(emb_profile_peek(tempPath() + "-nope"), EMB_PROFILE_PEEK_INDETERMINATE)
+        }
+
         // MARK: - Step 7: adversarial hardening
 
         /// Recovery must read writer dirty pages that were NEVER explicitly flushed (no msync, no

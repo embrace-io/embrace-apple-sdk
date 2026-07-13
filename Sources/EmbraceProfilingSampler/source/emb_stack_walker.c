@@ -64,8 +64,13 @@ bool emb_stack_walk(thread_t thread,
     // Each frame record is: [saved_fp, return_address]
     // Frame pointers must be aligned to sizeof(void *) * 2 bytes
     // (16 bytes on the supported 64-bit architectures).
-    const uintptr_t fp_align_mask = sizeof(void *) * 2 - 1;
-    while (fp >= stack_bottom && fp < stack_top
+    // We dereference both words of the record, so the whole record — not just fp — must lie
+    // within the stack; a bare `fp < stack_top` check would let record[1] read up to one word
+    // past stack_top.
+    const size_t record_bytes = sizeof(void *) * 2;
+    const uintptr_t fp_align_mask = record_bytes - 1;
+    while (fp >= stack_bottom
+           && (uintptr_t)fp <= (uintptr_t)stack_top - record_bytes
            && ((uintptr_t)fp & fp_align_mask) == 0) {
         void **record = (void **)fp;
         void *ret_addr = ptrauth_strip(record[1], ptrauth_key_return_address);

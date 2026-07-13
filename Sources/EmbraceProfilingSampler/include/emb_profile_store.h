@@ -11,7 +11,7 @@
 /// dirty `MAP_SHARED` pages to the file, so samples survive abrupt process death and
 /// can be recovered on the next launch.
 ///
-/// See `design/PROFILING-DISK-FORMAT.md` for the on-disk format. Recovery (reading a
+/// See `PROFILING-DISK-FORMAT.md` for the on-disk format. Recovery (reading a
 /// previous session's file) lives in this unit too (added in a later step); creation
 /// and the live write path are here.
 ///
@@ -45,12 +45,14 @@ typedef struct {
     uint64_t created_uptime_ns;   // CLOCK_MONOTONIC_RAW at creation
     uint64_t created_wall_ns;     // wall clock at creation (session correlation)
     uint8_t  session_id[16];      // opaque 128-bit id supplied by the caller
-    uint64_t image_table_offset;  // 0 if absent (always 0 in v1)
-    uint64_t image_table_bytes;   // 0 if absent (always 0 in v1)
+    uint64_t image_table_offset;  // reserved for a future image table (symbolication); always 0 in v1
+    uint64_t image_table_bytes;   // reserved; always 0 in v1 (see PROFILING-DISK-FORMAT.md appendix)
 } emb_profile_descriptor_t;
 
 /// FROZEN identity — the LAST bytes of the file. Same layout in every format version, forever.
-/// Discovered via fstat + read(EOF − sizeof(emb_profile_ident_t)).
+/// Discovered via fstat + read(EOF − sizeof(emb_profile_ident_t)) — placing it at EOF (not the front)
+/// lets a reader find it without knowing the file's size or format version first, so any other field
+/// can grow or move between versions (see PROFILING-DISK-FORMAT.md §2.1).
 typedef struct {
     uint64_t magic;           // EMB_PROFILE_FILE_MAGIC
     uint64_t format_version;  // selects the parser for everything else; 0 = "disregard this file"
@@ -65,7 +67,8 @@ typedef struct {
     uint16_t record_header_bytes; // sizeof(emb_ring_record_header_t), validated on recovery
     uint16_t pointer_bytes;       // sizeof(uintptr_t) == 8
     uint32_t footer_bytes;        // total footer size
-    uint32_t trailer_bytes;       // sizeof(this struct) for THIS version
+    uint32_t trailer_bytes;       // on-disk size of THIS version's trailer, so a newer build can step
+                                  // back from the identity to it without assuming its own sizeof
 } emb_profile_trailer_v1_t;
 
 /// Opaque store handle. Owns the fd, the address-space reservation/mapping, the mapped
@@ -108,7 +111,9 @@ void emb_profile_store_finalize(emb_profile_store_t *store);
 void emb_profile_store_flush(emb_profile_store_t *store);
 
 /// Tear down the store: destroy the ring buffer wrapper, unmap the reservation, close the
-/// file. Does not delete the file (Embrace owns deletion). Safe to call with NULL.
+/// file. Does not delete the file (Embrace owns deletion), and does not itself force a sync — the
+/// kernel writes back the MAP_SHARED pages; call `emb_profile_store_flush` first if you need samples
+/// durable before an imminent abrupt exit. Safe to call with NULL.
 void emb_profile_store_destroy(emb_profile_store_t *store);
 
 // MARK: - Recovery (read-only)
@@ -150,12 +155,18 @@ emb_profile_recover_status_t emb_profile_recover(const char *path,
 typedef enum {
     EMB_PROFILE_PEEK_RECOVERABLE = 0,  // ours, format_version != 0 — has (or may have) records
     EMB_PROFILE_PEEK_FINALIZED,        // ours, format_version 0 — cleanly stopped, nothing to recover
-    EMB_PROFILE_PEEK_NOT_OURS,         // not a regular file / magic mismatch / unreadable
+    EMB_PROFILE_PEEK_NOT_OURS,         // a readable regular file whose magic doesn't match — not ours
+    EMB_PROFILE_PEEK_INDETERMINATE,    // couldn't open/stat/read (e.g. locked under data protection at
+                                       // launch, or a transient I/O error) — may be ours; retry later
 } emb_profile_peek_status_t;
 
 /// Cheaply classify a candidate file by reading ONLY the 16-byte frozen identity at EOF (open +
 /// fstat + one pread). Lets a caller enumerate a directory and decide what to recover/delete without
 /// mapping or walking any records. Read-only; never modifies the file. NOT async-safe.
+///
+/// A file that can't be opened/stat'd/read returns INDETERMINATE (not NOT_OURS): it may be one of ours
+/// that is temporarily unreadable (e.g. still locked under data protection at launch), so the caller
+/// should retry it on a later launch rather than discard it. Retries EINTR internally.
 emb_profile_peek_status_t emb_profile_peek(const char *path);
 
 #ifdef __cplusplus

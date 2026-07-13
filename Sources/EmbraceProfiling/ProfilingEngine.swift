@@ -32,6 +32,9 @@ import Foundation  // URL / FileManager / String(format:) — used in the public
 public final class ProfilingEngine: @unchecked Sendable {
     public static let shared = ProfilingEngine()
 
+    /// File extension (without the leading dot) for a persisted profiling session file.
+    internal static let sessionFileExtension = "embprof"
+
     /// Result of calling ``start(configuration:)``.
     public enum StartResult: Equatable, Sendable {
         /// Successfully started the sampler.
@@ -203,6 +206,9 @@ public final class ProfilingEngine: @unchecked Sendable {
     ///   - sessionId: opaque 16-byte id for the file-backed session (becomes the filename). Must be
     ///     unique per launch. Ignored for in-memory mode; a random id is used if nil.
     ///
+    /// - Important: A file-backed start (`directory != nil`) performs synchronous filesystem work on the
+    ///   calling thread (`createDirectory`, `ftruncate`, `mmap`) and never dispatches internally — call
+    ///   it off the main thread. In-memory mode (the default) does no filesystem I/O.
     /// - Note: For a file-backed session, on a *clean* stop call ``finalizeStorage()`` after the worker
     ///   has exited (poll ``isActive`` until `false`). Otherwise that session looks crash-like and is
     ///   listed by ``recoverableSessions(in:)`` on the next launch.
@@ -353,7 +359,7 @@ public final class ProfilingEngine: @unchecked Sendable {
         guard sid.count == 16 else {
             return .storageSetupFailed(reason: "sessionId must be 16 bytes")
         }
-        let fileName = sid.map { String(format: "%02x", $0) }.joined() + ".embprof"
+        let fileName = sid.map { String(format: "%02x", $0) }.joined() + "." + Self.sessionFileExtension
         let path = directory.appendingPathComponent(fileName).path
 
         var err: Int32 = 0
@@ -381,7 +387,7 @@ public final class ProfilingEngine: @unchecked Sendable {
         activeSessionFileName = fileName
         return nil
     }
-    #endif
+    #endif  // !os(watchOS)
 
     /// Flush persisted samples to disk (`msync(MS_ASYNC)`). No-op in in-memory mode. The CaptureService
     /// wrapper calls this on `willResignActive` / `didEnterBackground` (and `willTerminate`) so samples

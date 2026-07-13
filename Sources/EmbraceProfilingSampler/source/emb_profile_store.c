@@ -16,9 +16,11 @@
 #include <time.h>
 #include <unistd.h>
 
-// Data-protection Class B == NSFileProtectionCompleteUnlessOpen. The protection-class enum constants
-// (PROTECTION_CLASS_*) are NOT exported by the public SDK headers — only F_SETPROTECTIONCLASS is — so
-// we use the documented integer value directly.
+// Data-protection Class B == NSFileProtectionCompleteUnlessOpen. It is the only class we use: it keeps
+// an already-open file writable while the device is locked, which is exactly this file's lifetime (we
+// hold it open for the whole session). The protection-class enum constants (PROTECTION_CLASS_*) are NOT
+// exported by the public SDK headers — only F_SETPROTECTIONCLASS is — so we use the documented integer
+// value directly. No other class is defined here because none is needed.
 #define EMB_PROTECTION_CLASS_B 2
 
 struct emb_profile_store {
@@ -36,13 +38,14 @@ struct emb_profile_store {
 
 /// Write `version` into the frozen identity, briefly toggling the write-once metadata
 /// page to RW. The version field is the file's transactional validity/tombstone marker
-/// (PROFILING-DISK-FORMAT.md §4.2): 0 = "disregard"; a real version = recoverable.
+/// (PROFILING-DISK-FORMAT.md §5): 0 = "disregard"; a real version = recoverable.
 static void store_set_version(emb_profile_store_t *store, uint64_t version)
 {
-    // Toggle the write-once metadata page to RW just for this write. If the unprotect fails, the page
+    // Toggle the write-once metadata page to RW just for this write. mprotect on our own mapped page is
+    // not expected to fail in practice — this is purely defensive. If the unprotect does fail the page
     // is still read-only — writing would SIGBUS and crash the host app — so bail and leave the current
-    // version intact. Worst case the file keeps version 1 and is re-reported as a crash next launch
-    // (a harmless false positive), never a fault.
+    // version intact. Worst case the file keeps version 1 and is re-reported as a crash next launch (a
+    // harmless false positive: recovery finds a valid file with no torn tail), never a fault.
     if (mprotect(store->meta_page, store->page, PROT_READ | PROT_WRITE) != 0) { return; }
     store->ident->format_version = version;
     (void)mprotect(store->meta_page, store->page, PROT_READ);  // best-effort re-protect
@@ -76,7 +79,9 @@ emb_profile_store_t *emb_profile_store_create(const char *path,
     const size_t reserve_size = 2 * data_capacity + guard_bytes + footer_bytes;
 
     // --- open + size the file ---
-    int fd = open(path, O_RDWR | O_CREAT | O_TRUNC, 0600);
+    // O_NOFOLLOW: the directory is caller-provided, so refuse to follow a symlink at the final
+    // path component and truncate an unexpected file (matches the symlink hardening in recovery).
+    int fd = open(path, O_RDWR | O_CREAT | O_TRUNC | O_NOFOLLOW, 0600);
     if (fd < 0) { *errno_out = errno; return NULL; }
 
 #if !TARGET_OS_OSX
@@ -97,13 +102,13 @@ emb_profile_store_t *emb_profile_store_create(const char *path,
     // Lower half + aliased upper half: both MAP_SHARED over file offset 0, so a record that
     // wraps past the end is written through the alias into the single file region.
     if (mmap(b, data_capacity, PROT_READ | PROT_WRITE,
-             MAP_SHARED | MAP_FIXED, fd, 0) == MAP_FAILED) { goto fail_mmap; }
+             MAP_SHARED | MAP_FIXED, fd, 0) == MAP_FAILED) { goto fail; }
     if (mmap(b + data_capacity, data_capacity, PROT_READ | PROT_WRITE,
-             MAP_SHARED | MAP_FIXED, fd, 0) == MAP_FAILED) { goto fail_mmap; }
-    // Guard page at b + 2*data_capacity stays PROT_NONE (never mapped over) — §4.1 Layer 1.
+             MAP_SHARED | MAP_FIXED, fd, 0) == MAP_FAILED) { goto fail; }
+    // Guard page at b + 2*data_capacity stays PROT_NONE (never mapped over) — §7 (guard page).
     uint8_t *footer = b + 2 * data_capacity + guard_bytes;
     if (mmap(footer, footer_bytes, PROT_READ | PROT_WRITE,
-             MAP_SHARED | MAP_FIXED, fd, (off_t)data_capacity) == MAP_FAILED) { goto fail_mmap; }
+             MAP_SHARED | MAP_FIXED, fd, (off_t)data_capacity) == MAP_FAILED) { goto fail; }
 
     // --- footer layout: [control page][write-once metadata page] ---
     // Control block at the start of the footer (its own RW page); zero from ftruncate, so the
@@ -136,7 +141,7 @@ emb_profile_store_t *emb_profile_store_create(const char *path,
     trailer->trailer_bytes       = (uint32_t)sizeof(emb_profile_trailer_v1_t);
 
     ident->magic = EMB_PROFILE_FILE_MAGIC;
-    // Commit LAST: a crash before this leaves format_version == 0 → recovery disregards the file (§4.2).
+    // Commit LAST: a crash before this leaves format_version == 0 → recovery disregards the file (§5).
     ident->format_version = EMB_PROFILE_FORMAT_VER;
 
     // --- harden: drop the write-once metadata page to read-only (control page stays RW) ---
@@ -147,10 +152,10 @@ emb_profile_store_t *emb_profile_store_create(const char *path,
 
     // --- attach a ring buffer over the data region + mapped control block ---
     emb_ring_buffer_t *ring = emb_ring_buffer_attach(b, data_capacity, control);
-    if (ring == NULL) { *errno_out = ENOMEM; goto fail_mmap; }
+    if (ring == NULL) { *errno_out = ENOMEM; goto fail; }
 
     emb_profile_store_t *store = calloc(1, sizeof(*store));
-    if (store == NULL) { *errno_out = ENOMEM; emb_ring_buffer_destroy(ring); goto fail_mmap; }
+    if (store == NULL) { *errno_out = ENOMEM; emb_ring_buffer_destroy(ring); goto fail; }
     store->fd            = fd;
     store->base          = base;
     store->reserve_size  = reserve_size;
@@ -163,7 +168,7 @@ emb_profile_store_t *emb_profile_store_create(const char *path,
     store->ring          = ring;
     return store;
 
-fail_mmap:
+fail:
     if (*errno_out == 0) { *errno_out = errno; }
     munmap(base, reserve_size);
     close(fd);
@@ -178,7 +183,7 @@ emb_ring_buffer_t *emb_profile_store_buffer(emb_profile_store_t *store)
 bool emb_profile_store_reset(emb_profile_store_t *store)
 {
     if (store == NULL) { return false; }
-    // Transactional reset (PROFILING-DISK-FORMAT.md §4.2 / audit B3): bracket the mutation with the
+    // Transactional reset (PROFILING-DISK-FORMAT.md §5): bracket the mutation with the
     // version marker so a crash mid-reset leaves format_version == 0 → recovery disregards a half-cleared
     // file. The file length never changes within a process run, so we reuse the same mapping/file.
     store_set_version(store, EMB_PROFILE_FORMAT_INVALID);
@@ -190,8 +195,9 @@ bool emb_profile_store_reset(emb_profile_store_t *store)
 void emb_profile_store_finalize(emb_profile_store_t *store)
 {
     if (store == NULL) { return; }
-    // Clean-stop tombstone (audit B2): version → 0 marks the file "finalized" so recovery reports
-    // nothing for it (its samples were already drained live). We never delete — Embrace owns deletion.
+    // Clean-stop tombstone (PROFILING-DISK-FORMAT.md §5): version → 0 marks the file "finalized" so
+    // recovery reports nothing for it (its samples were already retrieved via the live
+    // retrieveSamples path before the clean stop). We never delete — Embrace owns deletion.
     store_set_version(store, EMB_PROFILE_FORMAT_INVALID);
 }
 
@@ -218,9 +224,29 @@ void emb_profile_store_destroy(emb_profile_store_t *store)
 
 // MARK: - Recovery (read-only)
 
+// Open a candidate file read-only without following symlinks, retrying on EINTR so a signal landing
+// during launch-time recovery doesn't spuriously fail the open.
+static int recover_open(const char *path)
+{
+    int fd;
+    do { fd = open(path, O_RDONLY | O_NOFOLLOW); } while (fd < 0 && errno == EINTR);
+    return fd;
+}
+
+// Read exactly `n` bytes at `off`. Loops over partial reads and retries EINTR — a signal during the
+// launch-time recovery read must not fail an otherwise-valid file. Returns false on a short read
+// (EOF before `n`) or a real I/O error.
 static bool pread_exact(int fd, void *buf, size_t n, off_t off)
 {
-    return pread(fd, buf, n, off) == (ssize_t)n;
+    uint8_t *p = (uint8_t *)buf;
+    size_t got = 0;
+    while (got < n) {
+        ssize_t r = pread(fd, p + got, n - got, off + (off_t)got);
+        if (r > 0) { got += (size_t)r; continue; }
+        if (r < 0 && errno == EINTR) { continue; }
+        return false;  // r == 0 (short read / EOF) or a real error
+    }
+    return true;
 }
 
 emb_profile_recover_status_t emb_profile_recover(const char *path,
@@ -229,8 +255,9 @@ emb_profile_recover_status_t emb_profile_recover(const char *path,
 {
     if (path == NULL) { return EMB_PROFILE_RECOVER_IO_ERROR; }
 
-    // O_NOFOLLOW: don't traverse a symlink left in the recovery directory (hardening for untrusted input).
-    int fd = open(path, O_RDONLY | O_NOFOLLOW);
+    // O_NOFOLLOW: don't traverse a symlink left in the recovery directory (hardening for untrusted
+    // input). recover_open retries EINTR so a signal during the read doesn't spuriously fail.
+    int fd = recover_open(path);
     if (fd < 0) { return EMB_PROFILE_RECOVER_IO_ERROR; }
 
     emb_profile_recover_status_t status = EMB_PROFILE_RECOVER_CORRUPT;
@@ -329,16 +356,25 @@ emb_profile_peek_status_t emb_profile_peek(const char *path)
 {
     if (path == NULL) { return EMB_PROFILE_PEEK_NOT_OURS; }
 
-    int fd = open(path, O_RDONLY | O_NOFOLLOW);
-    if (fd < 0) { return EMB_PROFILE_PEEK_NOT_OURS; }
+    // A file we can't open/stat/read may still be one of ours — it could be locked under data
+    // protection (Class B) at launch, or hit a transient EINTR/EIO — so those map to INDETERMINATE,
+    // NOT to NOT_OURS, so the caller doesn't permanently write it off. Only a readable regular file
+    // whose magic doesn't match is definitively NOT_OURS.
+    int fd = recover_open(path);
+    if (fd < 0) { return EMB_PROFILE_PEEK_INDETERMINATE; }
 
-    emb_profile_peek_status_t result = EMB_PROFILE_PEEK_NOT_OURS;
+    emb_profile_peek_status_t result;
     struct stat st;
     emb_profile_ident_t ident;
-    if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) &&
-        st.st_size >= (off_t)sizeof(ident) &&
-        pread_exact(fd, &ident, sizeof(ident), st.st_size - (off_t)sizeof(ident)) &&
-        ident.magic == EMB_PROFILE_FILE_MAGIC) {
+    if (fstat(fd, &st) != 0) {
+        result = EMB_PROFILE_PEEK_INDETERMINATE;                       // couldn't stat
+    } else if (!S_ISREG(st.st_mode) || st.st_size < (off_t)sizeof(ident)) {
+        result = EMB_PROFILE_PEEK_NOT_OURS;                           // not a regular file / too small
+    } else if (!pread_exact(fd, &ident, sizeof(ident), st.st_size - (off_t)sizeof(ident))) {
+        result = EMB_PROFILE_PEEK_INDETERMINATE;                       // couldn't read the identity
+    } else if (ident.magic != EMB_PROFILE_FILE_MAGIC) {
+        result = EMB_PROFILE_PEEK_NOT_OURS;                           // read it — magic mismatch
+    } else {
         result = (ident.format_version == EMB_PROFILE_FORMAT_INVALID)
             ? EMB_PROFILE_PEEK_FINALIZED
             : EMB_PROFILE_PEEK_RECOVERABLE;
