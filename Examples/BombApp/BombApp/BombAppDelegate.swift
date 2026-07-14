@@ -12,7 +12,7 @@ class BombAppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
 
-        //FirebaseApp.configure()
+        FirebaseApp.configure()
 
         do {
             try EmbraceIO.start(options: embraceOptions)
