@@ -18,10 +18,6 @@ class CrashesTests: PayloadTest {
         UserDefaults.standard.bool(forKey: "CrashTriggered")
     }
 
-    private var crashedSessionId: String? {
-        UserDefaults.standard.string(forKey: "CrashedSessionId")
-    }
-
     func runTestPreparations() {
         if !crashTriggered {
             recordCrash()
@@ -40,12 +36,6 @@ class CrashesTests: PayloadTest {
     func test(logs: [ReadableLogRecord]) -> TestReport {
         var testItems = [TestReportItem]()
 
-        guard let crashedSessionId = crashedSessionId else {
-            testItems.append(
-                .init(target: "crashedSessionId", expected: "cached crash session", recorded: "missing", result: .fail))
-            return .init(items: testItems)
-        }
-
         guard let crashLog = logs.first(where: { $0.attributes["emb.type"]?.description == "sys.ios.crash" }) else {
             testItems.append(.init(target: "emb.type", expected: "sys.ios.crash", recorded: "missing", result: .fail))
             return .init(items: testItems)
@@ -53,7 +43,6 @@ class CrashesTests: PayloadTest {
 
         testItems.append(
             .init(target: "emb.type", expected: "sys.ios.crash", recorded: "sys.ios.crash", result: .success))
-        testItems.append(evaluate("emb.payload", contains: crashedSessionId, on: crashLog.attributes))
         testItems.append(evaluate("emb.provider", expecting: "kscrash", on: crashLog.attributes))
         testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(crashLog.attributes))
         clearCrashRecord()
@@ -62,14 +51,12 @@ class CrashesTests: PayloadTest {
 
     private func recordCrash() {
         UserDefaults.standard.setValue(true, forKey: "CrashTriggered")
-        UserDefaults.standard.setValue(EmbraceIO.shared.currentSessionId ?? "INVALID", forKey: "CrashedSessionId")
         UserDefaults.standard.synchronize()
 
     }
 
     private func clearCrashRecord() {
         UserDefaults.standard.setValue(false, forKey: "CrashTriggered")
-        UserDefaults.standard.setValue(nil, forKey: "CrashedSessionId")
         UserDefaults.standard.synchronize()
     }
 }

@@ -17,10 +17,7 @@ class FinishedSessionTest: PayloadTest {
 
     var fakeAppState: Bool = false
 
-    private var currentSession: String = ""
-
     func runTestPreparations() {
-        currentSession = EmbraceIO.shared.currentSessionId ?? ""
         if fakeAppState {
             NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
 
@@ -33,13 +30,23 @@ class FinishedSessionTest: PayloadTest {
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 
-        // Match on `emb.session_part_id` — the part UUID that `currentSessionId` returns. The
-        // exported `emb-session` span deliberately does NOT carry `session.id` / `emb.user_session_id`;
-        // those are stamped only at payload-build time from the stored `SessionRecord.userSessionId`.
-        // See `UploadedSessionPayloadTest` for the identity assertions on the uploaded payload.
-        let (resultItem, sessionSpan) = evaluateSpanExistence(
-            identifiedBy: currentSession, underAttributeKey: "emb.session_part_id", on: spans)
-        testItems.append(resultItem)
+        // The live `emb-session` span carries only `emb.session_part_id`, and that part UUID is no
+        // longer exposed by the public API — so we can't correlate "our" session by id. Instead we
+        // select it structurally: `requiresCleanup` clears `emb-session` before the action, so the
+        // finished, foreground `emb-session` span in this fresh window is the one this test ended.
+        // (`session.id` / `emb.user_session_id` are stamped only at payload-build time — see
+        // `UploadedSessionPayloadTest` for the identity assertions on the uploaded payload.)
+        let sessionSpan = spans.first {
+            $0.name == "emb-session"
+                && $0.attributes["emb.state"]?.description == "foreground"
+                && $0.hasEnded
+        }
+        testItems.append(
+            .init(
+                target: "Finished foreground emb-session span",
+                expected: "exists",
+                recorded: sessionSpan != nil ? "exists" : "missing",
+                result: sessionSpan != nil ? .success : .fail))
 
         guard let sessionSpan = sessionSpan else {
             return .init(items: testItems)
@@ -61,7 +68,7 @@ class FinishedSessionTest: PayloadTest {
 
         testItems.append(evaluate("emb.type", expecting: "ux.session", on: sessionSpan.attributes))
         testItems.append(evaluate("emb.state", expecting: "foreground", on: sessionSpan.attributes))
-        testItems.append(evaluate("emb.session_part_id", expecting: currentSession, on: sessionSpan.attributes))
+        testItems.append(evaluate("emb.session_part_id", expectedToExist: true, on: sessionSpan.attributes))
         testItems.append(heartbeatReportItem(for: sessionSpan))
         testItems.append(evaluate("emb.cold_start", expectedToExist: true, on: sessionSpan.attributes))
         testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(sessionSpan.attributes))

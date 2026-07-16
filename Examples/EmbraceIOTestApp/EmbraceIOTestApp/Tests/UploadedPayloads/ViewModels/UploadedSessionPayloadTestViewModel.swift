@@ -11,11 +11,12 @@ import SwiftUI
 class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
     private var testObject: UploadedSessionPayloadTest
 
-    // Personas / user info are recorded keyed by the part id that was current when they were set
-    // (`EmbraceIO.shared.currentSessionId` is the part id). The picker also selects a part id, so
-    // these look up directly at test time — no id translation needed.
-    private var personasByPartId: [String: Set<String>] = [:]
-    private var userInfoByPartId: [String: UserInfo] = [:]
+    // Personas / user info are global SDK state, so we accumulate what was set during the app run and
+    // verify the selected payload carries it. The public part id that used to key these per-session
+    // is no longer exposed — and payloads keep personas/user-info set with carrying lifespans anyway,
+    // so a single accumulated set is both simpler and accurate for what this test checks.
+    private var recordedPersonas: Set<String> = []
+    private var recordedUserInfo: UserInfo = .init()
 
     /// Part ids (`emb.session_part_id`) that have been uploaded — one entry per posted payload.
     private(set) var postedParts: [String] = [] {
@@ -28,21 +29,16 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         }
     }
 
-    private(set) var currentSessionId: String? {
-        didSet {
-            if oldValue != nil {
-                self.lastSessionId = oldValue
-            }
-        }
-    }
+    /// User-session id (`session.id`) of the most recently posted payload, surfaced from the network
+    /// swizzle for display. The public API no longer exposes a session id, so this is our window into
+    /// "the last session we actually sent".
+    private(set) var lastPostedUserSessionId: String?
 
     var selectedPartId: String {
         didSet {
             testObject.partIdToTest = selectedPartId
         }
     }
-
-    private(set) var lastSessionId: String?
 
     var testButtonDisabled: Bool {
         postedParts.isEmpty
@@ -62,7 +58,6 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         self.testObject = testObject
         self.selectedPartId = ""
         super.init(dataModel: dataModel, payloadTestObject: testObject)
-        currentSessionId = EmbraceIO.shared.currentSessionId
         readUserInfoFromEmbrace()
         // The posted-parts list is populated from `onAppear` (via `refresh()`), once
         // `dataCollector` is available — see `updatedPostedParts()`.
@@ -86,18 +81,6 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
             ) { [weak self] _ in
                 self?.updatedPostedParts()
             })
-
-        observerTokens.append(
-            NotificationCenter.default.addObserver(forName: .embraceSessionPartDidStart, object: nil, queue: .main) {
-                [weak self] _ in
-                self?.currentSessionId = EmbraceIO.shared.currentSessionId
-            })
-
-        observerTokens.append(
-            NotificationCenter.default.addObserver(forName: .embraceUserSessionDidEnd, object: nil, queue: .main) {
-                [weak self] _ in
-                self?.currentSessionId = nil
-            })
     }
 
     func refresh() {
@@ -105,49 +88,34 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         readUserInfoFromEmbrace()
         EmbraceIO.shared.getCurrentPersonas { [weak self] (personas: [String]) in
             guard let self = self else { return }
-            personas.forEach { persona in
-                self.addPersonaToCurrentSession(persona)
-            }
+            personas.forEach { self.recordedPersonas.insert($0) }
         }
     }
 
     func clearAllUserInfo() {
-        guard let currentSessionId = currentSessionId else { return }
-
         EmbraceIO.shared.removeAllProperties(lifespans: [])
         userInfoIdentifier = ""
-        userInfoByPartId[currentSessionId] = nil
+        recordedUserInfo = .init()
     }
 
     func addedNewPersona(_ persona: String, lifespan: MetadataLifespan) {
         EmbraceIO.shared.addPersona(persona, lifespan: lifespan)
-        addPersonaToCurrentSession(persona)
-    }
-
-    private func addPersonaToCurrentSession(_ persona: String) {
-        guard let currentSessionId = currentSessionId else { return }
-        personasByPartId[currentSessionId, default: []].insert(persona)
+        recordedPersonas.insert(persona)
     }
 
     func removeAllPersonas() {
         EmbraceIO.shared.removeAllPersonas(lifespans: [])
-        guard let currentSessionId = currentSessionId else { return }
-        personasByPartId[currentSessionId] = []
+        recordedPersonas.removeAll()
     }
 
     private func readUserInfoFromEmbrace() {
-        guard let currentSessionId = currentSessionId else { return }
         let identifier = EmbraceIO.shared.userIdentifier
-
         self.userInfoIdentifier = identifier ?? ""
-
-        userInfoByPartId[currentSessionId] = .init(identifier: identifier)
+        recordedUserInfo = .init(identifier: identifier)
     }
 
     private func updatedUserInfo() {
-        guard let currentSessionId = currentSessionId else { return }
-
-        userInfoByPartId[currentSessionId] = .init(identifier: userInfoIdentifier)
+        recordedUserInfo = .init(identifier: userInfoIdentifier)
     }
 
     private func updatedPostedParts() {
@@ -158,13 +126,14 @@ class UploadedSessionPayloadTestViewModel: UIComponentViewModelBase {
         let postedPartIds = networkSpy.postedPartIds
         let exportedPartIds = Set(networkSpy.exportedSpansByPart.keys)
         postedParts = postedPartIds.filter { exportedPartIds.contains($0) }
+        lastPostedUserSessionId = networkSpy.lastPostedUserSessionId
     }
 
     override func testButtonPressed() {
         guard let networkSpy = dataCollector?.networkSpy else { return }
 
-        testObject.personas = Array(personasByPartId[selectedPartId, default: []])
-        testObject.userInfo = userInfoByPartId[selectedPartId] ?? .init()
+        testObject.personas = Array(recordedPersonas)
+        testObject.userInfo = recordedUserInfo
 
         super.testButtonPressed()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in

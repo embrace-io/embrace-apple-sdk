@@ -30,6 +30,14 @@ class NetworkingSwizzle: NSObject {
     /// Part ids in the order their payloads were first captured.
     private(set) var postedPartIds: [String] = []
 
+    /// User-session ids (`session.id` on the payload's `emb-session` span) in the order they were
+    /// first seen in a posted payload. The public part id is no longer exposed by the SDK, so this is
+    /// how the UI surfaces "the last session we sent" without reaching into live SDK state.
+    private(set) var postedUserSessionIds: [String] = []
+
+    /// The user-session id of the most recently posted payload, or `nil` if nothing has been sent yet.
+    var lastPostedUserSessionId: String? { postedUserSessionIds.last }
+
     /// All exported spans grouped by their `emb.session_part_id`. Every exported span — including
     /// the `emb-session` span itself — carries this attribute, so spans are correlated to the part
     /// they belong to deterministically, without any time-based guessing.
@@ -37,8 +45,10 @@ class NetworkingSwizzle: NSObject {
 
     private let dataLock = NSLock()
 
-    /// Contains all the logs exported, grouped by Session Id.
-    private(set) var exportedLogsBySessions: [String: [ReadableLogRecord]] = [:]
+    /// All exported logs grouped by their own `emb.session_part_id` attribute. Logs carry the full
+    /// identity trio, so we group by the part id stamped on each record — mirroring the part-based
+    /// `exportedSpansByPart` model — rather than reaching into live SDK state.
+    private(set) var exportedLogsByPart: [String: [ReadableLogRecord]] = [:]
 
     /// For whatever reason, some tasks get lost in the ether so their completion handlers are never called.
     /// A quick fix is to just keep a reference to them here... Not ideal but this is a test app not intended to run for too long.
@@ -151,6 +161,7 @@ class NetworkingSwizzle: NSObject {
         let sessionSpan = (spans + spans_snapshots).first { $0["name"] as? String == "emb-session" }
         let attributes = sessionSpan?["attributes"] as? [[String: String]]
         let partId = attributes?.first { $0["key"] == "emb.session_part_id" }?["value"]
+        let userSessionId = attributes?.first { $0["key"] == "session.id" }?["value"]
 
         guard
             let partId = partId
@@ -162,6 +173,9 @@ class NetworkingSwizzle: NSObject {
         postedJsonsByPart[partId, default: []].append(json)
         if !postedPartIds.contains(partId) {
             postedPartIds.append(partId)
+        }
+        if let userSessionId = userSessionId, !postedUserSessionIds.contains(userSessionId) {
+            postedUserSessionIds.append(userSessionId)
         }
         dataLock.unlock()
 
@@ -182,10 +196,11 @@ class NetworkingSwizzle: NSObject {
     }
 
     private func capturedExportedLog(_ logExporter: TestLogRecordExporter) {
-        guard let currentSessionId = EmbraceIO.shared.currentSessionId else {
-            return
+        dataLock.lock()
+        for log in logExporter.latestExportedLogs {
+            let partId = log.attributes["emb.session_part_id"]?.description ?? ""
+            exportedLogsByPart[partId, default: []].append(log)
         }
-
-        exportedLogsBySessions[currentSessionId, default: []].append(contentsOf: logExporter.latestExportedLogs)
+        dataLock.unlock()
     }
 }
