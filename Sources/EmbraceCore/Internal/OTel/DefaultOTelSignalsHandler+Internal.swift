@@ -423,7 +423,9 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
         SpanSemantics.Session.keyState,
         SpanSemantics.keySessionId,
         SpanSemantics.Session.keyUserSessionId,
-        SpanSemantics.Session.keyPartId
+        SpanSemantics.Session.keyPartId,
+        // reserved experiments record is exempt from truncation and the attribute count limit
+        ExperimentsSemantics.key
     ]
 
     public func onStartSpan(_ span: EmbraceSpan) {

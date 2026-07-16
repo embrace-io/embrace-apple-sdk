@@ -55,6 +55,9 @@ package class Embrace {
     /// Returns the current `MetadataHandler` used to store resources and session properties.
     package let metadata: MetadataHandler
 
+    /// Returns the current `ExperimentsHandler` used to declare experiments and feature flags.
+    package let experiments: ExperimentsHandler
+
     /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
     package let startupInstrumentation: StartupInstrumentation
 
@@ -224,6 +227,10 @@ package class Embrace {
 
         // initialize metadata handler
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
+
+        // initialize experiments handler
+        self.experiments = ExperimentsHandler(storage: storage)
+
         self.metricKit = MetricKitHandler()
 
         // initialize startup instrumentation

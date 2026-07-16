@@ -331,4 +331,48 @@ final class MetadataHandlerTests: XCTestCase {
             .first { $0.key == "exact" }
         XCTAssertEqual(record?.value, value)
     }
+
+    // MARK: Reserved keys
+
+    func test_setProperty_rejectsExperimentsKey() throws {
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+
+        handler.setProperty(key: ExperimentsSemantics.key, value: "value", lifespan: .session)
+
+        let record = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+            .first { $0.key == ExperimentsSemantics.key }
+        XCTAssertNil(record)
+    }
+
+    func test_setProperty_rejectsAnyReservedPrefixedKey() throws {
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+
+        handler.setProperty(key: "emb.custom", value: "value", lifespan: .session)
+
+        let record = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+            .first { $0.key == "emb.custom" }
+        XCTAssertNil(record)
+    }
+
+    func test_setProperty_acceptsNormalKey() throws {
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+
+        handler.setProperty(key: "foo", value: "bar", lifespan: .session)
+
+        let record = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+            .first { $0.key == "foo" }
+        XCTAssertEqual(record?.value, "bar")
+    }
 }

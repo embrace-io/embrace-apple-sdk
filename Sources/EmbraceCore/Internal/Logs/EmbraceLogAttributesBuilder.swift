@@ -110,6 +110,29 @@ class EmbraceLogAttributesBuilder {
     }
 
     @discardableResult
+    func addExperiments() -> Self {
+        return addExperiments(sessionId: currentSession?.id)
+    }
+
+    /// Adds the reserved experiments record (if any) with its raw key. Only chained on the
+    /// non-internal log path, so SDK-internal logs never carry it.
+    @discardableResult
+    func addExperiments(sessionId: EmbraceIdentifier?) -> Self {
+        guard let sessionId = sessionId,
+            let storage = storage,
+            let record = storage.fetchRequiredResource(key: ExperimentsSemantics.key, sessionId: sessionId)
+        else {
+            return self
+        }
+
+        if attributes[ExperimentsSemantics.key] == nil {
+            attributes[ExperimentsSemantics.key] = record.value
+        }
+
+        return self
+    }
+
+    @discardableResult
     func addApplicationState() -> Self {
         return addApplicationState(currentSession?.state)
     }

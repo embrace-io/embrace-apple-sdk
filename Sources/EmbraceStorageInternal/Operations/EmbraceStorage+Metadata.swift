@@ -17,6 +17,15 @@ public protocol EmbraceStorageMetadataFetcher: AnyObject {
     func fetchCustomPropertiesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata]
     func fetchPersonaTagsForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata]
     func fetchPersonaTagsForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata]
+
+    /// Returns a single `.requiredResource` with the given key, scoped to the process that owns the given session.
+    func fetchRequiredResource(key: String, sessionId: EmbraceIdentifier) -> EmbraceMetadata?
+}
+
+extension EmbraceStorageMetadataFetcher {
+    public func fetchRequiredResource(key: String, sessionId: EmbraceIdentifier) -> EmbraceMetadata? {
+        return nil
+    }
 }
 
 extension EmbraceStorage {
@@ -299,6 +308,20 @@ extension EmbraceStorage {
     /// Returns the permanent required resource for the given key.
     public func fetchRequiredPermanentResource(key: String) -> EmbraceMetadata? {
         return fetchMetadata(key: key, type: .requiredResource, lifespan: .permanent)
+    }
+
+    /// Returns the process-scoped required resource for the given key, resolving the process from the given session.
+    public func fetchRequiredResource(key: String, sessionId: EmbraceIdentifier) -> EmbraceMetadata? {
+        guard let session = fetchSession(id: sessionId) else {
+            return nil
+        }
+
+        return fetchMetadata(
+            key: key,
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: session.processId.stringValue
+        )
     }
 
     /// Increments the numeric value by 1 of a permanent resource for the given key.

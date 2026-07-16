@@ -29,11 +29,7 @@ extension EmbraceIO {
     ///   - value: The value of the property to add. Will be truncated if its longer than 1024 characters.
     ///   - lifespan: The lifespan of the property to add.
     public func setProperty(key: String, value: String?, lifespan: MetadataLifespan) {
-        if let value {
-            Embrace.client?.metadata.addProperty(key: key, value: value, lifespan: lifespan)
-        } else {
-            Embrace.client?.metadata.removeProperty(key: key, lifespan: lifespan)
-        }
+        Embrace.client?.metadata.setProperty(key: key, value: value, lifespan: lifespan)
     }
 
     /// Removes all properties for the given lifespans. If no lifespans are passed, all properties are removed.

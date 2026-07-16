@@ -116,6 +116,59 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         thenResultingAttributes(is: .empty())
     }
 
+    // MARK: - addExperiments Tests
+
+    func testOnHavingExperiments_addExperiments_addsRawAttribute() {
+        let sessionId = EmbraceIdentifier.random
+        givenSessionController(sessionWithId: sessionId)
+        givenMetadataFetcher(with: [
+            MockMetadata(
+                key: ExperimentsSemantics.key,
+                value: "e:abc1:A:1717459200000",
+                type: .requiredResource,
+                lifespan: .process,
+                lifespanId: ProcessIdentifier.current.stringValue
+            )
+        ])
+        givenEmbraceLogAttributesBuilder()
+
+        sut.addExperiments()
+        whenInvokingBuild()
+
+        // emitted with its raw key, NOT under the `emb.properties.` prefix
+        thenResultingAttributes(is: [ExperimentsSemantics.key: "e:abc1:A:1717459200000"])
+    }
+
+    func testOnNotHavingExperiments_addExperiments_addsNothing() {
+        givenSessionController()
+        givenMetadataFetcher(with: nil)
+        givenEmbraceLogAttributesBuilder()
+
+        sut.addExperiments()
+        whenInvokingBuild()
+
+        thenResultingAttributes(is: .empty())
+    }
+
+    func testOnNotHavingSession_addExperiments_addsNothing() {
+        givenSessionControllerWithNoSession()
+        givenMetadataFetcher(with: [
+            MockMetadata(
+                key: ExperimentsSemantics.key,
+                value: "e:abc1:A:1717459200000",
+                type: .requiredResource,
+                lifespan: .process,
+                lifespanId: ProcessIdentifier.current.stringValue
+            )
+        ])
+        givenEmbraceLogAttributesBuilder()
+
+        sut.addExperiments()
+        whenInvokingBuild()
+
+        thenResultingAttributes(is: .empty())
+    }
+
     // MARK: - addApplicationState Tests
 
     func testOnHavingSession_addApplicationState_addsSessionsCurrentStateToAttributes() throws {

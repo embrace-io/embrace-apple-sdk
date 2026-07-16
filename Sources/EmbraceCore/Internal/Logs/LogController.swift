@@ -149,6 +149,8 @@ class LogController: LogBatcherDelegate {
                 attributesBuilder
                 // app properties make requests to the db so can be time consuming.
                 .addApplicationProperties()
+                // reserved experiments record, emitted as an attribute on non-internal logs only.
+                .addExperiments()
                 .build()
 
             // handle attachment data
