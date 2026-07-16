@@ -105,15 +105,21 @@ bool emb_profile_store_reset(emb_profile_store_t *store);
 /// file (Embrace owns deletion). Call after the writer has stopped. NOT async-safe.
 void emb_profile_store_finalize(emb_profile_store_t *store);
 
-/// `msync(MS_ASYNC)` the mapped data + footer, so samples are durable before a possible
-/// background Jetsam kill. Cheap, non-blocking, off the hot path. NOT async-safe (call from
-/// the main/notification thread on background/terminate).
+/// `msync(MS_ASYNC)` the mapped data + footer. Not needed to survive process death (crash, Jetsam
+/// kill) — the kernel's page cache owns the dirty `MAP_SHARED` pages independent of the process and
+/// writes them back regardless. Call this from willResignActive/didEnterBackground/willTerminate to
+/// also protect against uncontrolled terminations such as power loss / kernel panic while the app is
+/// suspended, by narrowing the window recently-captured samples sit unwritten in memory. Cheap,
+/// non-blocking, off the hot path. NOT async-safe (call from the main/notification thread on
+/// background/terminate).
 void emb_profile_store_flush(emb_profile_store_t *store);
 
 /// Tear down the store: destroy the ring buffer wrapper, unmap the reservation, close the
 /// file. Does not delete the file (Embrace owns deletion), and does not itself force a sync — the
-/// kernel writes back the MAP_SHARED pages; call `emb_profile_store_flush` first if you need samples
-/// durable before an imminent abrupt exit. Safe to call with NULL.
+/// kernel writes back the MAP_SHARED pages regardless of process death. Call `emb_profile_store_flush`
+/// from willResignActive/didEnterBackground/willTerminate beforehand to also protect against
+/// uncontrolled terminations such as power loss / kernel panic while the app is suspended. Safe to
+/// call with NULL.
 void emb_profile_store_destroy(emb_profile_store_t *store);
 
 // MARK: - Recovery (read-only)
