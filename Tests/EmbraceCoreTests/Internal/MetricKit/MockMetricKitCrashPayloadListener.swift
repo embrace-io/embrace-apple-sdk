@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 
 @testable import EmbraceCore

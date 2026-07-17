@@ -4,14 +4,14 @@
 //
 //
 
-import EmbraceCommonInternal
+import EmbraceSemantics
 import SwiftUI
 
 struct LoggingTestsStackTraceSelectionView: View {
-    @Binding var stacktraceBehavior: StackTraceBehavior
+    @Binding var stacktraceBehavior: EmbraceStackTraceBehavior
     var body: some View {
         Picker("", selection: $stacktraceBehavior) {
-            ForEach(StackTraceBehavior.allCases, id: \.self) { option in
+            ForEach(EmbraceStackTraceBehavior.allCases, id: \.self) { option in
                 Text(option.text)
                     .accessibilityIdentifier(identifier(for: option))
             }
@@ -20,7 +20,7 @@ struct LoggingTestsStackTraceSelectionView: View {
         .padding(.bottom, 20)
     }
 
-    private func identifier(for behavior: StackTraceBehavior) -> String {
+    private func identifier(for behavior: EmbraceStackTraceBehavior) -> String {
         switch behavior {
         case .default:
             return "stackTraceBehavior_Default"
@@ -35,6 +35,6 @@ struct LoggingTestsStackTraceSelectionView: View {
 }
 
 #Preview {
-    @Previewable @State var behavior: StackTraceBehavior = .default
+    @Previewable @State var behavior: EmbraceStackTraceBehavior = .default
     return LoggingTestsStackTraceSelectionView(stacktraceBehavior: $behavior)
 }

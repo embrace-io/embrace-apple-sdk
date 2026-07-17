@@ -4,16 +4,17 @@
 
 import EmbraceCommonInternal
 import EmbraceCore
+import EmbraceSemantics
 
 public class MockLogger: InternalLogger {
 
-    public var level: LogLevel = .debug
+    public var level: EmbraceLogLevel = .debug
 
-    public init(level: LogLevel = .none) {
+    public init(level: EmbraceLogLevel = .none) {
         self.level = level
     }
 
-    public func log(level: LogLevel, message: String, attributes: [String: String] = [:]) -> Bool {
+    public func log(level: EmbraceLogLevel, message: String, attributes: [String: String] = [:]) -> Bool {
         guard self.level != .none && self.level.rawValue <= level.rawValue else {
             return false
         }

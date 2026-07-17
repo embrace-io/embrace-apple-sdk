@@ -8,16 +8,25 @@
     import UIKit
     import SwiftUI
 
-    /// Class used as a block list for the  `ViewCaptureService`.
+    /// Used as a block list for the `ViewCaptureService`.
     /// Can be configured with a list of types and names to select `UIViewControllers` to be ignored by the capture service.
     /// Additionally, `UIHostingControllers` and their child controllers can be ignored.
-    @objc(EMBViewControllerBlockList)
-    public class ViewControllerBlockList: NSObject {
+    public struct ViewControllerBlockList {
+        /// `UIViewController` types excluded from view instrumentation.
         public let types: [AnyClass]
+
+        /// `UIViewController` class names excluded from view instrumentation.
         public let names: [String]
+
+        /// Whether SwiftUI hosting controllers are excluded from view instrumentation.
         public let blockHostingControllers: Bool
 
-        @objc public init(types: [AnyClass] = [], names: [String] = [], blockHostingControllers: Bool = true) {
+        /// Creates a new `ViewControllerBlockList` with the given values.
+        /// - Parameters:
+        ///   - types: `UIViewController` types to exclude from instrumentation.
+        ///   - names: `UIViewController` class names to exclude from instrumentation.
+        ///   - blockHostingControllers: Whether SwiftUI hosting controllers are excluded.
+        public init(types: [AnyClass] = [], names: [String] = [], blockHostingControllers: Bool = true) {
             self.types = types
             self.names = names.map { $0.uppercased() }
             self.blockHostingControllers = blockHostingControllers

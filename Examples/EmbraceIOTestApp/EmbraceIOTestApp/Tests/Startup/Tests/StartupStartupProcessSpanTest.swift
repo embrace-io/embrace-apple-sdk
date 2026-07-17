@@ -27,7 +27,6 @@ class StartupStartupProcessSpanTest: PayloadTest {
         testItems.append(.init(target: "\(testRelevantSpanName) span", expected: "exists", recorded: "exists"))
         testItems.append(evaluate("emb.type", expecting: "perf", on: startSpan.attributes))
 
-        MetadataResourceTest.testMetadataInclussion(on: startSpan.resource, testItems: &testItems)
         testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(startSpan.attributes))
 
         return .init(items: testItems)

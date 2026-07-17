@@ -5,6 +5,10 @@
 
 import SwiftUI
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
 /// A SwiftUI `View` extension that makes it easy to add Embrace performance tracing
 /// without changing your existing view hierarchy.
 ///
@@ -44,7 +48,7 @@ import SwiftUI
 extension View {
     public func embraceTrace(
         _ viewName: String,
-        attributes: [String: String]? = nil
+        attributes: EmbraceAttributes? = nil
     ) -> some View {
         EmbraceTraceView(
             viewName,
@@ -52,9 +56,14 @@ extension View {
         ) { self }
     }
 
+    /// Wraps the view in an `EmbraceTraceView` that ends the trace when `contentComplete` changes.
+    /// - Parameters:
+    ///   - viewName: Name used for the generated trace.
+    ///   - attributes: Attributes to set on the trace.
+    ///   - contentComplete: Value whose change signals that the content has finished loading.
     public func embraceTrace<V: Equatable>(
         _ viewName: String,
-        attributes: [String: String]? = nil,
+        attributes: EmbraceAttributes? = nil,
         contentComplete: V
     ) -> some View {
         EmbraceTraceView(

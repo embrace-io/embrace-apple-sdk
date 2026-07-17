@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
@@ -49,14 +50,14 @@ final class SessionPayloadBuilderTests: XCTestCase {
         // when building a session payload
         let payload = SessionPayloadBuilder.build(for: sessionRecord, storage: storage)
 
-        // then the session span contains the correct session number
+        // then the session span contains the correct session-part number
         let sessionSpan = payload?.data["spans"]?.first { $0.name == "emb-session" }
-        let sessionNumberAttr = sessionSpan?.attributes.first { $0.key == "emb.session_number" }
+        let sessionNumberAttr = sessionSpan?.attributes.first { $0.key == "emb.session_part_number" }
         XCTAssertEqual(sessionNumberAttr?.value, "7")
 
         // and the MetadataRecord counter was NOT touched
         let resource = storage.fetchMetadata(
-            key: SessionController.sessionNumberKey,
+            key: SessionController.sessionPartNumberKey,
             type: .requiredResource,
             lifespan: .permanent
         )

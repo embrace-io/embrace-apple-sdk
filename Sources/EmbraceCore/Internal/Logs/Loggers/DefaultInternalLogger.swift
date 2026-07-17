@@ -8,10 +8,10 @@ import OSLog
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceStorageInternal
     import EmbraceConfigInternal
     import EmbraceConfiguration
+    import EmbraceSemantics
 #endif
 
 /// Internal logger that writes `.startup` and `.critical` lines straight to disk so a
@@ -71,7 +71,7 @@ class DefaultInternalLogger: BaseInternalLogger {
         }
     }
 
-    override func output(_ message: String, level: LogLevel, customExport: Bool) {
+    override func output(_ message: String, level: EmbraceLogLevel, customExport: Bool) {
 
         os_log(level.osLogType, log: osLogger, "%{public}@", message)
 
@@ -188,7 +188,7 @@ class DefaultInternalLogger: BaseInternalLogger {
     }()
 }
 
-extension LogLevel {
+extension EmbraceLogLevel {
     var osLogType: OSLogType {
         switch self {
         case .trace, .debug:

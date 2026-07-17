@@ -14,9 +14,9 @@ struct PersonaGrid: View {
         Grid(verticalSpacing: 6.0) {
             ForEach(personaGridRows(), id: \.self) { row in
                 GridRow {
-                    ForEach(row) { personaOption in
+                    ForEach(row, id: \.self) { personaOption in
                         PillText(
-                            personaOption.rawValue,
+                            personaOption,
                             selected: user.hasPersona(personaOption),
                             style: colorForPersona(persona: personaOption)
                         ).onTapGesture {
@@ -28,7 +28,7 @@ struct PersonaGrid: View {
         }
     }
 
-    func personaGridRows(size: Int = 3) -> [[PersonaTag]] {
+    func personaGridRows(size: Int = 3) -> [[String]] {
         let count = Self.quickPersonas.count
 
         return stride(from: 0, to: count, by: size).map {
@@ -36,24 +36,15 @@ struct PersonaGrid: View {
         }
     }
 
-    func colorForPersona(persona: PersonaTag) -> Color {
-        let idx = persona.rawValue.count % Self.personaColors.count
+    func colorForPersona(persona: String) -> Color {
+        let idx = persona.count % Self.personaColors.count
         return Self.personaColors[idx]
     }
 }
 
 extension PersonaGrid {
-    static var quickPersonas: [PersonaTag] {
-        [
-            PersonaTag.free,
-            PersonaTag.preview,
-            PersonaTag.subscriber,
-            PersonaTag.payer,
-            PersonaTag.guest,
-            PersonaTag.pro,
-            PersonaTag.mvp,
-            PersonaTag.vip
-        ]
+    static var quickPersonas: [String] {
+        ["free", "preview", "subscriber", "payer", "guest", "pro", "mvp", "vip"]
     }
 
     static var personaColors: [Color] {

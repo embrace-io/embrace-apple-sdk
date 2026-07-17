@@ -3,12 +3,11 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceConfigInternal
-    import EmbraceOTelInternal
+    import EmbraceSemantics
     import EmbraceStorageInternal
     import EmbraceUploadInternal
     import EmbraceConfiguration
@@ -20,8 +19,7 @@ extension Embrace {
 
         let partitionId = options.appId ?? EmbraceFileSystem.defaultPartitionId
         if let storageUrl = EmbraceFileSystem.storageDirectoryURL(
-            partitionId: partitionId,
-            appGroupId: options.appGroupId
+            partitionId: partitionId
         ) {
             let storageMechanism: StorageMechanism = .onDisk(
                 name: "EmbraceStorage",
@@ -32,7 +30,7 @@ extension Embrace {
             let storage = try EmbraceStorage(options: storageOptions, logger: Embrace.logger)
             return storage
         } else {
-            throw EmbraceSetupError.failedStorageCreation(partitionId: partitionId, appGroupId: options.appGroupId)
+            throw EmbraceSetupError.failedStorageCreation(partitionId: partitionId)
         }
     }
 
@@ -67,8 +65,7 @@ extension Embrace {
         // cache
         guard
             let cacheUrl = EmbraceFileSystem.uploadsDirectoryPath(
-                partitionIdentifier: appId,
-                appGroupId: options.appGroupId
+                partitionIdentifier: appId
             )
         else {
             Embrace.logger.critical("Failed to initialize upload cache!")
@@ -81,8 +78,7 @@ extension Embrace {
             journalMode: configuration.isWalModeEnabled ? .wal : .delete
         )
 
-        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism, resetCache: resetUploadCache)
-        resetUploadCache = false
+        let cache = EmbraceUpload.CacheOptions(storageMechanism: storageMechanism)
 
         // metadata
         let metadata = EmbraceUpload.MetadataOptions(
@@ -110,37 +106,43 @@ extension Embrace {
             ManualSessionLifecycle(controller: controller)
         }
     #endif
-
-    static let resetUploadCacheKey = "emb.reset-upload-cache"
-    static var resetUploadCache: Bool {
-        get { UserDefaults.standard.bool(forKey: Embrace.resetUploadCacheKey) }
-        set { UserDefaults.standard.set(newValue, forKey: Embrace.resetUploadCacheKey) }
-    }
 }
 
 /// Extension to handle observability of SDK startup
 extension Embrace {
 
-    func createProcessStartSpan() -> Span {
-        let builder = buildSpan(name: "emb-process-launch", type: .performance)
-            .markAsPrivate()
+    func createProcessStartSpans() -> [EmbraceSpan] {
+        var result: [EmbraceSpan] = []
 
-        if let startTime = ProcessMetadata.startTime {
-            builder.setStartTime(time: startTime)
+        // emb-process-launch
+        var startTime = Date()
+        var status = EmbraceSpanStatus.ok
+
+        if let time = ProcessMetadata.startTime {
+            startTime = time
         } else {
-            // start time will default to "now" but span will be marked with error
-            builder.error(errorCode: .unknown)
+            status = .error
         }
 
-        return builder.startSpan()
-    }
+        let parent = otel.createSpan(
+            name: "emb-process-launch",
+            status: status,
+            startTime: startTime
+        )
+        if let parent {
+            result.append(parent)
+        }
 
-    func recordSetupSpan(startTime: Date) {
-        buildSpan(name: "emb-setup", type: .performance)
-            .markAsPrivate()
-            .setStartTime(time: startTime)
-            .startSpan()
-            .end()
+        // emb-sdk-start-process
+        let span = otel.createSpan(
+            name: "emb-sdk-start-process",
+            parentSpan: parent
+        )
+        if let span {
+            result.append(span)
+        }
+
+        return result
     }
 }
 

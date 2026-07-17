@@ -3,12 +3,13 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 
 public class MockSession: EmbraceSession {
-    public var idRaw: String
-    public var processIdRaw: String
-    public var state: String
+    public var id: EmbraceIdentifier
+    public var processId: EmbraceIdentifier
+    public var state: SessionState
     public var traceId: String
     public var spanId: String
     public var startTime: Date
@@ -19,6 +20,13 @@ public class MockSession: EmbraceSession {
     public var cleanExit: Bool
     public var appTerminated: Bool
     public var sessionNumber: Int
+    public var userSessionId: EmbraceIdentifier?
+    public var userSessionStartTime: Date?
+    public var userSessionMaxDuration: TimeInterval?
+    public var userSessionInactivityTimeout: TimeInterval?
+    public var userSessionLastForegroundEnd: Date?
+    public var userSessionPartIndex: Int
+    public var userSessionTerminationReason: TerminationReason?
 
     public init(
         id: EmbraceIdentifier,
@@ -33,11 +41,18 @@ public class MockSession: EmbraceSession {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false,
-        sessionNumber: Int = 0
+        sessionNumber: Int = 0,
+        userSessionId: EmbraceIdentifier? = nil,
+        userSessionStartTime: Date? = nil,
+        userSessionMaxDuration: TimeInterval? = nil,
+        userSessionInactivityTimeout: TimeInterval? = nil,
+        userSessionLastForegroundEnd: Date? = nil,
+        userSessionPartIndex: Int = 0,
+        userSessionTerminationReason: TerminationReason? = nil
     ) {
-        self.idRaw = id.stringValue
-        self.processIdRaw = processId.stringValue
-        self.state = state.rawValue
+        self.id = id
+        self.processId = processId
+        self.state = state
         self.traceId = traceId
         self.spanId = spanId
         self.startTime = startTime
@@ -48,6 +63,13 @@ public class MockSession: EmbraceSession {
         self.cleanExit = cleanExit
         self.appTerminated = appTerminated
         self.sessionNumber = sessionNumber
+        self.userSessionId = userSessionId
+        self.userSessionStartTime = userSessionStartTime
+        self.userSessionMaxDuration = userSessionMaxDuration
+        self.userSessionInactivityTimeout = userSessionInactivityTimeout
+        self.userSessionLastForegroundEnd = userSessionLastForegroundEnd
+        self.userSessionPartIndex = userSessionPartIndex
+        self.userSessionTerminationReason = userSessionTerminationReason
     }
 }
 

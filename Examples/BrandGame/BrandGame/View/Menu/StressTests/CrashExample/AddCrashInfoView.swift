@@ -18,12 +18,8 @@ struct AddCrashInfoView: View {
             }
             Section("Actions") {
                 Button("Add") {
-                    do {
-                        try Embrace.client?.appendCrashInfo(key: key, value: value)
-                        dismiss()
-                    } catch let exception {
-                        print(exception.localizedDescription)
-                    }
+                    EmbraceIO.shared.appendCrashInfo(key: key, value: value)
+                    dismiss()
                 }.disabled(key.isEmpty || value.isEmpty)
                 Button("Clear Fields") {
                     key = ""

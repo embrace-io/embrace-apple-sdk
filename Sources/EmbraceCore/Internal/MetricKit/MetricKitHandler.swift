@@ -9,6 +9,7 @@ import Foundation
 #endif
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
 #endif
 
@@ -30,7 +31,7 @@ import Foundation
     }
 
     private let _lastSession = EmbraceMutex<EmbraceSession?>(nil)
-    public var lastSession: EmbraceSession? {
+    var lastSession: EmbraceSession? {
         get { _lastSession.safeValue }
         set { _lastSession.safeValue = newValue }
     }

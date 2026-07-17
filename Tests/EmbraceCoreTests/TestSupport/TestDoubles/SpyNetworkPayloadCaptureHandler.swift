@@ -3,34 +3,21 @@
 //
 
 import Foundation
+import TestSupport
 
 @testable import EmbraceCore
 
 class SpyNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
-    private let lock = NSLock()
-
-    private var _didCallIsEnabled: Bool = false
-    var didCallIsEnabled: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return _didCallIsEnabled
-    }
+    @TestLocked var didCallIsEnabled: Bool = false
 
     var stubbedIsEnabled: Bool = false
 
     func isEnabled() -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        _didCallIsEnabled = true
+        didCallIsEnabled = true
         return stubbedIsEnabled
     }
 
-    private var _didCallProcess: Bool = false
-    var didCallProcess: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return _didCallProcess
-    }
+    @TestLocked var didCallProcess: Bool = false
 
     func process(
         request: URLRequest?,
@@ -40,8 +27,6 @@ class SpyNetworkPayloadCaptureHandler: NetworkPayloadCaptureHandler {
         startTime: Date?,
         endTime: Date?
     ) {
-        lock.lock()
-        defer { lock.unlock() }
-        _didCallProcess = true
+        didCallProcess = true
     }
 }

@@ -4,13 +4,12 @@
 
 import CoreData
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import TestSupport
 import XCTest
 
 @testable import EmbraceCore
-
-// swiftlint:disable force_cast
 
 final class MetadataHandlerTests: XCTestCase {
 
@@ -29,141 +28,6 @@ final class MetadataHandlerTests: XCTestCase {
         sessionController = nil
     }
 
-    @available(*, deprecated)
-    func test_key_validation() throws {
-        // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
-
-        var invalidKey = ""
-        for _ in 1...MetadataHandler.maxKeyLength + 1 {
-            invalidKey += "a"
-        }
-
-        // when adding a resource with invalid key
-        let expectation1 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.addResource(key: invalidKey, value: "test")) { error in
-
-            // then it should error out as a MetadataError.invalidKey
-            switch error as! MetadataError {
-            case .invalidKey:
-                expectation1.fulfill()
-            default:
-                XCTAssert(false)
-            }
-        }
-
-        // when adding a property with invalid key
-        let expectation2 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.addProperty(key: invalidKey, value: "test")) { error in
-
-            // then it should error out as a MetadataError.invalidKey
-            switch error as! MetadataError {
-            case .invalidKey:
-                expectation2.fulfill()
-            default:
-                XCTAssert(false)
-            }
-        }
-
-        wait(for: [expectation1, expectation2], timeout: .defaultTimeout)
-    }
-
-    @available(*, deprecated)
-    func test_value_validation() throws {
-        // given a metadata handler
-        let handler = MetadataHandler(
-            storage: storage,
-            sessionController: sessionController,
-            syncronizationQueue: MockQueue()
-        )
-
-        var invalidValue = ""
-        for _ in 1...MetadataHandler.maxValueLength + 10 {
-            invalidValue += "a"
-        }
-
-        // when adding metadata with invalid values
-        try handler.addResource(key: "test", value: invalidValue, lifespan: .permanent)
-        try handler.addProperty(key: "test", value: invalidValue, lifespan: .permanent)
-
-        // then the values are truncated
-        let metadata: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(metadata.count, 2)
-        XCTAssertEqual(metadata[0].value.count, MetadataHandler.maxValueLength)
-        XCTAssertEqual(metadata[1].value.count, MetadataHandler.maxValueLength)
-    }
-
-    @available(*, deprecated)
-    func test_currentSession_validation() throws {
-        // given a metadata handler
-        let handler = MetadataHandler(storage: storage, sessionController: sessionController)
-
-        // given no current session
-        sessionController.endSession()
-
-        // when adding a resource with session lifespan
-        let expectation1 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.addResource(key: "test", value: "test", lifespan: .session)) { error in
-
-            // then it should error out as a MetadataError.invalidSession
-            switch error as! MetadataError {
-            case .invalidSession:
-                expectation1.fulfill()
-            default:
-                XCTAssert(false)
-            }
-        }
-
-        // when adding a property with session lifespan
-        let expectation2 = XCTestExpectation()
-        XCTAssertThrowsError(try handler.addProperty(key: "test", value: "test", lifespan: .session)) { error in
-
-            // then it should error out as a MetadataError.invalidSession
-            switch error as! MetadataError {
-            case .invalidSession:
-                expectation2.fulfill()
-            default:
-                XCTAssert(false)
-            }
-        }
-
-        wait(for: [expectation1, expectation2], timeout: .defaultTimeout)
-    }
-
-    @available(*, deprecated)
-    func test_limit_validation() throws {
-        // given a metadata handler
-        let handler = MetadataHandler(
-            storage: storage,
-            sessionController: sessionController,
-            syncronizationQueue: MockQueue()
-        )
-
-        // given limits reached on metadata
-        for i in 1...storage.options.resourcesLimit {
-            storage.addMetadata(key: "resource\(i)", value: "test", type: .resource, lifespan: .permanent)
-        }
-
-        for i in 1...storage.options.customPropertiesLimit {
-            storage.addMetadata(key: "resource\(i)", value: "test", type: .customProperty, lifespan: .permanent)
-        }
-
-        // when adding a resource
-        try handler.addResource(key: "test", value: "test", lifespan: .session)
-
-        // when adding a custom property
-        try handler.addProperty(key: "test", value: "test", lifespan: .session)
-
-        // then customProperties and resources should be at their limit
-        let metadata: [MetadataRecord] = storage.fetchAll()
-        XCTAssertEqual(
-            metadata.filter({ $0.typeRaw == MetadataRecordType.customProperty.rawValue }).count,
-            storage.options.resourcesLimit)
-        XCTAssertEqual(
-            metadata.filter({ $0.typeRaw == MetadataRecordType.resource.rawValue }).count,
-            storage.options.resourcesLimit)
-    }
-
     // MARK: Removing Metadata
 
     func test_remove_removesMetadata_withSessionLifespan() throws {
@@ -174,18 +38,18 @@ final class MetadataHandlerTests: XCTestCase {
         )
 
         // when added
-        try handler.addProperty(key: "foo", value: "bar", lifespan: .session)
+        handler.addProperty(key: "foo", value: "bar", lifespan: .session)
 
-        let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
+        let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let item = firstFetch.first { record in
             record.key == "foo"
         }
         XCTAssertNotNil(item)
 
         // When removed
-        try handler.removeProperty(key: "foo", lifespan: .session)
+        handler.removeProperty(key: "foo", lifespan: .session)
 
-        let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
+        let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let result = secondFetch.first { record in
             record.key == "foo"
         }
@@ -199,13 +63,13 @@ final class MetadataHandlerTests: XCTestCase {
             syncronizationQueue: MockQueue()
         )
 
-        let firstSessionId = sessionController.currentSession!.id!
+        let firstSessionId = sessionController.currentSession!.id
         // when added to first session
-        try handler.addProperty(key: "foo", value: "bar", lifespan: .session)
+        handler.addProperty(key: "foo", value: "bar", lifespan: .session)
 
         // start new session
         let newSession = sessionController.startSession(state: .foreground)
-        let secondSessionId = newSession!.id!
+        let secondSessionId = newSession!.id
         storage.addSession(
             id: secondSessionId,
             processId: ProcessIdentifier.current,
@@ -222,7 +86,7 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertNotNil(result1)
 
         // When removed
-        try handler.removeProperty(key: "foo", lifespan: .session)
+        handler.removeProperty(key: "foo", lifespan: .session)
 
         let fetch2 = storage.fetchCustomPropertiesForSessionId(secondSessionId)
         let result2 = fetch2.first { record in
@@ -245,18 +109,18 @@ final class MetadataHandlerTests: XCTestCase {
         )
 
         // when added
-        try handler.addProperty(key: "foo", value: "bar", lifespan: .process)
+        handler.addProperty(key: "foo", value: "bar", lifespan: .process)
 
-        let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
+        let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let item = firstFetch.first { record in
             record.key == "foo"
         }
         XCTAssertNotNil(item)
 
         // When removed
-        try handler.removeProperty(key: "foo", lifespan: .process)
+        handler.removeProperty(key: "foo", lifespan: .process)
 
-        let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
+        let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let result = secondFetch.first { record in
             record.key == "foo"
         }
@@ -291,7 +155,7 @@ final class MetadataHandlerTests: XCTestCase {
         )
 
         // When removed
-        try handler.removeProperty(key: "foo", lifespan: .process)
+        handler.removeProperty(key: "foo", lifespan: .process)
 
         // exists in other session
         let fetch1 = storage.fetchCustomPropertiesForSessionId(otherSessionId)
@@ -301,7 +165,7 @@ final class MetadataHandlerTests: XCTestCase {
         XCTAssertNotNil(result1)
 
         // does not exist in current session
-        let fetch2 = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
+        let fetch2 = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let result2 = fetch2.first { record in
             record.key == "foo"
         }
@@ -316,18 +180,18 @@ final class MetadataHandlerTests: XCTestCase {
         )
 
         // when added
-        try handler.addProperty(key: "foo", value: "bar", lifespan: .permanent)
+        handler.addProperty(key: "foo", value: "bar", lifespan: .permanent)
 
-        let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
+        let firstFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let item = firstFetch.first { record in
             record.key == "foo"
         }
         XCTAssertNotNil(item)
 
         // When removed
-        try handler.removeProperty(key: "foo", lifespan: .permanent)
+        handler.removeProperty(key: "foo", lifespan: .permanent)
 
-        let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id!)
+        let secondFetch = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
         let result = secondFetch.first { record in
             record.key == "foo"
         }
@@ -415,6 +279,56 @@ final class MetadataHandlerTests: XCTestCase {
         let metadata: [MetadataRecord] = storage.fetchAll()
         XCTAssertEqual(metadata.count, 0)
     }
-}
 
-// swiftlint:enable force_cast
+    // MARK: Key / value validation
+
+    func test_addProperty_keyExceedingMaxLength_isDropped() throws {
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+
+        // a key at the 128-char limit is stored
+        let okKey = String(repeating: "k", count: 128)
+        handler.addProperty(key: okKey, value: "v", lifespan: .session)
+
+        // a key over the limit (129) is dropped
+        let longKey = String(repeating: "k", count: 129)
+        handler.addProperty(key: longKey, value: "v", lifespan: .session)
+
+        let records = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+        XCTAssertNotNil(records.first { $0.key == okKey })
+        XCTAssertNil(records.first { $0.key == longKey })
+    }
+
+    func test_addProperty_valueExceedingMaxLength_isTruncatedWithEllipsis() throws {
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+
+        handler.addProperty(key: "big", value: String(repeating: "a", count: 2000), lifespan: .session)
+
+        // first 1020+1 characters are preserved, then an ellipsis is appended -> 1024 chars total
+        let record = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+            .first { $0.key == "big" }
+        XCTAssertEqual(record?.value, String(repeating: "a", count: 1021) + "...")
+    }
+
+    func test_addProperty_valueAtMaxLength_isStoredUnchanged() throws {
+        let handler = MetadataHandler(
+            storage: storage,
+            sessionController: sessionController,
+            syncronizationQueue: MockQueue()
+        )
+
+        let value = String(repeating: "a", count: 1024)
+        handler.addProperty(key: "exact", value: value, lifespan: .session)
+
+        let record = storage.fetchCustomPropertiesForSessionId(sessionController.currentSession!.id)
+            .first { $0.key == "exact" }
+        XCTAssertEqual(record?.value, value)
+    }
+}

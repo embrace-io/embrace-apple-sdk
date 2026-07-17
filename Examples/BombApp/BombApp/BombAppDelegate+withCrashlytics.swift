@@ -2,32 +2,27 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceCrashlyticsSupport
 import EmbraceIO
 
 extension BombAppDelegate {
     #if DEBUG
         // https://dash.embrace.io/app/dcdt4
-        var embraceOptions: Embrace.Options {
-            return .init(
-                appId: "dcdt4",
-                appGroupId: nil,
+        var embraceOptions: EmbraceIO.Options {
+            return .withAppId(
+                "dcdt4",
                 platform: .default,
-                endpoints: Embrace.Endpoints.fromInfoPlist(),
-                captureServices: .automatic,
-                crashReporter: CrashlyticsReporter(),
+                endpoints: EmbraceEndpoints.fromInfoPlist(),
+                crashReporter: .crashlytics,
                 logLevel: .debug
             )
         }
     #else
         // https://dash.embrace.io/app/kj9hd
-        var embraceOptions: Embrace.Options {
-            return .init(
-                appId: "kj9hd",
-                appGroupId: nil,
+        var embraceOptions: EmbraceIO.Options {
+            return .withAppId(
+                "kj9hd",
                 platform: .default,
-                captureServices: .automatic,
-                crashReporter: CrashlyticsReporter()
+                crashReporter: .crashlytics
             )
         }
     #endif

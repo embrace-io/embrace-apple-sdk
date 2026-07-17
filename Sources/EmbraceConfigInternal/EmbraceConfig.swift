@@ -66,8 +66,8 @@ public class EmbraceConfig {
 
     public func update() {
         self.queue.async { [weak self] in
-            self?.configurable.update { [weak self] didChange, error in
-                if let error = error {
+            self?.configurable.update { [weak self] result in
+                if case .failure(let error) = result {
                     self?.logger.error(
                         "Failed update in EmbraceConfig",
                         attributes: ["error.message": error.localizedDescription]
@@ -76,7 +76,7 @@ public class EmbraceConfig {
 
                 self?.lastUpdateTime.store(Date().timeIntervalSince1970)
 
-                if didChange {
+                if case .success(true) = result {
                     self?.notificationCenter.post(name: .embraceConfigUpdated, object: self?.configurable)
                 }
             }
@@ -144,12 +144,12 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isMetricKitInternalMetricsCaptureEnabled
     }
 
-    public var spanEventsLimits: SpanEventsLimits {
-        configurable.spanEventsLimits
+    public var spanEventTypeLimits: SpanEventTypeLimits {
+        configurable.spanEventTypeLimits
     }
 
-    public var logsLimits: LogsLimits {
-        configurable.logsLimits
+    public var logSeverityLimits: LogSeverityLimits {
+        configurable.logSeverityLimits
     }
 
     public var internalLogLimits: InternalLogLimits {

@@ -3,8 +3,8 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 
@@ -12,13 +12,9 @@ import XCTest
 
 class LogPayloadBuilderTests: XCTestCase {
     func test_build_addsLogIdAttribute() throws {
-        let logId = EmbraceIdentifier(value: try XCTUnwrap(UUID(uuidString: "53B55EDD-889A-4876-86BA-6798288B609C")))
+        let logId = EmbraceIdentifier.random
         let record = MockLog(
-            id: logId,
-            processId: .random,
-            severity: .info,
-            body: "Hello World",
-            attributes: .empty()
+            id: logId.stringValue
         )
 
         let payload = LogPayloadBuilder.build(log: record)
@@ -29,17 +25,13 @@ class LogPayloadBuilderTests: XCTestCase {
     }
 
     func test_buildLogRecordWithAttributes_mapsKeyValuesAsAttributeStruct() {
-        let originalAttributes: [String: AttributeValue] = [
-            "string_attribute": .string("string"),
-            "integer_attribute": .int(1),
-            "boolean_attribute": .bool(false),
-            "double_attribute": .double(5.0)
+        let originalAttributes: [String: String] = [
+            "string_attribute": "string",
+            "integer_attribute": "1",
+            "boolean_attribute": "false",
+            "double_attribute": "5.0"
         ]
         let record = MockLog(
-            id: .random,
-            processId: .random,
-            severity: .info,
-            body: .random(),
             attributes: originalAttributes
         )
 
@@ -74,7 +66,7 @@ class LogPayloadBuilderTests: XCTestCase {
             lifespan: .permanent
         )
         storage.addMetadata(
-            key: UserResourceKey.name.rawValue,
+            key: UserResourceKey.identifier.rawValue,
             value: "test",
             type: .customProperty,
             lifespan: .session,
@@ -110,15 +102,15 @@ class LogPayloadBuilderTests: XCTestCase {
 
         // then the payload is correct
         XCTAssertEqual(payload.resource.appVersion, "1.0.0")
-        XCTAssertEqual(payload.metadata.username, "test")
+        XCTAssertEqual(payload.metadata.userId, "test")
         XCTAssertEqual(payload.metadata.personas, ["tag1", "tag2"])
 
         let logs = try XCTUnwrap(payload.data["logs"])
         XCTAssertEqual(logs.count, 1)
         XCTAssertEqual(logs[0].body, "test")
         XCTAssertEqual(logs[0].timeUnixNano, String(timestamp.nanosecondsSince1970Truncated))
-        XCTAssertEqual(logs[0].severityNumber, LogSeverity.fatal.number)
-        XCTAssertEqual(logs[0].severityText, LogSeverity.fatal.text)
+        XCTAssertEqual(logs[0].severityNumber, EmbraceLogSeverity.fatal.rawValue)
+        XCTAssertEqual(logs[0].severityText, EmbraceLogSeverity.fatal.name)
 
         let attribute1 = logs[0].attributes.first { $0.key == "key1" }
         XCTAssertEqual(attribute1!.value, "value1")

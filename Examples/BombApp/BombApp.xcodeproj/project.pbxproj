@@ -39,7 +39,6 @@
 		FA2988F52C347F3F0065F0E2 /* BombView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2988F42C347F3F0065F0E2 /* BombView.swift */; };
 		FA2988FB2C34836A0065F0E2 /* BombAppDelegate+withCrashlytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2988FA2C34836A0065F0E2 /* BombAppDelegate+withCrashlytics.swift */; };
 		FA2988FE2C3483BF0065F0E2 /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA2988FD2C3483BF0065F0E2 /* EmbraceCore */; };
-		FA2989022C3483BF0065F0E2 /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FA2989012C3483BF0065F0E2 /* EmbraceCrashlyticsSupport */; };
 		FA2989042C3483BF0065F0E2 /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FA2989032C3483BF0065F0E2 /* EmbraceIO */; };
 		FA2989062C3484640065F0E2 /* Bomb.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2989052C3484640065F0E2 /* Bomb.swift */; };
 		FA2989092C34981B0065F0E2 /* SwiftFatal.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA2989082C34981B0065F0E2 /* SwiftFatal.swift */; };
@@ -52,7 +51,6 @@
 		FAFDA3EB2C343F2200AD17CF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FAFDA3EA2C343F2200AD17CF /* Assets.xcassets */; };
 		FAFDA3EE2C343F2200AD17CF /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FAFDA3ED2C343F2200AD17CF /* Preview Assets.xcassets */; };
 		FAFDA3F62C343F8000AD17CF /* EmbraceCore in Frameworks */ = {isa = PBXBuildFile; productRef = FAFDA3F52C343F8000AD17CF /* EmbraceCore */; };
-		FAFDA3FA2C343F8000AD17CF /* EmbraceCrashlyticsSupport in Frameworks */ = {isa = PBXBuildFile; productRef = FAFDA3F92C343F8000AD17CF /* EmbraceCrashlyticsSupport */; };
 		FAFDA3FC2C343F8000AD17CF /* EmbraceIO in Frameworks */ = {isa = PBXBuildFile; productRef = FAFDA3FB2C343F8000AD17CF /* EmbraceIO */; };
 		FAFDA4182C34408E00AD17CF /* BombAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFDA4172C34408E00AD17CF /* BombAppDelegate.swift */; };
 		FAFDA4472C3441B400AD17CF /* CRLCrashStackGuard.m in Sources */ = {isa = PBXBuildFile; fileRef = FAFDA41B2C3441B300AD17CF /* CRLCrashStackGuard.m */; };
@@ -167,8 +165,6 @@
 				FA2988BE2C346BE60065F0E2 /* FirebaseAnalyticsSwift in Frameworks */,
 				FA2988F02C346BE60065F0E2 /* FirebaseVertexAI-Preview in Frameworks */,
 				FA2988BA2C346BE60065F0E2 /* FirebaseAnalytics in Frameworks */,
-				FAFDA3FA2C343F8000AD17CF /* EmbraceCrashlyticsSupport in Frameworks */,
-				FA2989022C3483BF0065F0E2 /* EmbraceCrashlyticsSupport in Frameworks */,
 				FA2988C82C346BE60065F0E2 /* FirebaseAuthCombine-Community in Frameworks */,
 				FA2988C62C346BE60065F0E2 /* FirebaseAuth in Frameworks */,
 				FA2988DA2C346BE60065F0E2 /* FirebaseFunctionsCombine-Community in Frameworks */,
@@ -346,7 +342,6 @@
 			name = BombApp;
 			packageProductDependencies = (
 				FAFDA3F52C343F8000AD17CF /* EmbraceCore */,
-				FAFDA3F92C343F8000AD17CF /* EmbraceCrashlyticsSupport */,
 				FAFDA3FB2C343F8000AD17CF /* EmbraceIO */,
 				FA2988B92C346BE60065F0E2 /* FirebaseAnalytics */,
 				FA2988BB2C346BE60065F0E2 /* FirebaseAnalyticsOnDeviceConversion */,
@@ -377,7 +372,6 @@
 				FA2988ED2C346BE60065F0E2 /* FirebaseStorageCombine-Community */,
 				FA2988EF2C346BE60065F0E2 /* FirebaseVertexAI-Preview */,
 				FA2988FD2C3483BF0065F0E2 /* EmbraceCore */,
-				FA2989012C3483BF0065F0E2 /* EmbraceCrashlyticsSupport */,
 				FA2989032C3483BF0065F0E2 /* EmbraceIO */,
 			);
 			productName = BombApp;
@@ -870,10 +864,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCore;
 		};
-		FA2989012C3483BF0065F0E2 /* EmbraceCrashlyticsSupport */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrashlyticsSupport;
-		};
 		FA2989032C3483BF0065F0E2 /* EmbraceIO */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceIO;
@@ -881,10 +871,6 @@
 		FAFDA3F52C343F8000AD17CF /* EmbraceCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbraceCore;
-		};
-		FAFDA3F92C343F8000AD17CF /* EmbraceCrashlyticsSupport */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = EmbraceCrashlyticsSupport;
 		};
 		FAFDA3FB2C343F8000AD17CF /* EmbraceIO */ = {
 			isa = XCSwiftPackageProductDependency;

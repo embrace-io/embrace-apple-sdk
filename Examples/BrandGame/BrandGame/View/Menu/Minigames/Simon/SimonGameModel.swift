@@ -2,16 +2,8 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceIO
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
-
-#if COCOAPODS
-    import EmbraceIO
-#else
-    import EmbraceCore
-    import EmbraceOTelInternal
-#endif
 
 @Observable
 class SimonGameModel {
@@ -50,10 +42,10 @@ class SimonGameModel {
     var userPattern: [IconComponent] = []
 
     /// measures a single game. Parent of multiple round spans (hopefully)
-    var gameSpan: Span?
+    var gameSpan: EmbraceSpan?
 
     /// measures a single round. Child of game span
-    var roundSpan: Span?
+    var roundSpan: EmbraceSpan?
 
     func start() {
         reset()
@@ -92,7 +84,7 @@ class SimonGameModel {
         // verify round
         if userPattern == patternPrefix {
             if userPattern.count == pattern.count {
-                roundSpan?.status = .ok
+                roundSpan?.setStatus(.ok)
                 roundSpan?.end()
                 // NEW ROUND
                 gameState = .betweenRounds
@@ -106,7 +98,7 @@ class SimonGameModel {
             // fail
             gameState = .roundFail
             roundSpan?.end(errorCode: .failure)
-            gameSpan?.setAttribute(key: "round.number", value: .string(String(roundNumber)))
+            gameSpan?.setAttribute(key: "round.number", value: String(roundNumber))
             gameSpan?.end()
             Timer.scheduledTimer(withTimeInterval: 2.4, repeats: false) { _ in
                 self.reset()
@@ -161,35 +153,17 @@ class SimonGameModel {
         gameState = .waitingForStart
     }
 
-    private func buildGameSpan() -> Span? {
-        guard let embrace = Embrace.client else {
-            return nil
-        }
-
-        return
-            embrace
-            .buildSpan(name: "simon-game", type: .ux)
-            .startSpan()
+    private func buildGameSpan() -> EmbraceSpan? {
+        EmbraceIO.shared.createSpan(name: "simon-game", type: .ux)
     }
 
-    private func buildRoundSpan(round: Int) -> Span? {
-        guard let embrace = Embrace.client else {
-            return nil
-        }
-
-        let builder =
-            embrace
-            .buildSpan(
-                name: "simon-round",
-                type: .ux,
-                attributes: ["round.number": String(round)]
-            )
-
-        if let gameSpan = gameSpan {
-            builder.setParent(gameSpan)
-        }
-
-        return builder.startSpan()
+    private func buildRoundSpan(round: Int) -> EmbraceSpan? {
+        EmbraceIO.shared.createSpan(
+            name: "simon-round",
+            parentSpan: gameSpan,
+            type: .ux,
+            attributes: ["round.number": String(round)]
+        )
     }
 }
 

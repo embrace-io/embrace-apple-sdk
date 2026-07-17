@@ -48,14 +48,14 @@ class MetricKitCrashCaptureService: CaptureService, MetricKitCrashPayloadListene
             attributesBuilder
             .addLogType(.crash)
             .addApplicationProperties(sessionId: sessionId)
-            .addApplicationState(SessionState.unknown.rawValue)
-            .addSessionIdentifier(sessionId?.stringValue)
+            .addApplicationState(SessionState.unknown)
+            .addSessionIdentifier(sessionId)
             .addCrashReportProperties(
                 id: UUID().withoutHyphen, provider: LogSemantics.Crash.metrickitProvider, payload: payloadString
             )
             .build()
 
-        otel?.log(
+        try? otel?.internalLog(
             "",
             severity: .fatal,
             type: .crash,

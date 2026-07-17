@@ -4,12 +4,10 @@
 
 import Darwin
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
     import EmbraceConfiguration
 #endif
@@ -21,9 +19,10 @@ import OpenTelemetryApi
 #if !os(watchOS) && !os(macOS)
 
     /// Service that generates OpenTelemetry span events for hangs.
-    @objc(EMBHangCaptureService)
     public final class HangCaptureService: CaptureService {
 
+        /// Creates a new `HangCaptureService` with the given limits.
+        /// - Parameter limits: The hang detection limits applied by the service.
         public init(
             limits: HangLimits = HangLimits()
         ) {
@@ -55,13 +54,13 @@ import OpenTelemetryApi
             limitData.withLock { $0.watchdog = monitor }
         }
 
-        public override func onSessionStart(_ session: any EmbraceSession) {
+        public override func onSessionStart() {
             limitData.withLock { $0.hangsInSessionCount = 0 }
         }
 
-        public override func onSessionWillEnd(_ session: any EmbraceSession) {
+        public override func onSessionWillEnd() {
             let value = limitData.withLock { $0.hangsInSessionCount }
-            try? Embrace.client?.metadata.updateProperty(key: SpanSemantics.Hang.name, value: "\(value)")
+            Embrace.client?.metadata.updateProperty(key: SpanSemantics.Hang.name, value: "\(value)")
         }
 
         public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
@@ -94,8 +93,9 @@ import OpenTelemetryApi
         let limitData: EmbraceMutex<MutableLimitData>
 
         private let spanQueue = DispatchQueue(label: "io.embrace.hang.service")
-        private var span: OpenTelemetryApi.Span?
+        private var span: EmbraceSpan?
 
+        /// The hang detection limits currently applied by the service.
         public var limits: HangLimits {
             get {
                 limitData.withLock { $0.limits }
@@ -138,20 +138,6 @@ import OpenTelemetryApi
 
             // build the span
             let unixNano = UInt64((at.timeIntervalSince1970 * 1_000_000_000).rounded())
-            guard
-                let builder = buildSpan(
-                    name: SpanSemantics.Hang.name,
-                    type: SpanType.hang,
-                    attributes: [
-                        SpanSemantics.Hang.keyLastKnownTimeUnixNano: "\(unixNano)",
-                        SpanSemantics.Hang.keyIntervalCode: "0",
-                        SpanSemantics.Hang.keyThreadPriority: "0"
-                    ]
-                )
-            else {
-                logger?.warning("[FrameRateMonitor] failed to create emb-thread-blockage span.")
-                return
-            }
 
             // Capture a single retroactive backtrace of the main thread.
             let pre = Date()
@@ -159,10 +145,16 @@ import OpenTelemetryApi
             let post = Date()
 
             spanQueue.async { [self] in
-                span =
-                    builder
-                    .setStartTime(time: at)
-                    .startSpan()
+                span = try? otel?.createInternalSpan(
+                    name: SpanSemantics.Hang.name,
+                    type: .hang,
+                    startTime: at,
+                    attributes: [
+                        SpanSemantics.Hang.keyLastKnownTimeUnixNano: "\(unixNano)",
+                        SpanSemantics.Hang.keyIntervalCode: "0",
+                        SpanSemantics.Hang.keyThreadPriority: "0"
+                    ])
+
                 addSamplingSpanEvent(
                     time: at,
                     backtrace: backtrace,
@@ -182,7 +174,7 @@ import OpenTelemetryApi
             }
 
             spanQueue.async { [self] in
-                span?.end(time: at)
+                span?.end(endTime: at)
                 span = nil
             }
         }
@@ -203,13 +195,13 @@ import OpenTelemetryApi
 
             span.addEvent(
                 name: SpanEventSemantics.Hang.name,
+                type: .hang,
+                timestamp: time,
                 attributes: [
-                    LogSemantics.keyEmbraceType: .string(SpanEventType.hang.rawValue),
-                    SpanEventSemantics.Hang.keySampleOverhead: .int(overhead),
-                    SpanEventSemantics.Hang.keyFrameCount: .int(stack.frameCount),
-                    LogSemantics.keyStackTrace: .string(stack.stackString)
-                ],
-                timestamp: time
+                    SpanEventSemantics.Hang.keySampleOverhead: overhead,
+                    SpanEventSemantics.Hang.keyFrameCount: stack.frameCount,
+                    LogSemantics.keyStackTrace: stack.stackString
+                ]
             )
         }
 

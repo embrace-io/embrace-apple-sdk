@@ -1,0 +1,227 @@
+//
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//
+
+#import "EMBURLSessionDelegateProxy.h"
+#import <Foundation/Foundation.h>
+#import "objc/runtime.h"
+
+@implementation EMBURLSessionDelegateProxy
+
+- (instancetype)initWithDelegate:(id<NSURLSessionDelegate>)delegate handler:(id<URLSessionTaskHandler>)handler
+{
+    self = [super init];
+    if (self) {
+        _originalDelegate = delegate;
+        _handler = handler;
+    }
+    return self;
+}
+
+#pragma mark - Forwarding plumbing
+
+- (NSMethodSignature *)methodSignatureForSelector:(SEL)aSelector
+{
+    id target = [self forwardingTargetForSelector:aSelector];
+    if (target == nil) {
+        return [super methodSignatureForSelector:aSelector];
+    }
+    return [target methodSignatureForSelector:aSelector];
+}
+
+- (id)getTargetForSelector:(SEL)sel session:(NSURLSession *)session
+{
+    return [self forwardingTargetForSelector:sel];
+}
+
+- (BOOL)respondsToSelector:(SEL)sel
+{
+    // Challenge selectors: only advertise YES if the original delegate handles them.
+    // Unconditionally claiming YES changes the OS’s internal challenge handling path for
+    // sessions created without a delegate (where originalDelegate is EmbraceDummyURLSessionDelegate),
+    // which breaks tokenization and SSL-pinning SDKs that depend on the OS-native path.
+    if (sel == @selector(URLSession:didReceiveChallenge:completionHandler:) ||
+        sel == @selector(URLSession:task:didReceiveChallenge:completionHandler:)) {
+        return [self.originalDelegate respondsToSelector:sel];
+    }
+    // For all other directly-implemented methods, advertise YES unconditionally.
+    if ([super respondsToSelector:sel]) {
+        return YES;
+    }
+    // Otherwise mirror the original delegate’s capabilities.
+    return [self.originalDelegate respondsToSelector:sel];
+}
+
+- (id)forwardingTargetForSelector:(SEL)sel
+{
+    // We can't call `-respondsToSelector:` from here.
+    if (sel == @selector(URLSession:task:didCompleteWithError:) ||
+        sel == @selector(URLSession:task:didFinishCollectingMetrics:) ||
+        sel == @selector(URLSession:dataTask:didReceiveData:) ||
+        sel == @selector(URLSession:didBecomeInvalidWithError:) ||
+        sel == @selector(URLSession:didReceiveChallenge:completionHandler:) ||
+        sel == @selector(URLSession:task:didReceiveChallenge:completionHandler:) ||
+        sel == @selector(URLSession:dataTask:didReceiveResponse:completionHandler:) ||
+        sel == @selector(URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:) ||
+        sel == @selector(URLSession:downloadTask:didFinishDownloadingToURL:)) {
+        return nil;
+    }
+
+    id forwardingTarget = nil;
+
+    forwardingTarget = [super forwardingTargetForSelector:sel];
+    if (forwardingTarget) {
+        return forwardingTarget == self ? nil : forwardingTarget;
+    }
+
+    // is the original doing any forwarding?
+    forwardingTarget = [self.originalDelegate forwardingTargetForSelector:sel];
+    if (forwardingTarget) {
+        return forwardingTarget;
+    }
+
+    if ([self.originalDelegate respondsToSelector:sel]) {
+        return self.originalDelegate;
+    }
+
+    return nil;
+}
+
+- (BOOL)conformsToProtocol:(Protocol *)aProtocol
+{
+    return [super conformsToProtocol:aProtocol] || [self.originalDelegate conformsToProtocol:aProtocol];
+}
+
+#pragma mark - NSURLSessionDelegate
+
+- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(NSError *)error
+{
+    if ([self.originalDelegate respondsToSelector:@selector(URLSession:didBecomeInvalidWithError:)]) {
+        [(id<NSURLSessionDelegate>)self.originalDelegate URLSession:session didBecomeInvalidWithError:error];
+    }
+    self.originalDelegate = nil;
+    self.handler = nil;
+}
+
+- (void)URLSession:(NSURLSession *)session
+    didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+      completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
+{
+    id delegate = self.originalDelegate;
+    if (delegate && [delegate respondsToSelector:@selector(URLSession:didReceiveChallenge:completionHandler:)]) {
+        [(id<NSURLSessionDelegate>)delegate URLSession:session
+                                   didReceiveChallenge:challenge
+                                     completionHandler:completionHandler];
+    } else {
+        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+    }
+}
+
+- (void)URLSession:(NSURLSession *)session
+                   task:(NSURLSessionTask *)task
+    didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge
+      completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *))completionHandler
+{
+    id delegate = self.originalDelegate;
+    if (delegate && [delegate respondsToSelector:@selector(URLSession:task:didReceiveChallenge:completionHandler:)]) {
+        [(id<NSURLSessionTaskDelegate>)delegate URLSession:session
+                                                      task:task
+                                       didReceiveChallenge:challenge
+                                         completionHandler:completionHandler];
+    } else {
+        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+    }
+}
+
+#pragma mark - NSURLSessionTaskDelegate
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error
+{
+    [self.handler finishWithTask:task data:nil error:error];
+
+    if ([self.originalDelegate respondsToSelector:@selector(URLSession:task:didCompleteWithError:)]) {
+        [(id<NSURLSessionTaskDelegate>)self.originalDelegate URLSession:session task:task didCompleteWithError:error];
+    }
+}
+
+- (void)URLSession:(NSURLSession *)session
+                          task:(NSURLSessionTask *)task
+    didFinishCollectingMetrics:(NSURLSessionTaskMetrics *)metrics
+{
+    int64_t totalBytes = 0;
+    for (NSURLSessionTaskTransactionMetrics *t in metrics.transactionMetrics) {
+        totalBytes += t.countOfResponseBodyBytesReceived;
+    }
+    [self.handler finishWithTask:task bodySize:totalBytes error:nil];
+
+    if ([self.originalDelegate respondsToSelector:@selector(URLSession:task:didFinishCollectingMetrics:)]) {
+        [(id<NSURLSessionTaskDelegate>)self.originalDelegate URLSession:session
+                                                                   task:task
+                                             didFinishCollectingMetrics:metrics];
+    }
+}
+
+#pragma mark - NSURLSessionTaskDelegate (redirection)
+
+- (void)URLSession:(NSURLSession *)session
+                          task:(NSURLSessionTask *)task
+    willPerformHTTPRedirection:(NSHTTPURLResponse *)response
+                    newRequest:(NSURLRequest *)request
+             completionHandler:(void (^)(NSURLRequest *))completionHandler
+{
+    id delegate = self.originalDelegate;
+    if (delegate && [delegate respondsToSelector:@selector
+                              (URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:)]) {
+        [(id<NSURLSessionTaskDelegate>)delegate URLSession:session
+                                                      task:task
+                                willPerformHTTPRedirection:response
+                                                newRequest:request
+                                         completionHandler:completionHandler];
+    } else {
+        completionHandler(request);  // follow the redirect — URLSession's built-in default
+    }
+}
+
+#pragma mark - NSURLSessionDataDelegate
+
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data
+{
+    [self.handler addData:data dataTask:dataTask];
+
+    if ([self.originalDelegate respondsToSelector:@selector(URLSession:dataTask:didReceiveData:)]) {
+        [(id<NSURLSessionDataDelegate>)self.originalDelegate URLSession:session dataTask:dataTask didReceiveData:data];
+    }
+}
+
+- (void)URLSession:(NSURLSession *)session
+              dataTask:(NSURLSessionDataTask *)dataTask
+    didReceiveResponse:(NSURLResponse *)response
+     completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler
+{
+    id delegate = self.originalDelegate;
+    if (delegate && [delegate respondsToSelector:@selector(URLSession:
+                                                             dataTask:didReceiveResponse:completionHandler:)]) {
+        [(id<NSURLSessionDataDelegate>)delegate URLSession:session
+                                                  dataTask:dataTask
+                                        didReceiveResponse:response
+                                         completionHandler:completionHandler];
+    } else {
+        completionHandler(NSURLSessionResponseAllow);
+    }
+}
+
+#pragma mark - NSURLSessionDownloadDelegate
+
+- (void)URLSession:(NSURLSession *)session
+                 downloadTask:(NSURLSessionDownloadTask *)downloadTask
+    didFinishDownloadingToURL:(NSURL *)location
+{
+    id delegate = self.originalDelegate;
+    if (delegate && [delegate respondsToSelector:@selector(URLSession:downloadTask:didFinishDownloadingToURL:)]) {
+        [(id<NSURLSessionDownloadDelegate>)delegate URLSession:session
+                                                  downloadTask:downloadTask
+                                     didFinishDownloadingToURL:location];
+    }
+}
+
+@end

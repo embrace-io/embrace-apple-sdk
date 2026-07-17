@@ -7,9 +7,8 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceConfiguration
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
-
-// swiftlint:disable nesting
 
 public struct RemoteConfigPayload: Decodable, Equatable {
     var sdkEnabledThreshold: Float
@@ -48,9 +47,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
-    var useLegacyUrlSessionProxy: Bool
-
     var useNewStorageForSpanEvents: Bool
+
+    var userSessionMaxDurationSeconds: TimeInterval
+    var userSessionInactivityTimeoutSeconds: TimeInterval
 
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
@@ -104,8 +104,13 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         }
 
         case networkPayLoadCapture = "network_capture"
-        case useLegacyUrlSessionProxy = "use_legacy_urlsession_proxy"
         case useNewStorageForSpanEvents = "use_new_storage_for_span_events"
+
+        case userSession = "user_session"
+        enum UserSessionCodingKeys: String, CodingKey {
+            case maxDurationSeconds = "max_duration_seconds"
+            case inactivityTimeoutSeconds = "inactivity_timeout_seconds"
+        }
     }
 
     public init(from decoder: Decoder) throws {
@@ -345,19 +350,66 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             metricKitCrashSignals = defaultPayload.metricKitCrashSignals
         }
 
-        // use old url session proxy
-        useLegacyUrlSessionProxy =
-            try rootContainer.decodeIfPresent(
-                Bool.self,
-                forKey: .useLegacyUrlSessionProxy
-            ) ?? defaultPayload.useLegacyUrlSessionProxy
-
         // use new storage for span events
         useNewStorageForSpanEvents =
             try rootContainer.decodeIfPresent(
                 Bool.self,
                 forKey: .useNewStorageForSpanEvents
             ) ?? defaultPayload.useNewStorageForSpanEvents
+
+        // user session
+        if rootContainer.contains(.userSession) {
+            let userSessionContainer = try rootContainer.nestedContainer(
+                keyedBy: CodingKeys.UserSessionCodingKeys.self,
+                forKey: .userSession
+            )
+
+            let rawMax =
+                (try? userSessionContainer.decodeIfPresent(
+                    TimeInterval.self,
+                    forKey: CodingKeys.UserSessionCodingKeys.maxDurationSeconds
+                )) ?? defaultPayload.userSessionMaxDurationSeconds
+
+            let rawInactivity =
+                (try? userSessionContainer.decodeIfPresent(
+                    TimeInterval.self,
+                    forKey: CodingKeys.UserSessionCodingKeys.inactivityTimeoutSeconds
+                )) ?? defaultPayload.userSessionInactivityTimeoutSeconds
+
+            let validated = Self.validateUserSession(max: rawMax, inactivity: rawInactivity)
+            userSessionMaxDurationSeconds = validated.max
+            userSessionInactivityTimeoutSeconds = validated.inactivity
+        } else {
+            userSessionMaxDurationSeconds = defaultPayload.userSessionMaxDurationSeconds
+            userSessionInactivityTimeoutSeconds = defaultPayload.userSessionInactivityTimeoutSeconds
+        }
+    }
+
+    /// Validates the user-session config values.
+    /// 1. Per-field range check: out-of-range falls back to the default for that field.
+    /// 2. Cross-field check: if `inactivity > max` after step 1, force `inactivity` to its default.
+    static func validateUserSession(
+        max: TimeInterval,
+        inactivity: TimeInterval
+    ) -> (max: TimeInterval, inactivity: TimeInterval) {
+        // valid ranges
+        let maxRange: ClosedRange<TimeInterval> = 3600...86400  // 1h–24h
+        let inactivityRange: ClosedRange<TimeInterval> = 30...86400  // 30s–24h
+
+        // defaults
+        let defaultMax = UserSessionSemantics.defaultMaxDurationSeconds
+        let defaultInactivity = UserSessionSemantics.defaultInactivityTimeoutSeconds
+
+        let validatedMax = maxRange.contains(max) ? max : defaultMax
+        var validatedInactivity = inactivityRange.contains(inactivity) ? inactivity : defaultInactivity
+
+        // cross-field: inactivity must be <= max; if not, force the default inactivity (30 min).
+        // Safe because the smallest allowed `max` (1h) is always >= 30 min.
+        if validatedInactivity > validatedMax {
+            validatedInactivity = defaultInactivity
+        }
+
+        return (validatedMax, validatedInactivity)
     }
 
     // defaults
@@ -397,9 +449,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         hangLimitsReportsWatchdogEvents = false
 
         networkPayloadCaptureRules = []
-        useLegacyUrlSessionProxy = false
         useNewStorageForSpanEvents = false
+
+        userSessionMaxDurationSeconds = UserSessionSemantics.defaultMaxDurationSeconds
+        userSessionInactivityTimeoutSeconds = UserSessionSemantics.defaultInactivityTimeoutSeconds
     }
 }
-
-// swiftlint:enable nesting

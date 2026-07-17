@@ -11,20 +11,16 @@ extension BrandGameApp {
             return
         }
 
-        guard let metadata = Embrace.client?.metadata else {
-            return
-        }
-
         if let branch = info.branch {
-            try? metadata.addProperty(key: "git.branch", value: branch, lifespan: .process)
+            EmbraceIO.shared.setProperty(key: "git.branch", value: branch, lifespan: .process)
         }
 
         if let sha = info.sha {
-            try? metadata.addProperty(key: "git.sha", value: sha, lifespan: .process)
+            EmbraceIO.shared.setProperty(key: "git.sha", value: sha, lifespan: .process)
         }
 
         if let dirtyCount = info.dirtyFileCount {
-            try? metadata.addProperty(key: "git.dirty_file_count", value: String(dirtyCount), lifespan: .process)
+            EmbraceIO.shared.setProperty(key: "git.dirty_file_count", value: String(dirtyCount), lifespan: .process)
         }
     }
 

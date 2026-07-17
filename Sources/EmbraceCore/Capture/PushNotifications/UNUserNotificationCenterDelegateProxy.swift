@@ -5,12 +5,14 @@
 import UserNotifications
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
+    import EmbraceSemantics
+    import EmbraceCommonInternal
 #endif
 
 class UNUserNotificationCenterDelegateProxy: NSObject {
     weak var originalDelegate: UNUserNotificationCenterDelegate?
     let captureData: Bool
+    var otel: EmbraceOTelSignalsHandler?
 
     init(captureData: Bool) {
         self.captureData = captureData
@@ -47,9 +49,10 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
     ) {
 
         // generate span event
-        if let event = try? PushNotificationEvent(notification: notification, captureData: captureData) {
-            Embrace.client?.add(event: event)
-        }
+        otel?.addInternalPushNotificationEvent(
+            notification: notification,
+            captureData: captureData
+        )
 
         // call original
         if #available(iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
@@ -76,9 +79,10 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
         ) {
 
             // generate span event
-            if let event = try? PushNotificationEvent(notification: response.notification, captureData: captureData) {
-                Embrace.client?.add(event: event)
-            }
+            otel?.addInternalPushNotificationEvent(
+                notification: response.notification,
+                captureData: captureData
+            )
 
             // call original
             originalDelegate?.userNotificationCenter?(

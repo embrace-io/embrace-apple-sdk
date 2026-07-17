@@ -23,8 +23,6 @@ struct UploadedSessionPayloadUIComponent: View {
             VStack(alignment: .leading) {
                 Section("User Info") {
                     UploadedSessionPayloadTestUserInfoView(
-                        username: $viewModel.userInfoUsername,
-                        email: $viewModel.userInfoEmail,
                         identifier: $viewModel.userInfoIdentifier
                     ) {
                         viewModel.clearAllUserInfo()
@@ -54,26 +52,32 @@ struct UploadedSessionPayloadUIComponent: View {
                         .padding(.leading, 10)
                 }
                 Text(
-                    "Manually background the app and reopen in order to kick off the session post process. After at least one session has been posted, a picker will appear with the last posted session selected by default."
+                    "Manually background the app and reopen in order to kick off the session post process. Each posted session part appears as its own entry; after at least one part has been posted, a picker will appear with the last posted part selected by default."
                 )
                 .foregroundStyle(.embraceSteel)
                 .font(.embraceFont(size: 12))
                 .padding([.top, .bottom], 5)
-                Section("Posted Session To Test:") {
-                    Picker("Posted Session", selection: $viewModel.selectedSessionId) {
-                        ForEach(viewModel.exportedAndPostedSessions, id: \.self) { sessionId in
-                            Text(sessionId)
-                                .tag(sessionId)
+                Section("Posted Session Part To Test:") {
+                    Picker("Posted Session Part", selection: $viewModel.selectedPartId) {
+                        ForEach(viewModel.postedParts, id: \.self) { partId in
+                            Text(partId)
+                                .tag(partId)
                                 .font(.embraceFont(size: 12))
                                 .foregroundColor(.embracePurple)
                         }
                     }
                 }
-                .opacity(viewModel.exportedAndPostedSessions.count == 0 ? 0.0 : 1.0)
+                .opacity(viewModel.postedParts.count == 0 ? 0.0 : 1.0)
                 TestScreenButtonView(viewModel: viewModel)
                     .disabled(viewModel.testButtonDisabled)
                     .onAppear {
+                        // `dataCollector` is only available here (not at init), so wire it up and
+                        // refresh now — otherwise sessions posted before this page opened stay
+                        // invisible until the next payload arrives. Register observers here too, so
+                        // they bind to the rendered view-model instance.
                         viewModel.dataCollector = dataCollector
+                        viewModel.startObserving()
+                        viewModel.refresh()
                     }
                     .padding(.bottom, 140)
             }

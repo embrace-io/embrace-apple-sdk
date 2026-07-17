@@ -2,28 +2,19 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import OpenTelemetryApi
-
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
-#endif
-
-extension SpanType {
-    public static let networkRequest = SpanType(performance: "network_request")
+extension EmbraceType {
+    public static let networkRequest = EmbraceType(performance: "network_request")
 }
 
 extension SpanSemantics {
+    /// Attribute keys and values for network request spans.
     public struct NetworkRequest {
-        public static let keyUrl = SemanticConventions.Url.full.rawValue
-        public static let keyMethod = SemanticConventions.Http.requestMethod.rawValue
-        public static let keyBodySize = SemanticConventions.Http.requestBodySize.rawValue
-        /// Embrace NSF contract attribute — not an OTel semantic convention.
-        /// Carries the traceparent value as a pre-rendered NSF forwarder input and presence signal.
-        /// `http.request.header.traceparent` (the OTel convention for captured/received headers)
-        /// is intentionally not used here.
+        public static let keyUrl = "url.full"
+        public static let keyMethod = "http.request.method"
+        public static let keyBodySize = "http.request.body.size"
         public static let keyTracingHeader = "emb.w3c_traceparent"
-        public static let keyStatusCode = SemanticConventions.Http.responseStatusCode.rawValue
-        public static let keyResponseSize = SemanticConventions.Http.responseBodySize.rawValue
+        public static let keyStatusCode = "http.response.status_code"
+        public static let keyResponseSize = "http.response.body.size"
         public static let keyErrorType = "error.type"
         public static let keyErrorCode = "error.code"
         public static let keyErrorMessage = "error.message"

@@ -2,15 +2,12 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
-#endif
-
-extension SpanType {
-    public static let lowPower = SpanType(system: "low_power")
+extension EmbraceType {
+    public static let lowPower = EmbraceType(system: "low_power")
 }
 
 extension SpanSemantics {
+    /// Attribute keys and values for low power mode spans.
     public struct LowPower {
         public static let name = "emb-device-low-power"
         public static let keyStartReason = "start_reason"

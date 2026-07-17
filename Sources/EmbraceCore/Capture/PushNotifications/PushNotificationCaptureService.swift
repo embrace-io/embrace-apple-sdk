@@ -7,29 +7,25 @@ import UserNotifications
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceCaptureService
 #endif
 
 /// Service that generates OpenTelemetry span events when notifications are received through the `UNUserNotificationCenter`.
-@objc public final class PushNotificationCaptureService: CaptureService {
+public final class PushNotificationCaptureService: CaptureService {
 
-    @objc public let options: PushNotificationCaptureService.Options
+    /// The options used to configure this service.
+    public let options: PushNotificationCaptureService.Options
     private let lock: NSLocking
     private var swizzlers: [any Swizzlable] = []
     var proxy: UNUserNotificationCenterDelegateProxy
 
-    @objc public convenience init(options: PushNotificationCaptureService.Options) {
-        self.init(options: options, lock: NSLock())
-    }
-
-    public convenience override init() {
-        self.init(lock: NSLock())
-    }
-
-    init(
+    /// Creates a new `PushNotificationCaptureService` with the given options.
+    /// - Parameters:
+    ///   - options: The options used to configure the service.
+    ///   - lock: Lock used to synchronize swizzling. Exposed for testing.
+    public init(
         options: PushNotificationCaptureService.Options = PushNotificationCaptureService.Options(),
-        lock: NSLocking
+        lock: NSLocking = NSLock()
     ) {
         self.options = options
         self.lock = lock
@@ -42,6 +38,7 @@ import UserNotifications
             lock.unlock()
         }
 
+        proxy.otel = otel
         initializeSwizzlers()
 
         swizzlers.forEach {
@@ -61,7 +58,6 @@ import UserNotifications
     }
 }
 
-// swiftlint:disable line_length
 struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
     typealias ImplementationType =
         @convention(c) (UNUserNotificationCenter, Selector, UNUserNotificationCenterDelegate)
@@ -87,4 +83,3 @@ struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
         }
     }
 }
-// swiftlint:enable line_length

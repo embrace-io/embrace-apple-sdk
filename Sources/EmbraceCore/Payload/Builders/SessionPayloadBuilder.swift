@@ -14,7 +14,7 @@ class SessionPayloadBuilder {
     class func build(for session: EmbraceSession, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]>? {
 
         // fetch properties
-        let properties = storage.fetchCustomProperties(sessionId: session.idRaw, processId: session.processIdRaw)
+        let properties = storage.fetchCustomProperties(sessionId: session.id, processId: session.processId)
 
         // build spans
         let (spans, spanSnapshots) = SpansPayloadBuilder.build(
@@ -25,13 +25,15 @@ class SessionPayloadBuilder {
 
         // build resources payload
         let resources: [EmbraceMetadata] = storage.fetchResources(
-            sessionId: session.idRaw, processId: session.processIdRaw)
+            sessionId: session.id,
+            processId: session.processId
+        )
         let resourcePayload = ResourcePayload(from: resources)
 
         // build metadata payload
         var metadata: [EmbraceMetadata] = []
 
-        let tags = storage.fetchPersonaTags(sessionId: session.idRaw, processId: session.processIdRaw)
+        let tags = storage.fetchPersonaTags(sessionId: session.id, processId: session.processId)
         metadata.append(contentsOf: properties)
         metadata.append(contentsOf: tags)
         let metadataPayload = MetadataPayload(from: metadata)

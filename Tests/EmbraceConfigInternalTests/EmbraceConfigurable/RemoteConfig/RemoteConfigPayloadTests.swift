@@ -7,8 +7,6 @@ import XCTest
 
 @testable import EmbraceConfigInternal
 
-// swiftlint:disable force_try
-
 class RemoteConfigPayloadTests: XCTestCase {
 
     func testOnReceivingEmptyRemoteConfig_RemoteConfigPayload_shouldUseDefaultValues() throws {
@@ -42,6 +40,8 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.internalLogsWarningLimit, 0)
         XCTAssertEqual(payload.internalLogsErrorLimit, 3)
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 12 * 3600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
         XCTAssertEqual(payload.hangLimitsHangThreshold, 0.249)
     }
 
@@ -127,7 +127,113 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.internalLogsWarningLimit, 0)
         XCTAssertEqual(payload.internalLogsErrorLimit, 3)
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 12 * 3600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
         XCTAssertEqual(payload.hangLimitsHangThreshold, 0.249)
+    }
+
+    // MARK: - User session config
+
+    private func decodePayload(_ json: String) throws -> RemoteConfigPayload {
+        let data = Data(json.utf8)
+        return try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
+    }
+
+    func test_userSession_blockMissing_usesDefaults() throws {
+        let payload = try decodePayload("{}")
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 12 * 3600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
+    }
+
+    func test_userSession_bothFieldsPresentAndValid_usesProvidedValues() throws {
+        let payload = try decodePayload(
+            #"""
+            { "user_session": { "max_duration_seconds": 21600, "inactivity_timeout_seconds": 600 } }
+            """#)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 21600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 600)
+    }
+
+    func test_userSession_maxBelowRange_fallsBackToDefault() throws {
+        let payload = try decodePayload(
+            #"""
+            { "user_session": { "max_duration_seconds": 60, "inactivity_timeout_seconds": 600 } }
+            """#)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 12 * 3600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 600)
+    }
+
+    func test_userSession_maxAboveRange_fallsBackToDefault() throws {
+        let payload = try decodePayload(
+            #"""
+            { "user_session": { "max_duration_seconds": 999999, "inactivity_timeout_seconds": 600 } }
+            """#)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 12 * 3600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 600)
+    }
+
+    func test_userSession_inactivityBelowRange_fallsBackToDefault() throws {
+        let payload = try decodePayload(
+            #"""
+            { "user_session": { "max_duration_seconds": 21600, "inactivity_timeout_seconds": 5 } }
+            """#)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 21600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
+    }
+
+    func test_userSession_inactivityAboveRange_fallsBackToDefault() throws {
+        let payload = try decodePayload(
+            #"""
+            { "user_session": { "max_duration_seconds": 21600, "inactivity_timeout_seconds": 999999 } }
+            """#)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 21600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
+    }
+
+    func test_userSession_inactivityGreaterThanMax_forcesInactivityToDefault() throws {
+        // Both fields are individually within their valid range, but the cross-field
+        // constraint (`inactivity <= max`) is violated. Force `inactivity = 30 * 60`,
+        // keep `max` as provided.
+        let payload = try decodePayload(
+            #"""
+            { "user_session": { "max_duration_seconds": 3600, "inactivity_timeout_seconds": 7200 } }
+            """#)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 3600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
+    }
+
+    func test_userSession_inactivityEqualToMax_keepsBothAsProvided() throws {
+        // Boundary is inclusive (<=).
+        let payload = try decodePayload(
+            #"""
+            { "user_session": { "max_duration_seconds": 3600, "inactivity_timeout_seconds": 3600 } }
+            """#)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 3600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 3600)
+    }
+
+    func test_userSession_malformedTypes_fallsBackToDefaults() throws {
+        let payload = try decodePayload(
+            #"""
+            { "user_session": { "max_duration_seconds": "not a number", "inactivity_timeout_seconds": null } }
+            """#)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 12 * 3600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
+    }
+
+    func test_userSession_emptyBlock_usesDefaults() throws {
+        let payload = try decodePayload(#"{ "user_session": {} }"#)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 12 * 3600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
+    }
+
+    func test_userSession_onlyMaxPresent_inactivityDefaults() throws {
+        let payload = try decodePayload(
+            #"""
+            { "user_session": { "max_duration_seconds": 21600 } }
+            """#)
+        XCTAssertEqual(payload.userSessionMaxDurationSeconds, 21600)
+        XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
     }
 
     func getRemoteConfigData(forResource resource: String) throws -> Data {
@@ -135,5 +241,3 @@ class RemoteConfigPayloadTests: XCTestCase {
         return try XCTUnwrap(Data(contentsOf: URL(fileURLWithPath: path)))
     }
 }
-
-// swiftlint:enable force_try

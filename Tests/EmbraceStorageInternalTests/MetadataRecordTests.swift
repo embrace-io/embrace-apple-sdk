@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import TestSupport
 import XCTest
 
@@ -689,10 +690,7 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when fetching all resources by session id and process id
-        let resources = storage.fetchResources(
-            sessionId: TestConstants.sessionId.stringValue,
-            processId: TestConstants.processId.stringValue
-        )
+        let resources = storage.fetchResources(sessionId: TestConstants.sessionId, processId: TestConstants.processId)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -917,10 +915,7 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when fetching all resources by session id and process id
-        let resources = storage.fetchCustomProperties(
-            sessionId: TestConstants.sessionId.stringValue,
-            processId: TestConstants.processId.stringValue
-        )
+        let resources = storage.fetchCustomProperties(sessionId: TestConstants.sessionId, processId: TestConstants.processId)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -1069,10 +1064,7 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when fetching all persona tags by session id and process id
-        let resources = storage.fetchPersonaTags(
-            sessionId: TestConstants.sessionId.stringValue,
-            processId: TestConstants.processId.stringValue
-        )
+        let resources = storage.fetchPersonaTags(sessionId: TestConstants.sessionId, processId: TestConstants.processId)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)

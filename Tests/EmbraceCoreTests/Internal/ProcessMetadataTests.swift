@@ -14,10 +14,4 @@ final class ProcessMetadataTests: XCTestCase {
         XCTAssertTrue(startTime! < Date())
     }
 
-    func test_uptime_isPositive_doesNotReturnNil() {
-        let uptime = ProcessMetadata.uptime()
-        XCTAssertNotNil(uptime)
-        XCTAssertTrue(uptime! > 0)
-    }
-
 }

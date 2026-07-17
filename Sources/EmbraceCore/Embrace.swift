@@ -3,79 +3,60 @@
 //
 
 import Foundation
-import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
     import EmbraceConfigInternal
-    import EmbraceOTelInternal
     import EmbraceStorageInternal
     import EmbraceUploadInternal
     import EmbraceObjCUtilsInternal
 #endif
 
-/// Main class used to interact with the Embrace SDK.
+/// Internal class used to implement the Embrace SDK.
 ///
-/// To start the SDK you first need to configure it using an `Embrace.Options` instance passed in the `setup` static method.
-/// Once the SDK is setup, you can start it by calling the `start` instance method.
-///
-/// **Please note that even if you setup the SDK, an Embrace session will not begin until `start` is called. This means data may not be correctly attached to that session.**
-///
-/// Example:
-/// ```swift
-/// import EmbraceIO
-///
-/// let options = Embrace.Options(appId: "appId", platform: .iOS)
-/// try Embrace.setup(options: options)
-/// try Embrace.client?.start()
-/// ```
-@objc public class Embrace: NSObject {
+/// Not part of the public API. Use `EmbraceIO` as the entry point to interact with the SDK.
+package class Embrace {
 
-    /**
-     Returns the current `Embrace` client.
-    
-     This will be `nil` until the `setup` method is called, or if the setup process fails.
-     */
-    @objc public internal(set) static var client: Embrace?
+    /// Returns the current `Embrace` client. Nil until `setup` is called, or if setup fails.
+    package internal(set) static var client: Embrace?
 
     /// The `Embrace.Options` that were used to configure the SDK.
-    @objc public private(set) var options: Embrace.Options
+    package private(set) var options: Embrace.Options
 
     /// Returns the current state of the SDK.
-    @objc public private(set) var state: EmbraceSDKState = .notInitialized
-
-    /// Returns whether the SDK was started.
-    @available(*, deprecated, message: "Use `state` instead.")
-    @objc public var started: Bool {
-        return state == .started
-    }
+    package private(set) var state: EmbraceSDKState = .notInitialized
 
     /// Returns the `DeviceIdentifier` used by Embrace for the current device.
-    public private(set) var deviceId: DeviceIdentifier
+    package private(set) var deviceId: EmbraceIdentifier
 
     /// Used to control the verbosity level of the Embrace SDK console logs.
-    @objc public var logLevel: LogLevel = .error {
+    package var logLevel: EmbraceLogLevel = .error {
         didSet {
             Embrace.logger.level = logLevel
         }
     }
 
     /// Returns true if the SDK is started and was not disabled through remote configurations.
-    @objc public var isSDKEnabled: Bool {
+    package var isSDKEnabled: Bool {
         let remoteConfigEnabled = config.isSDKEnabled
         return state == .started && remoteConfigEnabled
     }
 
+    // periphery:ignore
     /// Returns the version of the Embrace SDK.
-    @objc public class var sdkVersion: String {
+    package class var sdkVersion: String {
         return EmbraceMeta.sdkVersion
     }
 
+    /// Returns the current `EmbraceOTelSignalsHandler` used to generate spans and logs.
+    package let otel: DefaultOTelSignalsHandler
+
     /// Returns the current `MetadataHandler` used to store resources and session properties.
-    @objc public let metadata: MetadataHandler
+    package let metadata: MetadataHandler
 
     /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
-    @objc public let startupInstrumentation: StartupInstrumentation
+    package let startupInstrumentation: StartupInstrumentation
 
     let metricKit: MetricKitHandler
 
@@ -83,16 +64,15 @@ import OpenTelemetrySdk
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
-    let captureServicesGroup: DispatchGroup
+    package let captureServicesGroup: DispatchGroup
 
-    let logController: LogControllable
+    let logController: LogController
 
     let sessionController: SessionController
+    let userSessionController: UserSessionController
     let sessionLifecycle: SessionLifecycle
 
-    let spanEventsLimiter: SpanEventsLimiter
-
-    let otelResources: Resource?
+    let otelResources: EmbraceAttributes?
 
     let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
@@ -113,17 +93,16 @@ import OpenTelemetrySdk
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Throws: `EmbraceSetupError.invalidAppId` if the provided `appId` is invalid.
-    /// - Throws: `EmbraceSetupError.invalidAppGroupId` if the provided `appGroupId` is invalid.
     /// - Throws: `EmbraceSetupError.invalidOptions` when providing more than one `CrashReporter`.
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
-    @objc public static func setup(options: Embrace.Options) throws -> Embrace {
+    package static func setup(options: Embrace.Options) throws -> Embrace {
         return try setup(options: options, otelResources: nil)
     }
 
     @discardableResult
-    package static func setup(options: Embrace.Options, otelResources: Resource?) throws -> Embrace {
+    package static func setup(options: Embrace.Options, otelResources: EmbraceAttributes?) throws -> Embrace {
 
         if !Thread.isMainThread {
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
@@ -161,19 +140,14 @@ import OpenTelemetrySdk
         }
     }
 
-    private override init() {
-        fatalError("Use init(options:) instead")
-    }
-
     deinit {
         Embrace.notificationCenter.removeObserver(self)
     }
 
     init(
         options: Embrace.Options,
-        logControllable: LogControllable? = nil,
         embraceStorage: EmbraceStorage? = nil,
-        otelResources: Resource? = nil
+        otelResources: EmbraceAttributes? = nil
     ) throws {
 
         self.options = options
@@ -181,7 +155,7 @@ import OpenTelemetrySdk
         self.otelResources = otelResources
 
         // retrieve device identifier
-        self.deviceId = EmbraceIdentifier.retrieveDeviceId(fileURL: EmbraceFileSystem.deviceIdURL)
+        self.deviceId = DeviceIdentifierProvider.retrieve(fileURL: EmbraceFileSystem.deviceIdURL)
 
         // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
@@ -199,6 +173,42 @@ import OpenTelemetrySdk
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options, configuration: config.configurable)
 
+        // initialize session controller
+        self.sessionController = SessionController(storage: storage, upload: upload, config: config)
+
+        // initialize user-session controller. Bootstrap is deferred to `start()` so it runs
+        // only when the SDK actually starts and so the prior-session fetch can be shared
+        // with other consumers (metric-kit) that need the same row.
+        self.userSessionController = UserSessionController(
+            storage: storage,
+            config: config.configurable
+        )
+        self.userSessionController.sessionController = sessionController
+        self.sessionController.userSessionController = userSessionController
+
+        self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
+
+        // initialize log controller
+        self.logController = LogController(
+            storage: storage,
+            upload: upload,
+            sessionController: sessionController,
+            queue: processingQueue
+        )
+
+        // initialize otel handler
+        self.otel = DefaultOTelSignalsHandler(
+            storage: storage,
+            sessionController: sessionController,
+            logController: self.logController,
+            limiter: DefaultOtelSignalsLimiter(
+                spanEventTypeLimits: config.spanEventTypeLimits,
+                logSeverityLimits: config.logSeverityLimits,
+                configNotificationCenter: Embrace.notificationCenter
+            ),
+            bridge: options.bridge ?? DefaultOTelSignalBridge()
+        )
+
         // Create a group for the services, this group leaves once the services are started.
         self.captureServicesGroup = DispatchGroup()
         self.captureServicesGroup.enter()
@@ -208,17 +218,8 @@ import OpenTelemetrySdk
             options: options,
             config: config.configurable,
             storage: storage,
-            upload: upload
-        )
-
-        // initialize session controller
-        self.sessionController = SessionController(storage: storage, upload: upload, config: config)
-        self.sessionLifecycle = Embrace.createSessionLifecycle(controller: sessionController)
-
-        // initialize span events limiter
-        self.spanEventsLimiter = SpanEventsLimiter(
-            spanEventsLimits: config.spanEventsLimits,
-            configNotificationCenter: Embrace.notificationCenter
+            upload: upload,
+            otel: self.otel
         )
 
         // initialize metadata handler
@@ -228,68 +229,24 @@ import OpenTelemetrySdk
         // initialize startup instrumentation
         self.startupInstrumentation = StartupInstrumentation()
 
-        // initialize log controller
-        var logController: LogController?
-        if let logControllable = logControllable {
-            self.logController = logControllable
-        } else {
-            let controller = LogController(
-                storage: storage,
-                upload: upload,
-                controller: sessionController
-            )
-            logController = controller
-            self.logController = controller
-        }
-
-        super.init()
-
+        // metrick kit
         captureServices.addMetricKitServices(
             payloadProvider: metricKit,
             metadataFetcher: storage,
             stateProvider: self
         )
 
+        // set providers
         sessionController.sdkStateProvider = self
-        logController?.sdkStateProvider = self
+        sessionController.otel = self.otel
+        logController.sdkStateProvider = self
+        Embrace.logger.otel = self.otel
 
-        // setup otel
-        EmbraceOTel.setup(
-            spanProcessors: buildProcessors(
-                for: storage,
-                sessionController: sessionController,
-                customExporter: options.export,
-                customProcessors: options.processors?.compactMap { $0.processor },
-                sdkStateProvider: self,
-                useNewStorageForSpanEvents: config.useNewStorageForSpanEvents,
-                resource: otelResources
-            ),
-            resource: otelResources
-        )
-
-        let logBatcher = DefaultLogBatcher(
-            repository: storage,
-            logLimits: .init(),
-            delegate: self.logController
-        )
-
-        sessionController.setLogBatcher(logBatcher)
-
-        let logSharedState = DefaultEmbraceLogSharedState.create(
-            storage: self.storage,
-            batcher: logBatcher,
-            processors: options.processors?.compactMap { $0.logProcessor } ?? [],
-            exporter: options.export?.logExporter,
-            sdkStateProvider: self,
-            resource: otelResources
-        )
-
-        EmbraceOTel.setup(logSharedState: logSharedState)
+        // fetch app state
         sessionLifecycle.setup()
-        Embrace.logger.otel = self
 
         // startup tracking
-        startupInstrumentation.otel = self
+        startupInstrumentation.otel = self.otel
 
         // config update event
         Embrace.notificationCenter.addObserver(
@@ -309,7 +266,7 @@ import OpenTelemetrySdk
     /// - Note: This method won't do anything if the Embrace SDK was already started or if it was disabled via the remote configurations.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
-    @objc public func start() throws -> Embrace {
+    package func start() throws -> Embrace {
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be started on the main thread")
         }
@@ -338,62 +295,64 @@ import OpenTelemetrySdk
                 return self
             }
 
-            let processStartSpan = createProcessStartSpan()
-            defer { processStartSpan.end() }
-
-            recordSpan(
-                name: "emb-sdk-start-process",
-                parent: processStartSpan,
-                type: .performance
-            ) { _ in
-
-                state = .started
-
-                startupInstrumentation.buildMainSpans()
-                sessionLifecycle.startSession()
-                captureServices.install()
-
-                // save latest session in memory before its sent and deleted
-                // this will be used to link metric kit payloads to the session
-                storage.fetchLatestSession { [self] session in
-                    metricKit.lastSession = session
-                    metricKit.install()
+            // embrace process start spans
+            let spans = createProcessStartSpans()
+            defer {
+                for span in spans {
+                    span.end()
                 }
+            }
 
-                // WARNING: This is dangerous as it calls out to external code.
-                self.captureServices.start()
+            // set sdk state
+            state = .started
 
-                // now that services are started, and critical pieces are in place,
-                // notify anyone who cares.
-                self.captureServicesGroup.leave()
+            // Fetch the prior process's last session ONCE and share it. Must happen before
+            // `sessionLifecycle.startSession()` creates a new record. Consumed by both
+            // `userSessionController.bootstrap` (to reconstruct user-session state) and
+            // metric-kit (to attribute incoming MetricKit payloads to the prior session).
+            let priorSession = storage.fetchLatestSession()
+            userSessionController.bootstrap(priorSession: priorSession)
+            metricKit.lastSession = priorSession
+            metricKit.install()
 
-                self.processingQueue.async { [weak self] in
-                    // fetch crash reports and link them to sessions
-                    // then upload them
-                    UnsentDataHandler.sendUnsentData(
-                        storage: self?.storage,
-                        upload: self?.upload,
-                        otel: self,
-                        logController: self?.logController,
-                        currentSessionId: self?.sessionController.currentSession?.id,
-                        crashReporter: self?.captureServices.crashReporter
-                    )
+            // start instrumentation
+            startupInstrumentation.buildMainSpans()
+            sessionLifecycle.startSession()
+            captureServices.install()
 
-                    // remove old versions data
-                    self?.cleanUpOldVersionsData()
+            // WARNING: This is dangerous as it calls out to external code.
+            self.captureServices.start()
 
-                    // add otel resources as metadata
-                    self?.addOtelResources()
-                }
+            // now that services are started, and critical pieces are in place,
+            // notify anyone who cares.
+            self.captureServicesGroup.leave()
 
-                // retry any remaining cached upload data
-                self.upload?.retryCachedData()
+            self.processingQueue.async { [weak self] in
+                // fetch crash reports and link them to sessions
+                // then upload them
+                UnsentDataHandler.sendUnsentData(
+                    storage: self?.storage,
+                    upload: self?.upload,
+                    otel: self?.otel,
+                    logController: self?.logController,
+                    currentSessionId: self?.sessionController.currentSession?.id,
+                    crashReporter: self?.captureServices.crashReporter
+                )
 
-                if let appId = options.appId {
-                    Embrace.logger.startup("Embrace SDK started successfully with key: \(appId)")
-                } else {
-                    Embrace.logger.startup("Embrace SDK started successfully!")
-                }
+                // remove old versions data
+                self?.cleanUpOldVersionsData()
+
+                // add otel resources as metadata
+                self?.addOtelResources()
+            }
+
+            // retry any remaining cached upload data
+            self.upload?.retryCachedData()
+
+            if let appId = options.appId {
+                Embrace.logger.startup("Embrace SDK started successfully with key: \(appId)")
+            } else {
+                Embrace.logger.startup("Embrace SDK started successfully!")
             }
 
             EMBStartupTracker.shared().sdkStartEndTime = Date()
@@ -405,10 +364,10 @@ import OpenTelemetrySdk
     /// Method used to stop the Embrace SDK from capturing and generating data.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
     /// - Note: This method won't do anything if the Embrace SDK was already stopped.
-    /// - Note: The SDK can't be started again once stopped.
+    /// - Note: Once stopped, the SDK can't be started again in the same process.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
-    @objc public func stop() throws -> Embrace {
+    package func stop() throws -> Embrace {
         guard Thread.isMainThread else {
             throw EmbraceSetupError.invalidThread("Embrace must be stopped on the main thread")
         }
@@ -438,53 +397,65 @@ import OpenTelemetrySdk
     }
 
     /// Returns the current session identifier, if any.
-    @objc public func currentSessionId() -> String? {
+    package func currentSessionId() -> String? {
         guard isSDKEnabled else {
             return nil
         }
 
-        return sessionController.currentSession?.idRaw
+        return sessionController.currentSession?.id.stringValue
+    }
+
+    /// Returns the current user session identifier, if any.
+    package func currentUserSessionId() -> String? {
+        guard isSDKEnabled else {
+            return nil
+        }
+
+        return userSessionController.currentUserSessionId?.stringValue
     }
 
     /// Returns the current device identifier.
-    @objc public func currentDeviceId() -> String? {
+    package func currentDeviceId() -> String? {
         return deviceId.stringValue
     }
 
-    /// Forces the Embrace SDK to start a new session.
-    /// - Note: If there was a session running, it will be ended before starting a new one.
-    /// - Note: This method won't do anything if the SDK is stopped.
-    @objc public func startNewSession() {
+    /// Ends the active user session. The current part is closed and a new part of the same
+    /// state is started under a fresh user session. Rate-limited to one call per 5 seconds —
+    /// subsequent calls inside that window are ignored silently.
+    /// - Note: This method has no effect if the SDK is stopped.
+    package func endUserSession() {
         guard isSDKEnabled else {
             return
         }
 
-        processingQueue.async {
-            self.sessionLifecycle.startSession()
+        // Dispatch onto the session-controller's serial queue so the manual roll cannot
+        // interleave with the heartbeat-driven max-duration roll, which uses the same queue.
+        sessionController.queue.async { [weak self] in
+            guard let self = self else { return }
+            let now = Date()
+            guard self.userSessionController.canManuallyEnd(now: now) else { return }
+            self.sessionController.rollPartForUserSessionExpiry(reason: .manual, at: now)
         }
     }
 
-    /// Forces the Embrace SDK to stop the current session, if any.
-    /// - Note: This method won't do anything if the SDK is stopped.
-    @objc public func endCurrentSession() {
-        guard isSDKEnabled else {
-            return
-        }
+    /// Waits synchronously for all queued SDK work to drain.
+    ///
+    /// Drains the internal processing queue and the OTel bridge's span pipeline so the SDK
+    /// is idle before the caller continues. Intended for benchmarks and tests — exposed
+    /// publicly via `@_spi(Private)` on `EmbraceIO`.
+    package func waitForAllWork() {
+        // Don't use `asyncAndWait(::)` — it crashes on iOS 16.4 sim. Radar: FB21077492.
+        let group = DispatchGroup()
 
-        processingQueue.async {
-            self.sessionLifecycle.endSession()
-        }
-    }
+        processingQueue.async(group: group, flags: .assignCurrentContext) {}
+        group.wait()
 
-    /// Call this if you want the Embrace SDK to clear the upload cache data on the next launch.
-    @objc public func resetUploadCache() {
-        Embrace.resetUploadCache = true
+        otel.bridge.waitForAllWork()
     }
 
     /// Called every time the remote config changes
     @objc private func onConfigUpdated() {
         Embrace.logger.limits = config.internalLogLimits
-        Embrace.client?.logController.limits = config.logsLimits
 
         if !config.isSDKEnabled {
             Embrace.logger.debug("SDK was disabled")

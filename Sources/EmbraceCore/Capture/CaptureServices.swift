@@ -10,6 +10,7 @@ import Foundation
     import EmbraceStorageInternal
     import EmbraceUploadInternal
     import EmbraceConfiguration
+    import EmbraceSemantics
 #endif
 
 final class CaptureServices {
@@ -23,14 +24,17 @@ final class CaptureServices {
     var crashReporter: EmbraceCrashReporter?
 
     weak var config: EmbraceConfigurable?
+    weak var otel: InternalOTelSignalsHandler?
 
     init(
         options: Embrace.Options,
         config: EmbraceConfigurable?,
         storage: EmbraceStorage?,
-        upload: EmbraceUpload?
+        upload: EmbraceUpload?,
+        otel: InternalOTelSignalsHandler?
     ) throws {
         self.config = config
+        self.otel = otel
 
         // add required capture services
         // and remove duplicates
@@ -42,8 +46,7 @@ final class CaptureServices {
             appId: options.appId,
             sdkVersion: EmbraceMeta.sdkVersion,
             filePathProvider: EmbraceFilePathProvider(
-                partitionId: partitionIdentifier,
-                appGroupId: options.appGroupId
+                partitionId: partitionIdentifier
             ),
             notificationCenter: Embrace.notificationCenter
         )
@@ -60,7 +63,7 @@ final class CaptureServices {
                     session: nil,
                     storage: storage,
                     upload: upload,
-                    otel: Embrace.client
+                    otel: otel
                 )
             }
         }
@@ -91,14 +94,30 @@ final class CaptureServices {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionStart),
-            name: Notification.Name.embraceSessionDidStart,
+            name: Notification.Name.embraceSessionPartDidStart,
             object: nil
         )
 
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onSessionWillEnd),
-            name: Notification.Name.embraceSessionWillEnd,
+            name: Notification.Name.embraceSessionPartWillEnd,
+            object: nil
+        )
+
+        // Set the crash-reporter's user-session id when a new user session begins.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onUserSessionDidStart),
+            name: Notification.Name.embraceUserSessionDidStart,
+            object: nil
+        )
+
+        // Clear the crash-reporter's user-session id when the active user session ends.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(onUserSessionDidEnd),
+            name: Notification.Name.embraceUserSessionDidEnd,
             object: nil
         )
 
@@ -148,7 +167,7 @@ final class CaptureServices {
         crashReporter?.install(context: context)
 
         for service in services {
-            service.install(otel: Embrace.client, logger: Embrace.logger)
+            service.install(otel: otel, logger: Embrace.logger)
         }
     }
 
@@ -166,15 +185,23 @@ final class CaptureServices {
 
     @objc func onSessionStart(notification: Notification) {
         if let session = notification.object as? EmbraceSession {
-            crashReporter?.currentSessionId = session.idRaw
-            for service in services { service.onSessionStart(session) }
+            crashReporter?.currentSessionId = session.id.stringValue
         }
+        for service in services { service.onSessionStart() }
     }
 
     @objc func onSessionWillEnd(notification: Notification) {
-        if let session = notification.object as? EmbraceSession {
-            for service in services { service.onSessionWillEnd(session) }
+        for service in services { service.onSessionWillEnd() }
+    }
+
+    @objc func onUserSessionDidStart(notification: Notification) {
+        if let userSession = notification.object as? EmbraceUserSession {
+            crashReporter?.currentUserSessionId = userSession.id.stringValue
         }
+    }
+
+    @objc func onUserSessionDidEnd(notification: Notification) {
+        crashReporter?.currentUserSessionId = nil
     }
 
     @objc func onConfigUpdated(notification: Notification) {
