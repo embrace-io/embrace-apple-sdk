@@ -63,4 +63,27 @@ final class SessionPayloadBuilderTests: XCTestCase {
         )
         XCTAssertNil(resource)
     }
+
+    func test_experiments_emittedAsRawAttribute_andExcludedFromResources() throws {
+        // given a stored experiments required-resource for the session's process
+        storage.addMetadata(
+            key: ExperimentsSemantics.key,
+            value: "e:abc1:A:1717459200000",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+
+        // when building a session payload
+        let payload = try XCTUnwrap(SessionPayloadBuilder.build(for: sessionRecord, storage: storage))
+
+        // then the session span carries the raw `emb.experiments` attribute (no `emb.properties.` prefix)
+        let sessionSpan = payload.data["spans"]?.first { $0.name == "emb-session" }
+        let attribute = sessionSpan?.attributes.first { $0.key == ExperimentsSemantics.key }
+        XCTAssertEqual(attribute?.value, "e:abc1:A:1717459200000")
+        XCTAssertNil(sessionSpan?.attributes.first { $0.key == "emb.properties.\(ExperimentsSemantics.key)" })
+
+        // and it is not present in the resource payload
+        XCTAssertNil(payload.resource.additionalResources[ExperimentsSemantics.key])
+    }
 }

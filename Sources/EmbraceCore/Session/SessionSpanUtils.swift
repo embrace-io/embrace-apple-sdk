@@ -54,9 +54,10 @@ struct SessionSpanUtils {
     static func payload(
         from session: EmbraceSession,
         span: EmbraceSpan? = nil,
-        properties: [EmbraceMetadata] = []
+        properties: [EmbraceMetadata] = [],
+        experiments: String? = nil
     ) -> SpanPayload {
-        return SpanPayload(from: session, span: span, properties: properties)
+        return SpanPayload(from: session, span: span, properties: properties, experiments: experiments)
     }
 }
 
@@ -64,7 +65,8 @@ extension SpanPayload {
     fileprivate init(
         from session: EmbraceSession,
         span: EmbraceSpan? = nil,
-        properties: [EmbraceMetadata]
+        properties: [EmbraceMetadata],
+        experiments: String? = nil
     ) {
         self.traceId = session.traceId
         self.spanId = session.spanId
@@ -153,6 +155,11 @@ extension SpanPayload {
                 )
             }
         )
+
+        // reserved experiments record, emitted with its raw key (no `emb.properties.` prefix)
+        if let experiments = experiments {
+            attributeArray.append(Attribute(key: ExperimentsSemantics.key, value: experiments))
+        }
 
         self.events = span?.events.map { SpanEventPayload(from: $0) } ?? []
         self.links = span?.links.map { SpanLinkPayload(from: $0) } ?? []

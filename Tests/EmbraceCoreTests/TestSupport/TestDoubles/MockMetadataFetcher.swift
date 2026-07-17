@@ -50,4 +50,10 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
             record.type == .personaTag && record.lifespan == .process && record.lifespanId == processId.stringValue
         }
     }
+
+    func fetchRequiredResource(key: String, sessionId: EmbraceIdentifier) -> EmbraceMetadata? {
+        return metadata.first { record in
+            record.type == .requiredResource && record.key == key
+        }
+    }
 }

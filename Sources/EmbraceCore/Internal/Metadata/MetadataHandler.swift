@@ -56,6 +56,26 @@ package class MetadataHandler {
         addMetadata(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
+    /// Public entry point for setting or removing a custom property.
+    /// Rejects reserved keys: any key using the `emb.` prefix is dropped and a warning is logged.
+    /// A nil value removes the property.
+    /// - Parameters:
+    ///   - key: The key of the property. Can not use the reserved `emb.` prefix.
+    ///   - value: The value of the property, or nil to remove it.
+    ///   - lifespan: The lifespan of the property.
+    package func setProperty(key: String, value: String?, lifespan: MetadataLifespan = .session) {
+        guard !key.hasPrefix("emb.") else {
+            Embrace.logger.warning("`\(key)` uses the reserved `emb.` prefix and can not be set as a property")
+            return
+        }
+
+        if let value = value {
+            addProperty(key: key, value: value, lifespan: lifespan)
+        } else {
+            removeProperty(key: key, lifespan: lifespan)
+        }
+    }
+
     func addMetadata(key: String, value: String, type: MetadataRecordType, lifespan: MetadataLifespan) {
         guard let storage = storage else {
             return
