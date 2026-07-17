@@ -15,9 +15,7 @@ class BombAppDelegate: NSObject, UIApplicationDelegate {
         FirebaseApp.configure()
 
         do {
-            try Embrace
-                .setup(options: embraceOptions)
-                .start()
+            try EmbraceIO.start(options: embraceOptions)
         } catch let exception {
             print("Couldn't initialize embrace: \(exception.localizedDescription)")
         }
