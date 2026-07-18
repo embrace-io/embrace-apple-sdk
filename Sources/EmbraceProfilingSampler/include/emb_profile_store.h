@@ -152,10 +152,14 @@ typedef void (*emb_profile_record_cb)(void *ctx,
 /// (frame_count == 0), garbage (frame_count > MAX), or a record overrunning committed data.
 /// Each valid record is delivered via `emit`.
 ///
+/// @param errno_out On an `EMB_PROFILE_RECOVER_IO_ERROR` result, receives the `errno` that caused it,
+///                   or 0 if the failure set none. 0 for every other result. May be NULL.
+///
 /// NOT async-safe. Intended to run off the main thread at launch.
 emb_profile_recover_status_t emb_profile_recover(const char *path,
                                                  emb_profile_record_cb emit,
-                                                 void *ctx);
+                                                 void *ctx,
+                                                 int *errno_out);
 
 /// Classification of a file from a cheap peek at its frozen identity only (no record walk).
 typedef enum {

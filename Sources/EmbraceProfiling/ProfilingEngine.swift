@@ -6,8 +6,13 @@ import Foundation  // URL / FileManager / String(format:) — used in the public
 
 #if !os(watchOS)
     import Darwin
-    import EmbraceAtomicsShim
-    import EmbraceProfilingSampler
+
+    // Under CocoaPods every subspec compiles into the single EmbraceIO module, so these
+    // sibling modules must not be imported by name — see EmbraceIO.podspec.
+    #if !EMBRACE_COCOAPOD_BUILDING_SDK
+        import EmbraceAtomicsShim
+        import EmbraceProfilingSampler
+    #endif
 #endif
 
 /// A sampling-based profiling engine that captures main thread stack traces
@@ -154,7 +159,8 @@ public final class ProfilingEngine: @unchecked Sendable {
     }
 
     #if !os(watchOS)
-    /// Try to acquire the gate.
+    /// Try to acquire the backing gate — the CAS flag guarding the engine's backing store and buffers
+    /// (`ringBuffer`, `readBuffer`, `store`, …). Unrelated to the C sampler's own run-state machine.
     /// Sleeps ``gateSleepNs`` between attempts, up to ``gateTimeoutNs``
     /// cumulative actual elapsed time.
     ///
@@ -163,7 +169,7 @@ public final class ProfilingEngine: @unchecked Sendable {
     /// 2-3 CAS attempts within the 10ms deadline rather than the ~100 attempts
     /// that the arithmetic suggests. This is acceptable because contention is
     /// expected to be extremely rare (only start/retrieve overlap).
-    internal func acquireGate() -> Bool {
+    internal func acquireBackingGate() -> Bool {
         let deadlineNs = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + Self.gateTimeoutNs
         while true {
             var expected: Bool = false
@@ -177,8 +183,8 @@ public final class ProfilingEngine: @unchecked Sendable {
         }
     }
 
-    /// Release the gate.
-    internal func releaseGate() {
+    /// Release the backing gate.
+    internal func releaseBackingGate() {
         emb_atomic_bool_store(gateIsAcquired, false, .release)
     }
     #endif
@@ -227,12 +233,20 @@ public final class ProfilingEngine: @unchecked Sendable {
                 return .faulted(reason: reason)
             }
 
-            guard acquireGate() else {
+            guard acquireBackingGate() else {
                 return .operationInProgress
             }
-            defer { releaseGate() }
+            defer { releaseBackingGate() }
 
             let wasActive = emb_sampler_is_active()
+
+            // KNOWN RACE (dormant; no production caller of start() yet): is_active() is true for
+            // STOPPING, and this Swift gate doesn't block the C worker's autonomous STOPPING→ZOMBIE
+            // transition. If the worker finishes here, emb_sampler_start() below reaps the zombie and
+            // wins a fresh CAS, so a genuinely new session reports .alreadyActive — and in file-backed
+            // mode skips the setUpFileBackedBuffer branch, dropping the caller's sessionId. The real fix
+            // is to have the C layer distinguish "fresh start" from "already running" in its return
+            // instead of re-reading is_active() here; tracked as a follow-up.
 
             // Decide the backing. If the sampler is already active, leave it untouched (the worker
             // may be writing) and let emb_sampler_start() report the accurate state.
@@ -403,8 +417,8 @@ public final class ProfilingEngine: @unchecked Sendable {
         #if !os(watchOS)
             // Gate-protected: `store` is torn down (destroyed + niled) under the gate by start()/reset.
             // Without this, a background/terminate-thread flush could msync a freed/unmapped store.
-            guard acquireGate() else { return }
-            defer { releaseGate() }
+            guard acquireBackingGate() else { return }
+            defer { releaseBackingGate() }
             if let s = store { emb_profile_store_flush(s) }
         #endif
     }
@@ -424,8 +438,8 @@ public final class ProfilingEngine: @unchecked Sendable {
     public func finalizeStorage() {
         #if !os(watchOS)
             // Gate-protected for the same reason as flush(): guards against a concurrent store teardown.
-            guard acquireGate() else { return }
-            defer { releaseGate() }
+            guard acquireBackingGate() else { return }
+            defer { releaseBackingGate() }
             // Refuse to tombstone a live buffer (see note above) — leave it recoverable instead.
             guard !emb_sampler_is_active() else { return }
             if let s = store { emb_profile_store_finalize(s) }
@@ -546,8 +560,8 @@ public final class ProfilingEngine: @unchecked Sendable {
                 return .faulted(reason: reason)
             }
 
-            guard acquireGate() else { return .busy }
-            defer { releaseGate() }
+            guard acquireBackingGate() else { return .busy }
+            defer { releaseBackingGate() }
 
             guard let ringBuffer, let readBuffer else {
                 return .notStarted

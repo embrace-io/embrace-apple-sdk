@@ -207,6 +207,13 @@ void emb_profile_store_flush(emb_profile_store_t *store)
     // Async flush of dirty pages to the file ahead of a possible background Jetsam kill. The lower data
     // half covers the file data region (the upper half aliases the same file pages); the footer holds the
     // control block + metadata. MS_ASYNC: schedule writeback, don't block.
+    //
+    // The order of these two calls does not matter. MS_ASYNC only schedules writeback — it gives no
+    // ordering or completion guarantee, least of all across two separate calls — so it can't enforce
+    // "data durable before footer durable" regardless of which we issue first. Correctness doesn't need
+    // it to: recovery tolerates a footer that's ahead of its data. If the footer commits a record whose
+    // data page never reached disk, that page is still ftruncate zero-fill, so the record walk sees
+    // frame_count == 0 and stops cleanly at the torn tail (see emb_profile_recover).
     msync(store->base, store->data_capacity, MS_ASYNC);
     msync(store->footer, store->footer_bytes, MS_ASYNC);  // exact mapped footer base (no guard-size coupling)
 }
@@ -235,7 +242,14 @@ static int recover_open(const char *path)
 
 // Read exactly `n` bytes at `off`. Loops over partial reads and retries EINTR — a signal during the
 // launch-time recovery read must not fail an otherwise-valid file. Returns false on a short read
-// (EOF before `n`) or a real I/O error.
+// (EOF before `n`) or a real I/O error; on false, `errno` always describes the failure — the pread
+// error, or 0 for EOF, which sets no errno of its own.
+//
+// Callers don't distinguish EOF from an I/O error: every offset here is validated in-bounds against
+// the fstat'd file_size before the read, and a file's length is fixed at create (ftruncate) and never
+// changes afterwards — recovery only ever reads files whose writer is already dead. So a short read
+// isn't reachable, and a genuinely truncated file is rejected earlier (it loses the tail where the
+// identity lives) as NOT_OURS/CORRUPT, never as an I/O error.
 static bool pread_exact(int fd, void *buf, size_t n, off_t off)
 {
     uint8_t *p = (uint8_t *)buf;
@@ -244,26 +258,32 @@ static bool pread_exact(int fd, void *buf, size_t n, off_t off)
         ssize_t r = pread(fd, p + got, n - got, off + (off_t)got);
         if (r > 0) { got += (size_t)r; continue; }
         if (r < 0 && errno == EINTR) { continue; }
-        return false;  // r == 0 (short read / EOF) or a real error
+        if (r == 0) { errno = 0; }  // EOF sets no errno — never leave a stale one for the caller
+        return false;
     }
     return true;
 }
 
 emb_profile_recover_status_t emb_profile_recover(const char *path,
                                                  emb_profile_record_cb emit,
-                                                 void *ctx)
+                                                 void *ctx,
+                                                 int *errno_out)
 {
-    if (path == NULL) { return EMB_PROFILE_RECOVER_IO_ERROR; }
+    int dummy_errno = 0;
+    if (errno_out == NULL) { errno_out = &dummy_errno; }
+    *errno_out = 0;
+
+    if (path == NULL) { *errno_out = EINVAL; return EMB_PROFILE_RECOVER_IO_ERROR; }
 
     // O_NOFOLLOW: don't traverse a symlink left in the recovery directory (hardening for untrusted
     // input). recover_open retries EINTR so a signal during the read doesn't spuriously fail.
     int fd = recover_open(path);
-    if (fd < 0) { return EMB_PROFILE_RECOVER_IO_ERROR; }
+    if (fd < 0) { *errno_out = errno; return EMB_PROFILE_RECOVER_IO_ERROR; }
 
     emb_profile_recover_status_t status = EMB_PROFILE_RECOVER_CORRUPT;
 
     struct stat st;
-    if (fstat(fd, &st) != 0) { status = EMB_PROFILE_RECOVER_IO_ERROR; goto done; }
+    if (fstat(fd, &st) != 0) { *errno_out = errno; status = EMB_PROFILE_RECOVER_IO_ERROR; goto done; }
     if (!S_ISREG(st.st_mode)) { status = EMB_PROFILE_RECOVER_NOT_OURS; goto done; }  // dirs/devices/etc.
     const off_t file_size = st.st_size;
     if (file_size < (off_t)(sizeof(emb_profile_ident_t) + sizeof(emb_profile_trailer_v1_t))) {
@@ -273,7 +293,7 @@ emb_profile_recover_status_t emb_profile_recover(const char *path,
     // --- frozen identity at EOF − 16: magic + version gate ---
     emb_profile_ident_t ident;
     if (!pread_exact(fd, &ident, sizeof(ident), file_size - (off_t)sizeof(ident))) {
-        status = EMB_PROFILE_RECOVER_IO_ERROR; goto done;
+        *errno_out = errno; status = EMB_PROFILE_RECOVER_IO_ERROR; goto done;
     }
     if (ident.magic != EMB_PROFILE_FILE_MAGIC) { status = EMB_PROFILE_RECOVER_NOT_OURS; goto done; }
     if (ident.format_version == EMB_PROFILE_FORMAT_INVALID) { status = EMB_PROFILE_RECOVER_FINALIZED; goto done; }
@@ -282,7 +302,9 @@ emb_profile_recover_status_t emb_profile_recover(const char *path,
     // --- v1 trailer (immediately before the identity), validated ---
     emb_profile_trailer_v1_t tr;
     const off_t trailer_off = file_size - (off_t)sizeof(ident) - (off_t)sizeof(tr);
-    if (!pread_exact(fd, &tr, sizeof(tr), trailer_off)) { status = EMB_PROFILE_RECOVER_IO_ERROR; goto done; }
+    if (!pread_exact(fd, &tr, sizeof(tr), trailer_off)) {
+        *errno_out = errno; status = EMB_PROFILE_RECOVER_IO_ERROR; goto done;
+    }
     if (tr.page_size != (uint32_t)vm_page_size ||
         tr.record_header_bytes != (uint16_t)sizeof(emb_ring_record_header_t) ||
         tr.pointer_bytes != (uint16_t)sizeof(uintptr_t) ||
@@ -300,7 +322,7 @@ emb_profile_recover_status_t emb_profile_recover(const char *path,
     uint64_t write_pos = 0, oldest_pos = 0;
     if (!pread_exact(fd, &write_pos, sizeof(write_pos), (off_t)data_capacity) ||
         !pread_exact(fd, &oldest_pos, sizeof(oldest_pos), (off_t)data_capacity + (off_t)sizeof(uint64_t))) {
-        status = EMB_PROFILE_RECOVER_IO_ERROR; goto done;
+        *errno_out = errno; status = EMB_PROFILE_RECOVER_IO_ERROR; goto done;
     }
     if (oldest_pos > write_pos || (write_pos - oldest_pos) > data_capacity) {
         goto done;  // inconsistent positions → discard (CORRUPT)
@@ -310,10 +332,11 @@ emb_profile_recover_status_t emb_profile_recover(const char *path,
     // --- double-map the data region (read-only) so wrapped records are contiguous ---
     const size_t map_reserve = 2 * data_capacity;
     void *base = mmap(NULL, map_reserve, PROT_NONE, MAP_ANON | MAP_PRIVATE, -1, 0);
-    if (base == MAP_FAILED) { status = EMB_PROFILE_RECOVER_IO_ERROR; goto done; }
+    if (base == MAP_FAILED) { *errno_out = errno; status = EMB_PROFILE_RECOVER_IO_ERROR; goto done; }
     uint8_t *b = (uint8_t *)base;
     if (mmap(b, data_capacity, PROT_READ, MAP_SHARED | MAP_FIXED, fd, 0) == MAP_FAILED ||
         mmap(b + data_capacity, data_capacity, PROT_READ, MAP_SHARED | MAP_FIXED, fd, 0) == MAP_FAILED) {
+        *errno_out = errno;
         munmap(base, map_reserve);
         status = EMB_PROFILE_RECOVER_IO_ERROR; goto done;
     }
@@ -327,6 +350,14 @@ emb_profile_recover_status_t emb_profile_recover(const char *path,
     // would defeat the overrun guard and read past the 2*data_capacity mapping. With the subtraction
     // form, rsize <= write_pos - pos <= data_capacity, so (pos % data_capacity) + rsize <= 2*cap-1,
     // always inside the double map.
+    // Each break below is a `break`, never a `continue`: the thing that's untrustworthy in every case
+    // is the record's own frame_count/seq, which is exactly what we'd need to compute rsize and find
+    // where the next record begins. With no trustworthy stride there is no safe way to skip forward —
+    // guessing one would emit misaligned frame pointers to the callback, which is worse than stopping.
+    // This is torn-tail tolerance (a crash-interrupted final write), not mid-stream resync: corruption
+    // before the true tail drops everything after it. Records emitted before the break are valid, so
+    // reaching the bottom with EMB_PROFILE_RECOVER_OK is the intended partial-recovery contract (the
+    // empty write_pos == oldest_pos case above returns OK with zero records for the same reason).
     const size_t hdr_size = sizeof(emb_ring_record_header_t);
     uint64_t pos = oldest_pos;
     while (write_pos - pos >= hdr_size) {

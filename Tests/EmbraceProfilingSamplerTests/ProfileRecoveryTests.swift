@@ -32,9 +32,16 @@
         }
 
         private func recoverAll(_ path: String) -> (emb_profile_recover_status_t, [RecoverSink.Rec]) {
+            let (status, recs, _) = recoverAllWithErrno(path)
+            return (status, recs)
+        }
+
+        private func recoverAllWithErrno(_ path: String) -> (emb_profile_recover_status_t, [RecoverSink.Rec], Int32) {
             let sink = RecoverSink()
-            let status = emb_profile_recover(path, recoverCallback, Unmanaged.passUnretained(sink).toOpaque())
-            return (status, sink.records)
+            var errnoOut: Int32 = 0
+            let status = emb_profile_recover(
+                path, recoverCallback, Unmanaged.passUnretained(sink).toOpaque(), &errnoOut)
+            return (status, sink.records, errnoOut)
         }
 
         /// A store created + written + destroyed (but NOT finalized) is exactly a "crashed session"
@@ -105,6 +112,14 @@
         func test_recover_missingFile_returnsIOError() {
             let (status, _) = recoverAll(tempPath() + "-nope")
             XCTAssertEqual(status, EMB_PROFILE_RECOVER_IO_ERROR)
+        }
+
+        /// The IO_ERROR path must thread the real `errno` back out — that's what lets a caller (or a
+        /// human debugging a bug report) tell ENOENT from EACCES from EIO instead of a flat "I/O error".
+        func test_recover_missingFile_threadsErrnoOut() {
+            let (status, _, errnoOut) = recoverAllWithErrno(tempPath() + "-nope")
+            XCTAssertEqual(status, EMB_PROFILE_RECOVER_IO_ERROR)
+            XCTAssertEqual(errnoOut, ENOENT)
         }
 
         // MARK: - Peek (cheap identity-only classification)

@@ -6,23 +6,19 @@
     @testable import EmbraceProfiling
     import EmbraceProfilingSampler
     import EmbraceProfilingTestSupport
-#endif
 
-extension ProfilingEngine {
+    extension ProfilingEngine {
 
-    /// TEST-ONLY: Allocate the ring buffer without starting the sampler.
-    /// Allows writing synthetic data via ``writeSampleForTesting(timestamp:frames:)``
-    /// then reading via ``retrieveSamples(from:through:)``.
-    /// Acquires the gate. Returns false on allocation failure, invalid config, or gate contention.
-    func allocateBufferForTesting(
-        configuration: ProfilingConfiguration = ProfilingConfiguration()
-    ) -> Bool {
-        #if os(watchOS)
-            return false
-        #else
+        /// TEST-ONLY: Allocate the ring buffer without starting the sampler.
+        /// Allows writing synthetic data via ``writeSampleForTesting(timestamp:frames:)``
+        /// then reading via ``retrieveSamples(from:through:)``.
+        /// Acquires the backing gate. Returns false on allocation failure, invalid config, or gate contention.
+        func allocateBufferForTesting(
+            configuration: ProfilingConfiguration = ProfilingConfiguration()
+        ) -> Bool {
             guard configuration.isValid else { return false }
-            guard acquireGate() else { return false }
-            defer { releaseGate() }
+            guard acquireBackingGate() else { return false }
+            defer { releaseBackingGate() }
 
             guard !emb_sampler_is_active() else { return false }
 
@@ -59,17 +55,13 @@ extension ProfilingEngine {
 
             activeConfiguration = configuration
             return true
-        #endif
-    }
+        }
 
-    /// TEST-ONLY: Write a synthetic sample directly to the ring buffer.
-    /// Buffer must have been allocated (via ``allocateBufferForTesting(configuration:)`` or ``start(configuration:)``).
-    /// Does NOT acquire the gate. Caller must ensure no concurrent access.
-    func writeSampleForTesting(timestamp: UInt64, frames: [UInt],
-                               threadState: UInt8 = 0, flags: UInt8 = 0) -> Bool {
-        #if os(watchOS)
-            return false
-        #else
+        /// TEST-ONLY: Write a synthetic sample directly to the ring buffer.
+        /// Buffer must have been allocated (via ``allocateBufferForTesting(configuration:)`` or ``start(configuration:)``).
+        /// Does NOT acquire the gate. Caller must ensure no concurrent access.
+        func writeSampleForTesting(timestamp: UInt64, frames: [UInt],
+                                   threadState: UInt8 = 0, flags: UInt8 = 0) -> Bool {
             guard let ringBuffer else { return false }
 
             return frames.withUnsafeBufferPointer { buf in
@@ -79,15 +71,13 @@ extension ProfilingEngine {
                                           threadState, flags) == EMB_RING_WRITE_OK
                 }
             }
-        #endif
-    }
+        }
 
-    /// TEST-ONLY: Reset the engine to a clean initial state.
-    /// Stops sampler if active (with polling wait), destroys ring buffer,
-    /// deallocates read buffer, resets C sampler state.
-    /// Acquires the gate.
-    func resetForTesting() {
-        #if !os(watchOS)
+        /// TEST-ONLY: Reset the engine to a clean initial state.
+        /// Stops sampler if active (with polling wait), destroys ring buffer,
+        /// deallocates read buffer, resets C sampler state.
+        /// Acquires the backing gate.
+        func resetForTesting() {
             emb_sampler_stop()
 
             let deadline = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + 5_000_000_000
@@ -102,7 +92,7 @@ extension ProfilingEngine {
 
             // Best-effort gate acquisition: if it times out we still clean up
             // since we've already stopped the sampler.
-            let gateAcquired = acquireGate()
+            let gateAcquired = acquireBackingGate()
 
             if let s = store {
                 emb_profile_store_destroy(s)  // frees the attached ring-buffer wrapper + unmaps
@@ -123,8 +113,8 @@ extension ProfilingEngine {
             emb_sampler_reset_for_testing()
 
             if gateAcquired {
-                releaseGate()
+                releaseBackingGate()
             }
-        #endif
+        }
     }
-}
+#endif

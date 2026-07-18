@@ -59,9 +59,6 @@
 extern "C" {
 #endif
 
-// EMB_MAX_STACK_FRAMES is defined in emb_ring_buffer.h (included above) — the ring
-// write path validates against it, so it lives at that layer and is consumed here.
-
 /// Sampler lifecycle states.
 ///
 /// Transitions:

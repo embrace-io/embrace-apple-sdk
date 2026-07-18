@@ -5,7 +5,10 @@
 import Foundation
 
 #if !os(watchOS)
-    import EmbraceProfilingSampler
+    // See ProfilingEngine.swift: under CocoaPods this module is part of EmbraceIO, not importable.
+    #if !EMBRACE_COCOAPOD_BUILDING_SDK
+        import EmbraceProfilingSampler
+    #endif
 #endif
 
 /// An opaque handle to one previous session's persisted profiling file, discovered via
@@ -17,7 +20,8 @@ public struct RecoverableSession: Sendable, Equatable {
     public enum Status: Sendable {
         /// Has (or may have) un-reported samples — worth recovering.
         case recoverable
-        /// Cleanly finalized (the app stopped normally); nothing to recover, safe to delete.
+        /// Nothing to recover, safe to delete. Reached by a clean stop (`finalize`), and — because
+        /// both write a 0 version marker — also by a crash mid-`reset`. Not a proof of normal shutdown.
         case finalized
     }
 
@@ -67,12 +71,13 @@ public enum SessionRecoveryResult: Sendable {
             threadState: ThreadState(rawValue: state) ?? .unknown))
     }
 
-    private func describe(_ status: emb_profile_recover_status_t) -> String {
+    private func describe(_ status: emb_profile_recover_status_t, errno errnoValue: Int32) -> String {
         switch status {
         case EMB_PROFILE_RECOVER_NOT_OURS: return "not an Embrace profiling file"
         case EMB_PROFILE_RECOVER_UNSUPPORTED: return "unsupported format version"
         case EMB_PROFILE_RECOVER_CORRUPT: return "corrupt (failed validation)"
-        case EMB_PROFILE_RECOVER_IO_ERROR: return "I/O error"
+        case EMB_PROFILE_RECOVER_IO_ERROR:
+            return errnoValue != 0 ? "I/O error (errno \(errnoValue))" : "I/O error"
         default: return "unknown status \(status.rawValue)"
         }
     }
@@ -106,9 +111,9 @@ extension ProfilingEngine {
             // handing the caller the active session's file — bail conservatively (contention is
             // extremely rare and the caller can retry). A successful acquire with a nil name simply
             // means nothing is active, which is safe.
-            guard acquireGate() else { return [] }
+            guard acquireBackingGate() else { return [] }
             let activeName = activeSessionFileName
-            releaseGate()
+            releaseBackingGate()
 
             var sessions: [RecoverableSession] = []
             for url in entries
@@ -127,6 +132,11 @@ extension ProfilingEngine {
                     continue
                 default: continue  // not ours → skip
                 }
+                // `keys` were pre-fetched by contentsOfDirectory above, so this read hits the cache and
+                // effectively only fails if the file vanished mid-enumeration — in which case the handle
+                // is about to be useless anyway. The sentinels aren't neutral (`.distantPast` sorts to the
+                // front of the oldest-first list below), so the values stay non-optional deliberately:
+                // callers shouldn't have to unwrap for a case that doesn't meaningfully occur.
                 let values = try? url.resourceValues(forKeys: Set(keys))
                 sessions.append(RecoverableSession(
                     sessionId: url.deletingPathExtension().lastPathComponent,
@@ -147,8 +157,9 @@ extension ProfilingEngine {
             return .notSupported
         #else
             let sink = FileSink()
+            var errnoOut: Int32 = 0
             let status = session.url.path.withCString { path in
-                emb_profile_recover(path, recoverEmit, Unmanaged.passUnretained(sink).toOpaque())
+                emb_profile_recover(path, recoverEmit, Unmanaged.passUnretained(sink).toOpaque(), &errnoOut)
             }
             switch status {
             case EMB_PROFILE_RECOVER_OK:
@@ -156,7 +167,7 @@ extension ProfilingEngine {
             case EMB_PROFILE_RECOVER_FINALIZED:
                 return .finalized
             default:
-                return .unreadable(reason: describe(status))
+                return .unreadable(reason: describe(status, errno: errnoOut))
             }
         #endif
     }
@@ -172,9 +183,9 @@ extension ProfilingEngine {
             // Gate acquisition failure means we can't confirm the file isn't the live session, so
             // treat it as a hard "don't delete" rather than falling through to a nil active name
             // (which would let us delete the currently-active file — a data-loss bug).
-            guard acquireGate() else { return false }
+            guard acquireBackingGate() else { return false }
             let activeName = activeSessionFileName
-            releaseGate()
+            releaseBackingGate()
             guard session.url.lastPathComponent != activeName else { return false }
             return (try? FileManager.default.removeItem(at: session.url)) != nil
         #endif
