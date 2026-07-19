@@ -130,16 +130,10 @@ Pod::Spec.new do |spec|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
   end
 
-  spec.subspec 'EmbraceProfilingSampler' do |subs|
-    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
-    subs.public_header_files = "Sources/#{subs.module_name}/include/**/*.h"
-  end
-
-  spec.subspec 'EmbraceProfiling' do |subs|
-    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
-    subs.dependency "EmbraceIO/EmbraceProfilingSampler"
-    subs.dependency "EmbraceIO/EmbraceAtomicsShim"
-  end
+  # Note: EmbraceProfiling / EmbraceProfilingSampler are intentionally omitted from CocoaPods.
+  # Profiling is a Swift Package Manager–only feature. `pod lib lint` builds every subspec into a
+  # single merged `EmbraceIO` module, where the sibling C modules can't be imported as their own
+  # modules. Since CocoaPods is frozen for new features, profiling ships via SPM only.
 
   # External
   spec.subspec 'EmbraceKSCrash' do |subs|
