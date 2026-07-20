@@ -1,0 +1,9 @@
+//
+//  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
+//
+
+module EmbraceProfilingSampler {
+    umbrella header "EmbraceProfilingSampler.h"
+    export *
+    module * { export * }
+}

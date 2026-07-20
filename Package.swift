@@ -338,6 +338,42 @@ let package = Package(
             dependencies: ["EmbraceObjCUtilsInternal", "TestSupport"]
         ),
 
+        // profiling ----------------------------------------------------------------
+        .target(
+            name: "EmbraceProfilingSampler",
+            publicHeadersPath: "include"
+        ),
+        .target(
+            name: "EmbraceProfiling",
+            dependencies: [
+                "EmbraceProfilingSampler",
+                "EmbraceAtomicsShim"
+            ]
+        ),
+        .testTarget(
+            name: "EmbraceProfilingTests",
+            dependencies: [
+                "EmbraceProfiling",
+                "EmbraceProfilingSampler",
+                "EmbraceProfilingTestSupport",
+                "EmbraceProfilingTestSupportNoFP",
+                .product(name: "Recording", package: "KSCrash")
+            ]
+        ),
+        .target(
+            name: "EmbraceProfilingTestSupport",
+            path: "Tests/EmbraceProfilingTestSupport"
+        ),
+        .target(
+            name: "EmbraceProfilingTestSupportNoFP",
+            path: "Tests/EmbraceProfilingTestSupportNoFP",
+            cSettings: [.unsafeFlags(["-fomit-frame-pointer"])]
+        ),
+        .testTarget(
+            name: "EmbraceProfilingSamplerTests",
+            dependencies: ["EmbraceProfilingSampler", "EmbraceProfilingTestSupport"]
+        ),
+
         // test support --------------------------------------------------------------
         .target(
             name: "TestSupport",
