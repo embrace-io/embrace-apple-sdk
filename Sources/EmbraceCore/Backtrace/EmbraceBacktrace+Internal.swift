@@ -207,11 +207,41 @@ extension EmbraceBacktrace {
 
 extension EmbraceBacktrace {
 
+    /// Number of Embrace capture-plumbing frames sitting on top of a stack that was walked on the
+    /// *current* thread (self-capture, i.e. `canSuspend == false`).
+    ///
+    /// When we walk our own thread the raw addresses begin inside the SDK: the
+    /// `Thread.callStackReturnAddresses` read site, the `Backtracer` call, and the internal
+    /// `_takeSnapshot` / `takeSnapshot` / `backtrace(of:threadIndex:)` wrappers — all above the code
+    /// that actually asked for the backtrace. Dropping exactly these lands frame 0 on the caller.
+    ///
+    /// This is deliberately *not* applied when suspending and walking a **different** thread: that
+    /// thread's genuine top frame is the code we want, with none of our wrappers above it (skip 0).
+    ///
+    /// - Important: This is wrapper *depth*, not a semantic constant — it only stays correct while
+    ///   the call chain above is unchanged. The wrappers (`backtrace(of:threadIndex:)`,
+    ///   `takeSnapshot`, `_takeSnapshot`) are marked `@inline(never)` precisely so this depth is
+    ///   **identical at every optimization level**; that is what lets the Debug-only
+    ///   `BacktraceFrameSkipTests` authoritatively pin it for Release too (the repo can't currently
+    ///   run that suite in Release). If an internal refactor changes the chain, that test fails and
+    ///   points here — update the constant and keep the `@inline(never)` wrappers intact.
+    static let selfCaptureFrameSkip = 5
+
+    /// Wrapper depth for the Apple/`Thread.callStackReturnAddresses` self-capture path
+    /// (`_takeSnapshotApple`). Smaller than ``selfCaptureFrameSkip`` because that path has no
+    /// `Backtracer` indirection on top. Pinned by the same test; see it for the drift caveat.
+    static let appleSelfCaptureFrameSkip = 3
+
+    // `@inline(never)` here (and on `backtrace(of:threadIndex:)`) is load-bearing: it pins the
+    // self-capture wrapper depth so `selfCaptureFrameSkip` is identical at every optimization level.
+    // Without it the optimizer could collapse this forwarder in Release, shifting the skip by one.
+    @inline(never)
     static func takeSnapshot(of thread: pthread_t, threadIndex: Int = 0) -> [EmbraceBacktraceThread] {
         let snap = _takeSnapshot(of: thread, threadIndex: threadIndex)
         return snap
     }
 
+    @inline(never)
     static func _takeSnapshot(of thread: pthread_t, threadIndex: Int = 0) -> [EmbraceBacktraceThread] {
 
         guard let backtracer = Embrace.client?.options.backtracer else {
@@ -222,31 +252,49 @@ extension EmbraceBacktrace {
         let machThread = pthread_mach_thread_np(thread)
         let canSuspend = pthread_self() != thread
 
-        // suspend thread if not the current thread.
+        // Drop the SDK's own capture frames (present only on self-capture; see `selfCaptureFrameSkip`).
+        let sdkFrameSkip = canSuspend ? 0 : Self.selfCaptureFrameSkip
+        let entries = 512
+
+        let addresses: [UInt]
         if canSuspend {
+            // Suspending another thread to walk it is a #423-class deadlock hazard: if that thread
+            // holds the allocator lock, any `malloc` inside the suspend window hangs the process. So
+            // the buffer is allocated BEFORE the suspend and everything that touches the heap
+            // (copy/slice) happens AFTER the resume; only the alloc-free `backtrace(of:into:capacity:)`
+            // runs in the window.
+            let buffer = UnsafeMutablePointer<FrameAddress>.allocate(capacity: entries)
+            defer { buffer.deallocate() }
+
             guard emb_thread_suspend(machThread) == KERN_SUCCESS else {
                 Embrace.logger.warning("[EmbraceBacktrace] error suspending thread")
                 return []
             }
-        }
-
-        // Get the actual snapshot,
-        let backtraceAddresses = backtracer.backtrace(of: thread)
-
-        // resume thread
-        if canSuspend {
+            // ───── SUSPEND WINDOW: allocation-free / async-signal-safe only ─────
+            #if DEBUG
+                EmbraceBacktraceSuspendWindowProbe.willEnter?()
+            #endif
+            let count = backtracer.backtrace(of: thread, into: buffer, capacity: entries)
+            #if DEBUG
+                EmbraceBacktraceSuspendWindowProbe.didExit?()
+            #endif
+            // ───── END SUSPEND WINDOW ─────
             emb_thread_resume(machThread)
-        }
 
-        // remove the entries that are part of the SDK,
-        // get only the first N entries to not overload the system,
-        // clean 'em up.
-        let entries = 512
-        let addresses =
-            backtraceAddresses
-            .dropFirst(5)
-            .prefix(entries)
-            .compactMap { $0 as UInt }
+            addresses =
+                Array(UnsafeBufferPointer(start: buffer, count: max(0, count)))
+                .dropFirst(sdkFrameSkip)
+                .prefix(entries)
+                .compactMap { $0 as UInt }
+        } else {
+            // Self-capture: nothing is suspended, so the allocating array API is safe (and required
+            // for the on-main `pthread_self()` path, which KSCrash handles specially).
+            addresses =
+                backtracer.backtrace(of: thread)
+                .dropFirst(sdkFrameSkip)
+                .prefix(entries)
+                .compactMap { $0 as UInt }
+        }
 
         return [
             EmbraceBacktraceThread(
@@ -262,11 +310,15 @@ extension EmbraceBacktrace {
 
 extension EmbraceBacktrace {
 
+    // `@inline(never)` pins the Apple self-capture wrapper depth for `appleSelfCaptureFrameSkip`,
+    // same rationale as `takeSnapshot`.
+    @inline(never)
     static func takeSnapshotApple() -> [EmbraceBacktraceThread] {
         let snap = _takeSnapshotApple()
         return snap
     }
 
+    @inline(never)
     static func _takeSnapshotApple() -> [EmbraceBacktraceThread] {
 
         // Get the actual snapshot,
@@ -276,7 +328,7 @@ extension EmbraceBacktrace {
         let entries = 512
         let addresses =
             Thread.callStackReturnAddresses
-            .dropFirst(3)
+            .dropFirst(Self.appleSelfCaptureFrameSkip)
             .prefix(entries)
             .compactMap { $0 as? UInt }
 
@@ -318,3 +370,15 @@ extension EmbraceBacktraceFrame {
         ]
     }
 }
+
+#if DEBUG
+    /// Test-only seam bracketing the `_takeSnapshot` thread-suspend window. Both hooks are `nil` in
+    /// normal use (a `nil`-check is the only cost, and they are stripped entirely from Release), so
+    /// they add nothing to production. The suspend-window sentinel test sets them to mark exactly
+    /// when the target thread is suspended, so it can prove the walk allocates nothing in-window.
+    /// The hooks themselves MUST be allocation-free — they run inside the window.
+    enum EmbraceBacktraceSuspendWindowProbe {
+        static var willEnter: (() -> Void)?
+        static var didExit: (() -> Void)?
+    }
+#endif

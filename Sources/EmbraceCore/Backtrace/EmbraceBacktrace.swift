@@ -136,6 +136,9 @@ public struct EmbraceBacktrace: Codable {
     ///
     /// - Note: The `timestamp` is sourced from `CLOCK_MONOTONIC_RAW` via
     ///   `clock_gettime_nsec_np`, which is suitable for measuring intervals.
+    // `@inline(never)`: keeps this a stable frame in self-capture stacks so `selfCaptureFrameSkip`
+    // is optimization-independent. See that constant.
+    @inline(never)
     static func backtrace(of thread: pthread_t, threadIndex: Int = 0) -> EmbraceBacktrace {
         EmbraceBacktrace(
             timestampUnits: .nanoseconds,
@@ -154,6 +157,8 @@ public struct EmbraceBacktrace: Codable {
     ///
     /// - Note: The `timestamp` is sourced from `CLOCK_MONOTONIC_RAW` via
     ///   `clock_gettime_nsec_np`, which is suitable for measuring intervals.
+    // `@inline(never)`: stable frame for the Apple self-capture path; see `appleSelfCaptureFrameSkip`.
+    @inline(never)
     static func backtrace() -> EmbraceBacktrace {
         EmbraceBacktrace(
             timestampUnits: .nanoseconds,
