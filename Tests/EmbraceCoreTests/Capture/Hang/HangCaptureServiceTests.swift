@@ -164,6 +164,45 @@
             wait(delay: 0.3)
             XCTAssertEqual(otel.spanProcessor.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 0)
         }
+
+        // MARK: - During-block sampler wiring
+
+        func test_hangStarted_attachesNoStackEvent() {
+            let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 6))
+
+            service.hangStarted(at: Date(), duration: 0.5)
+
+            wait(timeout: .defaultTimeout) {
+                self.otel.spanProcessor.startedSpans.contains { $0.name == SpanSemantics.Hang.name }
+            }
+            // The stack is attached at hangEnded from the sampler now; nothing is captured on-main here.
+            let span = otel.spanProcessor.startedSpans.first { $0.name == SpanSemantics.Hang.name }
+            XCTAssertEqual(span?.events.filter { $0.name == SpanEventSemantics.Hang.name }.count, 0)
+        }
+
+        func test_hangEnded_queriesSamplerWithReconciledWindow() {
+            let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 6))
+            let sampler = MockMainThreadStackSampler()
+            service.limitData.withLock {
+                $0.sampler?.stop()
+                $0.sampler = sampler
+            }
+
+            let start = Date()
+            service.hangStarted(at: start, duration: 0.5)
+            service.hangEnded(at: start.addingTimeInterval(0.5), duration: 0.5)
+
+            wait(timeout: .defaultTimeout) {
+                self.otel.spanProcessor.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
+            }
+
+            // hangEnded reconciles a monotonic window ≈ duration + tolerance, then queries the sampler.
+            XCTAssertEqual(sampler.queriedRanges.count, 1)
+            if let range = sampler.queriedRanges.first {
+                let widthMs = Double(range.upperBound - range.lowerBound) / 1_000_000
+                XCTAssertEqual(widthMs, 520, accuracy: 80)  // 500 ms duration + 20 ms tolerance
+            }
+        }
     }
 
     // MARK: - Test Helpers
@@ -295,6 +334,22 @@
             lock.unlock()
 
             callback?(at, duration)
+        }
+    }
+
+    /// Records the windows it is queried with and returns canned samples (optionally range-filtered).
+    final class MockMainThreadStackSampler: MainThreadStackSampler {
+        var cannedSamples: [MainThreadStackSample] = []
+        var respectRange = true
+        private(set) var queriedRanges: [ClosedRange<UInt64>] = []
+
+        func start() {}
+        func stop() {}
+        func pause() {}
+        func resume() {}
+        func samples(in range: ClosedRange<UInt64>) -> [MainThreadStackSample] {
+            queriedRanges.append(range)
+            return respectRange ? cannedSamples.filter { range.contains($0.timestamp) } : cannedSamples
         }
     }
 

@@ -46,13 +46,30 @@ import OpenTelemetryApi
             // we need to wait until the remote config is actually loaded from disk
             // which happens just before this call.
             let currentLimits = limits
-            let monitor: FrameRateMonitor? =
-                currentLimits.hangPerSession > 0
-                ? FrameRateMonitor(threshold: currentLimits.hangThreshold)
-                : nil
-            monitor?.hangObserver = self
-            monitor?.logger = logger
-            limitData.withLock { $0.watchdog = monitor }
+            let (monitor, sampler) = makeMonitorAndSampler(for: currentLimits)
+            sampler?.start()
+            limitData.withLock {
+                $0.watchdog = monitor
+                $0.sampler = sampler
+            }
+        }
+
+        /// Builds the detector + during-block sampler pair for `limits`, or `(nil, nil)` when hangs
+        /// are disabled. The sampler is returned un-started; callers own `start()`/`stop()`.
+        private func makeMonitorAndSampler(
+            for limits: HangLimits
+        ) -> (FrameRateMonitor?, MainThreadStackSampler?) {
+            guard limits.hangPerSession > 0 else { return (nil, nil) }
+            let monitor = FrameRateMonitor(threshold: limits.hangThreshold)
+            monitor.hangObserver = self
+            monitor.logger = logger
+            let sampler = StallTriggeredSampler(
+                mainThread: mainThread,
+                triggerThreshold: limits.sampleTriggerThreshold,
+                pollInterval: limits.samplePollInterval,
+                logger: logger
+            )
+            return (monitor, sampler)
         }
 
         public override func onSessionStart(_ session: any EmbraceSession) {
@@ -70,17 +87,21 @@ import OpenTelemetryApi
                 let changed =
                     $0.limits.hangThreshold != newLimits.hangThreshold
                     || ($0.limits.hangPerSession == 0) != (newLimits.hangPerSession == 0)
+                    || $0.limits.sampleTriggerThreshold != newLimits.sampleTriggerThreshold
+                    || $0.limits.samplePollInterval != newLimits.samplePollInterval
                 $0.limits = newLimits
                 return changed
             }
             if monitorNeedsUpdate {
-                let monitor: FrameRateMonitor? =
-                    newLimits.hangPerSession > 0
-                    ? FrameRateMonitor(threshold: newLimits.hangThreshold)
-                    : nil
-                monitor?.hangObserver = self
-                monitor?.logger = logger
-                limitData.withLock { $0.watchdog = monitor }
+                let (monitor, sampler) = makeMonitorAndSampler(for: newLimits)
+                let oldSampler = limitData.withLock { data -> MainThreadStackSampler? in
+                    let previous = data.sampler
+                    data.watchdog = monitor
+                    data.sampler = sampler
+                    return previous
+                }
+                oldSampler?.stop()
+                sampler?.start()
             }
         }
 
@@ -90,6 +111,7 @@ import OpenTelemetryApi
             var limits: HangLimits = HangLimits()
             var hangsInSessionCount: UInt = 0
             var watchdog: FrameRateMonitor?
+            var sampler: MainThreadStackSampler?
         }
         let limitData: EmbraceMutex<MutableLimitData>
 
@@ -153,21 +175,15 @@ import OpenTelemetryApi
                 return
             }
 
-            // Capture a single retroactive backtrace of the main thread.
-            let pre = Date()
-            let backtrace = EmbraceBacktrace.backtrace(of: mainThread, threadIndex: 0)
-            let post = Date()
-
+            // No stack is captured here. The hang stack is attached at `hangEnded` from the
+            // during-block sampler; a retroactive on-main capture at this point would walk the
+            // display-link servicing path (CADisplayLink only fires after main unblocks), not the
+            // code that actually hung.
             spanQueue.async { [self] in
                 span =
                     builder
                     .setStartTime(time: at)
                     .startSpan()
-                addSamplingSpanEvent(
-                    time: at,
-                    backtrace: backtrace,
-                    overhead: Int(post.timeIntervalSince(pre) * 1_000_000_000)
-                )
             }
         }
 
@@ -181,7 +197,27 @@ import OpenTelemetryApi
                 )
             }
 
+            // Reconcile the CADisplayLink-confirmed hang with the sampler's during-block snapshots.
+            // `duration` is a clock-agnostic interval, so subtracting it from a fresh
+            // CLOCK_MONOTONIC_RAW reading (taken here on main, ≈ real hang end) yields the window in
+            // the sampler's own clock. The during-block sample was taken at ≈ start + trigger, so it
+            // lands inside; a small tolerance absorbs callback latency.
+            let tolerance: UInt64 = 20_000_000  // 20 ms
+            let endMono = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
+            let durationNanos = UInt64((duration * 1_000_000_000).rounded())
+            let startMono = endMono > durationNanos + tolerance ? endMono &- durationNanos &- tolerance : 0
+            let sample = limitData.withLock { $0.sampler }?.samples(in: startMono...endMono).last
+            let sampleTime = at.addingTimeInterval(-duration)
+
             spanQueue.async { [self] in
+                if let sample {
+                    addSamplingSpanEvent(
+                        time: sampleTime,
+                        backtrace: sample.backtrace,
+                        overhead: Int(sample.overhead)
+                    )
+                }
+                // else: emit the span with no stack — an honest "no trace" beats the old misleading one.
                 span?.end(time: at)
                 span = nil
             }
