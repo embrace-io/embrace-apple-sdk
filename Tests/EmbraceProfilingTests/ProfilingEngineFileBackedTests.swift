@@ -62,9 +62,9 @@
             XCTAssertEqual(Array(result.frames), [0x11, 0x22])
         }
 
-        /// End-to-end: a real I/O failure (permission denied) at recovery time must surface its `errno`
-        /// in the `.unreadable` reason string, not just a flat "I/O error".
-        func test_recover_permissionDenied_reasonIncludesErrno() throws {
+        /// End-to-end: a real I/O failure (permission denied) at recovery time must surface as a typed
+        /// `.ioError` carrying the causing `errno`, not collapse to an opaque failure.
+        func test_recover_permissionDenied_surfacesTypedIOError() throws {
             try XCTSkipIf(getuid() == 0, "root bypasses file permission checks")
             makeCrashedSessionFile(named: "noperm.embprof", frames: [0x11], ts: 100)
             let handle = try XCTUnwrap(ProfilingEngine.shared.recoverableSessions(in: dir).first)
@@ -72,10 +72,13 @@
             try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: handle.url.path)
             defer { try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: handle.url.path) }
 
-            guard case let .unreadable(reason) = ProfilingEngine.shared.recover(handle) else {
+            guard case let .unreadable(failure) = ProfilingEngine.shared.recover(handle) else {
                 return XCTFail("expected .unreadable for a permission-denied file")
             }
-            XCTAssertTrue(reason.contains("errno"), "reason should include the errno: \(reason)")
+            guard case let .ioError(errno) = failure else {
+                return XCTFail("expected .ioError, got \(failure)")
+            }
+            XCTAssertNotEqual(errno, 0, "ioError should carry the causing errno")
         }
 
         func test_recoverableSessions_skipsFinalizedForRecovery() {

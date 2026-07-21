@@ -38,14 +38,40 @@ public struct RecoverableSession: Sendable, Equatable {
     let url: URL
 }
 
+/// Why a ``RecoverableSession`` couldn't be parsed. Typed (rather than a flat string) so the caller can
+/// choose an action per case: `corrupt` → safe to ``ProfilingEngine/delete(_:)``; `ioError` is often
+/// transient (file still locked under data protection at boot, `EINTR`, `EIO`) → leave it and retry next
+/// launch; `unsupportedVersion` → keep it for a future build that understands the format. Its
+/// `description` is a human-readable one-liner for logs.
+public enum RecoveryFailure: Sendable, CustomStringConvertible {
+    /// The file exists but isn't one of ours (magic mismatch).
+    case notOurs
+    /// Ours, but written by a newer format version this build doesn't understand.
+    case unsupportedVersion
+    /// Ours and the right version, but failed structural validation.
+    case corrupt
+    /// A syscall (open/fstat/pread/mmap) failed; carries the causing `errno` (0 if none was set).
+    case ioError(errno: Int32)
+
+    public var description: String {
+        switch self {
+        case .notOurs: return "not an Embrace profiling file"
+        case .unsupportedVersion: return "unsupported format version"
+        case .corrupt: return "corrupt (failed validation)"
+        case .ioError(let errno):
+            return errno != 0 ? "I/O error (errno \(errno))" : "I/O error"
+        }
+    }
+}
+
 /// Outcome of recovering a single ``RecoverableSession``.
 public enum SessionRecoveryResult: Sendable {
     /// Parsed successfully; the (possibly empty) samples for this session.
     case recovered(ProfilingResult)
     /// The file was cleanly finalized — nothing to recover.
     case finalized
-    /// The file could not be parsed (not ours / unsupported / corrupt / I/O error).
-    case unreadable(reason: String)
+    /// The file could not be parsed. Carries a typed ``RecoveryFailure`` so callers can act on the cause.
+    case unreadable(RecoveryFailure)
     /// Profiling is not supported on this platform (e.g. watchOS).
     case notSupported
 }
@@ -71,14 +97,16 @@ public enum SessionRecoveryResult: Sendable {
             threadState: ThreadState(rawValue: state) ?? .unknown))
     }
 
-    private func describe(_ status: emb_profile_recover_status_t, errno errnoValue: Int32) -> String {
+    /// Map a C recovery status (+ threaded `errno`) to a typed ``RecoveryFailure``. Only called for the
+    /// non-success, non-finalized statuses; an unexpected value is treated as `corrupt` (discardable)
+    /// rather than inventing a case, since the file is unusable by this build either way.
+    private func recoveryFailure(_ status: emb_profile_recover_status_t, errno errnoValue: Int32)
+        -> RecoveryFailure {
         switch status {
-        case EMB_PROFILE_RECOVER_NOT_OURS: return "not an Embrace profiling file"
-        case EMB_PROFILE_RECOVER_UNSUPPORTED: return "unsupported format version"
-        case EMB_PROFILE_RECOVER_CORRUPT: return "corrupt (failed validation)"
-        case EMB_PROFILE_RECOVER_IO_ERROR:
-            return errnoValue != 0 ? "I/O error (errno \(errnoValue))" : "I/O error"
-        default: return "unknown status \(status.rawValue)"
+        case EMB_PROFILE_RECOVER_NOT_OURS: return .notOurs
+        case EMB_PROFILE_RECOVER_UNSUPPORTED: return .unsupportedVersion
+        case EMB_PROFILE_RECOVER_IO_ERROR: return .ioError(errno: errnoValue)
+        default: return .corrupt
         }
     }
 
@@ -167,7 +195,7 @@ extension ProfilingEngine {
             case EMB_PROFILE_RECOVER_FINALIZED:
                 return .finalized
             default:
-                return .unreadable(reason: describe(status, errno: errnoOut))
+                return .unreadable(recoveryFailure(status, errno: errnoOut))
             }
         #endif
     }
