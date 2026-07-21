@@ -86,3 +86,6 @@ Examples/Benchmarks/Benchmarks.xcworkspace/xcuserdata
 # Claude
 .claude/
 claude/
+
+# Embrace upload cache (EmbraceUpload diskPath: "embrace") created at repo root when tests run
+/embrace/

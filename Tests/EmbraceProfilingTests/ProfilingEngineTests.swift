@@ -1148,12 +1148,13 @@
             let secondHeaderOffset = firstRecordSize
             let frameCountOffset = secondHeaderOffset + 4  // Skip seq field
 
-            // Write an impossibly large frame_count (> EMB_MAX_STACK_FRAMES).
+            // Write an impossibly large frame_count (> EMB_MAX_STACK_FRAMES). frame_count is a
+            // uint16 at offset 4, so 0xFFFF (65535) is well above the 1024 cap.
             let data = ringBuffer.pointee.data!
             data.advanced(by: frameCountOffset).withMemoryRebound(
-                to: UInt32.self, capacity: 1
+                to: UInt16.self, capacity: 1
             ) { ptr in
-                ptr.pointee = 0xFFFF_FFFF  // Way above 1024
+                ptr.pointee = 0xFFFF  // 65535, way above 1024
             }
 
             // retrieveSamples should stop parsing at the corrupted record.

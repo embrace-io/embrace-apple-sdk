@@ -34,6 +34,7 @@
 #if !TARGET_OS_WATCH
 
 #include <mach/kern_return.h>
+#include <mach/thread_info.h>
 #include <stdbool.h>
 #include <stdatomic.h>
 #include <stddef.h>
@@ -60,18 +61,62 @@ typedef enum {
 extern "C" {
 #endif
 
+/// Control block holding the writer/reader positions. Relocated out of
+/// emb_ring_buffer_t so it can be backed either by a small anonymous allocation
+/// (in-memory buffers) or by a file-backed mapped footer page (persistent buffers,
+/// PROFILING-DISK-FORMAT.md §3) — the same struct, only the backing differs.
+typedef struct {
+    _Atomic uint64_t write_pos;  // Monotonically increasing write position.
+    _Atomic uint64_t oldest_pos; // Position of the oldest surviving record.
+    uint64_t next_seq;           // Writer-local seqlock counter (single-writer).
+    _Atomic uint32_t status_flags; // Reserved (file-backed lifecycle is signaled via the footer
+                                 // format_version, not here — PROFILING-DISK-FORMAT.md §5).
+} emb_ring_control_t;
+
 typedef struct {
     uint8_t *data;               // Double-mapped virtual region (2 × capacity).
     size_t capacity;             // Usable buffer size in bytes (page-aligned).
-    uint64_t next_seq;           // Writer-local seqlock counter (single-writer).
-    _Atomic uint64_t write_pos;  // Monotonically increasing write position.
-    _Atomic uint64_t oldest_pos; // Position of the oldest surviving record.
+    emb_ring_control_t *control; // write_pos / oldest_pos / next_seq (anon- or file-backed).
+    bool owns_resources;         // true: this buffer owns `data` (vm) and `control` (heap) and frees
+                                 // them on destroy. false: a file-backed store owns the mapping.
     _Atomic uint32_t active_readers; // Number of concurrent read_range calls (for reset safety).
     _Atomic bool resetting;      // True while reset is in progress.
                                  // Uses Dekker-style mutual exclusion with active_readers:
                                  // both sides use seq_cst to prevent ARM64 store-buffer
                                  // reordering. See emb_ring_buffer_reset and read_range.
 } emb_ring_buffer_t;
+
+/// Hard upper limit on stack frames per sample. Defined here (not in emb_sampler.h)
+/// because the ring write path validates `frame_count` against it; emb_sampler.h
+/// includes this header and consumes the value from here.
+#define EMB_MAX_STACK_FRAMES 1024
+
+/// Main-thread run state captured per sample (see PROFILING-THREAD-STATE.md). Values mirror
+/// the Mach `TH_STATE_*` constants so the stored byte equals
+/// `thread_basic_info.run_state`. 255 = "couldn't capture" — Mach never returns it.
+typedef enum {
+    EMB_THREAD_RUN_STATE_RUNNING         = 1,   // == TH_STATE_RUNNING
+    EMB_THREAD_RUN_STATE_STOPPED         = 2,   // == TH_STATE_STOPPED
+    EMB_THREAD_RUN_STATE_WAITING         = 3,   // == TH_STATE_WAITING
+    EMB_THREAD_RUN_STATE_UNINTERRUPTIBLE = 4,   // == TH_STATE_UNINTERRUPTIBLE
+    EMB_THREAD_RUN_STATE_HALTED          = 5,   // == TH_STATE_HALTED
+    EMB_THREAD_RUN_STATE_UNKNOWN         = 255,  // thread_info failed / not captured
+} emb_thread_run_state_t;
+_Static_assert(EMB_THREAD_RUN_STATE_RUNNING == TH_STATE_RUNNING
+            && EMB_THREAD_RUN_STATE_STOPPED == TH_STATE_STOPPED
+            && EMB_THREAD_RUN_STATE_WAITING == TH_STATE_WAITING
+            && EMB_THREAD_RUN_STATE_UNINTERRUPTIBLE == TH_STATE_UNINTERRUPTIBLE
+            && EMB_THREAD_RUN_STATE_HALTED == TH_STATE_HALTED,
+            "emb_thread_run_state_t must mirror TH_STATE_*");
+
+/// Per-sample flag bits packed into the record header's `flags` byte. This is OUR
+/// own layout, NOT raw `thread_basic_info.flags`: idle/swapped are remapped to
+/// these bit positions and `truncated` is not a Mach flag.
+enum {
+    EMB_RECORD_FLAG_IDLE      = 1u << 0,  // thread is an idle thread   (from TH_FLAGS_IDLE)
+    EMB_RECORD_FLAG_SWAPPED   = 1u << 1,  // thread is swapped out       (from TH_FLAGS_SWAPPED)
+    EMB_RECORD_FLAG_TRUNCATED = 1u << 2,  // stack exceeded max_frames
+};
 
 /// Public facing view of the record header stored in the ring buffer.
 /// We do this to simplify reading the records. It's expected that the caller would
@@ -84,9 +129,11 @@ typedef struct {
 /// The `seq` field is an internal seqlock value used for torn-read detection,
 /// and callers should ignore it.
 typedef struct {
-    uint32_t seq;          // Internal seqlock value (ignore).
-    uint32_t frame_count;  // Number of frames following this header.
-    uint64_t timestamp_ns; // Monotonic timestamp (nanoseconds).
+    uint32_t seq;           // Internal seqlock value (ignore).
+    uint16_t frame_count;   // Number of frames following this header (1..EMB_MAX_STACK_FRAMES).
+    uint8_t  thread_state;  // emb_thread_run_state_t at capture time.
+    uint8_t  flags;         // EMB_RECORD_FLAG_* bits (our packed layout).
+    uint64_t timestamp_ns;  // Monotonic timestamp (nanoseconds).
 } emb_ring_record_header_t;
 
 // The record layout assumes 64-bit pointers (uintptr_t == 8 bytes).
@@ -94,6 +141,11 @@ typedef struct {
 // Catch any hypothetical 32-bit platform at compile time.
 _Static_assert(sizeof(uintptr_t) == 8,
                "Ring buffer record layout requires 64-bit pointers");
+// The header must stay exactly 16 bytes: seq(4) + frame_count(2) + thread_state(1)
+// + flags(1) + timestamp_ns(8). The on-disk format (PROFILING-DISK-FORMAT.md §4)
+// mirrors this byte-for-byte and the trailer records sizeof() for recovery.
+_Static_assert(sizeof(emb_ring_record_header_t) == 16,
+               "Ring buffer record header must stay 16 bytes");
 
 /// Compute the total byte size of a record with the given frame count.
 static inline size_t emb_ring_record_size(uint32_t frame_count) {
@@ -116,6 +168,25 @@ typedef struct {
 /// @param kr_out  On failure, receives the kern_return_t that caused the error. May be NULL.
 /// @return A newly allocated buffer, or NULL on failure.
 emb_ring_buffer_t *emb_ring_buffer_create(size_t capacity_bytes, kern_return_t *kr_out);
+
+/// Create a ring buffer over caller-provided, externally-owned backing memory.
+///
+/// Used by `emb_profile_store` for file-backed buffers: the store builds the
+/// double-mapped file region and the (mapped) control block, then attaches a ring
+/// buffer over them. The returned buffer has `owns_resources == false`, so
+/// `emb_ring_buffer_destroy` frees only the wrapper — never `data` or `control`
+/// (the store owns and unmaps those).
+///
+/// This function does NOT modify `*control` — the caller sets the positions (0 for
+/// a freshly truncated file; the persisted values for recovery).
+///
+/// This function is NOT async-safe.
+///
+/// @param data     Double-mapped region of 2×capacity bytes (lower half + aliased upper half).
+/// @param capacity Page-aligned usable capacity in bytes (the data region size).
+/// @param control  Caller-owned control block (anon or mapped).
+/// @return A newly allocated buffer wrapper, or NULL on bad args / allocation failure.
+emb_ring_buffer_t *emb_ring_buffer_attach(uint8_t *data, size_t capacity, emb_ring_control_t *control);
 
 /// Destroy a ring buffer and release all VM and heap resources.
 ///
@@ -157,15 +228,20 @@ size_t emb_ring_buffer_capacity(const emb_ring_buffer_t *buf);
 /// @param buf The ring buffer.
 /// @param timestamp_ns Monotonic timestamp (nanoseconds).
 /// @param frames Array of frame addresses to copy.
-/// @param frame_count Number of frames in the array. Must not exceed UINT32_MAX.
-/// @return EMB_RING_WRITE_OK on success; EMB_RING_WRITE_BAD_ARGS if buf or frames is NULL or
-///         frame_count exceeds UINT32_MAX; EMB_RING_WRITE_RECORD_TOO_LARGE if the record does
-///         not fit in the buffer; EMB_RING_WRITE_CORRUPTION_DETECTED if a corrupted header was
-///         found during eviction.
+/// @param frame_count Number of frames in the array. Stored as uint16, so must not exceed
+///        UINT16_MAX. (The sampler, sole writer of persisted buffers, writes 1..EMB_MAX_STACK_FRAMES.)
+/// @param thread_state emb_thread_run_state_t for the sampled thread at capture time.
+/// @param flags EMB_RECORD_FLAG_* bits for this sample.
+/// @return EMB_RING_WRITE_OK on success; EMB_RING_WRITE_BAD_ARGS if buf is NULL, frames is NULL with
+///         a non-zero frame_count, or frame_count exceeds UINT16_MAX; EMB_RING_WRITE_RECORD_TOO_LARGE
+///         if the record does not fit in the buffer; EMB_RING_WRITE_CORRUPTION_DETECTED if a corrupted
+///         header was found during eviction.
 emb_ring_write_status_t emb_ring_buffer_write(emb_ring_buffer_t *buf,
                                                uint64_t timestamp_ns,
                                                const uintptr_t *frames,
-                                               size_t frame_count);
+                                               size_t frame_count,
+                                               uint8_t thread_state,
+                                               uint8_t flags);
 
 /// Read records from the ring buffer within a time range.
 ///
