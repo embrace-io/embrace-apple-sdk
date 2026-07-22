@@ -51,9 +51,15 @@
 
         private let buffer = EmbraceMutex<[MainThreadStackSample]>([])
 
-        private var observer: CFRunLoopObserver?
-        private var thread: Thread?
-        private var lifecycleTokens: [NSObjectProtocol] = []
+        /// Lifecycle-owned resources. Guarded by a mutex so `start()`/`stop()` are mutually exclusive
+        /// and these fields are never touched unlocked — the poll thread and the beacon never read
+        /// them, so this lock is only ever contended by concurrent `start`/`stop`/`deinit` callers.
+        private struct LifecycleState {
+            var observer: CFRunLoopObserver?
+            var thread: Thread?
+            var tokens: [NSObjectProtocol] = []
+        }
+        private let lifecycle = EmbraceMutex(LifecycleState())
 
         /// - Parameters:
         ///   - mainThread: the `pthread_t` of the thread to sample (the main thread).
@@ -97,25 +103,41 @@
         // MARK: - MainThreadStackSampler
 
         func start() {
-            guard !running.exchange(true, order: .acquireAndRelease) else { return }
-            installObserver()
-            registerLifecycleNotifications()
+            lifecycle.withLock { state in
+                guard !running.load(order: .acquire) else { return }
+                running.store(true, order: .release)
 
-            let thread = Thread { [weak self] in self?.run() }
-            thread.name = "io.embrace.hang.sampler"
-            thread.qualityOfService = .userInitiated
-            self.thread = thread
-            thread.start()
+                if let observer = makeObserver() {
+                    state.observer = observer
+                    CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
+                }
+                state.tokens = makeLifecycleTokens()
+
+                let thread = Thread { [weak self] in self?.run() }
+                thread.name = "io.embrace.hang.sampler"
+                thread.qualityOfService = .userInitiated
+                state.thread = thread
+                thread.start()
+            }
         }
 
         func stop() {
-            guard running.exchange(false, order: .acquireAndRelease) else { return }
-            removeObserver()
-            let nc = NotificationCenter.default
-            lifecycleTokens.forEach { nc.removeObserver($0) }
-            lifecycleTokens = []
-            thread = nil
-            busySince.store(0, order: .release)
+            lifecycle.withLock { state in
+                guard running.load(order: .acquire) else { return }
+                running.store(false, order: .release)
+
+                if let observer = state.observer {
+                    CFRunLoopRemoveObserver(CFRunLoopGetMain(), observer, .commonModes)
+                }
+                state.observer = nil
+
+                let nc = NotificationCenter.default
+                state.tokens.forEach { nc.removeObserver($0) }
+                state.tokens = []
+
+                state.thread = nil
+                busySince.store(0, order: .release)
+            }
         }
 
         func pause() {
@@ -134,9 +156,9 @@
 
         // MARK: - Main-thread liveness beacon
 
-        private func installObserver() {
+        private func makeObserver() -> CFRunLoopObserver? {
             let activities = CFRunLoopActivity([.afterWaiting, .beforeWaiting]).rawValue
-            let observer = CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, activities, true, 0) {
+            return CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault, activities, true, 0) {
                 [weak self] _, activity in
                 guard let self else { return }
                 if activity == .beforeWaiting {
@@ -146,15 +168,6 @@
                     self.busySince.store(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW), order: .release)
                 }
             }
-            self.observer = observer
-            CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
-        }
-
-        private func removeObserver() {
-            if let observer {
-                CFRunLoopRemoveObserver(CFRunLoopGetMain(), observer, .commonModes)
-            }
-            observer = nil
         }
 
         // MARK: - Background sampling loop
@@ -201,20 +214,18 @@
 
         // MARK: - App lifecycle (raw names to avoid a UIKit dependency)
 
-        private func registerLifecycleNotifications() {
+        private func makeLifecycleTokens() -> [NSObjectProtocol] {
             let nc = NotificationCenter.default
-            lifecycleTokens.append(
+            return [
                 nc.addObserver(
                     forName: Notification.Name("UIApplicationDidEnterBackgroundNotification"),
                     object: nil, queue: nil
-                ) { [weak self] _ in self?.pause() }
-            )
-            lifecycleTokens.append(
+                ) { [weak self] _ in self?.pause() },
                 nc.addObserver(
                     forName: Notification.Name("UIApplicationWillEnterForegroundNotification"),
                     object: nil, queue: nil
                 ) { [weak self] _ in self?.resume() }
-            )
+            ]
         }
     }
 
