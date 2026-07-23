@@ -45,6 +45,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var hangLimitsHangThreshold: TimeInterval
     var hangLimitsHangPerSession: UInt
     var hangLimitsReportsWatchdogEvents: Bool
+    var hangLimitsSampleTriggerThreshold: TimeInterval
+    var hangLimitsSamplePollInterval: TimeInterval
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
@@ -101,6 +103,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case hangThreshold = "hang_threshold"
             case hangPerSession = "hang_per_session"
             case reportsWatchdogEvents = "reports_watchdog_events"
+            case sampleTriggerThreshold = "sample_trigger_threshold"
+            case samplePollInterval = "sample_poll_interval"
         }
 
         case networkPayLoadCapture = "network_capture"
@@ -254,10 +258,24 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                     Bool.self,
                     forKey: CodingKeys.HangLimitsCodingKeys.reportsWatchdogEvents
                 ) ?? defaultPayload.hangLimitsReportsWatchdogEvents
+
+            hangLimitsSampleTriggerThreshold =
+                try hangLimitsContainer.decodeIfPresent(
+                    TimeInterval.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.sampleTriggerThreshold
+                ) ?? defaultPayload.hangLimitsSampleTriggerThreshold
+
+            hangLimitsSamplePollInterval =
+                try hangLimitsContainer.decodeIfPresent(
+                    TimeInterval.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.samplePollInterval
+                ) ?? defaultPayload.hangLimitsSamplePollInterval
         } else {
             hangLimitsHangThreshold = defaultPayload.hangLimitsHangThreshold
             hangLimitsHangPerSession = defaultPayload.hangLimitsHangPerSession
             hangLimitsReportsWatchdogEvents = defaultPayload.hangLimitsReportsWatchdogEvents
+            hangLimitsSampleTriggerThreshold = defaultPayload.hangLimitsSampleTriggerThreshold
+            hangLimitsSamplePollInterval = defaultPayload.hangLimitsSamplePollInterval
         }
 
         // internal logs limit
@@ -395,6 +413,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         hangLimitsHangThreshold = 0.249
         hangLimitsHangPerSession = 20
         hangLimitsReportsWatchdogEvents = false
+        hangLimitsSampleTriggerThreshold = 0.15
+        hangLimitsSamplePollInterval = 0.05
 
         networkPayloadCaptureRules = []
         useLegacyUrlSessionProxy = false
