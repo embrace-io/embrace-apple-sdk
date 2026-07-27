@@ -10,6 +10,7 @@ import Foundation
     import EmbraceOTelInternal
     import EmbraceConfigInternal
     import EmbraceConfiguration
+    import EmbraceKSCrashBacktraceSupport
 #endif
 
 extension Embrace {
@@ -45,11 +46,11 @@ extension Embrace {
         ///   - logLevel: The `LogLevel` to use for console logs.
         ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
         ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
-        ///   - backtracer: Optional `Backtracer` used to capture stack traces. Defaults to `nil`;
-        ///     when `nil`, custom stack-trace capture is disabled. `EmbraceIO`'s convenience options
-        ///     wire in a built-in `Backtracer` for you.
+        ///   - backtracer: Optional `Backtracer` used to capture stack traces. Defaults to the
+        ///     built-in `KSCrashBacktracing`; pass `nil` to disable custom stack-trace capture.
         ///   - symbolicator: Optional `Symbolicator` used to resolve frames into symbols. Defaults to
-        ///     `nil`; when `nil`, unresolved frames are dropped rather than emitted as raw addresses.
+        ///     the built-in `KSCrashBacktracing`; pass `nil` to disable symbolication (unresolved
+        ///     frames are then dropped rather than emitted as raw addresses).
         @objc public init(
             appId: String,
             appGroupId: String? = nil,
@@ -60,8 +61,8 @@ extension Embrace {
             logLevel: LogLevel = .default,
             export: OpenTelemetryExport? = nil,
             processors: [OpenTelemetryProcessor]? = nil,
-            backtracer: Backtracer? = nil,
-            symbolicator: Symbolicator? = nil
+            backtracer: Backtracer? = KSCrashBacktracing(),
+            symbolicator: Symbolicator? = KSCrashBacktracing()
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
@@ -97,8 +98,8 @@ extension Embrace {
             crashReporter: CrashReporter?,
             logLevel: LogLevel = .default,
             runtimeConfiguration: EmbraceConfigurable = .default,
-            backtracer: Backtracer? = nil,
-            symbolicator: Symbolicator? = nil
+            backtracer: Backtracer? = KSCrashBacktracing(),
+            symbolicator: Symbolicator? = KSCrashBacktracing()
         ) {
             self.appId = nil
             self.appGroupId = nil

@@ -92,6 +92,7 @@ let package = Package(
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
+                "EmbraceKSCrashBacktraceSupport",
                 "EmbraceSemantics"
             ],
             resources: [
