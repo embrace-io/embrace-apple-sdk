@@ -179,4 +179,41 @@ final class RemoteConfigTests: XCTestCase {
         config.payload.networkPayloadCaptureRules = [rule1, rule2]
         XCTAssertEqual(config.networkPayloadCaptureRules, [rule1, rule2])
     }
+
+    // MARK: - Hang limit corrections
+
+    func test_hangLimitCorrections_emptyForValidPayload() {
+        // Default payload values are all in range.
+        XCTAssertTrue(RemoteConfig.hangLimitCorrections(for: RemoteConfigPayload()).isEmpty)
+    }
+
+    func test_hangLimitCorrections_flagsOutOfRangeSampleTrigger() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsSampleTriggerThreshold = 5000  // would overflow the ns conversion → clamped
+        let corrections = RemoteConfig.hangLimitCorrections(for: payload)
+        XCTAssertEqual(corrections.count, 1)
+        XCTAssertTrue(corrections.first?.contains("sample_trigger_threshold") ?? false)
+    }
+
+    func test_hangLimitCorrections_flagsOutOfRangeSamplePollInterval() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsSamplePollInterval = 5000
+        let corrections = RemoteConfig.hangLimitCorrections(for: payload)
+        XCTAssertEqual(corrections.count, 1)
+        XCTAssertTrue(corrections.first?.contains("sample_poll_interval") ?? false)
+    }
+
+    func test_hangLimitCorrections_flagsNonPositiveHangThreshold() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsHangThreshold = -1
+        XCTAssertTrue(RemoteConfig.hangLimitCorrections(for: payload).contains { $0.contains("hang_threshold") })
+    }
+
+    func test_hangLimitCorrections_flagsTriggerNotBelowHangThreshold() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsHangThreshold = 0.1
+        payload.hangLimitsSampleTriggerThreshold = 0.15  // >= hangThreshold → re-derived below it
+        XCTAssertTrue(
+            RemoteConfig.hangLimitCorrections(for: payload).contains { $0.contains("sample_trigger_threshold") })
+    }
 }
