@@ -27,11 +27,6 @@ import OpenTelemetryApi
         public init(
             limits: HangLimits = HangLimits()
         ) {
-            dispatchPrecondition(condition: .onQueue(.main))
-            // Capture main's `pthread_t` here, on the main thread. The sampler is (re)built later —
-            // `onConfigUpdated` runs off the main thread — so it can't derive main via `pthread_self()`
-            // itself; we capture it once and inject it.
-            self.mainThread = pthread_self()
             self.limitData = EmbraceMutex(MutableLimitData(limits: limits))
             super.init()
         }
@@ -63,17 +58,24 @@ import OpenTelemetryApi
         }
 
         /// Builds a fresh detector + sampler for `limits`, starts the sampler, and swaps them in for
-        /// the previous pair (which is stopped and released).
+        /// the previous pair (which is stopped and released). The swap is committed under the lock
+        /// only if the service is still active; if a concurrent `onStop()` raced in between building
+        /// and storing, the freshly built pair is torn down instead — so no poll thread or
+        /// CADisplayLink outlives the stop.
         private func activate(with limits: HangLimits) {
             let (monitor, sampler) = makeMonitorAndSampler(for: limits)
             sampler?.start()
-            let oldSampler = limitData.withLock { data -> MainThreadStackSampler? in
+            let (oldSampler, stored) = limitData.withLock { data -> (MainThreadStackSampler?, Bool) in
+                guard state.load(order: .acquire) == .active else { return (nil, false) }
                 let previous = data.sampler
                 data.watchdog = monitor
                 data.sampler = sampler
-                return previous
+                return (previous, true)
             }
             oldSampler?.stop()
+            if !stored {
+                sampler?.stop()  // service stopped mid-build; release the pair we just started
+            }
         }
 
         /// Builds the detector + during-block sampler pair for `limits`, or `(nil, nil)` when hangs
@@ -88,7 +90,6 @@ import OpenTelemetryApi
             monitor.hangObserver = self
             monitor.logger = logger
             let sampler = StallTriggeredSampler(
-                mainThread: mainThread,
                 triggerThreshold: limits.sampleTriggerThreshold,
                 pollInterval: limits.samplePollInterval,
                 logger: logger
@@ -122,8 +123,6 @@ import OpenTelemetryApi
             guard monitorNeedsUpdate, state.load(order: .acquire) == .active else { return }
             activate(with: newLimits)
         }
-
-        private var mainThread: pthread_t
 
         struct MutableLimitData {
             var limits: HangLimits = HangLimits()
@@ -225,7 +224,10 @@ import OpenTelemetryApi
             let durationNanos = UInt64((duration * 1_000_000_000).rounded())
             let startMono = endMono > durationNanos + tolerance ? endMono &- durationNanos &- tolerance : 0
             // Take the earliest during-block sample in the window — closest to where the block began.
-            let sample = limitData.withLock { $0.sampler }?.samples(in: startMono...endMono).first
+            let (hasSampler, sample) = limitData.withLock { data -> (Bool, MainThreadStackSample?) in
+                let sampler = data.sampler
+                return (sampler != nil, sampler?.samples(in: startMono...endMono).first)
+            }
             let sampleTime = at.addingTimeInterval(-duration)
 
             spanQueue.async { [self] in
@@ -235,8 +237,13 @@ import OpenTelemetryApi
                         backtrace: sample.backtrace,
                         overhead: Int(sample.overhead)
                     )
+                } else {
+                    // Emit the span with no stack — an honest "no trace" beats the old misleading one —
+                    // but log why, so an empty stack is distinguishable from missing hang data.
+                    logger?.debug(
+                        "[Hang] confirmed hang emitted with no during-block stack "
+                            + "(\(hasSampler ? "sampler active, no sample landed in the window" : "no active sampler")).")
                 }
-                // else: emit the span with no stack — an honest "no trace" beats the old misleading one.
                 span?.end(time: at)
                 span = nil
             }
@@ -253,6 +260,9 @@ import OpenTelemetryApi
 
             let stack = processBacktrace(backtrace)
             guard stack.frameCount > 0 else {
+                logger?.warning(
+                    "[Hang] captured a during-block backtrace but all frames were dropped "
+                        + "(frameCount = 0) — no Symbolicator configured?")
                 return
             }
 

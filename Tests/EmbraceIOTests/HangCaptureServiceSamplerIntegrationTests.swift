@@ -74,6 +74,37 @@
             }
         }
 
+        func test_hangEnded_attachesEarliestInWindowSample() throws {
+            try XCTSkipIfSanitizing("KSCrash symbolication is incompatible with sanitizer instrumentation")
+
+            let otel = MockEmbraceOpenTelemetry()
+            let sampler = MockSampler()
+            let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), threadIndex: 0)
+            // Two in-window samples; the service must attach the FIRST (earliest) one, not the last.
+            sampler.cannedSamples = [
+                MainThreadStackSample(timestamp: backtrace.timestamp, overhead: 1111, backtrace: backtrace),
+                MainThreadStackSample(timestamp: backtrace.timestamp, overhead: 9999, backtrace: backtrace)
+            ]
+            let service = makeService(otel: otel, sampler: sampler)
+
+            let start = Date()
+            service.hangStarted(at: start, duration: 0.5)
+            service.hangEnded(at: start.addingTimeInterval(0.5), duration: 0.5)
+
+            wait(timeout: .defaultTimeout) {
+                otel.spanProcessor.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
+            }
+
+            let span = otel.spanProcessor.endedSpans.first { $0.name == SpanSemantics.Hang.name }
+            let event = span?.events.first { $0.name == SpanEventSemantics.Hang.name }
+            XCTAssertNotNil(event)
+            if case let .int(overhead)? = event?.attributes[SpanEventSemantics.Hang.keySampleOverhead] {
+                XCTAssertEqual(overhead, 1111, "should attach the earliest in-window sample, not the last")
+            } else {
+                XCTFail("sample_overhead attribute missing or not an int")
+            }
+        }
+
         func test_hangEnded_withNoSample_endsSpanWithoutEvent() {
             let otel = MockEmbraceOpenTelemetry()
             let service = makeService(otel: otel, sampler: MockSampler())  // returns nothing

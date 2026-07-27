@@ -23,10 +23,10 @@ import Foundation
     // MARK: - Bounds
     //
     // Bounds for the remote-config-driven sampler values. The low bounds keep a bad/hostile remote
-    // value from driving overly aggressive main-thread suspension. The high bounds are a safety rail
-    // against the sampler's downstream `useconds_t` (UInt32 µs) and `UInt64` (ns) conversions, which
-    // would trap on an out-of-range value. Clamping in `init` means every consumer of `HangLimits`
-    // inherits the guarantee.
+    // value from driving overly aggressive main-thread suspension. The high bounds are product
+    // ceilings that double as a safety rail: the sampler converts these to nanoseconds via
+    // `UInt64(seconds * 1_000_000_000)`, which would trap on an out-of-range value. Clamping in
+    // `init` means every consumer of `HangLimits` inherits the guarantee.
 
     public static let minSampleTriggerThreshold: TimeInterval = 0.05  // 50 ms
     public static let maxSampleTriggerThreshold: TimeInterval = 3600  // 1 h

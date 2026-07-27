@@ -96,6 +96,34 @@
             XCTAssertEqual(sampler.effectivePollInterval, 0.03, accuracy: 1e-6)
         }
 
+        func test_aboveCeilingValuesAreClampedDown() {
+            // Defense-in-depth for direct callers: a seconds/ms mixup that would overflow the ns
+            // conversion and trap must be clamped to the ceiling instead.
+            let sampler = StallTriggeredSampler(
+                mainThread: pthread_self(),
+                triggerThreshold: 5000,
+                pollInterval: 5000,
+                logger: nil
+            )
+            XCTAssertEqual(sampler.effectiveTriggerThreshold, HangLimits.maxSampleTriggerThreshold, accuracy: 1e-6)
+            XCTAssertEqual(sampler.effectivePollInterval, HangLimits.maxSamplePollInterval, accuracy: 1e-6)
+        }
+
+        func test_nonFiniteValuesFallBackToDefaults() {
+            for bad in [Double.nan, .infinity] {
+                let sampler = StallTriggeredSampler(
+                    mainThread: pthread_self(),
+                    triggerThreshold: bad,
+                    pollInterval: bad,
+                    logger: nil
+                )
+                XCTAssertEqual(
+                    sampler.effectiveTriggerThreshold, HangLimits.defaultSampleTriggerThreshold, accuracy: 1e-6)
+                XCTAssertEqual(
+                    sampler.effectivePollInterval, HangLimits.defaultSamplePollInterval, accuracy: 1e-6)
+            }
+        }
+
         @MainActor
         func test_pauseSuppressesSampling_thenResumeReArms() throws {
             try XCTSkipIfSanitizing("KSCrash symbolication is incompatible with sanitizer instrumentation")

@@ -146,6 +146,37 @@
             XCTAssertEqual(otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
         }
 
+        // MARK: - Lifecycle teardown
+
+        func test_onStop_tearsDownSamplerAndMonitor() {
+            let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 6))
+            let sampler = MockMainThreadStackSampler()
+            service.limitData.withLock {
+                $0.sampler?.stop()
+                $0.sampler = sampler
+            }
+
+            service.stop()
+
+            let (samplerAfter, watchdogAfter) = service.limitData.withLock { ($0.sampler, $0.watchdog) }
+            XCTAssertNil(samplerAfter, "onStop should clear the sampler")
+            XCTAssertNil(watchdogAfter, "onStop should clear the monitor")
+            XCTAssertTrue(sampler.stopCalled, "onStop should stop the sampler")
+        }
+
+        func test_onConfigUpdated_onInactiveService_storesLimitsButDoesNotActivateSampler() {
+            // Installed-but-never-started service is not active.
+            let service = HangCaptureService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 6))
+
+            let newLimits = HangLimits(hangThreshold: 0.5, hangPerSession: 6)
+            service.onConfigUpdated(MockEmbraceConfigurable(hangLimits: newLimits))
+
+            XCTAssertEqual(service.limits.hangThreshold, 0.5, "new limits should still be stored")
+            XCTAssertNil(
+                service.limitData.withLock { $0.sampler },
+                "a config update on an inactive service must not spin up a sampler")
+        }
+
         // MARK: - Config disables monitor
 
         func test_onConfigUpdated_disablesHangs_whenPerSessionIsZero() {
@@ -342,9 +373,11 @@
         var cannedSamples: [MainThreadStackSample] = []
         var respectRange = true
         private(set) var queriedRanges: [ClosedRange<UInt64>] = []
+        private(set) var startCalled = false
+        private(set) var stopCalled = false
 
-        func start() {}
-        func stop() {}
+        func start() { startCalled = true }
+        func stop() { stopCalled = true }
         func pause() {}
         func resume() {}
         func samples(in range: ClosedRange<UInt64>) -> [MainThreadStackSample] {

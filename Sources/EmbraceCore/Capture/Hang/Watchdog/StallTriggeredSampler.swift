@@ -9,6 +9,7 @@
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
         import EmbraceConfiguration
+        import EmbraceObjCUtilsInternal
     #endif
 
     /// Detects that the main thread *looks* stalled and captures a single during-block backtrace of
@@ -56,14 +57,16 @@
         private let lifecycle = EmbraceMutex(LifecycleState())
 
         /// - Parameters:
-        ///   - mainThread: the `pthread_t` of the thread to sample (the main thread).
+        ///   - mainThread: the `pthread_t` of the thread to sample. Defaults to the main thread,
+        ///     resolved via `EmbraceGetMainThread()` (captured at load), so callers built off the main
+        ///     thread — e.g. during a config-update rebuild — still target main correctly.
         ///   - triggerThreshold: how long main must be continuously busy before we snapshot it.
         ///     Clamped into `HangLimits.min/maxSampleTriggerThreshold`.
         ///   - pollInterval: how often the background thread checks liveness. Clamped into
         ///     `HangLimits.min/maxSamplePollInterval`.
         ///   - bufferCap: max buffered samples (small ring; one per stall episode).
         init(
-            mainThread: pthread_t,
+            mainThread: pthread_t = EmbraceGetMainThread(),
             triggerThreshold: TimeInterval,
             pollInterval: TimeInterval = HangLimits.defaultSamplePollInterval,
             bufferCap: Int = 8,
@@ -113,6 +116,12 @@
             lifecycle.withLock { state in
                 guard !running.load(order: .acquire) else { return }
                 running.store(true, order: .release)
+
+                if !EmbraceBacktrace.isAvailable {
+                    logger?.warning(
+                        "[Hang] during-block sampler started with no Backtracer configured; hang spans "
+                            + "will have no stack. Wire a Backtracer via EmbraceCore options, or use EmbraceIO.")
+                }
 
                 if let observer = makeObserver() {
                     state.observer = observer
