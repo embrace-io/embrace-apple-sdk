@@ -12,6 +12,28 @@
         import EmbraceObjCUtilsInternal
     #endif
 
+    /// Lock-free state shared between the sampler and its background poll loop. Both hold the **same**
+    /// instance (it's a reference type), so the main-thread beacon's writes, the public lifecycle
+    /// calls, and the loop all observe one source of truth. Bundling it into a single object is what
+    /// lets the loop share exactly this state and nothing else — the worker is handed this, never the
+    /// sampler — so there's no way to accidentally wire the loop to atomics nobody writes to.
+    private final class SharedPollState {
+        /// `CLOCK_MONOTONIC_RAW` ns when the current busy epoch began; `0` when the run loop is idle.
+        /// Written by the main-thread beacon, read by the background poller.
+        let busySince = EmbraceAtomic<UInt64>(0)
+        let paused = EmbraceAtomic<Bool>(false)
+        let running = EmbraceAtomic<Bool>(false)
+        let buffer = EmbraceMutex<[MainThreadStackSample]>([])
+    }
+
+    /// Immutable poll-loop configuration. All value types, safe to copy into the worker.
+    private struct PollConfig {
+        let mainThread: pthread_t
+        let triggerNanos: UInt64
+        let pollNanos: UInt64
+        let bufferCap: Int
+    }
+
     /// Detects that the main thread *looks* stalled and captures a single during-block backtrace of
     /// it from a background thread. It does **not** decide whether a hang is reported —
     /// `FrameRateMonitor` (CADisplayLink) remains the authority. This only supplies the stack;
@@ -32,19 +54,9 @@
     /// window that CADisplayLink later confirms.
     final class StallTriggeredSampler: MainThreadStackSampler {
 
-        private let mainThread: pthread_t
-        private let triggerNanos: UInt64
-        private let pollNanos: UInt64
-        private let bufferCap: Int
+        private let shared = SharedPollState()
+        private let config: PollConfig
         private weak var logger: InternalLogger?
-
-        /// `CLOCK_MONOTONIC_RAW` ns when the current busy epoch began; `0` when the run loop is idle.
-        /// Written by the main-thread beacon, read by the background poller.
-        private let busySince = EmbraceAtomic<UInt64>(0)
-        private let paused = EmbraceAtomic<Bool>(false)
-        private let running = EmbraceAtomic<Bool>(false)
-
-        private let buffer = EmbraceMutex<[MainThreadStackSample]>([])
 
         /// Lifecycle-owned resources. Guarded by a mutex so `start()`/`stop()` are mutually exclusive
         /// and these fields are never touched unlocked — the poll thread and the beacon never read
@@ -72,30 +84,32 @@
             bufferCap: Int = 8,
             logger: InternalLogger?
         ) {
-            self.mainThread = mainThread
-            self.triggerNanos = Self.clampedNanos(
-                triggerThreshold,
-                fallback: HangLimits.defaultSampleTriggerThreshold,
-                min: HangLimits.minSampleTriggerThreshold,
-                max: HangLimits.maxSampleTriggerThreshold
+            self.config = PollConfig(
+                mainThread: mainThread,
+                triggerNanos: Self.clampedNanos(
+                    triggerThreshold,
+                    fallback: HangLimits.defaultSampleTriggerThreshold,
+                    min: HangLimits.minSampleTriggerThreshold,
+                    max: HangLimits.maxSampleTriggerThreshold
+                ),
+                pollNanos: Self.clampedNanos(
+                    pollInterval,
+                    fallback: HangLimits.defaultSamplePollInterval,
+                    min: HangLimits.minSamplePollInterval,
+                    max: HangLimits.maxSamplePollInterval
+                ),
+                bufferCap: bufferCap
             )
-            self.pollNanos = Self.clampedNanos(
-                pollInterval,
-                fallback: HangLimits.defaultSamplePollInterval,
-                min: HangLimits.minSamplePollInterval,
-                max: HangLimits.maxSamplePollInterval
-            )
-            self.bufferCap = bufferCap
             self.logger = logger
         }
 
         deinit { stop() }
 
         /// Effective trigger after clamping, in seconds. Exposed for tests.
-        var effectiveTriggerThreshold: TimeInterval { TimeInterval(triggerNanos) / 1_000_000_000 }
+        var effectiveTriggerThreshold: TimeInterval { TimeInterval(config.triggerNanos) / 1_000_000_000 }
 
         /// Effective poll cadence after clamping, in seconds. Exposed for tests.
-        var effectivePollInterval: TimeInterval { TimeInterval(pollNanos) / 1_000_000_000 }
+        var effectivePollInterval: TimeInterval { TimeInterval(config.pollNanos) / 1_000_000_000 }
 
         /// Values reaching `HangLimits` are already clamped; this is the defense-in-depth for direct
         /// callers. A non-finite value falls back to `fallback`; otherwise it is clamped into
@@ -114,8 +128,8 @@
 
         func start() {
             lifecycle.withLock { state in
-                guard !running.load(order: .acquire) else { return }
-                running.store(true, order: .release)
+                guard !shared.running.load(order: .acquire) else { return }
+                shared.running.store(true, order: .release)
 
                 if !EmbraceBacktrace.isAvailable {
                     logger?.warning(
@@ -129,18 +143,9 @@
                 }
                 state.tokens = makeLifecycleTokens()
 
-                // The worker shares this sampler's lock-free state but not `self`, so the poll thread
+                // The worker is handed the shared state and config but never `self`, so the poll thread
                 // never retains the sampler; that keeps `deinit { stop() }` a real backstop.
-                let worker = PollWorker(
-                    running: running,
-                    paused: paused,
-                    busySince: busySince,
-                    buffer: buffer,
-                    mainThread: mainThread,
-                    triggerNanos: triggerNanos,
-                    pollNanos: pollNanos,
-                    bufferCap: bufferCap
-                )
+                let worker = PollWorker(shared: shared, config: config)
                 let thread = Thread { worker.run() }
                 thread.name = "io.embrace.hang.sampler"
                 thread.qualityOfService = .userInitiated
@@ -151,8 +156,8 @@
 
         func stop() {
             lifecycle.withLock { state in
-                guard running.load(order: .acquire) else { return }
-                running.store(false, order: .release)
+                guard shared.running.load(order: .acquire) else { return }
+                shared.running.store(false, order: .release)
 
                 if let observer = state.observer {
                     CFRunLoopRemoveObserver(CFRunLoopGetMain(), observer, .commonModes)
@@ -164,22 +169,22 @@
                 state.tokens = []
 
                 state.thread = nil
-                busySince.store(0, order: .release)
+                shared.busySince.store(0, order: .release)
             }
         }
 
         func pause() {
-            paused.store(true, order: .release)
-            busySince.store(0, order: .release)  // forget the current epoch across background
+            shared.paused.store(true, order: .release)
+            shared.busySince.store(0, order: .release)  // forget the current epoch across background
         }
 
         func resume() {
-            busySince.store(0, order: .release)  // fresh start; the beacon repopulates it
-            paused.store(false, order: .release)
+            shared.busySince.store(0, order: .release)  // fresh start; the beacon repopulates it
+            shared.paused.store(false, order: .release)
         }
 
         func samples(in range: ClosedRange<UInt64>) -> [MainThreadStackSample] {
-            buffer.withLock { $0.filter { range.contains($0.timestamp) } }
+            shared.buffer.withLock { $0.filter { range.contains($0.timestamp) } }
         }
 
         // MARK: - Main-thread liveness beacon
@@ -190,10 +195,10 @@
                 [weak self] _, activity in
                 guard let self else { return }
                 if activity == .beforeWaiting {
-                    self.busySince.store(0, order: .release)  // going idle → not a hang
+                    self.shared.busySince.store(0, order: .release)  // going idle → not a hang
                 } else {
                     // .afterWaiting → a busy epoch begins. One atomic store, nothing else.
-                    self.busySince.store(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW), order: .release)
+                    self.shared.busySince.store(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW), order: .release)
                 }
             }
         }
@@ -215,53 +220,32 @@
         }
     }
 
-    /// The background poll loop. Holds only the shared lock-free state, never the sampler, so the
-    /// sampler's lifetime is not pinned to the loop's — the thread closure retains this worker
-    /// instead. The shared atomics/buffer stay alive as long as the loop runs.
+    /// The background poll loop. Holds only the shared lock-free state and the immutable config,
+    /// never the sampler, so the sampler's lifetime is not pinned to the loop's — the thread closure
+    /// retains this worker instead. The shared state stays alive as long as the loop runs.
     private final class PollWorker {
-        private let running: EmbraceAtomic<Bool>
-        private let paused: EmbraceAtomic<Bool>
-        private let busySince: EmbraceAtomic<UInt64>
-        private let buffer: EmbraceMutex<[MainThreadStackSample]>
-        private let mainThread: pthread_t
-        private let triggerNanos: UInt64
-        private let pollNanos: UInt64
-        private let bufferCap: Int
+        private let shared: SharedPollState
+        private let config: PollConfig
 
-        init(
-            running: EmbraceAtomic<Bool>,
-            paused: EmbraceAtomic<Bool>,
-            busySince: EmbraceAtomic<UInt64>,
-            buffer: EmbraceMutex<[MainThreadStackSample]>,
-            mainThread: pthread_t,
-            triggerNanos: UInt64,
-            pollNanos: UInt64,
-            bufferCap: Int
-        ) {
-            self.running = running
-            self.paused = paused
-            self.busySince = busySince
-            self.buffer = buffer
-            self.mainThread = mainThread
-            self.triggerNanos = triggerNanos
-            self.pollNanos = pollNanos
-            self.bufferCap = bufferCap
+        init(shared: SharedPollState, config: PollConfig) {
+            self.shared = shared
+            self.config = config
         }
 
         func run() {
             // The `busySince` value we last captured for. Loop-local: no synchronization needed.
             var lastSampledEpoch: UInt64 = 0
 
-            while running.load(order: .acquire) {
-                Self.sleep(nanos: pollNanos)
+            while shared.running.load(order: .acquire) {
+                Self.sleep(nanos: config.pollNanos)
 
-                guard !paused.load(order: .acquire) else { continue }
+                guard !shared.paused.load(order: .acquire) else { continue }
 
-                let since = busySince.load(order: .acquire)
+                let since = shared.busySince.load(order: .acquire)
                 guard since != 0, since != lastSampledEpoch else { continue }
 
                 let now = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
-                guard now &- since >= triggerNanos else { continue }
+                guard now &- since >= config.triggerNanos else { continue }
 
                 lastSampledEpoch = since  // one snapshot per stall episode
                 captureSample()
@@ -272,7 +256,7 @@
             guard EmbraceBacktrace.isAvailable else { return }
 
             let pre = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
-            let backtrace = EmbraceBacktrace.backtrace(of: mainThread, threadIndex: 0)  // suspends main; alloc-free
+            let backtrace = EmbraceBacktrace.backtrace(of: config.mainThread, threadIndex: 0)  // suspends main; alloc-free
             let post = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
 
             let sample = MainThreadStackSample(
@@ -280,10 +264,10 @@
                 overhead: post &- pre,
                 backtrace: backtrace
             )
-            buffer.withLock {
+            shared.buffer.withLock {
                 $0.append(sample)
-                if $0.count > bufferCap {
-                    $0.removeFirst($0.count - bufferCap)
+                if $0.count > config.bufferCap {
+                    $0.removeFirst($0.count - config.bufferCap)
                 }
             }
         }
