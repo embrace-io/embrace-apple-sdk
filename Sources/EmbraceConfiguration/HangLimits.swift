@@ -33,6 +33,12 @@ import Foundation
     public static let minSamplePollInterval: TimeInterval = 0.01  // 10 ms
     public static let maxSamplePollInterval: TimeInterval = 60  // 60 s
 
+    /// Fraction of `hangThreshold` used to re-derive `sampleTriggerThreshold` when a remote config is
+    /// internally inconsistent (`sampleTriggerThreshold >= hangThreshold`). Matches the ratio the
+    /// SDK's own defaults use (0.15 / 0.249 ≈ 0.6), so the during-block snapshot lands well inside the
+    /// confirmed hang window.
+    public static let sampleTriggerFraction: TimeInterval = 0.6
+
     // MARK: - Values
 
     /// Minimum duration (in seconds) a frame delay must exceed to be reported as a hang.
@@ -45,8 +51,9 @@ import Foundation
     public let reportsWatchdogEvents: Bool
 
     /// How long (in seconds) the main thread must be continuously busy before the during-block
-    /// sampler snapshots it. Sits below `hangThreshold` so the snapshot lands inside the hang the
-    /// detector later confirms. Clamped into `[minSampleTriggerThreshold, maxSampleTriggerThreshold]`.
+    /// sampler snapshots it. Clamped into `[minSampleTriggerThreshold, maxSampleTriggerThreshold]`
+    /// and additionally kept below `hangThreshold` — re-derived via ``sampleTriggerFraction`` if an
+    /// inconsistent config sets it at/above — so the snapshot lands inside the confirmed hang window.
     public let sampleTriggerThreshold: TimeInterval
 
     /// How often (in seconds) the background sampler checks main-thread liveness. Clamped into
@@ -60,15 +67,27 @@ import Foundation
         sampleTriggerThreshold: TimeInterval = HangLimits.defaultSampleTriggerThreshold,
         samplePollInterval: TimeInterval = HangLimits.defaultSamplePollInterval
     ) {
-        self.hangThreshold = HangLimits.sanitized(hangThreshold, fallback: HangLimits.defaultHangThreshold)
-        self.hangPerSession = hangPerSession
-        self.reportsWatchdogEvents = reportsWatchdogEvents
-        self.sampleTriggerThreshold = HangLimits.clamped(
+        let resolvedHangThreshold = HangLimits.sanitized(
+            hangThreshold, fallback: HangLimits.defaultHangThreshold)
+        var resolvedSampleTrigger = HangLimits.clamped(
             sampleTriggerThreshold,
             fallback: HangLimits.defaultSampleTriggerThreshold,
             min: HangLimits.minSampleTriggerThreshold,
             max: HangLimits.maxSampleTriggerThreshold
         )
+        // Keep the trigger below the reported-hang threshold so the during-block snapshot lands inside
+        // the window the detector confirms. Only an inconsistent config (trigger >= hangThreshold) is
+        // adjusted; valid configs — including the default — pass through untouched. This branch fires
+        // only when `hangThreshold <= resolvedSampleTrigger <= maxSampleTriggerThreshold`, so the
+        // derived value stays bounded — an unbounded `hangThreshold` can't reintroduce the ns overflow.
+        if resolvedSampleTrigger >= resolvedHangThreshold {
+            resolvedSampleTrigger = resolvedHangThreshold * HangLimits.sampleTriggerFraction
+        }
+
+        self.hangThreshold = resolvedHangThreshold
+        self.hangPerSession = hangPerSession
+        self.reportsWatchdogEvents = reportsWatchdogEvents
+        self.sampleTriggerThreshold = resolvedSampleTrigger
         self.samplePollInterval = HangLimits.clamped(
             samplePollInterval,
             fallback: HangLimits.defaultSamplePollInterval,
