@@ -59,9 +59,6 @@
 extern "C" {
 #endif
 
-/// Hard upper limit on stack frames per sample.
-#define EMB_MAX_STACK_FRAMES 1024
-
 /// Sampler lifecycle states.
 ///
 /// Transitions:

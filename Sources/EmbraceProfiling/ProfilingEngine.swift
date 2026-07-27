@@ -2,10 +2,17 @@
 //  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
+import Foundation  // URL / FileManager / String(format:) — used in the public API and file-backed paths
+
 #if !os(watchOS)
     import Darwin
-    import EmbraceAtomicsShim
-    import EmbraceProfilingSampler
+
+    // Under CocoaPods every subspec compiles into the single EmbraceIO module, so these
+    // sibling modules must not be imported by name — see EmbraceIO.podspec.
+    #if !EMBRACE_COCOAPOD_BUILDING_SDK
+        import EmbraceAtomicsShim
+        import EmbraceProfilingSampler
+    #endif
 #endif
 
 /// A sampling-based profiling engine that captures main thread stack traces
@@ -30,6 +37,9 @@
 public final class ProfilingEngine: @unchecked Sendable {
     public static let shared = ProfilingEngine()
 
+    /// File extension (without the leading dot) for a persisted profiling session file.
+    internal static let sessionFileExtension = "embprof"
+
     /// Result of calling ``start(configuration:)``.
     public enum StartResult: Equatable, Sendable {
         /// Successfully started the sampler.
@@ -51,6 +61,9 @@ public final class ProfilingEngine: @unchecked Sendable {
         /// The sampler has entered an unrecoverable faulted state (bug or broken runtime).
         /// The associated string describes the fault reason.
         case faulted(reason: String)
+        /// File-backed storage setup failed (open/ftruncate/mmap/mprotect). The associated
+        /// string describes the cause (e.g. an errno). Only returned for file-backed starts.
+        case storageSetupFailed(reason: String)
         /// Profiling is not supported on this platform (e.g. watchOS).
         case notSupported
     }
@@ -76,6 +89,11 @@ public final class ProfilingEngine: @unchecked Sendable {
         internal var ringBuffer: UnsafeMutablePointer<emb_ring_buffer_t>?
         internal var readBuffer: UnsafeMutableRawPointer?
         internal var readBufferSize: Int = 0
+        /// File-backed store (persistent mode). nil for in-memory mode. When set, `ringBuffer`
+        /// points into the store's mapping and is owned by the store, not the engine.
+        internal var store: OpaquePointer?
+        /// Filename of the active file-backed session (so `recoverableSessions(in:)` skips it). nil if in-memory.
+        internal var activeSessionFileName: String?
         /// Atomic gate. CAS-based, no kernel ownership tracking.
         private let gateIsAcquired: UnsafeMutablePointer<emb_atomic_bool_t>
     #endif
@@ -141,7 +159,8 @@ public final class ProfilingEngine: @unchecked Sendable {
     }
 
     #if !os(watchOS)
-    /// Try to acquire the gate.
+    /// Try to acquire the backing gate — the CAS flag guarding the engine's backing store and buffers
+    /// (`ringBuffer`, `readBuffer`, `store`, …). Unrelated to the C sampler's own run-state machine.
     /// Sleeps ``gateSleepNs`` between attempts, up to ``gateTimeoutNs``
     /// cumulative actual elapsed time.
     ///
@@ -150,7 +169,7 @@ public final class ProfilingEngine: @unchecked Sendable {
     /// 2-3 CAS attempts within the 10ms deadline rather than the ~100 attempts
     /// that the arithmetic suggests. This is acceptable because contention is
     /// expected to be extremely rare (only start/retrieve overlap).
-    internal func acquireGate() -> Bool {
+    internal func acquireBackingGate() -> Bool {
         let deadlineNs = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) + Self.gateTimeoutNs
         while true {
             var expected: Bool = false
@@ -164,8 +183,8 @@ public final class ProfilingEngine: @unchecked Sendable {
         }
     }
 
-    /// Release the gate.
-    internal func releaseGate() {
+    /// Release the backing gate.
+    internal func releaseBackingGate() {
         emb_atomic_bool_store(gateIsAcquired, false, .release)
     }
     #endif
@@ -183,8 +202,26 @@ public final class ProfilingEngine: @unchecked Sendable {
     /// - Parameter configuration: Profiling parameters. Defaults are suitable
     ///   for most use cases (10 Hz, 1MB buffer).
     /// - Returns: A ``StartResult`` indicating the outcome.
+    /// Start sampling.
+    ///
+    /// - Parameters:
+    ///   - configuration: profiling parameters.
+    ///   - directory: when non-nil, samples are persisted to a file-backed buffer in this directory
+    ///     (created if needed) so they survive a crash/Jetsam; recover them next launch via
+    ///     `recoverableSessions(in:)` + `recover(_:)`. When nil, the buffer is in-memory (the default).
+    ///   - sessionId: opaque 16-byte id for the file-backed session (becomes the filename). Must be
+    ///     unique per launch. Ignored for in-memory mode; a random id is used if nil.
+    ///
+    /// - Important: A file-backed start (`directory != nil`) performs synchronous filesystem work on the
+    ///   calling thread (`createDirectory`, `ftruncate`, `mmap`) and never dispatches internally — call
+    ///   it off the main thread. In-memory mode (the default) does no filesystem I/O.
+    /// - Note: For a file-backed session, on a *clean* stop call ``finalizeStorage()`` after the worker
+    ///   has exited (poll ``isActive`` until `false`). Otherwise that session looks crash-like and is
+    ///   listed by ``recoverableSessions(in:)`` on the next launch.
     @discardableResult
-    public func start(configuration: ProfilingConfiguration = ProfilingConfiguration()) -> StartResult {
+    public func start(configuration: ProfilingConfiguration = ProfilingConfiguration(),
+                      directory: URL? = nil,
+                      sessionId: [UInt8]? = nil) -> StartResult {
         #if os(watchOS)
             return .notSupported
         #else
@@ -196,63 +233,57 @@ public final class ProfilingEngine: @unchecked Sendable {
                 return .faulted(reason: reason)
             }
 
-            guard acquireGate() else {
+            guard acquireBackingGate() else {
                 return .operationInProgress
             }
-            defer { releaseGate() }
+            defer { releaseBackingGate() }
 
             let wasActive = emb_sampler_is_active()
 
-            // If the sampler is already active, skip buffer manipulation
-            // (the worker thread may be writing to it) and let
-            // emb_sampler_start() report the accurate state.
-            let needsNewBuffer: Bool
+            // KNOWN RACE (dormant; no production caller of start() yet): is_active() is true for
+            // STOPPING, and this Swift gate doesn't block the C worker's autonomous STOPPING→ZOMBIE
+            // transition. If the worker finishes here, emb_sampler_start() below reaps the zombie and
+            // wins a fresh CAS, so a genuinely new session reports .alreadyActive — and in file-backed
+            // mode skips the setUpFileBackedBuffer branch, dropping the caller's sessionId. The real fix
+            // is to have the C layer distinguish "fresh start" from "already running" in its return
+            // instead of re-reading is_active() here; tracked as a follow-up.
+
+            // Decide the backing. If the sampler is already active, leave it untouched (the worker
+            // may be writing) and let emb_sampler_start() report the accurate state.
+            let createdNewBacking: Bool
             if wasActive {
-                needsNewBuffer = false
-            } else if let existing = ringBuffer {
-                if configuration.bufferCapacityBytes == activeConfiguration?.bufferCapacityBytes {
-                    // Retry briefly: the Dekker protocol in reset can fail if a
-                    // concurrent reader is briefly inside read_range. Under the
-                    // Swift gate this is unlikely, but defensive retries are cheap.
+                createdNewBacking = false
+            } else if let directory {
+                // FILE-BACKED: a new session is a new file — always fresh, no reuse. Drop any prior
+                // backing (in-memory buffer or a previous store) first.
+                tearDownBacking()
+                if let failure = setUpFileBackedBuffer(configuration: configuration,
+                                                       directory: directory, sessionId: sessionId) {
+                    return failure
+                }
+                createdNewBacking = true
+            } else {
+                // IN-MEMORY. If we were previously file-backed, drop the store first.
+                if store != nil { tearDownBacking() }
+                if let existing = ringBuffer,
+                    configuration.bufferCapacityBytes == activeConfiguration?.bufferCapacityBytes {
+                    // Same-capacity restart: reuse the buffer. Retry briefly — the Dekker protocol in
+                    // reset can fail if a concurrent reader is briefly inside read_range.
                     var resetOK = false
                     for _ in 0..<3 {
-                        if emb_ring_buffer_reset(existing) {
-                            resetOK = true
-                            break
-                        }
+                        if emb_ring_buffer_reset(existing) { resetOK = true; break }
                         usleep(200)
                     }
-                    if !resetOK {
-                        return .samplerBusy
-                    }
-                    needsNewBuffer = false
+                    if !resetOK { return .samplerBusy }
+                    createdNewBacking = false
                 } else {
-                    emb_ring_buffer_destroy(existing)
-                    if let ptr = readBuffer { free(ptr) }
-                    activeConfiguration = nil
-                    ringBuffer = nil
-                    readBuffer = nil
-                    readBufferSize = 0
-                    needsNewBuffer = true
+                    // First start, or capacity changed → fresh in-memory buffer.
+                    if ringBuffer != nil { tearDownBacking() }
+                    guard setUpInMemoryBuffer(configuration: configuration) else {
+                        return .bufferCreationFailed
+                    }
+                    createdNewBacking = true
                 }
-            } else {
-                needsNewBuffer = true
-            }
-
-            if needsNewBuffer {
-                guard let buffer = emb_ring_buffer_create(Int(configuration.bufferCapacityBytes), nil) else {
-                    return .bufferCreationFailed
-                }
-                ringBuffer = buffer
-
-                let capacity = emb_ring_buffer_capacity(buffer)
-                guard let newReadBuffer = malloc(capacity) else {
-                    emb_ring_buffer_destroy(buffer)
-                    ringBuffer = nil
-                    return .bufferCreationFailed
-                }
-                readBuffer = UnsafeMutableRawPointer(newReadBuffer)
-                readBufferSize = capacity
             }
 
             let config = emb_sampler_config_t(
@@ -266,12 +297,8 @@ public final class ProfilingEngine: @unchecked Sendable {
 
             let startResult = emb_sampler_start(ringBuffer, config)
 
-            if startResult != EMB_SAMPLER_START_OK, needsNewBuffer {
-                emb_ring_buffer_destroy(ringBuffer)
-                if let ptr = readBuffer { free(ptr) }
-                ringBuffer = nil
-                readBuffer = nil
-                readBufferSize = 0
+            if startResult != EMB_SAMPLER_START_OK, createdNewBacking {
+                tearDownBacking()
             }
 
             switch startResult {
@@ -292,6 +319,130 @@ public final class ProfilingEngine: @unchecked Sendable {
                 }
                 return .samplerStartFailed
             }
+        #endif
+    }
+
+    #if !os(watchOS)
+    /// Tear down whatever backing exists (in-memory ring buffer or file-backed store) + the read buffer.
+    /// For a store, this frees the attached ring-buffer wrapper and unmaps the file; it does NOT delete
+    /// the file or write a tombstone (use `finalizeStorage()` for a clean stop).
+    private func tearDownBacking() {
+        if let s = store {
+            emb_profile_store_destroy(s)  // frees the attached ring-buffer wrapper + unmaps
+            store = nil
+            ringBuffer = nil
+        } else if let existing = ringBuffer {
+            emb_ring_buffer_destroy(existing)
+            ringBuffer = nil
+        }
+        if let ptr = readBuffer { free(ptr) }
+        readBuffer = nil
+        readBufferSize = 0
+        activeConfiguration = nil
+        activeSessionFileName = nil
+    }
+
+    /// Create a fresh in-memory ring buffer + read buffer. Returns false on allocation failure.
+    private func setUpInMemoryBuffer(configuration: ProfilingConfiguration) -> Bool {
+        guard let buffer = emb_ring_buffer_create(Int(configuration.bufferCapacityBytes), nil) else {
+            return false
+        }
+        let capacity = emb_ring_buffer_capacity(buffer)
+        guard let rb = malloc(capacity) else {
+            emb_ring_buffer_destroy(buffer)
+            return false
+        }
+        ringBuffer = buffer
+        readBuffer = UnsafeMutableRawPointer(rb)
+        readBufferSize = capacity
+        return true
+    }
+
+    /// Create a file-backed store + read buffer in `directory`. Returns nil on success, or a failing
+    /// `StartResult` on error (the engine is left with no backing).
+    private func setUpFileBackedBuffer(configuration: ProfilingConfiguration,
+                                       directory: URL,
+                                       sessionId: [UInt8]?) -> StartResult? {
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        } catch {
+            return .storageSetupFailed(reason: "mkdir failed: \(error.localizedDescription)")
+        }
+
+        let sid = sessionId ?? (0..<16).map { _ in UInt8.random(in: 0...255) }
+        guard sid.count == 16 else {
+            return .storageSetupFailed(reason: "sessionId must be 16 bytes")
+        }
+        let fileName = sid.map { String(format: "%02x", $0) }.joined() + "." + Self.sessionFileExtension
+        let path = directory.appendingPathComponent(fileName).path
+
+        var err: Int32 = 0
+        let storePtr: OpaquePointer? = path.withCString { cpath in
+            sid.withUnsafeBufferPointer { sidBuf in
+                emb_profile_store_create(cpath, Int(configuration.bufferCapacityBytes), sidBuf.baseAddress, &err)
+            }
+        }
+        guard let storePtr else {
+            return .storageSetupFailed(reason: "store create failed (errno \(err))")
+        }
+        guard let buf = emb_profile_store_buffer(storePtr) else {
+            emb_profile_store_destroy(storePtr)
+            return .storageSetupFailed(reason: "store buffer unavailable")
+        }
+        let capacity = emb_ring_buffer_capacity(buf)
+        guard let rb = malloc(capacity) else {
+            emb_profile_store_destroy(storePtr)
+            return .storageSetupFailed(reason: "read-buffer allocation failed (\(capacity) bytes)")
+        }
+        store = storePtr
+        ringBuffer = buf
+        readBuffer = UnsafeMutableRawPointer(rb)
+        readBufferSize = capacity
+        activeSessionFileName = fileName
+        return nil
+    }
+    #endif  // !os(watchOS)
+
+    /// Flush persisted samples to disk (`msync(MS_ASYNC)`). No-op in in-memory mode. The CaptureService
+    /// wrapper calls this on `willResignActive` / `didEnterBackground` (and `willTerminate`) so samples
+    /// are durable before a possible background Jetsam kill. Cheap, non-blocking, off the hot path.
+    ///
+    /// - Note: Best-effort — it skips silently if the engine's gate is briefly contended (e.g. a
+    ///   concurrent `start`/`retrieveSamples`). `MAP_SHARED` pages are still flushed by the kernel on
+    ///   normal termination; this only matters for an abrupt Jetsam within that small window.
+    /// - Note: `msync` runs concurrently with the live sampler writing the same mapping — this is by
+    ///   design. A page captured mid-write is just re-flushed later, and recovery's seqlock/torn-tail
+    ///   handling discards any partial record, so a torn flush is never observable as corruption.
+    public func flush() {
+        #if !os(watchOS)
+            // Gate-protected: `store` is torn down (destroyed + niled) under the gate by start()/reset.
+            // Without this, a background/terminate-thread flush could msync a freed/unmapped store.
+            guard acquireBackingGate() else { return }
+            defer { releaseBackingGate() }
+            if let s = store { emb_profile_store_flush(s) }
+        #endif
+    }
+
+    /// Mark the file-backed session cleanly finalized (writes the version-0 tombstone), so recovery
+    /// reports nothing for it. No-op in in-memory mode. Call on a clean stop, after the worker has
+    /// exited (poll `isActive` until false) — the wrapper sequences this.
+    ///
+    /// - Important: This DISCARDS the session's on-disk samples — the tombstone marks the *entire* file
+    ///   "disregard". Only call it once you have retrieved everything you need (e.g. via
+    ///   ``retrieveSamples(from:through:)``); there is no recovery after finalize.
+    /// - Important: This is a NO-OP while sampling is still active. Writing the tombstone before the
+    ///   worker has drained would silently discard not-yet-reported samples, so if called early it
+    ///   leaves the session recoverable (reported next launch) rather than lost. Conversely, if you
+    ///   never call it on a clean stop, that session is listed by ``recoverableSessions(in:)`` next
+    ///   launch (a harmless false positive you can ``delete(_:)``).
+    public func finalizeStorage() {
+        #if !os(watchOS)
+            // Gate-protected for the same reason as flush(): guards against a concurrent store teardown.
+            guard acquireBackingGate() else { return }
+            defer { releaseBackingGate() }
+            // Refuse to tombstone a live buffer (see note above) — leave it recoverable instead.
+            guard !emb_sampler_is_active() else { return }
+            if let s = store { emb_profile_store_finalize(s) }
         #endif
     }
 
@@ -409,8 +560,8 @@ public final class ProfilingEngine: @unchecked Sendable {
                 return .faulted(reason: reason)
             }
 
-            guard acquireGate() else { return .busy }
-            defer { releaseGate() }
+            guard acquireBackingGate() else { return .busy }
+            defer { releaseBackingGate() }
 
             guard let ringBuffer, let readBuffer else {
                 return .notStarted
@@ -441,8 +592,8 @@ public final class ProfilingEngine: @unchecked Sendable {
                 // Defense-in-depth: reject implausibly large frame_count values.
                 // The C read path already bounds-checks via record_size > (write_pos -
                 // scan_pos), but a corruption check is cheap.
-                guard header.frame_count <= UInt32(EMB_MAX_STACK_FRAMES) else { break }
-                let recordSize = Int(emb_ring_record_size(header.frame_count))
+                guard Int(header.frame_count) <= Int(EMB_MAX_STACK_FRAMES) else { break }
+                let recordSize = Int(emb_ring_record_size(UInt32(header.frame_count)))
                 guard offset + recordSize <= validEnd else { break }
                 totalFrames += Int(header.frame_count)
                 offset += recordSize
@@ -458,9 +609,9 @@ public final class ProfilingEngine: @unchecked Sendable {
             for _ in 0..<result.record_count {
                 guard offset + headerSize <= validEnd else { break }
                 let header = rawBuffer.load(fromByteOffset: offset, as: emb_ring_record_header_t.self)
-                guard header.frame_count <= UInt32(EMB_MAX_STACK_FRAMES) else { break }
+                guard Int(header.frame_count) <= Int(EMB_MAX_STACK_FRAMES) else { break }
                 let frameCount = Int(header.frame_count)
-                let recordSize = Int(emb_ring_record_size(header.frame_count))
+                let recordSize = Int(emb_ring_record_size(UInt32(header.frame_count)))
                 guard offset + recordSize <= validEnd else { break }
 
                 let framesStart = frames.count
@@ -474,7 +625,8 @@ public final class ProfilingEngine: @unchecked Sendable {
 
                 samples.append(ProfilingSample(
                     timestamp: header.timestamp_ns,
-                    frameRange: framesStart..<frames.count
+                    frameRange: framesStart..<frames.count,
+                    threadState: ThreadState(rawValue: header.thread_state) ?? .unknown
                 ))
 
                 offset += recordSize

@@ -131,7 +131,7 @@
                 writerBlock: { _ in
                     for i in 0..<writeCount {
                         let f = self.makeFrames(writeIndex: i, count: frameCount)
-                        emb_ring_buffer_write(buf, UInt64(i) * intervalNs, f, frameCount)
+                        ringWrite(buf, UInt64(i) * intervalNs, f, frameCount)
                         Thread.sleep(forTimeInterval: 0.001)
                     }
                 }
@@ -160,7 +160,7 @@
                 writerBlock: { _ in
                     for i in 0..<10 {
                         let f: [UInt] = [UInt(i + 1)]
-                        emb_ring_buffer_write(buf, UInt64(i + 1) * 100_000_000, f, 1)
+                        ringWrite(buf, UInt64(i + 1) * 100_000_000, f, 1)
                         Thread.sleep(forTimeInterval: 0.001)
                     }
                 }
@@ -188,7 +188,7 @@
                     for i in 0..<10 {
                         let fc = (i % 8) + 1
                         let f = self.makeFrames(writeIndex: i, count: fc)
-                        emb_ring_buffer_write(buf, UInt64(i + 1) * 100_000_000, f, fc)
+                        ringWrite(buf, UInt64(i + 1) * 100_000_000, f, fc)
                         Thread.sleep(forTimeInterval: 0.001)
                     }
                 }
@@ -215,7 +215,7 @@
                     for i in 0..<60 {
                         let fc = (i % 12) + 1
                         let f = self.makeFrames(writeIndex: i, count: fc)
-                        emb_ring_buffer_write(buf, UInt64(i + 1) * 100_000_000, f, fc)
+                        ringWrite(buf, UInt64(i + 1) * 100_000_000, f, fc)
                         Thread.sleep(forTimeInterval: 0.001)
                     }
                 }
@@ -249,7 +249,7 @@
                 writerBlock: { _ in
                     for i in 0..<40 {
                         let f = self.makeFrames(writeIndex: i, count: 10)
-                        emb_ring_buffer_write(buf, UInt64(i + 1) * 100_000_000, f, 10)
+                        ringWrite(buf, UInt64(i + 1) * 100_000_000, f, 10)
                         Thread.sleep(forTimeInterval: 0.001)
                     }
                 }
@@ -266,7 +266,7 @@
             for i in 0..<20 {
                 let fc = (i % 5) + 1
                 let f = makeFrames(writeIndex: i, count: fc)
-                emb_ring_buffer_write(buf, UInt64(i + 1) * 1_000_000, f, fc)
+                ringWrite(buf, UInt64(i + 1) * 1_000_000, f, fc)
             }
 
             let readerCount = 8
@@ -339,7 +339,7 @@
 
             for i in 0..<10 {
                 let f: [UInt] = [UInt(i + 1)]
-                emb_ring_buffer_write(buf, UInt64(i) * intervalNs, f, 1)
+                ringWrite(buf, UInt64(i) * intervalNs, f, 1)
                 Thread.sleep(forTimeInterval: 0.001)
             }
             stop.set()
@@ -386,7 +386,7 @@
             while Date() < deadline {
                 let fc = (writeCount % 10) + 1
                 let f = makeFrames(writeIndex: writeCount, count: fc)
-                emb_ring_buffer_write(buf, UInt64(writeCount + 1) * 1_000_000, f, fc)
+                ringWrite(buf, UInt64(writeCount + 1) * 1_000_000, f, fc)
                 writeCount += 1
             }
 
@@ -438,7 +438,7 @@
 
             for i in 0..<10 {
                 let f: [UInt] = [UInt(i + 1)]
-                emb_ring_buffer_write(buf, UInt64(i) * intervalNs, f, 1)
+                ringWrite(buf, UInt64(i) * intervalNs, f, 1)
                 Thread.sleep(forTimeInterval: 0.001)
             }
             stop.set()
@@ -486,7 +486,7 @@
                 writerBlock: { _ in
                     for i in 0..<writeCount {
                         let f = self.makeFrames(writeIndex: i, count: frameCount)
-                        emb_ring_buffer_write(buf, UInt64(i) * 1_000, f, frameCount)
+                        ringWrite(buf, UInt64(i) * 1_000, f, frameCount)
                         // No sleep. Maximum write pressure to force rapid wrap-around.
                     }
                 }
@@ -502,7 +502,7 @@
 
             for i in 0..<10 {
                 let f = makeFrames(writeIndex: i, count: 5)
-                emb_ring_buffer_write(buf, UInt64(i + 1) * 100_000_000, f, 5)
+                ringWrite(buf, UInt64(i + 1) * 100_000_000, f, 5)
             }
 
             let readerCount = 20

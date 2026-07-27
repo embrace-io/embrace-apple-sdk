@@ -210,20 +210,31 @@
             // STARTING when pause() runs. Pre-fix this returned false (pause
             // only accepted RUNNING) and the engine emitted samples until the
             // caller noticed and re-issued pause. With the C1 fix, pause()
-            // accepts STARTING and the request takes effect on the worker's
-            // first loop iteration.
+            // accepts STARTING and takes effect from the worker's next loop
+            // iteration onward.
             XCTAssertEqual(engine.start(configuration: Self.fastConfig), .started)
             XCTAssertTrue(engine.pause(),
                 "pause() called immediately after start() must succeed even"
                 + " when the worker is still in STARTING")
 
-            // Wait long enough for the worker to reach RUNNING and process
-            // many cycles. With a working pause, none of them sample.
             Thread.sleep(forTimeInterval: 0.25)
             XCTAssertTrue(engine.isPaused)
             XCTAssertFalse(engine.isCapturing)
-            XCTAssertEqual(currentSampleCount(), 0,
-                "No samples should be captured: pause was applied during STARTING")
+
+            // The worker samples immediately on reaching RUNNING (the cadence sleep is at the
+            // end of its loop), so it can win the race against this pause() and land exactly
+            // one sample. That is inherent to starting unpaused and is not what this test
+            // pins down — `startPaused: true` is the race-free way to begin at zero, covered
+            // by test_resume_immediatelyAfterStartPaused_takesEffect. What must hold here is
+            // that pause() is honoured rather than lost: at a 50ms cadence the 0.25s above
+            // would have produced ~5 samples if it were.
+            let afterPause = currentSampleCount()
+            XCTAssertLessThanOrEqual(afterPause, 1,
+                "at most the single immediate sample may precede pause()")
+
+            Thread.sleep(forTimeInterval: 0.25)
+            XCTAssertEqual(currentSampleCount(), afterPause,
+                "pause() applied during STARTING must stop all further sampling")
 
             engine.stop()
             XCTAssertTrue(waitForFullStop())

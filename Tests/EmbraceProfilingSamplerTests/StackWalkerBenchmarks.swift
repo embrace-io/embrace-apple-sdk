@@ -23,7 +23,7 @@
             let maxFrames = 1024
             var frames = [UInt](repeating: 0, count: maxFrames)
             var count = 0
-            emb_stack_walk(port, stackBottom, stackTop, &frames, maxFrames, &count)
+            stackWalk(port, stackBottom, stackTop, &frames, maxFrames, &count)
             return count
         }
 

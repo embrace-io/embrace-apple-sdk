@@ -50,7 +50,7 @@ final class FallbackBenchmarks: XCTestCase {
     private func walkWithFP(port: thread_t, stackBottom: UnsafeRawPointer, stackTop: UnsafeRawPointer) -> Int {
         var frames = [UInt](repeating: 0, count: Self.maxFrames)
         var count = 0
-        emb_stack_walk(port, stackBottom, stackTop, &frames, Self.maxFrames, &count)
+        emb_stack_walk(port, stackBottom, stackTop, &frames, Self.maxFrames, &count, nil)
         return count
     }
 

@@ -3,7 +3,6 @@
 //
 
 #if !os(watchOS)
-
     @testable import EmbraceProfiling
     import EmbraceProfilingSampler
     import EmbraceProfilingTestSupport
@@ -13,13 +12,13 @@
         /// TEST-ONLY: Allocate the ring buffer without starting the sampler.
         /// Allows writing synthetic data via ``writeSampleForTesting(timestamp:frames:)``
         /// then reading via ``retrieveSamples(from:through:)``.
-        /// Acquires the gate. Returns false on allocation failure, invalid config, or gate contention.
+        /// Acquires the backing gate. Returns false on allocation failure, invalid config, or gate contention.
         func allocateBufferForTesting(
             configuration: ProfilingConfiguration = ProfilingConfiguration()
         ) -> Bool {
             guard configuration.isValid else { return false }
-            guard acquireGate() else { return false }
-            defer { releaseGate() }
+            guard acquireBackingGate() else { return false }
+            defer { releaseBackingGate() }
 
             guard !emb_sampler_is_active() else { return false }
 
@@ -61,13 +60,15 @@
         /// TEST-ONLY: Write a synthetic sample directly to the ring buffer.
         /// Buffer must have been allocated (via ``allocateBufferForTesting(configuration:)`` or ``start(configuration:)``).
         /// Does NOT acquire the gate. Caller must ensure no concurrent access.
-        func writeSampleForTesting(timestamp: UInt64, frames: [UInt]) -> Bool {
+        func writeSampleForTesting(timestamp: UInt64, frames: [UInt],
+                                   threadState: UInt8 = 0, flags: UInt8 = 0) -> Bool {
             guard let ringBuffer else { return false }
 
             return frames.withUnsafeBufferPointer { buf in
                 guard let baseAddress = buf.baseAddress else { return false }
                 return baseAddress.withMemoryRebound(to: uintptr_t.self, capacity: frames.count) { ptr in
-                    emb_ring_buffer_write(ringBuffer, timestamp, ptr, frames.count) == EMB_RING_WRITE_OK
+                    emb_ring_buffer_write(ringBuffer, timestamp, ptr, frames.count,
+                                          threadState, flags) == EMB_RING_WRITE_OK
                 }
             }
         }
@@ -75,7 +76,7 @@
         /// TEST-ONLY: Reset the engine to a clean initial state.
         /// Stops sampler if active (with polling wait), destroys ring buffer,
         /// deallocates read buffer, resets C sampler state.
-        /// Acquires the gate.
+        /// Acquires the backing gate.
         func resetForTesting() {
             emb_sampler_stop()
 
@@ -91,9 +92,13 @@
 
             // Best-effort gate acquisition: if it times out we still clean up
             // since we've already stopped the sampler.
-            let gateAcquired = acquireGate()
+            let gateAcquired = acquireBackingGate()
 
-            if let rb = ringBuffer {
+            if let s = store {
+                emb_profile_store_destroy(s)  // frees the attached ring-buffer wrapper + unmaps
+                store = nil
+                ringBuffer = nil
+            } else if let rb = ringBuffer {
                 emb_ring_buffer_destroy(rb)
                 ringBuffer = nil
             }
@@ -103,13 +108,13 @@
             }
             readBufferSize = 0
             activeConfiguration = nil
+            activeSessionFileName = nil
 
             emb_sampler_reset_for_testing()
 
             if gateAcquired {
-                releaseGate()
+                releaseBackingGate()
             }
         }
     }
-
 #endif

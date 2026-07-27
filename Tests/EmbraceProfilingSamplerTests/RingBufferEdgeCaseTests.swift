@@ -14,7 +14,9 @@
 
         // Record layout constants (64-bit):
         //   uint32_t seq             = 4 bytes
-        //   uint32_t frame_count     = 4 bytes
+        //   uint16_t frame_count     = 2 bytes
+        //   uint8_t  thread_state    = 1 byte
+        //   uint8_t  flags           = 1 byte
         //   uint64_t timestamp_ns    = 8 bytes
         //   + 8 bytes per frame
         static let headerSize = 16
@@ -97,7 +99,7 @@
         func test_nextSeq_startsAtZero() {
             let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
-            XCTAssertEqual(buf.pointee.next_seq, 0)
+            XCTAssertEqual(buf.pointee.control.pointee.next_seq, 0)
         }
 
         func test_nextSeq_incrementsBy2PerSuccessfulWrite() {
@@ -106,9 +108,9 @@
 
             let frames: [UInt] = [0xCAFE]
             for i in 1...10 {
-                emb_ring_buffer_write(buf, UInt64(i) * 1_000, frames, frames.count)
+                ringWrite(buf, UInt64(i) * 1_000, frames, frames.count)
                 XCTAssertEqual(
-                    buf.pointee.next_seq, UInt64(i * 2),
+                    buf.pointee.control.pointee.next_seq, UInt64(i * 2),
                     "next_seq after \(i) writes")
             }
         }
@@ -117,16 +119,16 @@
             let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
-            emb_ring_buffer_write(nil, 1_000, [UInt(1)], 1)
-            XCTAssertEqual(buf.pointee.next_seq, 0)
+            ringWrite(nil, 1_000, [UInt(1)], 1)
+            XCTAssertEqual(buf.pointee.control.pointee.next_seq, 0)
         }
 
         func test_nextSeq_unchangedOnNilFramesWrite() {
             let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
 
-            emb_ring_buffer_write(buf, 1_000, nil, 5)
-            XCTAssertEqual(buf.pointee.next_seq, 0)
+            ringWrite(buf, 1_000, nil, 5)
+            XCTAssertEqual(buf.pointee.control.pointee.next_seq, 0)
         }
 
         func test_nextSeq_incrementsForZeroFrameRecords() {
@@ -134,27 +136,27 @@
             defer { emb_ring_buffer_destroy(buf) }
 
             let empty: [UInt] = []
-            emb_ring_buffer_write(buf, 1_000, empty, 0)
-            XCTAssertEqual(buf.pointee.next_seq, 2)
+            ringWrite(buf, 1_000, empty, 0)
+            XCTAssertEqual(buf.pointee.control.pointee.next_seq, 2)
         }
 
         // MARK: - Write returns false on bad inputs
 
         func test_write_nilBuffer_returnsBadArgs() {
             let frames: [UInt] = [1, 2, 3]
-            XCTAssertNotEqual(emb_ring_buffer_write(nil, 1_000, frames, frames.count), EMB_RING_WRITE_OK)
+            XCTAssertNotEqual(ringWrite(nil, 1_000, frames, frames.count), EMB_RING_WRITE_OK)
         }
 
         func test_write_nilFrames_returnsBadArgs() {
             let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
-            XCTAssertNotEqual(emb_ring_buffer_write(buf, 1_000, nil, 3), EMB_RING_WRITE_OK)
+            XCTAssertNotEqual(ringWrite(buf, 1_000, nil, 3), EMB_RING_WRITE_OK)
         }
 
         func test_write_nilFrames_leavesBufferEmpty() {
             let buf = emb_ring_buffer_create(1024 * 1024, nil)!
             defer { emb_ring_buffer_destroy(buf) }
-            emb_ring_buffer_write(buf, 1_000, nil, 3)
+            ringWrite(buf, 1_000, nil, 3)
 
             let records = testReadRange(buf, 0, UINT64_MAX)
             XCTAssertEqual(records.count, 0)
@@ -167,7 +169,7 @@
             defer { emb_ring_buffer_destroy(buf) }
 
             let frames: [UInt] = [0xDEAD_BEEF, 0xCAFE_BABE, 0x1234_5678, 0xFFFF_FFFF]
-            emb_ring_buffer_write(buf, 42_000, frames, frames.count)
+            ringWrite(buf, 42_000, frames, frames.count)
 
             let records = testReadRange(buf, 0, UINT64_MAX)
 
@@ -183,7 +185,7 @@
             defer { emb_ring_buffer_destroy(buf) }
 
             let frames = [UInt](repeating: 0, count: 8)
-            emb_ring_buffer_write(buf, 1_000, frames, frames.count)
+            ringWrite(buf, 1_000, frames, frames.count)
 
             let records = testReadRange(buf, 0, UINT64_MAX)
 
@@ -198,7 +200,7 @@
             defer { emb_ring_buffer_destroy(buf) }
 
             let frames = [UInt](repeating: UInt.max, count: 8)
-            emb_ring_buffer_write(buf, 2_000, frames, frames.count)
+            ringWrite(buf, 2_000, frames, frames.count)
 
             let records = testReadRange(buf, 0, UINT64_MAX)
 
@@ -214,7 +216,7 @@
 
             let count = 512
             let frames = (0..<count).map { UInt($0 + 1) }
-            emb_ring_buffer_write(buf, 99_000, frames, count)
+            ringWrite(buf, 99_000, frames, count)
 
             let records = testReadRange(buf, 0, UINT64_MAX)
 
@@ -238,7 +240,7 @@
             ]
 
             for def in recordDefs {
-                emb_ring_buffer_write(buf, def.ts, def.frames, def.frames.count)
+                ringWrite(buf, def.ts, def.frames, def.frames.count)
             }
 
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -267,7 +269,7 @@
 
             for i in 0..<fits {
                 let f: [UInt] = [UInt(i + 1)]
-                emb_ring_buffer_write(buf, UInt64(i + 1), f, 1)
+                ringWrite(buf, UInt64(i + 1), f, 1)
             }
 
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -287,11 +289,11 @@
 
             for i in 0..<fits {
                 let f: [UInt] = [UInt(i + 1)]
-                emb_ring_buffer_write(buf, UInt64(i + 1), f, 1)
+                ringWrite(buf, UInt64(i + 1), f, 1)
             }
 
             let f: [UInt] = [0xBEEF]
-            emb_ring_buffer_write(buf, UInt64(fits + 1), f, 1)
+            ringWrite(buf, UInt64(fits + 1), f, 1)
 
             let records = testReadRange(buf, 0, UINT64_MAX)
 
@@ -310,7 +312,7 @@
             let smallCount = page / RingBufferEdgeCaseTests.recordSize(1)
             for i in 0..<smallCount {
                 let f: [UInt] = [UInt(i + 1)]
-                emb_ring_buffer_write(buf, UInt64(i + 1) * 100, f, 1)
+                ringWrite(buf, UInt64(i + 1) * 100, f, 1)
             }
 
             let cntBefore = testReadRange(buf, 0, UINT64_MAX).count
@@ -319,7 +321,7 @@
             let largeFC = 50
             let largeFrames = [UInt](repeating: 0xDEAD, count: largeFC)
             let largeTS: UInt64 = UInt64(smallCount + 1) * 100
-            emb_ring_buffer_write(buf, largeTS, largeFrames, largeFC)
+            ringWrite(buf, largeTS, largeFrames, largeFC)
 
             let after = testReadRange(buf, 0, UINT64_MAX)
 
@@ -345,13 +347,13 @@
 
             let empty: [UInt] = []
             for i in 0..<zeroCount {
-                emb_ring_buffer_write(buf, UInt64(i + 1) * 100, empty, 0)
+                ringWrite(buf, UInt64(i + 1) * 100, empty, 0)
             }
 
             let cntBefore = testReadRange(buf, 0, UINT64_MAX).count
             XCTAssertEqual(cntBefore, zeroCount)
 
-            emb_ring_buffer_write(buf, UInt64(zeroCount + 1) * 100, empty, 0)
+            ringWrite(buf, UInt64(zeroCount + 1) * 100, empty, 0)
 
             let after = testReadRange(buf, 0, UINT64_MAX)
 
@@ -372,7 +374,7 @@
 
             for i in 0..<totalWrites {
                 let f = [UInt](repeating: UInt(i + 1), count: 10)
-                emb_ring_buffer_write(buf, UInt64(i + 1), f, 10)
+                ringWrite(buf, UInt64(i + 1), f, 10)
             }
 
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -404,13 +406,13 @@
             while totalBytes + smallSz <= page {
                 ts += 1
                 let f: [UInt] = [UInt(ts)]
-                emb_ring_buffer_write(buf, ts, f, smallFC)
+                ringWrite(buf, ts, f, smallFC)
                 totalBytes += smallSz
 
                 if totalBytes + largeSz <= page {
                     ts += 1
                     let lf = [UInt](repeating: UInt(ts), count: largeFC)
-                    emb_ring_buffer_write(buf, ts, lf, largeFC)
+                    ringWrite(buf, ts, lf, largeFC)
                     totalBytes += largeSz
                 }
             }
@@ -419,7 +421,7 @@
 
             ts += 1
             let extra: [UInt] = [UInt(ts)]
-            emb_ring_buffer_write(buf, ts, extra, smallFC)
+            ringWrite(buf, ts, extra, smallFC)
 
             let records = testReadRange(buf, 0, UINT64_MAX)
 
@@ -445,7 +447,7 @@
 
             for i in 0...fits {
                 let f: [UInt] = [UInt(i + 1)]
-                emb_ring_buffer_write(buf, UInt64(i + 1), f, 1)
+                ringWrite(buf, UInt64(i + 1), f, 1)
             }
 
             let evicted = testReadRange(buf, 1, 1)
@@ -461,7 +463,7 @@
             // Monotonic timestamps; query skips the first two.
             for ts: UInt64 in [100, 200, 300, 400, 500] {
                 let f: [UInt] = [UInt(ts)]
-                emb_ring_buffer_write(buf, ts, f, 1)
+                ringWrite(buf, ts, f, 1)
             }
 
             let records = testReadRange(buf, 300, 400)
@@ -479,7 +481,7 @@
 
             for ts: UInt64 in [100, 200, 300, 400, 500] {
                 let f: [UInt] = [UInt(ts)]
-                emb_ring_buffer_write(buf, ts, f, 1)
+                ringWrite(buf, ts, f, 1)
             }
 
             let records = testReadRange(buf, 300, UINT64_MAX)
@@ -496,7 +498,7 @@
 
             for ts: UInt64 in [100, 200, 300, 400, 500] {
                 let f: [UInt] = [UInt(ts)]
-                emb_ring_buffer_write(buf, ts, f, 1)
+                ringWrite(buf, ts, f, 1)
             }
 
             let records = testReadRange(buf, 0, 300)
@@ -513,7 +515,7 @@
 
             for ts: UInt64 in [100, 200, 300] {
                 let f: [UInt] = [UInt(ts)]
-                emb_ring_buffer_write(buf, ts, f, 1)
+                ringWrite(buf, ts, f, 1)
             }
 
             let records = testReadRange(buf, 200, 200)
@@ -528,7 +530,7 @@
 
             for ts: UInt64 in [100, 200, 300] {
                 let f: [UInt] = [1]
-                emb_ring_buffer_write(buf, ts, f, 1)
+                ringWrite(buf, ts, f, 1)
             }
 
             let records = testReadRange(buf, 150, 150)
@@ -541,7 +543,7 @@
 
             for ts: UInt64 in [100, 200, 300] {
                 let f: [UInt] = [1]
-                emb_ring_buffer_write(buf, ts, f, 1)
+                ringWrite(buf, ts, f, 1)
             }
 
             let records = testReadRange(buf, 500, 100)
@@ -554,7 +556,7 @@
 
             for ts: UInt64 in [100, 200, 300] {
                 let f: [UInt] = [1]
-                emb_ring_buffer_write(buf, ts, f, 1)
+                ringWrite(buf, ts, f, 1)
             }
 
             let records = testReadRange(buf, 400, UINT64_MAX)
@@ -567,7 +569,7 @@
 
             for ts: UInt64 in [400, 500, 600] {
                 let f: [UInt] = [1]
-                emb_ring_buffer_write(buf, ts, f, 1)
+                ringWrite(buf, ts, f, 1)
             }
 
             let records = testReadRange(buf, 0, 300)
@@ -580,7 +582,7 @@
 
             for ts: UInt64 in [100, 300] {
                 let f: [UInt] = [1]
-                emb_ring_buffer_write(buf, ts, f, 1)
+                ringWrite(buf, ts, f, 1)
             }
 
             let records = testReadRange(buf, 150, 250)
@@ -594,7 +596,7 @@
             let sharedTS: UInt64 = 99_999
             for i in 0..<7 {
                 let f: [UInt] = [UInt(i + 1)]
-                emb_ring_buffer_write(buf, sharedTS, f, 1)
+                ringWrite(buf, sharedTS, f, 1)
             }
 
             let records = testReadRange(buf, sharedTS, sharedTS)
@@ -610,7 +612,7 @@
             defer { emb_ring_buffer_destroy(buf) }
 
             let f: [UInt] = [0xABCD]
-            emb_ring_buffer_write(buf, 0, f, 1)
+            ringWrite(buf, 0, f, 1)
 
             let records = testReadRange(buf, 0, 0)
 
@@ -624,7 +626,7 @@
             defer { emb_ring_buffer_destroy(buf) }
 
             let f: [UInt] = [0x1234]
-            emb_ring_buffer_write(buf, UINT64_MAX, f, 1)
+            ringWrite(buf, UINT64_MAX, f, 1)
 
             let records = testReadRange(buf, UINT64_MAX, UINT64_MAX)
 
@@ -638,7 +640,7 @@
 
             for i in 1...20 {
                 let f: [UInt] = [UInt(i)]
-                emb_ring_buffer_write(buf, UInt64(i) * 1_000, f, 1)
+                ringWrite(buf, UInt64(i) * 1_000, f, 1)
             }
 
             let records = testReadRange(buf, 11_000, 11_000)
@@ -660,7 +662,7 @@
 
             for i in 1...20 {
                 let f: [UInt] = [UInt(i)]
-                emb_ring_buffer_write(buf, UInt64(i) * 1_000, f, 1)
+                ringWrite(buf, UInt64(i) * 1_000, f, 1)
             }
 
             let records = testReadRange(buf, 5_000, 10_000)
@@ -679,7 +681,7 @@
 
             for i in 1...5 {
                 let f: [UInt] = [UInt(i * 10), UInt(i * 10 + 1)]
-                emb_ring_buffer_write(buf, UInt64(i) * 1_000, f, 2)
+                ringWrite(buf, UInt64(i) * 1_000, f, 2)
             }
 
             let r1 = testReadRange(buf, 0, UINT64_MAX)
@@ -703,7 +705,7 @@
 
             for i in 1...30 {
                 let f: [UInt] = [UInt(i)]
-                emb_ring_buffer_write(buf, UInt64(i) * 100_000_000, f, 1)
+                ringWrite(buf, UInt64(i) * 100_000_000, f, 1)
             }
 
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -731,7 +733,7 @@
             while total + rSize <= capacity {
                 ts += 1
                 let f: [UInt] = [UInt(ts), UInt(ts + 1), UInt(ts + 2)]
-                emb_ring_buffer_write(buf, ts, f, 3)
+                ringWrite(buf, ts, f, 3)
                 total += rSize
             }
 
@@ -740,7 +742,7 @@
 
             ts += 1
             let straddle: [UInt] = [UInt(ts), UInt(ts + 1), UInt(ts + 2)]
-            let ok = emb_ring_buffer_write(buf, ts, straddle, 3)
+            let ok = ringWrite(buf, ts, straddle, 3)
             XCTAssertEqual(ok, EMB_RING_WRITE_OK, "write straddling boundary must succeed")
 
             let records = testReadRange(buf, ts, ts)
@@ -766,7 +768,7 @@
 
             for i in 0..<total {
                 let f = [UInt](repeating: UInt(i + 1), count: 5)
-                emb_ring_buffer_write(buf, UInt64(i + 1), f, 5)
+                ringWrite(buf, UInt64(i + 1), f, 5)
             }
 
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -804,10 +806,10 @@
 
                 if fc == 0 {
                     let empty: [UInt] = []
-                    emb_ring_buffer_write(buf, ts, empty, 0)
+                    ringWrite(buf, ts, empty, 0)
                 } else {
                     let f = (0..<fc).map { UInt(sentinel) + UInt($0) }
-                    emb_ring_buffer_write(buf, ts, f, fc)
+                    ringWrite(buf, ts, f, fc)
                 }
             }
 
@@ -842,7 +844,7 @@
             let frameCount = (page / RingBufferEdgeCaseTests.frameSize) + 1
             let frames = [UInt](repeating: 0xDEAD, count: frameCount)
 
-            XCTAssertNotEqual(emb_ring_buffer_write(buf, 1_000, frames, frameCount), EMB_RING_WRITE_OK,
+            XCTAssertNotEqual(ringWrite(buf, 1_000, frames, frameCount), EMB_RING_WRITE_OK,
                 "Write should fail when record size exceeds buffer capacity")
 
             // Buffer should remain empty and functional.
@@ -851,7 +853,7 @@
 
             // A smaller write should still succeed.
             let small: [UInt] = [1]
-            XCTAssertEqual(emb_ring_buffer_write(buf, 2_000, small, 1), EMB_RING_WRITE_OK)
+            XCTAssertEqual(ringWrite(buf, 2_000, small, 1), EMB_RING_WRITE_OK)
         }
 
         func test_write_recordAtExactCapacity_succeeds() {
@@ -865,7 +867,7 @@
                 / RingBufferEdgeCaseTests.frameSize
 
             let frames = (0..<frameCount).map { UInt($0 + 1) }
-            XCTAssertEqual(emb_ring_buffer_write(buf, 42_000, frames, frameCount), EMB_RING_WRITE_OK,
+            XCTAssertEqual(ringWrite(buf, 42_000, frames, frameCount), EMB_RING_WRITE_OK,
                 "Write should succeed when record exactly fills buffer")
 
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -882,7 +884,7 @@
 
             for i in 1...20 {
                 let f: [UInt] = [UInt(i), UInt(i * 10)]
-                emb_ring_buffer_write(buf, UInt64(i) * 1_000, f, 2)
+                ringWrite(buf, UInt64(i) * 1_000, f, 2)
             }
 
             // Each record is header(16) + 2 frames(16) = 32 bytes.
@@ -905,7 +907,7 @@
 
             for i in 1...20 {
                 let f: [UInt] = [UInt(i), UInt(i * 10)]
-                emb_ring_buffer_write(buf, UInt64(i) * 1_000, f, 2)
+                ringWrite(buf, UInt64(i) * 1_000, f, 2)
             }
 
             // Each record is header(16) + 2 frames(16) = 32 bytes.
@@ -944,7 +946,7 @@
             defer { emb_ring_buffer_destroy(buf) }
 
             let f: [UInt] = [1]
-            emb_ring_buffer_write(buf, 1_000, f, 1)
+            ringWrite(buf, 1_000, f, 1)
 
             // output_size = 0 triggers the NULL/empty guard in read_range.
             let output = UnsafeMutablePointer<UInt8>.allocate(capacity: 1)
@@ -960,7 +962,7 @@
             defer { emb_ring_buffer_destroy(buf) }
 
             let f: [UInt] = [1]
-            emb_ring_buffer_write(buf, 1_000, f, 1)
+            ringWrite(buf, 1_000, f, 1)
 
             let result = emb_ring_buffer_read_range(buf, 0, UINT64_MAX, nil, 1024)
             XCTAssertEqual(result.record_count, 0)
@@ -981,7 +983,7 @@
 
             // The C guard is: frames == NULL && frame_count > 0 → false.
             // NULL frames with 0 count should succeed and produce a zero-frame record.
-            XCTAssertEqual(emb_ring_buffer_write(buf, 42_000, nil, 0), EMB_RING_WRITE_OK,
+            XCTAssertEqual(ringWrite(buf, 42_000, nil, 0), EMB_RING_WRITE_OK,
                 "write with NULL frames and 0 frame_count should succeed")
 
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -999,7 +1001,7 @@
             // Fill with large records so reads take measurable time.
             for i in 0..<100 {
                 let frames = [UInt](repeating: UInt(i + 1), count: 100)
-                emb_ring_buffer_write(buf, UInt64(i + 1) * 1_000, frames, 100)
+                ringWrite(buf, UInt64(i + 1) * 1_000, frames, 100)
             }
 
             let capacity = emb_ring_buffer_capacity(buf)
@@ -1066,7 +1068,7 @@
             // Fill buffer with data.
             for i in 0..<50 {
                 let frames = [UInt](repeating: UInt(i + 1), count: 20)
-                emb_ring_buffer_write(buf, UInt64(i + 1) * 1_000, frames, 20)
+                ringWrite(buf, UInt64(i + 1) * 1_000, frames, 20)
             }
 
             let capacity = emb_ring_buffer_capacity(buf)
@@ -1130,7 +1132,7 @@
                     for j in 0..<10 {
                         let ts = UInt64(cycle * 10000 + j + 1)
                         let frames = [UInt](repeating: UInt(ts), count: 5)
-                        emb_ring_buffer_write(buf, ts, frames, 5)
+                        ringWrite(buf, ts, frames, 5)
                     }
                 }
             }
@@ -1150,7 +1152,7 @@
 
             // Write some valid data first.
             let f: [UInt] = [0xCAFE]
-            emb_ring_buffer_write(buf, 1_000, f, 1)
+            ringWrite(buf, 1_000, f, 1)
 
             let records = testReadRange(buf, 0, UINT64_MAX)
             XCTAssertEqual(records.count, 1, "Precondition: data should be readable")
@@ -1159,13 +1161,11 @@
             // so that write_pos - oldest_pos > capacity. The read path should detect
             // this and return empty rather than reading garbage.
             //
-            // Struct layout: data(8) + capacity(8) + next_seq(8) + write_pos(8)
-            // write_pos is at byte offset 24 from the start of the struct.
+            // write_pos is the first field (offset 0) of the control block.
             let capacity = buf.pointee.capacity
             let corruptWritePos = UInt64(capacity * 2)
-            let writePosOffset = 24  // data(8) + capacity(8) + next_seq(8)
-            UnsafeMutableRawPointer(buf).storeBytes(
-                of: corruptWritePos, toByteOffset: writePosOffset, as: UInt64.self)
+            UnsafeMutableRawPointer(buf.pointee.control).storeBytes(
+                of: corruptWritePos, toByteOffset: 0, as: UInt64.self)
 
             let corruptRecords = testReadRange(buf, 0, UINT64_MAX)
             XCTAssertEqual(corruptRecords.count, 0,

@@ -24,7 +24,7 @@
             // Write a record.
             let testFrames: [UInt] = [0x1000, 0x2000, 0x3000]
             let timestamp: UInt64 = 123_456_789
-            XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, testFrames, testFrames.count), EMB_RING_WRITE_OK, "write should succeed")
+            XCTAssertEqual(ringWrite(buf, timestamp, testFrames, testFrames.count), EMB_RING_WRITE_OK, "write should succeed")
 
             // Read back all records.
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -64,7 +64,7 @@
 
                 let timestamp = UInt64(100_000 * (i + 1))
                 expectedTimestamps.append(timestamp)
-                XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, frames, frameCount), EMB_RING_WRITE_OK, "write \(i) should succeed")
+                XCTAssertEqual(ringWrite(buf, timestamp, frames, frameCount), EMB_RING_WRITE_OK, "write \(i) should succeed")
             }
 
             // Read back all records.
@@ -100,7 +100,7 @@
             // Write a zero-frame record.
             let timestamp: UInt64 = 999_999
             let frames: [UInt] = []
-            XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, frames, 0), EMB_RING_WRITE_OK, "write should succeed")
+            XCTAssertEqual(ringWrite(buf, timestamp, frames, 0), EMB_RING_WRITE_OK, "write should succeed")
 
             // Read back.
             let records = testReadRange(buf, 0, UINT64_MAX)
@@ -135,7 +135,7 @@
 
                 let timestamp = UInt64(1_000_000 * (idx + 1))
                 expectedData.append((timestamp, frameCount))
-                XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, frames, frameCount), EMB_RING_WRITE_OK, "write \(idx) should succeed")
+                XCTAssertEqual(ringWrite(buf, timestamp, frames, frameCount), EMB_RING_WRITE_OK, "write \(idx) should succeed")
             }
 
             // Read back.
@@ -183,7 +183,7 @@
 
                 let timestamp = UInt64(i + 1)
                 lastTimestamps.append(timestamp)
-                XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, frames, 10), EMB_RING_WRITE_OK, "write \(i) should succeed")
+                XCTAssertEqual(ringWrite(buf, timestamp, frames, 10), EMB_RING_WRITE_OK, "write \(i) should succeed")
             }
 
             // Read back. Should get only the records that fit in the buffer
@@ -227,7 +227,7 @@
                     frames.append(UInt(i * 100 + j))
                 }
 
-                XCTAssertEqual(emb_ring_buffer_write(buf, UInt64(i), frames, 10), EMB_RING_WRITE_OK, "write \(i) should succeed")
+                XCTAssertEqual(ringWrite(buf, UInt64(i), frames, 10), EMB_RING_WRITE_OK, "write \(i) should succeed")
             }
 
             // Read back.
@@ -248,7 +248,7 @@
 
         func test_write_withNilBuffer_returnsFalse() {
             let frames: [UInt] = [0x1000, 0x2000]
-            XCTAssertNotEqual(emb_ring_buffer_write(nil, 123, frames, 2), EMB_RING_WRITE_OK)
+            XCTAssertNotEqual(ringWrite(nil, 123, frames, 2), EMB_RING_WRITE_OK)
         }
 
         func test_write_withNilFrames_returnsFalse() {
@@ -259,7 +259,7 @@
             }
             defer { emb_ring_buffer_destroy(buf) }
 
-            XCTAssertNotEqual(emb_ring_buffer_write(buf, 123, nil, 10), EMB_RING_WRITE_OK)
+            XCTAssertNotEqual(ringWrite(buf, 123, nil, 10), EMB_RING_WRITE_OK)
         }
 
         func test_write_recordTooLarge_returnsRecordTooLarge() {
@@ -277,7 +277,7 @@
             let frameCount = buf.pointee.capacity / MemoryLayout<UInt>.stride + 1
             let frames = [UInt](repeating: 0, count: frameCount)
             XCTAssertEqual(
-                emb_ring_buffer_write(buf, 1, frames, frameCount),
+                ringWrite(buf, 1, frames, frameCount),
                 EMB_RING_WRITE_RECORD_TOO_LARGE)
         }
 
@@ -294,7 +294,7 @@
             // The guard fires before any buffer access, so the frames array
             // size doesn't need to match the claimed count.
             XCTAssertEqual(
-                emb_ring_buffer_write(buf, 1, frames, Int(UInt32.max) + 1),
+                ringWrite(buf, 1, frames, Int(UInt32.max) + 1),
                 EMB_RING_WRITE_BAD_ARGS)
         }
         #endif
@@ -317,7 +317,7 @@
             for i in 0..<10 {
                 let frames: [UInt] = [UInt(i)]
                 let timestamp = UInt64((i + 1) * 1000)
-                XCTAssertEqual(emb_ring_buffer_write(buf, timestamp, frames, 1), EMB_RING_WRITE_OK)
+                XCTAssertEqual(ringWrite(buf, timestamp, frames, 1), EMB_RING_WRITE_OK)
             }
 
             // Read only records from 3000 to 7000 (inclusive).
