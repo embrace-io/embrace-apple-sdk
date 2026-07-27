@@ -8,6 +8,7 @@
 
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
+        import EmbraceConfiguration
     #endif
 
     /// Detects that the main thread *looks* stalled and captures a single during-block backtrace of
@@ -30,16 +31,9 @@
     /// window that CADisplayLink later confirms.
     final class StallTriggeredSampler: MainThreadStackSampler {
 
-        /// Lower bound on the trigger. Prevents a bad/hostile remote value from driving overly
-        /// aggressive main-thread suspension.
-        static let minTriggerThreshold: TimeInterval = 0.05  // 50 ms
-
-        /// Lower bound on the poll cadence, for the same reason.
-        static let minPollInterval: TimeInterval = 0.01  // 10 ms
-
         private let mainThread: pthread_t
         private let triggerNanos: UInt64
-        private let pollMicros: useconds_t
+        private let pollNanos: UInt64
         private let bufferCap: Int
         private weak var logger: InternalLogger?
 
@@ -64,32 +58,32 @@
         /// - Parameters:
         ///   - mainThread: the `pthread_t` of the thread to sample (the main thread).
         ///   - triggerThreshold: how long main must be continuously busy before we snapshot it.
-        ///     Clamped up to ``minTriggerThreshold``.
-        ///   - pollInterval: how often the background thread checks liveness. Clamped up to
-        ///     ``minPollInterval``.
+        ///     Clamped into `HangLimits.min/maxSampleTriggerThreshold`.
+        ///   - pollInterval: how often the background thread checks liveness. Clamped into
+        ///     `HangLimits.min/maxSamplePollInterval`.
         ///   - bufferCap: max buffered samples (small ring; one per stall episode).
         init(
             mainThread: pthread_t,
             triggerThreshold: TimeInterval,
-            pollInterval: TimeInterval = 0.05,
+            pollInterval: TimeInterval = HangLimits.defaultSamplePollInterval,
             bufferCap: Int = 8,
             logger: InternalLogger?
         ) {
             self.mainThread = mainThread
-            self.triggerNanos = UInt64(max(Self.minTriggerThreshold, triggerThreshold) * 1_000_000_000)
-            self.pollMicros = useconds_t(max(Self.minPollInterval, pollInterval) * 1_000_000)
+            self.triggerNanos = Self.clampedNanos(
+                triggerThreshold,
+                fallback: HangLimits.defaultSampleTriggerThreshold,
+                min: HangLimits.minSampleTriggerThreshold,
+                max: HangLimits.maxSampleTriggerThreshold
+            )
+            self.pollNanos = Self.clampedNanos(
+                pollInterval,
+                fallback: HangLimits.defaultSamplePollInterval,
+                min: HangLimits.minSamplePollInterval,
+                max: HangLimits.maxSamplePollInterval
+            )
             self.bufferCap = bufferCap
             self.logger = logger
-        }
-
-        /// Convenience: derive the trigger from the reported-hang threshold (a fraction below it so
-        /// the snapshot lands in-window even for short hangs).
-        convenience init(mainThread: pthread_t, hangThreshold: TimeInterval, logger: InternalLogger?) {
-            self.init(
-                mainThread: mainThread,
-                triggerThreshold: hangThreshold * 0.6,
-                logger: logger
-            )
         }
 
         deinit { stop() }
@@ -98,7 +92,20 @@
         var effectiveTriggerThreshold: TimeInterval { TimeInterval(triggerNanos) / 1_000_000_000 }
 
         /// Effective poll cadence after clamping, in seconds. Exposed for tests.
-        var effectivePollInterval: TimeInterval { TimeInterval(pollMicros) / 1_000_000 }
+        var effectivePollInterval: TimeInterval { TimeInterval(pollNanos) / 1_000_000_000 }
+
+        /// Values reaching `HangLimits` are already clamped; this is the defense-in-depth for direct
+        /// callers. A non-finite value falls back to `fallback`; otherwise it is clamped into
+        /// `[minimum, maximum]` (whose upper bound keeps the ns conversion from overflowing).
+        private static func clampedNanos(
+            _ value: TimeInterval,
+            fallback: TimeInterval,
+            min minimum: TimeInterval,
+            max maximum: TimeInterval
+        ) -> UInt64 {
+            let base = value.isFinite ? value : fallback
+            return UInt64(Swift.min(Swift.max(base, minimum), maximum) * 1_000_000_000)
+        }
 
         // MARK: - MainThreadStackSampler
 
@@ -113,7 +120,19 @@
                 }
                 state.tokens = makeLifecycleTokens()
 
-                let thread = Thread { [weak self] in self?.run() }
+                // The worker shares this sampler's lock-free state but not `self`, so the poll thread
+                // never retains the sampler; that keeps `deinit { stop() }` a real backstop.
+                let worker = PollWorker(
+                    running: running,
+                    paused: paused,
+                    busySince: busySince,
+                    buffer: buffer,
+                    mainThread: mainThread,
+                    triggerNanos: triggerNanos,
+                    pollNanos: pollNanos,
+                    bufferCap: bufferCap
+                )
+                let thread = Thread { worker.run() }
                 thread.name = "io.embrace.hang.sampler"
                 thread.qualityOfService = .userInitiated
                 state.thread = thread
@@ -170,14 +189,62 @@
             }
         }
 
-        // MARK: - Background sampling loop
+        // MARK: - App lifecycle (raw names to avoid a UIKit dependency)
 
-        private func run() {
-            // The `busySince` value we last captured for. Poller-local: no synchronization needed.
+        private func makeLifecycleTokens() -> [NSObjectProtocol] {
+            let nc = NotificationCenter.default
+            return [
+                nc.addObserver(
+                    forName: Notification.Name("UIApplicationDidEnterBackgroundNotification"),
+                    object: nil, queue: nil
+                ) { [weak self] _ in self?.pause() },
+                nc.addObserver(
+                    forName: Notification.Name("UIApplicationWillEnterForegroundNotification"),
+                    object: nil, queue: nil
+                ) { [weak self] _ in self?.resume() }
+            ]
+        }
+    }
+
+    /// The background poll loop. Holds only the shared lock-free state, never the sampler, so the
+    /// sampler's lifetime is not pinned to the loop's — the thread closure retains this worker
+    /// instead. The shared atomics/buffer stay alive as long as the loop runs.
+    private final class PollWorker {
+        private let running: EmbraceAtomic<Bool>
+        private let paused: EmbraceAtomic<Bool>
+        private let busySince: EmbraceAtomic<UInt64>
+        private let buffer: EmbraceMutex<[MainThreadStackSample]>
+        private let mainThread: pthread_t
+        private let triggerNanos: UInt64
+        private let pollNanos: UInt64
+        private let bufferCap: Int
+
+        init(
+            running: EmbraceAtomic<Bool>,
+            paused: EmbraceAtomic<Bool>,
+            busySince: EmbraceAtomic<UInt64>,
+            buffer: EmbraceMutex<[MainThreadStackSample]>,
+            mainThread: pthread_t,
+            triggerNanos: UInt64,
+            pollNanos: UInt64,
+            bufferCap: Int
+        ) {
+            self.running = running
+            self.paused = paused
+            self.busySince = busySince
+            self.buffer = buffer
+            self.mainThread = mainThread
+            self.triggerNanos = triggerNanos
+            self.pollNanos = pollNanos
+            self.bufferCap = bufferCap
+        }
+
+        func run() {
+            // The `busySince` value we last captured for. Loop-local: no synchronization needed.
             var lastSampledEpoch: UInt64 = 0
 
             while running.load(order: .acquire) {
-                usleep(pollMicros)
+                Self.sleep(nanos: pollNanos)
 
                 guard !paused.load(order: .acquire) else { continue }
 
@@ -212,20 +279,12 @@
             }
         }
 
-        // MARK: - App lifecycle (raw names to avoid a UIKit dependency)
-
-        private func makeLifecycleTokens() -> [NSObjectProtocol] {
-            let nc = NotificationCenter.default
-            return [
-                nc.addObserver(
-                    forName: Notification.Name("UIApplicationDidEnterBackgroundNotification"),
-                    object: nil, queue: nil
-                ) { [weak self] _ in self?.pause() },
-                nc.addObserver(
-                    forName: Notification.Name("UIApplicationWillEnterForegroundNotification"),
-                    object: nil, queue: nil
-                ) { [weak self] _ in self?.resume() }
-            ]
+        private static func sleep(nanos: UInt64) {
+            var ts = timespec(
+                tv_sec: Int(nanos / 1_000_000_000),
+                tv_nsec: Int(nanos % 1_000_000_000)
+            )
+            nanosleep(&ts, nil)
         }
     }
 

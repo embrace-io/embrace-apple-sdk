@@ -28,12 +28,15 @@ import OpenTelemetryApi
             limits: HangLimits = HangLimits()
         ) {
             dispatchPrecondition(condition: .onQueue(.main))
+            // Capture main's `pthread_t` here, on the main thread. The sampler is (re)built later —
+            // `onConfigUpdated` runs off the main thread — so it can't derive main via `pthread_self()`
+            // itself; we capture it once and inject it.
             self.mainThread = pthread_self()
             self.limitData = EmbraceMutex(MutableLimitData(limits: limits))
             super.init()
         }
 
-        public override func onInstall() {
+        public override func onStart() {
 
             // No monitor when debugger is attached.
             if isDebuggerAttached() && ProcessInfo.processInfo.environment["EMBAllowWatchdogInDebugger"] != "1" {
@@ -42,20 +45,41 @@ import OpenTelemetryApi
                 return
             }
 
-            // Since we use `limits.hangPerSession` as a gate for the monitor,
-            // we need to wait until the remote config is actually loaded from disk
-            // which happens just before this call.
-            let currentLimits = limits
-            let (monitor, sampler) = makeMonitorAndSampler(for: currentLimits)
-            sampler?.start()
-            limitData.withLock {
-                $0.watchdog = monitor
-                $0.sampler = sampler
+            // `limits.hangPerSession` gates the monitor, and the remote config is loaded from disk
+            // before the service is installed and started, so `limits` is authoritative here.
+            activate(with: limits)
+        }
+
+        public override func onStop() {
+            // Tear down the detector and sampler so no poll thread or CADisplayLink outlives an SDK
+            // stop. Releasing the monitor invalidates its CADisplayLink via `FrameRateMonitor.deinit`.
+            let sampler = limitData.withLock { data -> MainThreadStackSampler? in
+                let previous = data.sampler
+                data.watchdog = nil
+                data.sampler = nil
+                return previous
             }
+            sampler?.stop()
+        }
+
+        /// Builds a fresh detector + sampler for `limits`, starts the sampler, and swaps them in for
+        /// the previous pair (which is stopped and released).
+        private func activate(with limits: HangLimits) {
+            let (monitor, sampler) = makeMonitorAndSampler(for: limits)
+            sampler?.start()
+            let oldSampler = limitData.withLock { data -> MainThreadStackSampler? in
+                let previous = data.sampler
+                data.watchdog = monitor
+                data.sampler = sampler
+                return previous
+            }
+            oldSampler?.stop()
         }
 
         /// Builds the detector + during-block sampler pair for `limits`, or `(nil, nil)` when hangs
-        /// are disabled. The sampler is returned un-started; callers own `start()`/`stop()`.
+        /// are disabled. The sampler is returned un-started (the caller owns `start()`/`stop()`); the
+        /// monitor begins observing as soon as it is constructed — `FrameRateMonitor.init` adds its
+        /// `CADisplayLink` to the main run loop — and stops when it is released.
         private func makeMonitorAndSampler(
             for limits: HangLimits
         ) -> (FrameRateMonitor?, MainThreadStackSampler?) {
@@ -92,17 +116,11 @@ import OpenTelemetryApi
                 $0.limits = newLimits
                 return changed
             }
-            if monitorNeedsUpdate {
-                let (monitor, sampler) = makeMonitorAndSampler(for: newLimits)
-                let oldSampler = limitData.withLock { data -> MainThreadStackSampler? in
-                    let previous = data.sampler
-                    data.watchdog = monitor
-                    data.sampler = sampler
-                    return previous
-                }
-                oldSampler?.stop()
-                sampler?.start()
-            }
+            // Only rebuild the live detector/sampler while active. If the service isn't running the
+            // new limits are stored above and applied the next time `onStart()` runs — a config
+            // update must never spin up a poll thread on a stopped service.
+            guard monitorNeedsUpdate, state.load(order: .acquire) == .active else { return }
+            activate(with: newLimits)
         }
 
         private var mainThread: pthread_t
@@ -206,7 +224,8 @@ import OpenTelemetryApi
             let endMono = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
             let durationNanos = UInt64((duration * 1_000_000_000).rounded())
             let startMono = endMono > durationNanos + tolerance ? endMono &- durationNanos &- tolerance : 0
-            let sample = limitData.withLock { $0.sampler }?.samples(in: startMono...endMono).last
+            // Take the earliest during-block sample in the window — closest to where the block began.
+            let sample = limitData.withLock { $0.sampler }?.samples(in: startMono...endMono).first
             let sampleTime = at.addingTimeInterval(-duration)
 
             spanQueue.async { [self] in

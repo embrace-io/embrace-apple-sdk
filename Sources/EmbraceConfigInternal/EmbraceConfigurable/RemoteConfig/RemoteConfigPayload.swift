@@ -410,11 +410,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         internalLogsWarningLimit = 0
         internalLogsErrorLimit = 3
 
-        hangLimitsHangThreshold = 0.249
-        hangLimitsHangPerSession = 20
-        hangLimitsReportsWatchdogEvents = false
-        hangLimitsSampleTriggerThreshold = 0.15
-        hangLimitsSamplePollInterval = 0.05
+        hangLimitsHangThreshold = HangLimits.defaultHangThreshold
+        hangLimitsHangPerSession = HangLimits.defaultHangPerSession
+        hangLimitsReportsWatchdogEvents = HangLimits.defaultReportsWatchdogEvents
+        hangLimitsSampleTriggerThreshold = HangLimits.defaultSampleTriggerThreshold
+        hangLimitsSamplePollInterval = HangLimits.defaultSamplePollInterval
 
         networkPayloadCaptureRules = []
         useLegacyUrlSessionProxy = false

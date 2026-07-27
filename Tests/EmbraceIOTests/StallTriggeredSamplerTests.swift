@@ -4,6 +4,7 @@
 
 #if !os(watchOS) && !os(macOS)
 
+    import EmbraceConfiguration
     import Foundation
     import TestSupport
     import XCTest
@@ -80,8 +81,8 @@
                 pollInterval: 0.0001,
                 logger: nil
             )
-            XCTAssertEqual(sampler.effectiveTriggerThreshold, StallTriggeredSampler.minTriggerThreshold, accuracy: 1e-9)
-            XCTAssertEqual(sampler.effectivePollInterval, StallTriggeredSampler.minPollInterval, accuracy: 1e-9)
+            XCTAssertEqual(sampler.effectiveTriggerThreshold, HangLimits.minSampleTriggerThreshold, accuracy: 1e-9)
+            XCTAssertEqual(sampler.effectivePollInterval, HangLimits.minSamplePollInterval, accuracy: 1e-9)
         }
 
         func test_aboveFloorValuesArePreserved() {
