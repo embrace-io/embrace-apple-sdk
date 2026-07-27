@@ -59,6 +59,22 @@ final class HangLimitsTests: XCTestCase {
         XCTAssertEqual(HangLimits(hangThreshold: 0.5).hangThreshold, 0.5, accuracy: 1e-9)
     }
 
+    // MARK: - Equality / hashing (NSObject contract)
+
+    func test_equalInstances_shareHashAndAreEqual() {
+        let a = HangLimits(hangThreshold: 0.3, hangPerSession: 5, samplePollInterval: 0.02)
+        let b = HangLimits(hangThreshold: 0.3, hangPerSession: 5, samplePollInterval: 0.02)
+        XCTAssertEqual(a, b)
+        XCTAssertEqual(a.hash, b.hash, "equal HangLimits must return the same hash (NSObject contract)")
+        XCTAssertEqual(Set([a, b]).count, 1, "equal instances should dedupe in a Set")
+    }
+
+    func test_differingInstances_areNotEqual() {
+        let a = HangLimits(hangThreshold: 0.3)
+        let b = HangLimits(hangThreshold: 0.4)
+        XCTAssertNotEqual(a, b)
+    }
+
     // MARK: - Bounds sanity
 
     func test_bounds_areOrdered() {

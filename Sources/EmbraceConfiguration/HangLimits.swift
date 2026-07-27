@@ -93,6 +93,16 @@ import Foundation
         return Swift.min(Swift.max(value, minimum), maximum)
     }
 
+    public override var hash: Int {
+        var hasher = Hasher()
+        hasher.combine(hangThreshold)
+        hasher.combine(hangPerSession)
+        hasher.combine(reportsWatchdogEvents)
+        hasher.combine(sampleTriggerThreshold)
+        hasher.combine(samplePollInterval)
+        return hasher.finalize()
+    }
+
     public override func isEqual(_ object: Any?) -> Bool {
         guard let other = object as? Self else {
             return false
