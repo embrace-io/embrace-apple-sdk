@@ -222,11 +222,6 @@ extension EmbraceBacktrace {
     ///   Release too. If a refactor changes the chain, that test fails and points here.
     static let selfCaptureFrameSkip = 5
 
-    /// Wrapper depth for the Apple/`Thread.callStackReturnAddresses` self-capture path
-    /// (`_takeSnapshotApple`). Smaller than ``selfCaptureFrameSkip`` because that path has no
-    /// `Backtracer` indirection on top. Pinned by the same test; see it for the drift caveat.
-    static let appleSelfCaptureFrameSkip = 3
-
     /// Upper bound on frames captured per snapshot: deep enough for real call stacks, capped so a
     /// runaway/recursive stack can't blow up capture cost or payload size.
     static let maxCapturedFrames = 512
@@ -297,42 +292,6 @@ extension EmbraceBacktrace {
         return [
             EmbraceBacktraceThread(
                 index: threadIndex,
-                callstack: EmbraceBacktraceThread.Callstack(
-                    addresses: addresses,
-                    count: addresses.count
-                )
-            )
-        ]
-    }
-}
-
-extension EmbraceBacktrace {
-
-    // `@inline(never)` pins the Apple self-capture wrapper depth for `appleSelfCaptureFrameSkip`,
-    // same rationale as `takeSnapshot`.
-    @inline(never)
-    static func takeSnapshotApple() -> [EmbraceBacktraceThread] {
-        let snap = _takeSnapshotApple()
-        return snap
-    }
-
-    @inline(never)
-    static func _takeSnapshotApple() -> [EmbraceBacktraceThread] {
-
-        // Get the actual snapshot,
-        // remove the entries that are part of the SDK,
-        // get only the first N entries to not overload the system,
-        // clean 'em up.
-        let entries = Self.maxCapturedFrames
-        let addresses =
-            Thread.callStackReturnAddresses
-            .dropFirst(Self.appleSelfCaptureFrameSkip)
-            .prefix(entries)
-            .compactMap { $0 as? UInt }
-
-        return [
-            EmbraceBacktraceThread(
-                index: 0,
                 callstack: EmbraceBacktraceThread.Callstack(
                     addresses: addresses,
                     count: addresses.count

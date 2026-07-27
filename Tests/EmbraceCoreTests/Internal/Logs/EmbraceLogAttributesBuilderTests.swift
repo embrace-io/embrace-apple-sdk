@@ -159,7 +159,11 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
 
-        sut.addBacktrace(EmbraceBacktrace.backtrace())
+        // A canned single-thread backtrace: `addBacktrace` only needs a non-empty thread list, so
+        // this avoids depending on a configured backtracer to capture one.
+        let thread = EmbraceBacktraceThread(index: 0, callstack: .init(addresses: [0x1], count: 1))
+        let backtrace = EmbraceBacktrace(timestampUnits: .nanoseconds, timestamp: 0, threads: [thread])
+        sut.addBacktrace(backtrace)
         whenInvokingBuild()
 
         thenResultingAttributes(containsKey: "emb.stacktrace.ios")
