@@ -2,8 +2,9 @@
 //  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceConfiguration
 import XCTest
+
+@testable import EmbraceConfiguration
 
 final class HangLimitsTests: XCTestCase {
 
@@ -77,7 +78,7 @@ final class HangLimitsTests: XCTestCase {
     // MARK: - hangThreshold sanitization
 
     func test_init_sanitizesNonPositiveOrNonFiniteHangThreshold() {
-        for bad in [0, -1, Double.nan, .infinity] {
+        for bad in [0, -1, Double.nan, .infinity, -.infinity] {
             let limits = HangLimits(hangThreshold: bad)
             XCTAssertEqual(limits.hangThreshold, HangLimits.defaultHangThreshold)
         }

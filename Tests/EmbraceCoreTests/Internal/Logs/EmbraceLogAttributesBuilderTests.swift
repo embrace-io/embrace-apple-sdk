@@ -154,7 +154,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
 
     // MARK: - addBackTrace Tests
 
-    func test_onAddBacktrace_doesNothing() {
+    func test_addBacktrace_addsStacktraceAttribute() {
         givenSessionController()
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()

@@ -5,7 +5,7 @@
 import Foundation
 
 /// HangLimits manages limits for the app hangs generated through the SDK
-@objc public class HangLimits: NSObject {
+@objc public final class HangLimits: NSObject {
 
     // MARK: - Defaults
 
@@ -37,7 +37,7 @@ import Foundation
     /// internally inconsistent (`sampleTriggerThreshold >= hangThreshold`). Matches the ratio the
     /// SDK's own defaults use (0.15 / 0.249 ≈ 0.6), so the during-block snapshot lands well inside the
     /// confirmed hang window.
-    public static let sampleTriggerFraction: TimeInterval = 0.6
+    static let sampleTriggerFraction: TimeInterval = 0.6
 
     // MARK: - Values
 

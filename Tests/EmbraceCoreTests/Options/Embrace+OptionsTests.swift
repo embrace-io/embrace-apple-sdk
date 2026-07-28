@@ -25,6 +25,13 @@ final class Embrace_OptionsTests: XCTestCase {
         XCTAssertTrue(options.symbolicator is KSCrashBacktracing)
     }
 
+    func test_init_exportOverload_defaultsToBuiltInBacktracerAndSymbolicator() throws {
+        // The export/no-appId initializer gets the same built-in defaults as the appId one.
+        let options = Embrace.Options(export: OpenTelemetryExport(), captureServices: [], crashReporter: nil)
+        XCTAssertTrue(options.backtracer is KSCrashBacktracing)
+        XCTAssertTrue(options.symbolicator is KSCrashBacktracing)
+    }
+
     func test_init_backtracerAndSymbolicatorAreOverridableToNil() throws {
         let options = Embrace.Options(
             appId: "myApp", captureServices: [], crashReporter: nil, backtracer: nil, symbolicator: nil)
