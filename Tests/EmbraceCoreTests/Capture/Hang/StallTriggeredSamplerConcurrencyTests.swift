@@ -68,10 +68,11 @@
             )
         }
 
-        /// The poll loop must not retain the sampler (it holds only the shared state), so `deinit`
-        /// stays a real backstop: dropping the last strong reference — even after `start()` and
-        /// *without* an explicit `stop()` — must deallocate the sampler. A regression that captured
-        /// `self` in the poll thread would keep it alive forever and fail this.
+        /// No strong reference may outlive the sampler's scope: the poll loop holds only the shared
+        /// state (never `self`), and the run-loop observer and lifecycle tokens capture `[weak self]`.
+        /// So dropping the last strong reference — even after `start()` and *without* an explicit
+        /// `stop()` — must deallocate it, with `deinit { stop() }` as the backstop. A regression that
+        /// strongly captured `self` in the poll thread would keep it alive forever and fail this.
         func test_deinit_deallocatesWithoutExplicitStop() {
             weak var weakSampler: StallTriggeredSampler?
             autoreleasepool {

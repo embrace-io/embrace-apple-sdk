@@ -199,12 +199,14 @@ extension RemoteConfig: EmbraceConfigurable {
 
 extension RemoteConfig {
 
-    /// Descriptions of any hang-limit payload values that `HangLimits` had to correct — an
-    /// out-of-range clamp, a non-finite/non-positive fallback, or the
-    /// `sampleTriggerThreshold >= hangThreshold` re-derivation. Empty when the payload is already
-    /// valid. `HangLimits` corrects these silently (by design — it can't reach a logger and must not
-    /// trap), so this surfaces them one layer up where a bad remote-config push can be diagnosed.
-    /// Pure, so it can be unit-tested without the fetch/logging plumbing.
+    /// Descriptions of any hang-limit payload values that were *invalid* and had to be corrected — a
+    /// non-finite/non-positive fallback, an out-of-range clamp, or a `sampleTriggerThreshold` at or
+    /// above `hangThreshold`. Empty when the payload is valid. The routine cap that keeps the trigger
+    /// a margin below `hangThreshold` is expected policy, not a misconfiguration, so a valid in-range
+    /// request the cap merely trims is deliberately *not* reported. `HangLimits` applies all of this
+    /// silently (by design — it can't reach a logger and must not trap), so this surfaces the genuine
+    /// misconfigurations one layer up where a bad remote-config push can be diagnosed. Pure, so it can
+    /// be unit-tested without the fetch/logging plumbing.
     static func hangLimitCorrections(for payload: RemoteConfigPayload) -> [String] {
         let limits = HangLimits(
             hangThreshold: payload.hangLimitsHangThreshold,
@@ -232,7 +234,7 @@ extension RemoteConfig {
         } else if rawTrigger < HangLimits.minSampleTriggerThreshold {
             triggerReason = "below the floor of \(HangLimits.minSampleTriggerThreshold); clamped up"
         } else if rawTrigger > HangLimits.maxSampleTriggerThreshold {
-            triggerReason = "above the max of \(HangLimits.maxSampleTriggerThreshold); clamped down"
+            triggerReason = "above the max of \(HangLimits.maxSampleTriggerThreshold) (a seconds/ms mixup?); capped"
         } else if rawTrigger >= limits.hangThreshold {
             triggerReason = "at or above hang_threshold (\(limits.hangThreshold)); capped"
         } else {

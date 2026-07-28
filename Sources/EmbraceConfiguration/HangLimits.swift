@@ -53,8 +53,8 @@ import Foundation
     /// How long (in seconds) the main thread must be continuously busy before the during-block
     /// sampler snapshots it. Capped at ``sampleTriggerFraction`` of `hangThreshold` — a fixed headroom
     /// below the reported-hang threshold so the snapshot lands inside the confirmed window — and
-    /// clamped into `[minSampleTriggerThreshold, maxSampleTriggerThreshold]`. A requested value at or
-    /// below the cap is used as-is. For a degenerately small `hangThreshold` (below
+    /// clamped into `[minSampleTriggerThreshold, maxSampleTriggerThreshold]`. A requested value in
+    /// `[minSampleTriggerThreshold, cap]` is used as-is. For a degenerately small `hangThreshold` (below
     /// `minSampleTriggerThreshold / sampleTriggerFraction`) the floor takes precedence over the cap.
     public let sampleTriggerThreshold: TimeInterval
 

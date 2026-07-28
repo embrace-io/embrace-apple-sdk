@@ -98,7 +98,8 @@
                     min: HangLimits.minSamplePollInterval,
                     max: HangLimits.maxSamplePollInterval
                 ),
-                bufferCap: Swift.max(1, bufferCap)  // a non-positive cap would trap the ring-buffer trim
+                // a cap < 1 would defeat buffering: 0 clears the ring every append, negative traps the trim.
+                bufferCap: Swift.max(1, bufferCap)
             )
             self.logger = logger
         }

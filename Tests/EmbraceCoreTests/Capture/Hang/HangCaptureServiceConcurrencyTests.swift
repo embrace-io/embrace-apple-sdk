@@ -26,6 +26,11 @@
     final class HangCaptureServiceConcurrencyTests: XCTestCase {
 
         func test_concurrentConfigUpdatesAndStop_areRaceFreeAndDoNotDeadlock() {
+            // Precondition: no backtracer configured, so the sampler's KSCrash walk (unsafe under
+            // sanitizers) never runs. Fail loudly if another test left a client/backtracer installed,
+            // rather than silently changing what this test exercises under TSan.
+            XCTAssertFalse(EmbraceBacktrace.isAvailable, "no Embrace.client/backtracer should be set for this test")
+
             let otel = MockEmbraceOpenTelemetry()
             let service = HangCaptureService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 6))
             service.install(otel: otel)

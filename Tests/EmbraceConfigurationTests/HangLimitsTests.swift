@@ -85,6 +85,16 @@ final class HangLimitsTests: XCTestCase {
         XCTAssertLessThan(limits.sampleTriggerThreshold, limits.hangThreshold)
     }
 
+    func test_init_floorWinsOverCapForSmallHangThreshold() {
+        // hangThreshold below minSampleTriggerThreshold / sampleTriggerFraction (≈ 0.083): 60% of it
+        // (≈ 0.036) is below the floor, so the floor takes precedence over the cap. Guards the
+        // `max(…, minSampleTriggerThreshold)` in the ceiling — without it the trigger would dip below
+        // the floor. (For an even smaller hangThreshold ≤ the floor the below-hangThreshold guarantee is
+        // intentionally sacrificed; that's a degenerate config, documented on `sampleTriggerThreshold`.)
+        let limits = HangLimits(hangThreshold: 0.06, sampleTriggerThreshold: 0.05)
+        XCTAssertEqual(limits.sampleTriggerThreshold, HangLimits.minSampleTriggerThreshold, accuracy: 1e-9)
+    }
+
     // MARK: - hangThreshold sanitization
 
     func test_init_sanitizesNonPositiveOrNonFiniteHangThreshold() {
@@ -122,8 +132,8 @@ final class HangLimitsTests: XCTestCase {
     }
 
     func test_sampleTriggerFraction_isBelowOne() {
-        // The re-derivation `hangThreshold * sampleTriggerFraction` only stays below hangThreshold
-        // while the fraction is < 1. Pin it so that invariant can't silently break.
+        // The cap `hangThreshold * sampleTriggerFraction` only stays below hangThreshold while the
+        // fraction is < 1. Pin it so that invariant can't silently break.
         XCTAssertGreaterThan(HangLimits.sampleTriggerFraction, 0)
         XCTAssertLessThan(HangLimits.sampleTriggerFraction, 1)
     }

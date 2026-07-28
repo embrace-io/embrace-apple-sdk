@@ -200,9 +200,16 @@ final class RemoteConfigTests: XCTestCase {
     func test_hangLimitCorrections_reportsCapWhenTriggerAtOrAboveHangThreshold() {
         var payload = RemoteConfigPayload()
         payload.hangLimitsHangThreshold = 0.1
-        payload.hangLimitsSampleTriggerThreshold = 0.15  // >= hangThreshold → inconsistent, capped
+        payload.hangLimitsSampleTriggerThreshold = 0.15  // >= hangThreshold → capped below it
         let msg = RemoteConfig.hangLimitCorrections(for: payload).first { $0.contains("sample_trigger_threshold") } ?? ""
         XCTAssertTrue(msg.contains("capped"), "a trigger >= hang_threshold should be reported as capped: \(msg)")
+    }
+
+    func test_hangLimitCorrections_reportsAboveMaxForOversizedSampleTrigger() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsSampleTriggerThreshold = 5000  // > max → likely a seconds/ms mixup
+        let msg = RemoteConfig.hangLimitCorrections(for: payload).first { $0.contains("sample_trigger_threshold") } ?? ""
+        XCTAssertTrue(msg.contains("above the max"), "an oversized trigger should be reported as above the max: \(msg)")
     }
 
     func test_hangLimitCorrections_silentForInRangeTriggerTrimmedByCap() {
