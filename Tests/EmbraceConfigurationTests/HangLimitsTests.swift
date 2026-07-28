@@ -110,4 +110,11 @@ final class HangLimitsTests: XCTestCase {
         XCTAssertLessThan(HangLimits.minSampleTriggerThreshold, HangLimits.maxSampleTriggerThreshold)
         XCTAssertLessThan(HangLimits.minSamplePollInterval, HangLimits.maxSamplePollInterval)
     }
+
+    func test_sampleTriggerFraction_isBelowOne() {
+        // The re-derivation `hangThreshold * sampleTriggerFraction` only stays below hangThreshold
+        // while the fraction is < 1. Pin it so that invariant can't silently break.
+        XCTAssertGreaterThan(HangLimits.sampleTriggerFraction, 0)
+        XCTAssertLessThan(HangLimits.sampleTriggerFraction, 1)
+    }
 }

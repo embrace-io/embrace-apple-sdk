@@ -227,4 +227,36 @@ final class RemoteConfigTests: XCTestCase {
         payload.hangLimitsHangThreshold = -1
         XCTAssertTrue(RemoteConfig.hangLimitCorrections(for: payload).contains { $0.contains("hang_threshold") })
     }
+
+    // MARK: - Hang correction logging is wired into config updates
+
+    func test_update_logsHangCorrections_onlyWhenPayloadChanges() {
+        let recording = MockLogger()
+        let fetcher = StubRemoteConfigFetcher(options: options, logger: recording)
+        let config = RemoteConfig(options: options, fetcher: fetcher, logger: recording)
+
+        var bad = RemoteConfigPayload()
+        bad.hangLimitsSampleTriggerThreshold = 5000  // out of range → HangLimits corrects it
+        fetcher.payloadToReturn = bad
+
+        func hangWarnings() -> Int {
+            recording.loggedMessages.filter { $0.message.contains("[Hang] remote config value out of range") }.count
+        }
+
+        // First fetch: payload changed from the default → the correction is logged once.
+        config.update { _, _ in }
+        XCTAssertEqual(hangWarnings(), 1, "a changed out-of-range payload should log its correction")
+
+        // Second fetch: identical payload → didUpdate is false → must not re-log.
+        config.update { _, _ in }
+        XCTAssertEqual(hangWarnings(), 1, "an unchanged payload must not re-log (didUpdate gate)")
+    }
+}
+
+/// Returns a canned payload synchronously instead of hitting the network.
+private final class StubRemoteConfigFetcher: RemoteConfigFetcher {
+    var payloadToReturn: RemoteConfigPayload?
+    override func fetch(completion: @escaping (RemoteConfigPayload?, Data?) -> Void) {
+        completion(payloadToReturn, nil)
+    }
 }

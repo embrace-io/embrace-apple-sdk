@@ -9,11 +9,16 @@ public class MockLogger: InternalLogger {
 
     public var level: LogLevel = .debug
 
+    /// Every message passed to `log`, regardless of level, so tests can assert on what was logged.
+    public private(set) var loggedMessages: [(level: LogLevel, message: String)] = []
+
     public init(level: LogLevel = .none) {
         self.level = level
     }
 
     public func log(level: LogLevel, message: String, attributes: [String: String] = [:]) -> Bool {
+        loggedMessages.append((level, message))
+
         guard self.level != .none && self.level.rawValue <= level.rawValue else {
             return false
         }

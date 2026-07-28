@@ -67,6 +67,31 @@
                     + "lifecycle/state handling."
             )
         }
+
+        /// The poll loop must not retain the sampler (it holds only the shared state), so `deinit`
+        /// stays a real backstop: dropping the last strong reference — even after `start()` and
+        /// *without* an explicit `stop()` — must deallocate the sampler. A regression that captured
+        /// `self` in the poll thread would keep it alive forever and fail this.
+        func test_deinit_deallocatesWithoutExplicitStop() {
+            weak var weakSampler: StallTriggeredSampler?
+            autoreleasepool {
+                let sampler = StallTriggeredSampler(
+                    mainThread: pthread_self(),
+                    triggerThreshold: 0.05,
+                    pollInterval: 0.01,
+                    logger: nil
+                )
+                sampler.start()
+                weakSampler = sampler
+                // leave scope without calling stop()
+            }
+
+            let deadline = Date().addingTimeInterval(2)
+            while weakSampler != nil && Date() < deadline {
+                Thread.sleep(forTimeInterval: 0.02)
+            }
+            XCTAssertNil(weakSampler, "sampler leaked: the poll thread is retaining self (deinit backstop broken)")
+        }
     }
 
 #endif

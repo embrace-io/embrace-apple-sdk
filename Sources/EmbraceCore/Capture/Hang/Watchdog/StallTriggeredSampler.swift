@@ -98,7 +98,7 @@
                     min: HangLimits.minSamplePollInterval,
                     max: HangLimits.maxSamplePollInterval
                 ),
-                bufferCap: bufferCap
+                bufferCap: Swift.max(1, bufferCap)  // a non-positive cap would trap the ring-buffer trim
             )
             self.logger = logger
         }
