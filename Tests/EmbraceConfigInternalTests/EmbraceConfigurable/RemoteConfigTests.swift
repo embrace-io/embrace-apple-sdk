@@ -187,33 +187,44 @@ final class RemoteConfigTests: XCTestCase {
         XCTAssertTrue(RemoteConfig.hangLimitCorrections(for: RemoteConfigPayload()).isEmpty)
     }
 
-    func test_hangLimitCorrections_flagsOutOfRangeSampleTrigger() {
+    func test_hangLimitCorrections_reportsClampForOutOfRangeSampleTrigger() {
         var payload = RemoteConfigPayload()
-        payload.hangLimitsSampleTriggerThreshold = 5000  // would overflow the ns conversion → clamped
+        payload.hangLimitsSampleTriggerThreshold = 0.0001  // below floor, still < hangThreshold → clamp
         let corrections = RemoteConfig.hangLimitCorrections(for: payload)
         XCTAssertEqual(corrections.count, 1)
-        XCTAssertTrue(corrections.first?.contains("sample_trigger_threshold") ?? false)
+        let msg = corrections.first ?? ""
+        XCTAssertTrue(msg.contains("sample_trigger_threshold"))
+        XCTAssertTrue(msg.contains("clamped"), "an out-of-range trigger should be reported as a clamp: \(msg)")
     }
 
-    func test_hangLimitCorrections_flagsOutOfRangeSamplePollInterval() {
+    func test_hangLimitCorrections_reportsReDerivationWhenTriggerNotBelowHangThreshold() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsHangThreshold = 0.1
+        payload.hangLimitsSampleTriggerThreshold = 0.15  // >= hangThreshold → re-derived below it
+        let msg = RemoteConfig.hangLimitCorrections(for: payload).first { $0.contains("sample_trigger_threshold") } ?? ""
+        XCTAssertTrue(msg.contains("re-derived"), "a trigger >= hang_threshold should be reported as re-derived: \(msg)")
+    }
+
+    func test_hangLimitCorrections_reportsFallbackForNonFiniteSampleTrigger() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsSampleTriggerThreshold = .nan
+        let msg = RemoteConfig.hangLimitCorrections(for: payload).first { $0.contains("sample_trigger_threshold") } ?? ""
+        XCTAssertTrue(msg.contains("not finite"), "a non-finite trigger should be reported as a fallback: \(msg)")
+    }
+
+    func test_hangLimitCorrections_reportsClampForOutOfRangeSamplePollInterval() {
         var payload = RemoteConfigPayload()
         payload.hangLimitsSamplePollInterval = 5000
         let corrections = RemoteConfig.hangLimitCorrections(for: payload)
         XCTAssertEqual(corrections.count, 1)
-        XCTAssertTrue(corrections.first?.contains("sample_poll_interval") ?? false)
+        let msg = corrections.first ?? ""
+        XCTAssertTrue(msg.contains("sample_poll_interval"))
+        XCTAssertTrue(msg.contains("clamped"), "an out-of-range poll interval should be reported as a clamp: \(msg)")
     }
 
     func test_hangLimitCorrections_flagsNonPositiveHangThreshold() {
         var payload = RemoteConfigPayload()
         payload.hangLimitsHangThreshold = -1
         XCTAssertTrue(RemoteConfig.hangLimitCorrections(for: payload).contains { $0.contains("hang_threshold") })
-    }
-
-    func test_hangLimitCorrections_flagsTriggerNotBelowHangThreshold() {
-        var payload = RemoteConfigPayload()
-        payload.hangLimitsHangThreshold = 0.1
-        payload.hangLimitsSampleTriggerThreshold = 0.15  // >= hangThreshold → re-derived below it
-        XCTAssertTrue(
-            RemoteConfig.hangLimitCorrections(for: payload).contains { $0.contains("sample_trigger_threshold") })
     }
 }

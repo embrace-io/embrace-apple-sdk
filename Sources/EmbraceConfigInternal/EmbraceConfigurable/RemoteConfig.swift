@@ -215,21 +215,39 @@ extension RemoteConfig {
         )
 
         var corrections: [String] = []
+
         if limits.hangThreshold != payload.hangLimitsHangThreshold {
             corrections.append(
-                "hang_threshold \(payload.hangLimitsHangThreshold) → \(limits.hangThreshold) (must be finite and > 0)")
+                "hang_threshold \(payload.hangLimitsHangThreshold) → \(limits.hangThreshold) "
+                    + "(not finite or <= 0; reset to default)")
         }
+
         if limits.sampleTriggerThreshold != payload.hangLimitsSampleTriggerThreshold {
-            corrections.append(
-                "sample_trigger_threshold \(payload.hangLimitsSampleTriggerThreshold) → \(limits.sampleTriggerThreshold) "
-                    + "(clamped into [\(HangLimits.minSampleTriggerThreshold), \(HangLimits.maxSampleTriggerThreshold)] "
-                    + "and kept below hang_threshold)")
+            let raw = payload.hangLimitsSampleTriggerThreshold
+            let reason: String
+            if !raw.isFinite {
+                reason = "not finite; reset to default"
+            } else {
+                // Mirror HangLimits.init: clamp first, then re-derive if still >= hang_threshold.
+                let clamped = Swift.min(
+                    Swift.max(raw, HangLimits.minSampleTriggerThreshold), HangLimits.maxSampleTriggerThreshold)
+                reason =
+                    clamped >= limits.hangThreshold
+                    ? "must stay below hang_threshold (\(limits.hangThreshold)); re-derived"
+                    : "out of [\(HangLimits.minSampleTriggerThreshold), \(HangLimits.maxSampleTriggerThreshold)]; clamped"
+            }
+            corrections.append("sample_trigger_threshold \(raw) → \(limits.sampleTriggerThreshold) (\(reason))")
         }
+
         if limits.samplePollInterval != payload.hangLimitsSamplePollInterval {
-            corrections.append(
-                "sample_poll_interval \(payload.hangLimitsSamplePollInterval) → \(limits.samplePollInterval) "
-                    + "(clamped into [\(HangLimits.minSamplePollInterval), \(HangLimits.maxSamplePollInterval)])")
+            let raw = payload.hangLimitsSamplePollInterval
+            let reason =
+                raw.isFinite
+                ? "out of [\(HangLimits.minSamplePollInterval), \(HangLimits.maxSamplePollInterval)]; clamped"
+                : "not finite; reset to default"
+            corrections.append("sample_poll_interval \(raw) → \(limits.samplePollInterval) (\(reason))")
         }
+
         return corrections
     }
 
