@@ -222,21 +222,24 @@ extension RemoteConfig {
                     + "(not finite or <= 0; reset to default)")
         }
 
-        if limits.sampleTriggerThreshold != payload.hangLimitsSampleTriggerThreshold {
-            let raw = payload.hangLimitsSampleTriggerThreshold
-            let reason: String
-            if !raw.isFinite {
-                reason = "not finite; reset to default"
-            } else {
-                // Mirror HangLimits.init: clamp first, then re-derive if still >= hang_threshold.
-                let clamped = Swift.min(
-                    Swift.max(raw, HangLimits.minSampleTriggerThreshold), HangLimits.maxSampleTriggerThreshold)
-                reason =
-                    clamped >= limits.hangThreshold
-                    ? "must stay below hang_threshold (\(limits.hangThreshold)); re-derived"
-                    : "out of [\(HangLimits.minSampleTriggerThreshold), \(HangLimits.maxSampleTriggerThreshold)]; clamped"
-            }
-            corrections.append("sample_trigger_threshold \(raw) → \(limits.sampleTriggerThreshold) (\(reason))")
+        // The trigger is routinely capped at a fraction of hang_threshold; that's expected policy, not
+        // a misconfiguration — so a valid request (`[floor, hang_threshold)`) is never reported even
+        // when the cap trims it. Only genuinely invalid values warn.
+        let rawTrigger = payload.hangLimitsSampleTriggerThreshold
+        let triggerReason: String?
+        if !rawTrigger.isFinite {
+            triggerReason = "not finite; reset to default"
+        } else if rawTrigger < HangLimits.minSampleTriggerThreshold {
+            triggerReason = "below the floor of \(HangLimits.minSampleTriggerThreshold); clamped up"
+        } else if rawTrigger > HangLimits.maxSampleTriggerThreshold {
+            triggerReason = "above the max of \(HangLimits.maxSampleTriggerThreshold); clamped down"
+        } else if rawTrigger >= limits.hangThreshold {
+            triggerReason = "at or above hang_threshold (\(limits.hangThreshold)); capped"
+        } else {
+            triggerReason = nil
+        }
+        if let triggerReason {
+            corrections.append("sample_trigger_threshold \(rawTrigger) → \(limits.sampleTriggerThreshold) (\(triggerReason))")
         }
 
         if limits.samplePollInterval != payload.hangLimitsSamplePollInterval {

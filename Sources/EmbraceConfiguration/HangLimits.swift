@@ -51,9 +51,11 @@ import Foundation
     public let reportsWatchdogEvents: Bool
 
     /// How long (in seconds) the main thread must be continuously busy before the during-block
-    /// sampler snapshots it. Clamped into `[minSampleTriggerThreshold, maxSampleTriggerThreshold]`
-    /// and additionally kept below `hangThreshold` — re-derived via ``sampleTriggerFraction`` if an
-    /// inconsistent config sets it at/above — so the snapshot lands inside the confirmed hang window.
+    /// sampler snapshots it. Capped at ``sampleTriggerFraction`` of `hangThreshold` — a fixed headroom
+    /// below the reported-hang threshold so the snapshot lands inside the confirmed window — and
+    /// clamped into `[minSampleTriggerThreshold, maxSampleTriggerThreshold]`. A requested value at or
+    /// below the cap is used as-is. For a degenerately small `hangThreshold` (below
+    /// `minSampleTriggerThreshold / sampleTriggerFraction`) the floor takes precedence over the cap.
     public let sampleTriggerThreshold: TimeInterval
 
     /// How often (in seconds) the background sampler checks main-thread liveness. Clamped into
@@ -69,31 +71,35 @@ import Foundation
     ) {
         let resolvedHangThreshold = HangLimits.sanitized(
             hangThreshold, fallback: HangLimits.defaultHangThreshold)
-        var resolvedSampleTrigger = HangLimits.clamped(
-            sampleTriggerThreshold,
-            fallback: HangLimits.defaultSampleTriggerThreshold,
-            min: HangLimits.minSampleTriggerThreshold,
-            max: HangLimits.maxSampleTriggerThreshold
-        )
-        // Keep the trigger below the reported-hang threshold so the during-block snapshot lands inside
-        // the window the detector confirms. Only an inconsistent config (trigger >= hangThreshold) is
-        // adjusted; valid configs — including the default — pass through untouched. This branch fires
-        // only when `hangThreshold <= resolvedSampleTrigger <= maxSampleTriggerThreshold`, so the
-        // derived value stays bounded — an unbounded `hangThreshold` can't reintroduce the ns overflow.
-        if resolvedSampleTrigger >= resolvedHangThreshold {
-            resolvedSampleTrigger = resolvedHangThreshold * HangLimits.sampleTriggerFraction
-        }
 
         self.hangThreshold = resolvedHangThreshold
         self.hangPerSession = hangPerSession
         self.reportsWatchdogEvents = reportsWatchdogEvents
-        self.sampleTriggerThreshold = resolvedSampleTrigger
+        self.sampleTriggerThreshold = HangLimits.resolvedSampleTrigger(
+            sampleTriggerThreshold, hangThreshold: resolvedHangThreshold)
         self.samplePollInterval = HangLimits.clamped(
             samplePollInterval,
             fallback: HangLimits.defaultSamplePollInterval,
             min: HangLimits.minSamplePollInterval,
             max: HangLimits.maxSamplePollInterval
         )
+    }
+
+    /// Effective during-block trigger for a `requested` value and an already-sanitized `hangThreshold`.
+    /// Always capped at ``sampleTriggerFraction`` of `hangThreshold` (a fixed headroom below the
+    /// reported-hang threshold), then clamped into `[minSampleTriggerThreshold, maxSampleTriggerThreshold]`.
+    /// A non-finite request falls back to the default (itself subject to the cap). `max(…, min…)` on
+    /// the ceiling keeps it from dropping below the floor for a degenerately small `hangThreshold`, so
+    /// the floor wins there; it also keeps the value bounded, so an unbounded `hangThreshold` can't
+    /// reintroduce the ns-conversion overflow downstream.
+    private static func resolvedSampleTrigger(
+        _ requested: TimeInterval, hangThreshold: TimeInterval
+    ) -> TimeInterval {
+        let base = requested.isFinite ? requested : defaultSampleTriggerThreshold
+        let ceiling = Swift.max(
+            Swift.min(hangThreshold * sampleTriggerFraction, maxSampleTriggerThreshold),
+            minSampleTriggerThreshold)
+        return Swift.min(Swift.max(base, minSampleTriggerThreshold), ceiling)
     }
 
     /// A finite, positive value passes through unchanged; anything else falls back to `fallback`.

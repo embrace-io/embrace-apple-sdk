@@ -197,12 +197,23 @@ final class RemoteConfigTests: XCTestCase {
         XCTAssertTrue(msg.contains("clamped"), "an out-of-range trigger should be reported as a clamp: \(msg)")
     }
 
-    func test_hangLimitCorrections_reportsReDerivationWhenTriggerNotBelowHangThreshold() {
+    func test_hangLimitCorrections_reportsCapWhenTriggerAtOrAboveHangThreshold() {
         var payload = RemoteConfigPayload()
         payload.hangLimitsHangThreshold = 0.1
-        payload.hangLimitsSampleTriggerThreshold = 0.15  // >= hangThreshold → re-derived below it
+        payload.hangLimitsSampleTriggerThreshold = 0.15  // >= hangThreshold → inconsistent, capped
         let msg = RemoteConfig.hangLimitCorrections(for: payload).first { $0.contains("sample_trigger_threshold") } ?? ""
-        XCTAssertTrue(msg.contains("re-derived"), "a trigger >= hang_threshold should be reported as re-derived: \(msg)")
+        XCTAssertTrue(msg.contains("capped"), "a trigger >= hang_threshold should be reported as capped: \(msg)")
+    }
+
+    func test_hangLimitCorrections_silentForInRangeTriggerTrimmedByCap() {
+        // 0.2 is a valid request (< hangThreshold) that the routine 60% cap trims to ~0.149. That's
+        // expected policy, not a misconfiguration, so it must NOT be reported.
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsHangThreshold = 0.249
+        payload.hangLimitsSampleTriggerThreshold = 0.2
+        XCTAssertFalse(
+            RemoteConfig.hangLimitCorrections(for: payload).contains { $0.contains("sample_trigger_threshold") },
+            "a valid-but-capped trigger should not be reported as a correction")
     }
 
     func test_hangLimitCorrections_reportsFallbackForNonFiniteSampleTrigger() {

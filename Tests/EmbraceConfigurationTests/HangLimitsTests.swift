@@ -13,7 +13,11 @@ final class HangLimitsTests: XCTestCase {
         XCTAssertEqual(limits.hangThreshold, HangLimits.defaultHangThreshold)
         XCTAssertEqual(limits.hangPerSession, HangLimits.defaultHangPerSession)
         XCTAssertEqual(limits.reportsWatchdogEvents, HangLimits.defaultReportsWatchdogEvents)
-        XCTAssertEqual(limits.sampleTriggerThreshold, HangLimits.defaultSampleTriggerThreshold)
+        // The default trigger (0.15) exceeds the cap (60% of the default hangThreshold), so it lands
+        // exactly at the cap.
+        XCTAssertEqual(
+            limits.sampleTriggerThreshold,
+            HangLimits.defaultHangThreshold * HangLimits.sampleTriggerFraction, accuracy: 1e-9)
         XCTAssertEqual(limits.samplePollInterval, HangLimits.defaultSamplePollInterval)
     }
 
@@ -33,39 +37,45 @@ final class HangLimitsTests: XCTestCase {
     }
 
     func test_init_clampsSampleTriggerDownToMaximum() {
-        // Use a large hangThreshold so the trigger ceiling — not the below-hangThreshold rule — applies.
-        let limits = HangLimits(hangThreshold: 5000, sampleTriggerThreshold: 5000)
+        // hangThreshold large enough that 60% of it exceeds the absolute max, so the max is the binding cap.
+        let limits = HangLimits(hangThreshold: 10000, sampleTriggerThreshold: 5000)
         XCTAssertEqual(limits.sampleTriggerThreshold, HangLimits.maxSampleTriggerThreshold)
     }
 
     func test_init_fallsBackToDefaultForNonFiniteSampleValues() {
+        // hangThreshold high enough that the default trigger isn't capped, isolating the fallback.
         for bad in [Double.nan, .infinity, -.infinity] {
-            let limits = HangLimits(sampleTriggerThreshold: bad, samplePollInterval: bad)
+            let limits = HangLimits(hangThreshold: 1.0, sampleTriggerThreshold: bad, samplePollInterval: bad)
             XCTAssertEqual(limits.sampleTriggerThreshold, HangLimits.defaultSampleTriggerThreshold)
             XCTAssertEqual(limits.samplePollInterval, HangLimits.defaultSamplePollInterval)
         }
     }
 
-    func test_init_preservesInRangeSampleValues() {
-        let limits = HangLimits(sampleTriggerThreshold: 0.2, samplePollInterval: 0.03)
-        XCTAssertEqual(limits.sampleTriggerThreshold, 0.2, accuracy: 1e-9)
+    // MARK: - Trigger capped at a fraction of hangThreshold
+
+    func test_init_preservesSampleTriggerBelowCap() {
+        // A trigger below the cap (0.6 × 0.249 ≈ 0.149) is used as-is; poll in range is preserved.
+        let limits = HangLimits(hangThreshold: 0.249, sampleTriggerThreshold: 0.12, samplePollInterval: 0.03)
+        XCTAssertEqual(limits.sampleTriggerThreshold, 0.12, accuracy: 1e-9)
         XCTAssertEqual(limits.samplePollInterval, 0.03, accuracy: 1e-9)
     }
 
-    // MARK: - Trigger kept below hangThreshold
-
-    func test_init_capsSampleTriggerBelowHangThresholdForInconsistentConfig() {
-        // trigger (0.15) >= hangThreshold (0.1) is inconsistent; re-derive below hangThreshold.
-        let limits = HangLimits(hangThreshold: 0.1, sampleTriggerThreshold: 0.15)
+    func test_init_capsSampleTriggerAtFractionOfHangThreshold() {
+        // 0.15 exceeds 60% of hangThreshold → capped to exactly that fraction (still below hangThreshold).
+        let limits = HangLimits(hangThreshold: 0.249, sampleTriggerThreshold: 0.15)
         XCTAssertLessThan(limits.sampleTriggerThreshold, limits.hangThreshold)
-        XCTAssertEqual(limits.sampleTriggerThreshold, 0.1 * HangLimits.sampleTriggerFraction, accuracy: 1e-9)
+        XCTAssertEqual(
+            limits.sampleTriggerThreshold,
+            limits.hangThreshold * HangLimits.sampleTriggerFraction, accuracy: 1e-9)
     }
 
-    func test_init_preservesSampleTriggerWhenBelowHangThreshold() {
-        // Valid config (0.15 < 0.249): trigger is left untouched.
+    func test_init_capsSampleTriggerWhenRequestedAtOrAboveHangThreshold() {
+        // Even a trigger >= hangThreshold caps to the fraction, not just an out-of-range value.
+        let limits = HangLimits(hangThreshold: 0.1, sampleTriggerThreshold: 0.15)
+        XCTAssertLessThan(limits.sampleTriggerThreshold, limits.hangThreshold)
         XCTAssertEqual(
-            HangLimits(hangThreshold: 0.249, sampleTriggerThreshold: 0.15).sampleTriggerThreshold,
-            0.15, accuracy: 1e-9)
+            limits.sampleTriggerThreshold,
+            limits.hangThreshold * HangLimits.sampleTriggerFraction, accuracy: 1e-9)
     }
 
     func test_init_orderingKeepsDerivedTriggerBounded_forHugeHangThreshold() {
