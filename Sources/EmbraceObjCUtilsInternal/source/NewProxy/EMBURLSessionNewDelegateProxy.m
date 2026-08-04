@@ -11,7 +11,9 @@
     //
     // `originalDelegate` is a strong reference we intentionally release on session
     // invalidation (see `-URLSession:didBecomeInvalidWithError:`) to break the
-    // session <-> proxy <-> delegate retain cycle. But URLSession/CFNetwork snapshots
+    // `session -> proxy -> delegate` retain chain: URLSession strongly retains its delegate
+    // (this proxy) until invalidation, so without this the delegate would be pinned for the
+    // session's entire lifetime. But URLSession/CFNetwork snapshots
     // the delegate's responds-to-selector set when the session is created and later
     // delivers callbacks *raw* (without re-checking `-respondsToSelector:`). A callback
     // that arrives after invalidation — e.g. a WebSocket close still in flight — would
