@@ -21,11 +21,28 @@
 
 @end
 
-@implementation EMBURLSessionLegacyDelegateProxy
+@implementation EMBURLSessionLegacyDelegateProxy {
+    // Backups of the original delegate that survive `originalDelegate` being cleared.
+    //
+    // `originalDelegate` is a strong reference we intentionally release on session
+    // invalidation (see `-URLSession:didBecomeInvalidWithError:`) to break the
+    // session <-> proxy <-> delegate retain cycle. But URLSession/CFNetwork snapshots
+    // the delegate's responds-to-selector set when the session is created and later
+    // delivers callbacks *raw* (without re-checking `-respondsToSelector:`). A callback
+    // that arrives after invalidation — e.g. a WebSocket close still in flight — would
+    // otherwise reach the forwarding path with `originalDelegate == nil` and crash with
+    // an unrecognized selector. These let us still forward to the delegate if it is alive
+    // (`_weakOriginalDelegate`), and always produce a valid method signature so the message
+    // can be dropped gracefully in `-forwardInvocation:` (`_originalDelegateClass`).
+    __weak id _weakOriginalDelegate;
+    Class _originalDelegateClass;
+}
 
 - (instancetype)initWithDelegate:(id<NSURLSessionDelegate>)delegate handler:(id<URLSessionTaskHandler>)handler
 {
     _originalDelegate = delegate;
+    _weakOriginalDelegate = delegate;
+    _originalDelegateClass = [delegate class];
     _handler = handler;
     return self;
 }
@@ -52,12 +69,37 @@
 
 - (NSMethodSignature *)methodSignatureForSelector:(SEL)selector
 {
-    return [(NSObject *)self.originalDelegate methodSignatureForSelector:selector];
+    // Prefer the live delegate's own signature (strong first, then the weak backup in case
+    // `originalDelegate` was released after invalidation while a callback was still in flight).
+    id target = self.originalDelegate ?: _weakOriginalDelegate;
+    if (target) {
+        NSMethodSignature *sig = [(NSObject *)target methodSignatureForSelector:selector];
+        if (sig) {
+            return sig;
+        }
+    }
+
+    // The delegate instance is gone. Fall back to its remembered class so we can still return a
+    // valid signature and drop the message in `-forwardInvocation:` rather than falling through
+    // to `-doesNotRecognizeSelector:` and crashing. (This is an `NSProxy` subclass, so there is
+    // no `[super methodSignatureForSelector:]` to safely fall back to — a nil result here yields
+    // the same unrecognized-selector semantics as before for genuinely unknown selectors.)
+    if (_originalDelegateClass) {
+        return [_originalDelegateClass instanceMethodSignatureForSelector:selector];
+    }
+
+    return nil;
 }
 
 - (void)forwardInvocation:(NSInvocation *)invocation
 {
-    [invocation invokeWithTarget:self.originalDelegate];
+    // If the original delegate is still alive and handles the selector, deliver it; otherwise
+    // drop it. This is the safety net for callbacks (such as a WebSocket close) delivered after
+    // the session was invalidated and `originalDelegate` was released.
+    id target = self.originalDelegate ?: _weakOriginalDelegate;
+    if (target && [target respondsToSelector:invocation.selector]) {
+        [invocation invokeWithTarget:target];
+    }
 }
 
 - (BOOL)isKindOfClass:(Class)aClass
