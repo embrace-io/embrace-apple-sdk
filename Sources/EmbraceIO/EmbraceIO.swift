@@ -30,7 +30,16 @@ public class EmbraceIO {
 
     /// Returns the current state of the SDK.
     public var state: EmbraceSDKState {
-        Embrace.client?.state ?? .notInitialized
+        switch Embrace.client?.state {
+        case .started:
+            return .started
+        case .stopped:
+            return .stopped
+        // The SDK being setup but not yet started is not a state exposed publicly,
+        // so it's reported as `.notInitialized`.
+        case .notInitialized, .initialized, .none:
+            return .notInitialized
+        }
     }
 
     /// Used to control the verbosity level of the Embrace SDK console logs.

@@ -25,7 +25,7 @@ package class Embrace {
     package private(set) var options: Embrace.Options
 
     /// Returns the current state of the SDK.
-    package private(set) var state: EmbraceSDKState = .notInitialized
+    package private(set) var state: EmbraceSDKStateInternal = .notInitialized
 
     /// Returns the `DeviceIdentifier` used by Embrace for the current device.
     package private(set) var deviceId: EmbraceIdentifier
