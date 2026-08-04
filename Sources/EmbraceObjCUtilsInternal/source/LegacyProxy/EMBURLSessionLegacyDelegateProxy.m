@@ -98,6 +98,14 @@
     // If the original delegate is still alive and handles the selector, deliver it; otherwise
     // drop it. This is the safety net for callbacks (such as a WebSocket close) delivered after
     // the session was invalidated and `originalDelegate` was released.
+    //
+    // Known limitation: if the dropped selector carries a `completionHandler` (e.g.
+    // `URLSession:dataTask:willCacheResponse:completionHandler:`) the handler is never invoked,
+    // which leaves that one task parked until it times out. This is only reachable if the app
+    // both implemented such a method and fully deallocated its delegate before the callback
+    // raced in post-invalidation — extremely narrow given URLSession delivers
+    // `didBecomeInvalidWithError:` last and cancels/finishes tasks around invalidation. We
+    // accept the drop rather than synthesizing per-selector default responses here.
     id target = self.originalDelegate ?: _weakOriginalDelegate;
     if (target && [target respondsToSelector:invocation.selector]) {
         [invocation invokeWithTarget:target];
