@@ -14,8 +14,13 @@ import Foundation
 
 /// Defines how long a piece of metadata persists.
 public enum MetadataLifespan: Int {
-    /// The resource will be removed when the session ends.
-    case session
+    /// The resource will be removed when the user session ends.
+    ///
+    /// The scope is the whole user session, not a single session part: metadata added while the app
+    /// is in the foreground is still there after the app is backgrounded and foregrounded again, and
+    /// it survives process death for as long as the user session does.
+    case userSession
+
     /// The resource will be removed when the process ends
     case process
 
@@ -47,12 +52,12 @@ package class MetadataHandler {
 
     /// Adds a property with the given key, value and lifespan.
     /// If there are 2 properties with the same key but different lifespans, the one with a shorter lifespan will be used.
-    /// If the key is too long or no session is active for a `.session` lifespan, the property is dropped and a warning is logged.
+    /// If the key is too long or no user session is active for a `.userSession` lifespan, the property is dropped and a warning is logged.
     /// - Parameters:
     ///   - key: The key of the property to add. Can not be longer than 128 characters.
     ///   - value: The value of the property to add. Will be truncated if its longer than 1024 characters.
     ///   - lifespan: The lifespan of the property to add.
-    package func addProperty(key: String, value: String, lifespan: MetadataLifespan = .session) {
+    package func addProperty(key: String, value: String, lifespan: MetadataLifespan = .userSession) {
         addMetadata(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
@@ -89,12 +94,12 @@ package class MetadataHandler {
     }
 
     /// Updates the value of a property for a given key and lifespan.
-    /// If no session is active for a `.session` lifespan, the update is dropped and a warning is logged.
+    /// If no user session is active for a `.userSession` lifespan, the update is dropped and a warning is logged.
     /// - Parameters:
     ///   - key: The key of the property to update.
     ///   - value: The value of the property to update. Will be truncated if its longer than 1024 characters.
     ///   - lifespan: The lifespan of the property to update.
-    package func updateProperty(key: String, value: String, lifespan: MetadataLifespan = .session) {
+    package func updateProperty(key: String, value: String, lifespan: MetadataLifespan = .userSession) {
         update(key: key, value: value, type: .customProperty, lifespan: lifespan)
     }
 
@@ -102,7 +107,7 @@ package class MetadataHandler {
         key: String,
         value: String,
         type: MetadataRecordType,
-        lifespan: MetadataLifespan = .session
+        lifespan: MetadataLifespan = .userSession
     ) {
         guard let lifespanId = currentContext(for: lifespan.recordLifespan) else {
             return
@@ -119,21 +124,21 @@ package class MetadataHandler {
     }
 
     /// Removes the property for the given key and lifespan.
-    /// If no session is active for a `.session` lifespan, the removal is dropped and a warning is logged.
+    /// If no user session is active for a `.userSession` lifespan, the removal is dropped and a warning is logged.
     /// - Parameters:
     ///   - key: The key of the property to remove.
     ///   - lifespan: The lifespan of the property to remove.
-    package func removeProperty(key: String, lifespan: MetadataLifespan = .session) {
+    package func removeProperty(key: String, lifespan: MetadataLifespan = .userSession) {
         remove(key: key, type: .customProperty, lifespan: lifespan)
     }
 
     /// Removes the metadata for the given key, type and lifespan.
-    /// If no session is active for a `.session` lifespan, the removal is dropped and a warning is logged.
+    /// If no user session is active for a `.userSession` lifespan, the removal is dropped and a warning is logged.
     /// - Parameters:
     ///  - key: The key of the metadata to remove.
     ///  - type: The type of the metadata to remove.
     ///  - lifespan: The lifespan of the metadata to remove.
-    func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .session) {
+    func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .userSession) {
         guard let lifespanId = currentContext(for: lifespan.recordLifespan) else {
             return
         }
@@ -148,6 +153,8 @@ package class MetadataHandler {
     }
 
     /// Removes all properties for the given lifespans. If no lifespans are passed, all properties are removed.
+    /// - Note: Unlike `removeProperty(key:lifespan:)`, this is not scoped to the active user session or
+    ///         process: passing `.userSession` removes the properties of every user session in storage.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
     package func removeAllProperties(lifespans: [MetadataLifespan]) {
@@ -176,13 +183,18 @@ extension MetadataHandler {
 }
 
 extension MetadataHandler {
+    /// Returns the `lifespanId` to use for the given lifespan, or `nil` if there's no valid context
+    /// for it (in which case the operation is dropped).
+    ///
+    /// For the `.userSession` lifespan this is the id of the active user session, **not** the id of
+    /// the current session part. That's what makes this metadata span every part of the user session.
     private func currentContext(for lifespan: MetadataRecordLifespan) -> String? {
-        if lifespan == .session {
-            guard let sessionId = sessionController?.currentSession?.id.stringValue else {
-                Embrace.logger.warning("Can't modify a session metadata when there's no active session!")
+        if lifespan == .userSession {
+            guard let userSessionId = sessionController?.currentUserSession?.id.stringValue else {
+                Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
                 return nil
             }
-            return sessionId
+            return userSessionId
         } else if lifespan == .process {
             return ProcessIdentifier.current.stringValue
         } else {
@@ -195,7 +207,7 @@ extension MetadataHandler {
 extension MetadataLifespan {
     var recordLifespan: MetadataRecordLifespan {
         switch self {
-        case .session: return .session
+        case .userSession: return .userSession
         case .process: return .process
         case .permanent: return .permanent
         }

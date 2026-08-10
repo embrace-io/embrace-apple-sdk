@@ -13,7 +13,11 @@ public struct TestConstants {
     public static let data = "test".data(using: .utf8)!
     public static let date = Date(timeIntervalSince1970: 0)
 
+    /// Identifier of a session part.
     public static let sessionId = EmbraceIdentifier(stringValue: "18EDB6CE-90C2-456B-97CB-91E0F5941CCA")
+    /// Identifier of the user session a session part belongs to. Deliberately different from
+    /// `sessionId` so tests can't pass by conflating the two scopes.
+    public static let userSessionId = EmbraceIdentifier(stringValue: "3E7C2E17-1F0A-4E8B-9C3D-5A6B7C8D9E0F")
     public static let processId = EmbraceIdentifier(stringValue: "12345678")
     public static let traceId = TraceId.random().hexString
     public static let spanId = SpanId.random().hexString

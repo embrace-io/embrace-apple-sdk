@@ -12,7 +12,7 @@ struct UploadedSessionPayloadTestPersonasView: View {
     var addPersonaAction: (String, MetadataLifespan) -> Void
     var removeAllAction: () -> Void
     @State private var persona: String = "Testing"
-    @State private var lifespan: MetadataLifespan = .session
+    @State private var lifespan: MetadataLifespan = .userSession
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -69,7 +69,7 @@ struct UploadedSessionPayloadTestPersonasView: View {
 
 extension MetadataLifespan: @retroactive CaseIterable {
     public static var allCases: [MetadataLifespan] {
-        [.permanent, .process, .session]
+        [.permanent, .process, .userSession]
     }
 
     var text: String {
@@ -78,8 +78,8 @@ extension MetadataLifespan: @retroactive CaseIterable {
             "permanent"
         case .process:
             "process"
-        case .session:
-            "session"
+        case .userSession:
+            "user_session"
         }
     }
 
@@ -89,8 +89,8 @@ extension MetadataLifespan: @retroactive CaseIterable {
             "MetadataLifespan_permanent"
         case .process:
             "MetadataLifespan_process"
-        case .session:
-            "MetadataLifespan_session"
+        case .userSession:
+            "MetadataLifespan_user_session"
         }
     }
 }

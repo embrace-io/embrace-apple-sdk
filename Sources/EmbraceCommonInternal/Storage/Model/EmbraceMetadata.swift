@@ -19,13 +19,20 @@ public enum MetadataRecordType: String, Codable {
 }
 
 public enum MetadataRecordLifespan: String, Codable {
-    /// Value tied to a specific session
-    case session
+    /// Value tied to a specific user session. It spans every session part of that user session,
+    /// and survives process death for as long as the user session itself does.
+    ///
+    /// - Note: The raw value is `"session"` and not `"user_session"` on purpose. It is persisted in
+    ///         the `lifespanRaw` column, so keeping the original value means records written before
+    ///         this case was renamed still decode after an app update. Those older records hold a
+    ///         session part id in `lifespanId` instead of a user session id, so no query matches
+    ///         them and they get removed as orphans by `cleanMetadata`.
+    case userSession = "session"
 
-    /// Value tied to multiple sessions within a single process
+    /// Value tied to multiple user sessions within a single process
     case process
 
-    /// Value tied to all sessions until explicitly removed
+    /// Value tied to all user sessions until explicitly removed
     case permanent
 }
 

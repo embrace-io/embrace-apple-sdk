@@ -301,7 +301,7 @@ final class SessionSpanUtilsTests: XCTestCase {
             givenCustomProperty(
                 withKey: "emb.user.username",
                 value: "embrace",
-                lifespan: .session
+                lifespan: .userSession
             )
         )
         properties.append(

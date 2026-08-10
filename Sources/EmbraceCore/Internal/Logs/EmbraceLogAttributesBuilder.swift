@@ -81,18 +81,23 @@ class EmbraceLogAttributesBuilder {
 
     @discardableResult
     func addApplicationProperties() -> Self {
-        return addApplicationProperties(sessionId: currentSession?.id)
+        return addApplicationProperties(
+            userSessionId: currentSession?.userSessionId,
+            processId: currentSession?.processId ?? ProcessIdentifier.current
+        )
     }
 
+    /// Adds the custom properties of the given user session as `emb.properties.*` attributes.
+    /// Properties are scoped to the user session, so a log emitted in any part of it gets the same set.
     @discardableResult
-    func addApplicationProperties(sessionId: EmbraceIdentifier?) -> Self {
-        guard let sessionId = sessionId,
+    func addApplicationProperties(userSessionId: EmbraceIdentifier?, processId: EmbraceIdentifier) -> Self {
+        guard let userSessionId = userSessionId,
             let storage = storage
         else {
             return self
         }
 
-        let customProperties = storage.fetchCustomPropertiesForSessionId(sessionId)
+        let customProperties = storage.fetchCustomProperties(userSessionId: userSessionId, processId: processId)
         customProperties.forEach { record in
             guard UserResourceKey(rawValue: record.key) == nil else {
                 // prevent UserResource keys from appearing in properties
@@ -129,11 +134,6 @@ class EmbraceLogAttributesBuilder {
             partId: currentSession?.id,
             userSessionId: currentSession?.userSessionId
         )
-    }
-
-    @discardableResult
-    func addSessionIdentifier(_ sessionId: EmbraceIdentifier?) -> Self {
-        return addSessionIdentifier(partId: sessionId, userSessionId: currentSession?.userSessionId)
     }
 
     /// Stamps the three identity keys on the log. All three are always present (empty strings

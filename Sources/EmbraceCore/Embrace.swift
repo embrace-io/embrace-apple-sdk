@@ -336,6 +336,7 @@ package class Embrace {
                     otel: self?.otel,
                     logController: self?.logController,
                     currentSessionId: self?.sessionController.currentSession?.id,
+                    currentUserSessionId: self?.userSessionController.currentUserSessionId,
                     crashReporter: self?.captureServices.crashReporter
                 )
 

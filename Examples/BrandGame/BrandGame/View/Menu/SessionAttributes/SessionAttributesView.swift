@@ -147,7 +147,7 @@ extension SessionAttributesView {
     }
 
     fileprivate enum Lifespan: String, CaseIterable, Identifiable {
-        case session = "Session"
+        case userSession = "User Session"
         case process = "Process"
         case permanent = "Permanent"
 
@@ -155,8 +155,8 @@ extension SessionAttributesView {
 
         func toMetadataLifespan() -> MetadataLifespan {
             switch self {
-            case .session:
-                return .session
+            case .userSession:
+                return .userSession
             case .process:
                 return .process
             case .permanent:
@@ -175,7 +175,7 @@ extension SessionAttributesView {
 
     fileprivate struct Property {
         var type: AttributeType = .sessionProperty
-        var lifespan: Lifespan = .session
+        var lifespan: Lifespan = .userSession
         var key: String = ""
         var value: String = ""
     }

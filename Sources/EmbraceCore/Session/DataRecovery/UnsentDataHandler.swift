@@ -21,6 +21,7 @@ class UnsentDataHandler {
         otel: InternalOTelSignalsHandler?,
         logController: LogController? = nil,
         currentSessionId: EmbraceIdentifier? = nil,
+        currentUserSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
@@ -57,6 +58,7 @@ class UnsentDataHandler {
                         upload: upload,
                         otel: otel,
                         currentSessionId: currentSessionId,
+                        currentUserSessionId: currentUserSessionId,
                         crashReporter: crashReporter,
                         crashReports: reports,
                         completion: {
@@ -70,6 +72,7 @@ class UnsentDataHandler {
                     storage: storage,
                     upload: upload,
                     currentSessionId: currentSessionId,
+                    currentUserSessionId: currentUserSessionId,
                     completion: {
                         group.leave()
                     }
@@ -89,6 +92,7 @@ class UnsentDataHandler {
         upload: EmbraceUpload?,
         otel: InternalOTelSignalsHandler?,
         currentSessionId: EmbraceIdentifier?,
+        currentUserSessionId: EmbraceIdentifier?,
         crashReporter: EmbraceCrashReporter,
         crashReports: [EmbraceCrashReport],
         completion: UnsentDataHandlerCompletion? = nil
@@ -146,7 +150,8 @@ class UnsentDataHandler {
         sendSessions(
             storage: storage,
             upload: upload,
-            currentSessionId: currentSessionId
+            currentSessionId: currentSessionId,
+            currentUserSessionId: currentUserSessionId
         ) {
             group.leave()
         }
@@ -191,7 +196,8 @@ class UnsentDataHandler {
                 body: "",
                 attributes: attributes,
                 storage: storage,
-                sessionId: session?.id
+                userSessionId: session?.userSessionId,
+                processId: session?.processId ?? ProcessIdentifier.current
             )
             let payloadData = try JSONEncoder().encode(payload).gzipped()
 
@@ -257,6 +263,7 @@ class UnsentDataHandler {
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
         currentSessionId: EmbraceIdentifier?,
+        currentUserSessionId: EmbraceIdentifier?,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
 
@@ -291,7 +298,9 @@ class UnsentDataHandler {
         }
 
         // remove old metadata
-        cleanMetadata(storage: storage)
+        // the active user session is protected explicitly: the session parts that reference it are
+        // deleted as they're uploaded, so its metadata can't rely on a stored record to survive
+        cleanMetadata(storage: storage, currentUserSessionId: currentUserSessionId)
 
         group.leave()
         group.notify(queue: .global(qos: .utility)) {
@@ -372,8 +381,8 @@ class UnsentDataHandler {
         storage.closeOpenSpans(endTime: endTime)
     }
 
-    static private func cleanMetadata(storage: EmbraceStorage) {
-        storage.cleanMetadata()
+    static private func cleanMetadata(storage: EmbraceStorage, currentUserSessionId: EmbraceIdentifier? = nil) {
+        storage.cleanMetadata(activeUserSessionId: currentUserSessionId)
     }
 
     static func sendCriticalLogs(
@@ -416,7 +425,7 @@ class UnsentDataHandler {
             body: logs,
             attributes: attributes,
             storage: nil,
-            sessionId: nil
+            userSessionId: nil
         )
 
         // send log
@@ -440,6 +449,7 @@ extension UnsentDataHandler {
         otel: InternalOTelSignalsHandler?,
         logController: LogController? = nil,
         currentSessionId: EmbraceIdentifier? = nil,
+        currentUserSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil
     ) async {
         await withCheckedContinuation { continuation in
@@ -449,6 +459,7 @@ extension UnsentDataHandler {
                 otel: otel,
                 logController: logController,
                 currentSessionId: currentSessionId,
+                currentUserSessionId: currentUserSessionId,
                 crashReporter: crashReporter
             ) {
                 continuation.resume()

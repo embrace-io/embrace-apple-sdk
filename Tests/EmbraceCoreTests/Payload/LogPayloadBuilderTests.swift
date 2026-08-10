@@ -55,10 +55,11 @@ class LogPayloadBuilderTests: XCTestCase {
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 0),
-            endTime: Date(timeIntervalSince1970: 60)
+            endTime: Date(timeIntervalSince1970: 60),
+            userSessionId: TestConstants.userSessionId
         )
 
-        // given metadata in storage of that session
+        // given metadata in storage of that user session
         storage.addMetadata(
             key: AppResourceKey.appVersion.rawValue,
             value: "1.0.0",
@@ -69,8 +70,8 @@ class LogPayloadBuilderTests: XCTestCase {
             key: UserResourceKey.identifier.rawValue,
             value: "test",
             type: .customProperty,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "tag1",
@@ -82,8 +83,8 @@ class LogPayloadBuilderTests: XCTestCase {
             key: "tag2",
             value: "tag2",
             type: .personaTag,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
 
         // when manually building a log payload
@@ -97,7 +98,8 @@ class LogPayloadBuilderTests: XCTestCase {
                 "key2": "value2"
             ],
             storage: storage,
-            sessionId: TestConstants.sessionId
+            userSessionId: TestConstants.userSessionId,
+            processId: TestConstants.processId
         )
 
         // then the payload is correct

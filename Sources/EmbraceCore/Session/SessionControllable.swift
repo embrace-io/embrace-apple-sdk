@@ -17,6 +17,11 @@ protocol SessionControllable: AnyObject {
     var currentSession: EmbraceSession? { get }
     var currentSessionSpan: EmbraceSpan? { get }
 
+    /// The user session the current part belongs to, or the active snapshot when no part is open.
+    /// Owned by ``UserSessionController``; surfaced here so metadata scoping can resolve the active
+    /// user session id without taking a second dependency.
+    var currentUserSession: EmbraceUserSession? { get }
+
     @discardableResult
     func startSession(state: SessionState) -> EmbraceSession?
 

@@ -60,6 +60,9 @@ class SessionController: SessionControllable {
     var currentSessionSpan: EmbraceSpan? {
         _session.withLock { $0.sessionSpan }
     }
+    var currentUserSession: EmbraceUserSession? {
+        userSessionController?.currentUserSession
+    }
 
     private var backgroundSessionsEnabled: Bool {
         return config?.isBackgroundSessionEnabled == true

@@ -33,7 +33,8 @@ struct LogPayloadBuilder {
         body: String,
         attributes: EmbraceAttributes,
         storage: EmbraceStorage?,
-        sessionId: EmbraceIdentifier?
+        userSessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier = ProcessIdentifier.current
     ) -> PayloadEnvelope<[LogPayload]> {
 
         // build resources and metadata payloads
@@ -41,16 +42,16 @@ struct LogPayloadBuilder {
         var metadata: [EmbraceMetadata] = []
 
         if let storage = storage {
-            if let sessionId = sessionId {
-                resources = storage.fetchResourcesForSessionId(sessionId)
+            if let userSessionId = userSessionId {
+                resources = storage.fetchResources(userSessionId: userSessionId, processId: processId)
 
-                let properties = storage.fetchCustomPropertiesForSessionId(sessionId)
-                let tags = storage.fetchPersonaTagsForSessionId(sessionId)
+                let properties = storage.fetchCustomProperties(userSessionId: userSessionId, processId: processId)
+                let tags = storage.fetchPersonaTags(userSessionId: userSessionId, processId: processId)
                 metadata.append(contentsOf: properties)
                 metadata.append(contentsOf: tags)
             } else {
-                resources = storage.fetchResourcesForProcessId(ProcessIdentifier.current)
-                metadata = storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
+                resources = storage.fetchResourcesForProcessId(processId)
+                metadata = storage.fetchPersonaTagsForProcessId(processId)
             }
         }
 

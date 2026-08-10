@@ -73,8 +73,8 @@ import Foundation
     }
 
     func handlePayload(_ payload: MetricKitDiagnosticPayload) {
-        // check if the payload should be linked to the latest session
-        var sessionId: EmbraceIdentifier?
+        // check if the payload should be linked to the latest session part
+        var linkedSession: EmbraceSession?
 
         if let session = _lastSession.safeValue {
             let payloadStart = payload.startTime.timeIntervalSince1970
@@ -85,12 +85,12 @@ import Foundation
             let endDiff = abs(payloadEnd - sessionEnd)
 
             if startDiff <= sessionLinkGracePeriod || endDiff <= sessionLinkGracePeriod {
-                sessionId = session.id
+                linkedSession = session
             }
         }
 
         for crash in payload.crashes {
-            sendCrash(payload: crash.data, signal: crash.signal, sessionId: sessionId)
+            sendCrash(payload: crash.data, signal: crash.signal, session: linkedSession)
         }
 
         for hang in payload.hangs {
@@ -116,9 +116,9 @@ import Foundation
         }
     }
 
-    func sendCrash(payload: Data, signal: Int, sessionId: EmbraceIdentifier?) {
+    func sendCrash(payload: Data, signal: Int, session: EmbraceSession?) {
         for listener in crashListeners {
-            listener.didReceive(payload: payload, signal: signal, sessionId: sessionId)
+            listener.didReceive(payload: payload, signal: signal, session: session)
         }
     }
 
