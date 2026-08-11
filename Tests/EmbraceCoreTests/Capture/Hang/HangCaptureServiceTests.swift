@@ -31,8 +31,16 @@
             super.tearDown()
         }
 
+        /// Builds a service whose monitor factory returns `nil`, so no live
+        /// `CADisplayLink` runs and only explicitly-driven hangs reach the span logic —
+        /// keeping span-count assertions deterministic. Detection is covered by
+        /// `FrameRateMonitorTests`.
+        private func makeService(limits: HangLimits = HangLimits()) -> HangCaptureService {
+            HangCaptureService(limits: limits, makeMonitor: { _ in nil })
+        }
+
         private func makeInstalledService(limits: HangLimits = HangLimits()) -> HangCaptureService {
-            let service = HangCaptureService(limits: limits)
+            let service = makeService(limits: limits)
             service.install(otel: otel)
             service.start()
             return service
@@ -41,13 +49,56 @@
         // MARK: - Config
 
         func test_onConfigUpdated_updatesHangThreshold() {
-            let service = HangCaptureService(limits: HangLimits(hangThreshold: 0.249))
+            let service = makeService(limits: HangLimits(hangThreshold: 0.249))
 
             let newLimits = HangLimits(hangThreshold: 0.5)
             let mockConfig = MockEmbraceConfigurable(hangLimits: newLimits)
             service.onConfigUpdated(mockConfig)
 
             XCTAssertEqual(service.limits.hangThreshold, 0.5)
+        }
+
+        // MARK: - Monitor wiring
+
+        func test_onInstall_wiresMonitorAsObserver_whenHangsEnabled() {
+            // The debugger-attached guard in `onInstall` would otherwise skip
+            // monitor creation when running under Xcode's debugger; this env var is
+            // the SDK's own escape hatch and makes the wiring deterministic.
+            setenv("EMBAllowWatchdogInDebugger", "1", 1)
+            defer { unsetenv("EMBAllowWatchdogInDebugger") }
+
+            var capturedThreshold: TimeInterval?
+            weak var capturedMonitor: FrameRateMonitor?
+            let service = HangCaptureService(limits: HangLimits(hangThreshold: 0.3)) { threshold in
+                capturedThreshold = threshold
+                let monitor = FrameRateMonitor(threshold: threshold)
+                capturedMonitor = monitor
+                return monitor
+            }
+
+            service.install(otel: otel)
+
+            // onInstall built a monitor with the configured threshold and wired
+            // the service as its observer.
+            XCTAssertEqual(capturedThreshold, 0.3)
+            XCTAssertNotNil(capturedMonitor)
+            XCTAssertTrue(capturedMonitor?.hangObserver === service)
+        }
+
+        func test_onInstall_skipsMonitor_whenHangsDisabled() {
+            setenv("EMBAllowWatchdogInDebugger", "1", 1)
+            defer { unsetenv("EMBAllowWatchdogInDebugger") }
+
+            var factoryCalled = false
+            let service = HangCaptureService(limits: HangLimits(hangPerSession: 0)) { threshold in
+                factoryCalled = true
+                return FrameRateMonitor(threshold: threshold)
+            }
+
+            service.install(otel: otel)
+
+            // hangPerSession == 0 gates the monitor off — the factory is never invoked.
+            XCTAssertFalse(factoryCalled)
         }
 
         // MARK: - Span lifecycle
@@ -91,7 +142,7 @@
 
         func test_hangStarted_withoutOTel_doesNotCrash() {
             // Service never installed — buildSpan returns nil, should not crash
-            let service = HangCaptureService()
+            let service = makeService()
             service.hangStarted(at: Date(), duration: 0.5)
             wait(delay: 0.2)
         }

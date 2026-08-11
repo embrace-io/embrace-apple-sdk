@@ -24,11 +24,22 @@ import OpenTelemetryApi
     @objc(EMBHangCaptureService)
     public final class HangCaptureService: CaptureService {
 
-        public init(
+        public convenience init(
             limits: HangLimits = HangLimits()
+        ) {
+            self.init(limits: limits, makeMonitor: { FrameRateMonitor(threshold: $0) })
+        }
+
+        /// Designated initializer. `makeMonitor` builds the frame-rate monitor for a
+        /// threshold and is substitutable, so tests can pass a factory that returns
+        /// `nil` to run without a live `CADisplayLink`.
+        init(
+            limits: HangLimits,
+            makeMonitor: @escaping (_ threshold: TimeInterval) -> FrameRateMonitor?
         ) {
             dispatchPrecondition(condition: .onQueue(.main))
             self.mainThread = pthread_self()
+            self.makeMonitor = makeMonitor
             self.limitData = EmbraceMutex(MutableLimitData(limits: limits))
             super.init()
         }
@@ -48,7 +59,7 @@ import OpenTelemetryApi
             let currentLimits = limits
             let monitor: FrameRateMonitor? =
                 currentLimits.hangPerSession > 0
-                ? FrameRateMonitor(threshold: currentLimits.hangThreshold)
+                ? makeMonitor(currentLimits.hangThreshold)
                 : nil
             monitor?.hangObserver = self
             monitor?.logger = logger
@@ -76,7 +87,7 @@ import OpenTelemetryApi
             if monitorNeedsUpdate {
                 let monitor: FrameRateMonitor? =
                     newLimits.hangPerSession > 0
-                    ? FrameRateMonitor(threshold: newLimits.hangThreshold)
+                    ? makeMonitor(newLimits.hangThreshold)
                     : nil
                 monitor?.hangObserver = self
                 monitor?.logger = logger
@@ -85,6 +96,9 @@ import OpenTelemetryApi
         }
 
         private var mainThread: pthread_t
+
+        /// Builds the frame-rate monitor; substitutable so tests can avoid a live `CADisplayLink`.
+        private let makeMonitor: (TimeInterval) -> FrameRateMonitor?
 
         struct MutableLimitData {
             var limits: HangLimits = HangLimits()
