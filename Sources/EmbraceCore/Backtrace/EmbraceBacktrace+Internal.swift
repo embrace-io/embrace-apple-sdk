@@ -172,10 +172,6 @@ extension EmbraceBacktraceFrame {
             ),
             image: result.imageName != nil
                 ? Image(
-                    // `result.imageUUID` is already the full Mach-O UUID string (built via
-                    // `NSUUID(uuidBytes:).uuidString` in the symbolicator). Passing that String back
-                    // through `NSUUID(uuidBytes:)` reinterprets its first 16 UTF-8 bytes as a raw
-                    // `uuid_t`, truncating the UUID to its first 16 characters. Use it directly.
                     uuid: result.imageUUID ?? "",
                     name: result.imageName.flatMap { $0 as NSString }?.lastPathComponent ?? "",
                     address: result.imageAddress,
