@@ -32,18 +32,25 @@ final class BacktraceImageUUIDTests: XCTestCase {
     private func addressWithResolvedUUID() throws -> (address: UInt, uuid: String) {
         let backtracer = KSCrashBacktracing()
         let candidates = Thread.callStackReturnAddresses.compactMap { $0 as? UInt }
+        XCTAssertFalse(candidates.isEmpty, "the current call stack produced no return addresses")
 
-        for address in candidates {
-            // `symbolicated()` resolves `callInstruction` (returnAddress - 1); resolve the same
-            // address the pipeline will so the comparison is apples-to-apples.
-            guard let frame = backtracer.resolve(address: address),
-                let uuid = frame.imageUUID,
-                !uuid.isEmpty
-            else { continue }
-            return (address, uuid)
-        }
+        // `resolve(address:)` is handed the same address `symbolicated()` passes it, so the UUID
+        // compared below is exactly what the pipeline had to work with.
+        let resolved: (address: UInt, uuid: String)? =
+            candidates.lazy.compactMap { address in
+                guard let frame = backtracer.resolve(address: address),
+                    let uuid = frame.imageUUID,
+                    !uuid.isEmpty
+                else { return nil }
+                return (address, uuid)
+            }.first
 
-        throw XCTSkip("no address in the current call stack resolved to a Mach-O image")
+        // A test process always has resolvable frames on its own stack, so an empty result means
+        // symbolication itself is broken. That's a failure, not something to skip past — skipping here
+        // would let a process-wide symbolication regression land as a green build.
+        return try XCTUnwrap(
+            resolved,
+            "no address in the current call stack resolved to a Mach-O image — symbolication is broken")
     }
 
     /// The output the truncation bug produced for a given real UUID: the `uuidString` of the first 16

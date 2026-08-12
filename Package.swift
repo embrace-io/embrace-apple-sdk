@@ -90,10 +90,10 @@ let package = Package(
                 "EmbraceCommonInternal",
                 "EmbraceConfigInternal",
                 "EmbraceConfiguration",
+                "EmbraceKSCrashBacktraceSupport",
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
-                "EmbraceKSCrashBacktraceSupport",
                 "EmbraceSemantics"
             ],
             resources: [
