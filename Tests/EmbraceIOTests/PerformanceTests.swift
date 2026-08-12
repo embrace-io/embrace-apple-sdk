@@ -113,14 +113,14 @@ class PerformanceBacktraceTests: XCTestCase {
     }
 
     func test_embraceBacktrace() {
-        _ = EmbraceBacktrace.backtrace()
+        _ = EmbraceBacktrace.backtrace(of: pthread_self())
     }
 
     func test_embraceBacktraceAndSymbolicate() throws {
         // ksbic_init (KSCrash binary-image cache) is not safe under sanitizer instrumentation:
         // TSan aborts; ASan deadlocks until the 30-minute job cap fires.
         try XCTSkipIfSanitizing("KSCrash symbolication is incompatible with sanitizer instrumentation")
-        _ = EmbraceBacktrace.backtrace().threads.compactMap { thread in
+        _ = EmbraceBacktrace.backtrace(of: pthread_self()).threads.compactMap { thread in
             thread.callstack.frames(symbolicated: true)
         }
     }

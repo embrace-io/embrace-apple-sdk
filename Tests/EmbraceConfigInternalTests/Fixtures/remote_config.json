@@ -52,6 +52,8 @@
     "hang_limits_v2": {
         "hang_threshold": 0.5,
         "hang_per_session": 100,
-        "reports_watchdog_events": true
+        "reports_watchdog_events": true,
+        "sample_trigger_threshold": 0.2,
+        "sample_poll_interval": 0.03
     }
 }

@@ -52,6 +52,19 @@ public class KSCrashBacktracing {
         return addresses
     }
 
+    package func backtrace(
+        of thread: pthread_t,
+        into buffer: UnsafeMutablePointer<UInt>,
+        capacity: Int
+    ) -> Int {
+        // Alloc-free / async-signal-safe: `ksbt_captureBacktrace` fills the caller's buffer in place
+        // using stack-allocated machine context + stack cursor (no malloc, no runtime calls), so it
+        // is safe to run while `thread` is suspended. The `pthread_self()` workaround in
+        // `backtrace(of:)` is intentionally NOT replicated here: this entry point is only used to walk
+        // a *suspended* thread, which is never the caller.
+        return Int(captureBacktrace(thread: thread, addresses: buffer, count: Int32(capacity)))
+    }
+
     package func resolve(address: UInt) -> SymbolicatedFrame? {
 
         // `symbolicate` (-> `ksbt_symbolicateAddress` -> `ksbic_init`) and the Swift demangler both
