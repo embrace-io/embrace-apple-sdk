@@ -75,7 +75,8 @@ let package = Package(
             dependencies: [
                 "EmbraceIO",
                 "EmbraceCore",
-                "TestSupport"
+                "TestSupport",
+                "TestSupportObjc"
             ]
         ),
 
@@ -91,6 +92,7 @@ let package = Package(
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
+                "EmbraceKSCrashBacktraceSupport",
                 "EmbraceSemantics"
             ],
             resources: [

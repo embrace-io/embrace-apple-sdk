@@ -115,6 +115,29 @@ public typealias FrameAddress = UInt
     ///   Implementations commonly transform the raw PC to a canonical call instruction (e.g., `returnAddress - 1` on ARM).
     ///   See `SymbolicatedFrame.callInstruction`.
     @objc func backtrace(of thread: pthread_t) -> [FrameAddress]
+
+    /// Fills `buffer` (which has room for `capacity` addresses) with the frame addresses of `thread`,
+    /// returning the number of addresses written. Ordered from the top frame to the bottom.
+    ///
+    /// Unlike ``backtrace(of:)``, this returns nothing heap-allocated: the caller owns `buffer`. It
+    /// exists so the walk can run while `thread` is **suspended** without the walker touching the
+    /// heap — a `malloc` here can deadlock the whole process if the suspended thread holds the
+    /// allocator lock.
+    ///
+    /// - Important: The implementation MUST be allocation-free and async-signal-safe: no `malloc`,
+    ///   no Obj-C/Swift runtime work, no lock acquisition. It is called between `thread_suspend` and
+    ///   `thread_resume` of a thread that is not the caller.
+    /// - Parameters:
+    ///   - thread: The target `pthread_t`. Must not be the calling thread (it is expected to be
+    ///     suspended by the caller for the duration of the call).
+    ///   - buffer: Caller-owned storage for at least `capacity` `FrameAddress` values.
+    ///   - capacity: The capacity of `buffer`, in elements.
+    /// - Returns: The number of frame addresses written to `buffer` (`0...capacity`).
+    @objc func backtrace(
+        of thread: pthread_t,
+        into buffer: UnsafeMutablePointer<FrameAddress>,
+        capacity: Int
+    ) -> Int
 }
 
 // MARK: - Symbolication

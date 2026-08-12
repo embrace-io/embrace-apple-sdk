@@ -43,6 +43,8 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.internalLogsErrorLimit, 3)
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
         XCTAssertEqual(payload.hangLimitsHangThreshold, 0.249)
+        XCTAssertEqual(payload.hangLimitsSampleTriggerThreshold, 0.15)
+        XCTAssertEqual(payload.hangLimitsSamplePollInterval, 0.05)
     }
 
     func testOnHavingValidRemoteConfig_RemoteConfigPayload_shouldOverridedDefaultValuesWithProvidedOnes() throws {
@@ -94,6 +96,8 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.hangLimitsHangThreshold, 0.5)
         XCTAssertEqual(payload.hangLimitsHangPerSession, 100)
         XCTAssertEqual(payload.hangLimitsReportsWatchdogEvents, true)
+        XCTAssertEqual(payload.hangLimitsSampleTriggerThreshold, 0.2)
+        XCTAssertEqual(payload.hangLimitsSamplePollInterval, 0.03)
     }
 
     func test_onHavingOldAndInvalidRemoteConfigPayload_RemoteConfigPayload_shouldBeCreatedWithDefaults() throws {
@@ -128,6 +132,8 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.internalLogsErrorLimit, 3)
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
         XCTAssertEqual(payload.hangLimitsHangThreshold, 0.249)
+        XCTAssertEqual(payload.hangLimitsSampleTriggerThreshold, 0.15)
+        XCTAssertEqual(payload.hangLimitsSamplePollInterval, 0.05)
     }
 
     func getRemoteConfigData(forResource resource: String) throws -> Data {
