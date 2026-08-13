@@ -7,6 +7,7 @@ on:
         required: true
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   push:
     branches:
       - main
@@ -29,9 +30,17 @@ jobs:
           persist-credentials: false
 
       - id: set
+        # SANITIZERS_REQUESTED is read from the event payload (no API call) and
+        # passed via env so the untrusted label text never lands in the script
+        # body. Adding the `ci:sanitizers` label to a PR opts it into the iOS
+        # TSan + ASan jobs; only users with write/triage access can add labels.
+        env:
+          SANITIZERS_REQUESTED: ${{ contains(github.event.pull_request.labels.*.name, 'ci:sanitizers') }}
         run: |
           if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/main" ]]; then
             MATRIX=$(jq -c .main .github/matrices/builds.json)
+          elif [[ "${SANITIZERS_REQUESTED}" == "true" ]]; then
+            MATRIX=$(jq -c '."pr-sanitizers"' .github/matrices/builds.json)
           else
             MATRIX=$(jq -c .pr .github/matrices/builds.json)
           fi
