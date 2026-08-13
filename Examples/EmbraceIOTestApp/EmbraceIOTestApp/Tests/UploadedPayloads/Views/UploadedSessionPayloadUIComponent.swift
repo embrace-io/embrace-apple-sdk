@@ -37,15 +37,8 @@ struct UploadedSessionPayloadUIComponent: View {
                     }
                 }
                 .padding([.top, .bottom], 8)
-                Section("Current Session:") {
-                    Text("\(viewModel.currentSessionId ?? "-")")
-                        .font(.embraceFont(size: 12))
-                        .padding(.top, 2)
-                        .padding(.bottom, 5)
-                        .padding(.leading, 10)
-                }
-                Section("Last Session:") {
-                    Text("\(viewModel.lastSessionId ?? "-")")
+                Section("Last Posted User Session:") {
+                    Text("\(viewModel.lastPostedUserSessionId ?? "-")")
                         .font(.embraceFont(size: 12))
                         .padding(.top, 2)
                         .padding(.bottom, 5)

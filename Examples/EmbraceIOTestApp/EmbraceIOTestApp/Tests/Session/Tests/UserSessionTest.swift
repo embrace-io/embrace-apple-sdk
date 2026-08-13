@@ -21,19 +21,21 @@ import SwiftUI
 ///   2. the active user session is terminated with `.manual` and a *different* user session is
 ///      started (verified from the public user-session notifications).
 ///
-/// ### Why this test does NOT poll `EmbraceIO.shared.currentSessionId`
+/// ### Why the roll is verified through notifications, not live SDK state
 ///
 /// `endUserSession()` is **asynchronous**: it dispatches the whole roll
 /// (end-part → end-user-session → start-part) onto the session-controller's serial queue, and the
-/// new part id is only published at the very last step. Meanwhile this `test(spans:)` method is
+/// new user session is only published at the very last step. Meanwhile this `test(spans:)` method is
 /// invoked from the span-exporter's notification, which runs on the exporter's processing queue and
 /// fires the moment the *old* part's span is exported — i.e. at the *start* of the roll, before the
-/// new part exists. Reading `currentSessionId` here therefore races the roll and frequently returns
-/// `nil` (the window after the old part is cleared but before the new part is assigned). A
-/// `Thread.sleep` on the main thread does not help because none of this work runs on main.
+/// new user session exists. Polling live SDK state here would race the roll. Instead we observe it
+/// through the public, event-driven user-session notifications and wait on them with semaphores,
+/// which is order-independent and not racy.
 ///
-/// Instead we observe the roll through the public, event-driven user-session notifications and wait
-/// on them with semaphores, which is order-independent and not racy.
+/// The exported `emb-session` span is selected **structurally** (finished + foreground) rather than
+/// by id: the live span carries only `emb.session_part_id`, which the public API no longer exposes,
+/// and `requiresCleanup` clears `emb-session` before the action so the finished foreground span in
+/// this window is the part the roll just closed.
 ///
 /// - Note: `endUserSession()` is rate-limited to one call every 5 seconds. If this test is run
 ///   again within that window the call is ignored, no roll happens, and the notification waits time
@@ -48,10 +50,6 @@ class UserSessionTest: PayloadTest {
     /// the asynchronous roll posts on the main queue.
     private static let notificationTimeout: TimeInterval = 3.0
 
-    /// Part id of the session that is active when the test starts. Ending the user session closes
-    /// this part, so this is the id we expect on the finished `emb-session` span that gets exported.
-    private var endedSessionPartId: String = ""
-
     // Captured from the public user-session notifications posted during the roll.
     private let lock = NSLock()
     private var _endedUserSession: EmbraceUserSession?
@@ -61,8 +59,6 @@ class UserSessionTest: PayloadTest {
     private var observers: [NSObjectProtocol] = []
 
     func runTestPreparations() {
-        endedSessionPartId = EmbraceIO.shared.currentSessionId ?? ""
-
         // Subscribe BEFORE ending the session so we don't miss the notifications the roll posts.
         let endObserver = NotificationCenter.default.addObserver(
             forName: .embraceUserSessionDidEnd, object: nil, queue: nil
@@ -90,23 +86,24 @@ class UserSessionTest: PayloadTest {
     func test(spans: [OpenTelemetrySdk.SpanData]) -> TestReport {
         var testItems = [TestReportItem]()
 
-        // The part that was active when the test started must have been finished and exported.
-        let (existenceItem, endedSpan) = evaluateSpanExistence(
-            identifiedBy: endedSessionPartId, underAttributeKey: "emb.session_part_id", on: spans)
-        testItems.append(existenceItem)
+        // The part the roll just closed must have been finished and exported. Select it structurally
+        // (finished + foreground) since its part id is no longer obtainable from the public API.
+        let endedSpan = spans.first {
+            $0.name == "emb-session"
+                && $0.attributes["emb.state"]?.description == "foreground"
+                && $0.hasEnded
+        }
+        testItems.append(
+            .init(
+                target: "Finished foreground emb-session span",
+                expected: "exists",
+                recorded: endedSpan != nil ? "exists" : "missing",
+                result: endedSpan != nil ? .success : .fail))
 
         if let endedSpan = endedSpan {
-            // Ending the user session closes the part, so its span must be finished.
-            testItems.append(
-                .init(
-                    target: "Ended session part finished",
-                    expected: "finished",
-                    recorded: endedSpan.hasEnded ? "finished" : "open",
-                    result: endedSpan.hasEnded ? .success : .fail))
-
             testItems.append(evaluate("emb.type", expecting: "ux.session", on: endedSpan.attributes))
             testItems.append(evaluate("emb.state", expecting: "foreground", on: endedSpan.attributes))
-            testItems.append(evaluate("emb.session_part_id", expecting: endedSessionPartId, on: endedSpan.attributes))
+            testItems.append(evaluate("emb.session_part_id", expectedToExist: true, on: endedSpan.attributes))
             testItems.append(evaluate("emb.cold_start", expectedToExist: true, on: endedSpan.attributes))
             testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(endedSpan.attributes))
         }
