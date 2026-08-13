@@ -58,5 +58,5 @@ extension PersonaGrid {
 }
 
 #Preview {
-    PersonaGrid(lifespan: .session, user: .init())
+    PersonaGrid(lifespan: .userSession, user: .init())
 }

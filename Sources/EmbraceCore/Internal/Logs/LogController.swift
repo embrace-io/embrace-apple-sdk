@@ -217,14 +217,20 @@ extension LogController {
     func batchFinished(withLogs logs: [EmbraceLog]) {
         guard sdkStateProvider?.isEnabled == true,
             logs.isEmpty == false,
-            let sessionId = sessionController?.currentSession?.id
+            let session = sessionController?.currentSession
         else {
             return
         }
 
         do {
-            let resourcePayload = try createResourcePayload(sessionId: sessionId)
-            let metadataPayload = try createMetadataPayload(sessionId: sessionId)
+            let resourcePayload = try createResourcePayload(
+                userSessionId: session.userSessionId,
+                processId: session.processId
+            )
+            let metadataPayload = try createMetadataPayload(
+                userSessionId: session.userSessionId,
+                processId: session.processId
+            )
             send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload, completion: {})
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
@@ -249,26 +255,27 @@ extension LogController {
                     return
                 }
 
-                // Since we always end batches when a session ends
+                // Since we always end batches when a session part ends
                 // all the logs still in storage when the app starts should come
-                // from the last session before the app closes.
+                // from the last user session before the app closes.
                 //
-                // We grab the first valid sessionId from the stored logs
-                // and assume all of them come from the same session.
+                // We grab the first valid user session id from the stored logs
+                // and assume all of them come from the same user session.
                 //
-                // If we can't find a sessionId, we use the processId instead
+                // If we can't find one, we use the processId instead
                 let processId = batch.logs[0].processId
 
                 do {
-                    var sessionId: EmbraceIdentifier?
+                    // `LogSemantics.keySessionId` holds the user session id, not the session part id
+                    var userSessionId: EmbraceIdentifier?
                     if let log = batch.logs.first(where: { $0.attributes[LogSemantics.keySessionId] != nil }) {
                         if let value = log.attributes[LogSemantics.keySessionId] as? String {
-                            sessionId = EmbraceIdentifier(stringValue: value)
+                            userSessionId = EmbraceIdentifier(stringValue: value)
                         }
                     }
 
-                    let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
-                    let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
+                    let resourcePayload = try createResourcePayload(userSessionId: userSessionId, processId: processId)
+                    let metadataPayload = try createMetadataPayload(userSessionId: userSessionId, processId: processId)
 
                     send(
                         logs: batch.logs,
@@ -374,7 +381,7 @@ extension LogController {
     }
 
     fileprivate func createResourcePayload(
-        sessionId: EmbraceIdentifier?,
+        userSessionId: EmbraceIdentifier?,
         processId: EmbraceIdentifier = ProcessIdentifier.current
     ) throws -> ResourcePayload {
         guard let storage = storage else {
@@ -383,8 +390,8 @@ extension LogController {
 
         var resources: [EmbraceMetadata] = []
 
-        if let sessionId = sessionId {
-            resources = storage.fetchResourcesForSessionId(sessionId)
+        if let userSessionId = userSessionId {
+            resources = storage.fetchResources(userSessionId: userSessionId, processId: processId)
         } else {
             resources = storage.fetchResourcesForProcessId(processId)
         }
@@ -393,7 +400,7 @@ extension LogController {
     }
 
     fileprivate func createMetadataPayload(
-        sessionId: EmbraceIdentifier?,
+        userSessionId: EmbraceIdentifier?,
         processId: EmbraceIdentifier = ProcessIdentifier.current
     ) throws -> MetadataPayload {
         guard let storage = storage else {
@@ -402,9 +409,9 @@ extension LogController {
 
         var metadata: [EmbraceMetadata] = []
 
-        if let sessionId = sessionId {
-            let properties = storage.fetchCustomPropertiesForSessionId(sessionId)
-            let tags = storage.fetchPersonaTagsForSessionId(sessionId)
+        if let userSessionId = userSessionId {
+            let properties = storage.fetchCustomProperties(userSessionId: userSessionId, processId: processId)
+            let tags = storage.fetchPersonaTags(userSessionId: userSessionId, processId: processId)
             metadata.append(contentsOf: properties)
             metadata.append(contentsOf: tags)
         } else {

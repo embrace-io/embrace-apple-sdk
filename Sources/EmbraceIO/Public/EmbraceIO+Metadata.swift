@@ -23,7 +23,7 @@ extension EmbraceIO {
 
     /// Adds or removes a property with the given key, value and lifespan.
     /// If there are 2 properties with the same key but different lifespans, the one with a shorter lifespan will be used.
-    /// If the key is too long or no session is active for a `.session` lifespan, the property is dropped and a warning is logged.
+    /// If the key is too long or no user session is active for a `.userSession` lifespan, the property is dropped and a warning is logged.
     /// - Parameters:
     ///   - key: The key of the property to add. Can not be longer than 128 characters.
     ///   - value: The value of the property to add. Will be truncated if its longer than 1024 characters.
@@ -37,6 +37,8 @@ extension EmbraceIO {
     }
 
     /// Removes all properties for the given lifespans. If no lifespans are passed, all properties are removed.
+    /// - Note: Unlike `setProperty(key:value:lifespan:)` with a `nil` value, this is not scoped to the active
+    ///         user session or process: passing `.userSession` removes the properties of every user session in storage.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
     public func removeAllProperties(lifespans: [MetadataLifespan]) {
@@ -47,7 +49,7 @@ extension EmbraceIO {
 /// Personas
 extension EmbraceIO {
     /// Adds a persona tag with the given value and lifespan.
-    /// If the persona tag is too long or no session is active for a `.session` lifespan, the persona is dropped and a warning is logged.
+    /// If the persona tag is too long or no user session is active for a `.userSession` lifespan, the persona is dropped and a warning is logged.
     /// - Parameters:
     ///   - persona: The value of the persona tag to add.
     ///   - lifespan: The lifespan of the persona tag to add.
@@ -56,19 +58,21 @@ extension EmbraceIO {
     }
 
     /// Removes a persona tag in the given lifespan.
-    /// If no session is active for a `.session` lifespan, the removal is dropped and a warning is logged.
+    /// If no user session is active for a `.userSession` lifespan, the removal is dropped and a warning is logged.
     /// - Parameters:
     ///   - persona: The value of the persona tag to remove.
     ///   - lifespan: The lifespan of the persona tag to remove.
-    /// - Note: It is only possible to remove personas/metadata from the currently active session or process. It is not possible to edit
-    /// metadata that belongs to a session or process that has ended. If you remove a persona with a process
-    /// lifespan and that persona has already been applied to a previous session within the process, that metadata
-    /// will apply to that earlier session but will not apply to the currently active session.
+    /// - Note: It is only possible to remove personas/metadata from the currently active user session or process. It is
+    /// not possible to edit metadata that belongs to a user session or process that has ended. If you remove a persona
+    /// with a process lifespan and that persona has already been applied to a previous user session within the process,
+    /// that metadata will apply to that earlier user session but will not apply to the currently active one.
     public func removePersona(_ persona: String, lifespan: MetadataLifespan) {
         Embrace.client?.metadata.remove(persona: persona, lifespan: lifespan)
     }
 
     /// Removes all persona tags for the given lifespans. If no lifespans are passed, all persona tags are removed.
+    /// - Note: Unlike `removePersona(_:lifespan:)`, this is not scoped to the active user session or process:
+    ///         passing `.userSession` removes the persona tags of every user session in storage.
     /// - Parameters:
     ///   - lifespans: Array of lifespans.
     public func removeAllPersonas(lifespans: [MetadataLifespan]) {

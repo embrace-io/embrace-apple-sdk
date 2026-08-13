@@ -43,7 +43,7 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
     }
 
     private func addPersona() {
-        let lifespanButton = app.buttons["MetadataLifespan_session"]
+        let lifespanButton = app.buttons["MetadataLifespan_user_session"]
         XCTAssertTrue(lifespanButton.waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollUntilHittableElementVisible(lifespanButton))
         lifespanButton.tap()

@@ -34,7 +34,7 @@ struct UserInfo: View {
         }
 
         func clearPersonas() {
-            EmbraceIO.shared.removeAllPersonas(lifespans: [.session, .process, .permanent])
+            EmbraceIO.shared.removeAllPersonas(lifespans: [.userSession, .process, .permanent])
             objectWillChange.send()
         }
 
@@ -79,7 +79,7 @@ struct UserInfo: View {
             }
 
             Section(header: Text("Personas - Session")) {
-                PersonaGrid(lifespan: .session, user: user)
+                PersonaGrid(lifespan: .userSession, user: user)
 
                 Button("Clear All") {
                     user.clearPersonas()

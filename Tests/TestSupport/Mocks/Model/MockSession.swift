@@ -74,14 +74,21 @@ public class MockSession: EmbraceSession {
 }
 
 extension MockSession {
-    public static func with(id: EmbraceIdentifier, state: SessionState) -> MockSession {
+    public static func with(
+        id: EmbraceIdentifier,
+        state: SessionState,
+        processId: EmbraceIdentifier = .random,
+        userSessionId: EmbraceIdentifier? = nil
+    ) -> MockSession {
         MockSession(
             id: id,
-            processId: .random,
+            processId: processId,
             state: state,
             traceId: "",
             spanId: "",
-            startTime: Date()
+            startTime: Date(),
+            userSessionId: userSessionId,
+            userSessionPartIndex: userSessionId == nil ? 0 : 1
         )
     }
 }

@@ -56,7 +56,7 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
         }
 
         // when adding a persona tag
-        handler.add(persona: "test", lifespan: .session)
+        handler.add(persona: "test", lifespan: .userSession)
 
         let metadata: [MetadataRecord] = storage.fetchAll()
         XCTAssertEqual(
@@ -89,17 +89,17 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
-            key: "session",
+            key: "userSession",
             value: "",
             type: .personaTag,
-            lifespan: .session,
-            lifespanId: sessionController.currentSession!.id.stringValue
+            lifespan: .userSession,
+            lifespanId: sessionController.currentUserSession!.id.stringValue
         )
 
         // when fetching the current persona tags
         handler.getCurrentPersonas { tags in
             // then the tags are correct
-            XCTAssertEqual(Set(tags), Set(["permanent", "process", "session"]))
+            XCTAssertEqual(Set(tags), Set(["permanent", "process", "userSession"]))
             XCTAssertEqual(tags.count, 3)
             expectation.fulfill()
         }
@@ -132,18 +132,18 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
-            key: "session",
+            key: "userSession",
             value: "",
             type: .personaTag,
-            lifespan: .session,
-            lifespanId: sessionController.currentSession!.id.stringValue
+            lifespan: .userSession,
+            lifespanId: sessionController.currentUserSession!.id.stringValue
         )
 
         // when removing a persona tag
-        handler.remove(persona: "session", lifespan: .session)
+        handler.remove(persona: "userSession", lifespan: .userSession)
 
         // then the persona tag is removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
+        let tags = storage.fetchPersonaTags(for: sessionController.currentSession!)
         XCTAssertEqual(tags.count, 2)
         XCTAssertEqual(Set(tags.map(\.key)), Set(["permanent", "process"]))
     }
@@ -171,20 +171,20 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
-            key: "session",
+            key: "userSession",
             value: "",
             type: .personaTag,
-            lifespan: .session,
-            lifespanId: sessionController.currentSession!.id.stringValue
+            lifespan: .userSession,
+            lifespanId: sessionController.currentUserSession!.id.stringValue
         )
 
         // when removing a persona tag
-        handler.remove(persona: "permanent", lifespan: .session)
+        handler.remove(persona: "permanent", lifespan: .userSession)
 
         // then the persona tag is removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
+        let tags = storage.fetchPersonaTags(for: sessionController.currentSession!)
         XCTAssertEqual(tags.count, 3)
-        XCTAssertEqual(Set(tags.map(\.key)), Set(["permanent", "process", "session"]))
+        XCTAssertEqual(Set(tags.map(\.key)), Set(["permanent", "process", "userSession"]))
     }
 
     // MARK: - Remove All Personas
@@ -211,18 +211,18 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
-            key: "session",
+            key: "userSession",
             value: "",
             type: .personaTag,
-            lifespan: .session,
-            lifespanId: sessionController.currentSession!.id.stringValue
+            lifespan: .userSession,
+            lifespanId: sessionController.currentUserSession!.id.stringValue
         )
 
         // when removing all persona tags
         handler.removeAllPersonas()
 
         // then the persona tags are removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
+        let tags = storage.fetchPersonaTags(for: sessionController.currentSession!)
         XCTAssertEqual(tags.count, 0)
     }
 
@@ -249,19 +249,19 @@ final class MetadataHandler_PersonaTagTests: XCTestCase {
             lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
-            key: "session",
+            key: "userSession",
             value: "",
             type: .personaTag,
-            lifespan: .session,
-            lifespanId: sessionController.currentSession!.id.stringValue
+            lifespan: .userSession,
+            lifespanId: sessionController.currentUserSession!.id.stringValue
         )
 
         // when removing all persona tags
         handler.removeAllPersonas(lifespans: [.permanent])
 
         // then the persona tags are removed
-        let tags = storage.fetchPersonaTagsForSessionId(sessionController.currentSession!.id)
+        let tags = storage.fetchPersonaTags(for: sessionController.currentSession!)
         XCTAssertEqual(tags.count, 2)
-        XCTAssertEqual(Set(tags.map(\.key)), Set(["process", "session"]))
+        XCTAssertEqual(Set(tags.map(\.key)), Set(["process", "userSession"]))
     }
 }

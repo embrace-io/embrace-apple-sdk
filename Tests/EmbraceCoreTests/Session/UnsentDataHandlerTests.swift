@@ -587,14 +587,15 @@ class UnsentDataHandlerTests: XCTestCase {
 
         let otel = MockOTelSignalsHandler()
 
-        // given an unfinished session in the storage
+        // given an unfinished session part in the storage
         await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
-            startTime: Date(timeIntervalSinceNow: -60)
+            startTime: Date(timeIntervalSinceNow: -60),
+            userSessionId: TestConstants.userSessionId
         )
 
         // given metadata in storage
@@ -605,11 +606,11 @@ class UnsentDataHandlerTests: XCTestCase {
             lifespan: .permanent
         )
         storage.addMetadata(
-            key: "sameSessionId",
+            key: "sameUserSessionId",
             value: "test",
             type: .requiredResource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "sameProcessId",
@@ -619,10 +620,10 @@ class UnsentDataHandlerTests: XCTestCase {
             lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
-            key: "differentSessionId",
+            key: "differentUserSessionId",
             value: "test",
             type: .requiredResource,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -638,22 +639,23 @@ class UnsentDataHandlerTests: XCTestCase {
             storage: storage,
             upload: upload,
             otel: otel,
-            currentSessionId: TestConstants.sessionId
+            currentSessionId: TestConstants.sessionId,
+            currentUserSessionId: TestConstants.userSessionId
         )
         wait(
             timeout: .longTimeout, interval: .shortInterval,
             until: {
                 let records: [MetadataRecord] = storage.fetchAll()
-                return !records.contains(where: { $0.key == "differentSessionId" })
+                return !records.contains(where: { $0.key == "differentUserSessionId" })
                     && !records.contains(where: { $0.key == "differentProcessId" })
             })
 
         // then all metadata is cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
         XCTAssertNotNil(records.first(where: { $0.key == "permanent" }))
-        XCTAssertNotNil(records.first(where: { $0.key == "sameSessionId" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "sameUserSessionId" }))
         XCTAssertNotNil(records.first(where: { $0.key == "sameProcessId" }))
-        XCTAssertNil(records.first(where: { $0.key == "differentSessionId" }))
+        XCTAssertNil(records.first(where: { $0.key == "differentUserSessionId" }))
         XCTAssertNil(records.first(where: { $0.key == "differentProcessId" }))
     }
 

@@ -30,19 +30,19 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
 
     func testOnHavingSession_addSessionIdentifier_addsTheIdentifierToAttributes() {
         let identifier = EmbraceIdentifier.random
-        givenSessionController(sessionWithId: identifier)
+        let userSessionId = EmbraceIdentifier.random
+        givenSessionController(sessionWithId: identifier, userSessionId: userSessionId)
         givenMetadataFetcher()
         givenEmbraceLogAttributesBuilder()
 
         whenInvokingAddSessionIdentifier()
         whenInvokingBuild()
 
-        // `session.id` carries the user-session UUID in v7 (empty here because the mock has
-        // no user session); `emb.session_part_id` carries the part UUID. All three identity
-        // keys are always present.
+        // `session.id` carries the user-session UUID in v7; `emb.session_part_id` carries the
+        // part UUID. All three identity keys are always present.
         thenResultingAttributes(is: [
-            "session.id": "",
-            "emb.user_session_id": "",
+            "session.id": userSessionId.stringValue,
+            "emb.user_session_id": userSessionId.stringValue,
             "emb.session_part_id": identifier.stringValue
         ])
     }
@@ -66,16 +66,17 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
     // MARK: - addApplicationProperties Tests
 
     func testOnHavingMetadataCustomProperties_addApplicationProperties_addsCustomPropertiesToAttributes() {
-        let sessionId = EmbraceIdentifier.random
-        givenSessionController(sessionWithId: sessionId)
+        let userSessionId = EmbraceIdentifier.random
+        givenSessionController(userSessionId: userSessionId)
         givenMetadataFetcher(with: [
-            MockMetadata.createSessionPropertyRecord(key: "custom_prop_int", value: "1", sessionId: sessionId),
             MockMetadata.createSessionPropertyRecord(
-                key: "custom_prop_bool", value: "false", sessionId: sessionId),
+                key: "custom_prop_int", value: "1", userSessionId: userSessionId),
             MockMetadata.createSessionPropertyRecord(
-                key: "custom_prop_double", value: "3.0", sessionId: sessionId),
+                key: "custom_prop_bool", value: "false", userSessionId: userSessionId),
             MockMetadata.createSessionPropertyRecord(
-                key: "custom_prop_string", value: "hello", sessionId: sessionId)
+                key: "custom_prop_double", value: "3.0", userSessionId: userSessionId),
+            MockMetadata.createSessionPropertyRecord(
+                key: "custom_prop_string", value: "hello", userSessionId: userSessionId)
         ]
         )
         givenEmbraceLogAttributesBuilder()
@@ -104,7 +105,7 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
 
     func testOnNotHavingSession_addApplicationProperties_addsNothingToAttributes() {
         givenSessionControllerWithNoSession()
-        // Shouldnt happen to have custom session properties with no session, but just in case :)
+        // Shouldnt happen to have custom user session properties with no session, but just in case :)
         givenMetadataFetcher(with: [
             MockMetadata.createSessionPropertyRecord(key: "custom_prop_string", value: "hello")
         ])
@@ -113,6 +114,47 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
         whenInvokingAddApplicationProperties()
         whenInvokingBuild()
 
+        thenResultingAttributes(is: .empty())
+    }
+
+    func testOnNewSessionPartOfSameUserSession_addApplicationProperties_stillAddsCustomProperties() {
+        let userSessionId = EmbraceIdentifier.random
+
+        // given properties of a user session, added during a previous part
+        givenSessionController(sessionWithId: .random, userSessionId: userSessionId)
+        givenMetadataFetcher(with: [
+            MockMetadata.createSessionPropertyRecord(
+                key: "custom_prop_string", value: "hello", userSessionId: userSessionId)
+        ])
+        givenEmbraceLogAttributesBuilder()
+
+        // when a log is built during a brand-new part of the same user session
+        controller.currentSession = MockSession.with(
+            id: .random,
+            state: .background,
+            userSessionId: userSessionId
+        )
+
+        whenInvokingAddApplicationProperties()
+        whenInvokingBuild()
+
+        // then the properties are still there
+        thenResultingAttributes(is: ["emb.properties.custom_prop_string": "hello"])
+    }
+
+    func testOnNewUserSession_addApplicationProperties_addsNothingToAttributes() {
+        // given properties of a user session that already ended
+        givenSessionController()
+        givenMetadataFetcher(with: [
+            MockMetadata.createSessionPropertyRecord(
+                key: "custom_prop_string", value: "hello", userSessionId: .random)
+        ])
+        givenEmbraceLogAttributesBuilder()
+
+        whenInvokingAddApplicationProperties()
+        whenInvokingBuild()
+
+        // then they don't apply to the current user session
         thenResultingAttributes(is: .empty())
     }
 
@@ -194,10 +236,17 @@ class EmbraceLogAttributesBuilderTests: XCTestCase {
 extension EmbraceLogAttributesBuilderTests {
     fileprivate func givenSessionController(
         sessionWithId sessionId: EmbraceIdentifier = .random,
+        userSessionId: EmbraceIdentifier = .random,
+        processId: EmbraceIdentifier = .random,
         sessionState: SessionState = .foreground
     ) {
         controller = MockSessionController()
-        controller.currentSession = MockSession.with(id: sessionId, state: sessionState)
+        controller.currentSession = MockSession.with(
+            id: sessionId,
+            state: sessionState,
+            processId: processId,
+            userSessionId: userSessionId
+        )
     }
 
     fileprivate func givenSessionControllerWithNoSession() {

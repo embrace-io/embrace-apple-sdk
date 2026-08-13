@@ -35,14 +35,14 @@ extension MockMetadata {
     public static func createSessionPropertyRecord(
         key: String,
         value: String,
-        sessionId: EmbraceIdentifier = .random
+        userSessionId: EmbraceIdentifier = .random
     ) -> EmbraceMetadata {
         MockMetadata(
             key: key,
             value: value,
             type: .customProperty,
-            lifespan: .session,
-            lifespanId: sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: userSessionId.stringValue
         )
     }
 
@@ -51,7 +51,7 @@ extension MockMetadata {
             key: key,
             value: value,
             type: .customProperty,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: EmbraceIdentifier.random.stringValue
         )
     }
@@ -61,7 +61,7 @@ extension MockMetadata {
             key: key,
             value: value,
             type: .resource,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: EmbraceIdentifier.random.stringValue
         )
     }
@@ -71,7 +71,7 @@ extension MockMetadata {
             key: value,
             value: value,
             type: .personaTag,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: EmbraceIdentifier.random.stringValue
         )
     }

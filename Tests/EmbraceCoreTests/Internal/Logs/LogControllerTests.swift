@@ -48,23 +48,78 @@ class LogControllerTests: XCTestCase {
     }
 
     func testHavingLogs_onSetup_fetchesResourcesFromStorage() throws {
-        let sessionId = EmbraceIdentifier.random
-        let log = randomLogRecord(sessionId: sessionId)
+        // `session.id` on a stored log holds the user session id
+        let userSessionId = EmbraceIdentifier.random
+        let log = randomLogRecord(sessionId: userSessionId)
 
         givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        try thenFetchesResourcesFromStorage(sessionId: sessionId)
+        try thenFetchesResourcesFromStorage(userSessionId: userSessionId)
     }
 
     func testHavingLogs_onSetup_fetchesMetadataFromStorage() throws {
-        let sessionId = EmbraceIdentifier.random
-        let log = randomLogRecord(sessionId: sessionId)
+        let userSessionId = EmbraceIdentifier.random
+        let log = randomLogRecord(sessionId: userSessionId)
 
         givenStorage(withLogs: [log])
         givenLogController()
         whenInvokingSetup()
-        try thenFetchesMetadataFromStorage(sessionId: sessionId)
+        try thenFetchesMetadataFromStorage(userSessionId: userSessionId)
+    }
+
+    /// End to end check over real storage: the `session.id` attribute of a persisted log holds a user
+    /// session id, so the uploaded envelope must carry that user session's metadata.
+    func testHavingPersistedLogs_onSetup_uploadsTheMetadataOfTheirUserSession() throws {
+        let userSessionId = EmbraceIdentifier.random
+        let otherProcessId = EmbraceIdentifier.random
+
+        let realStorage = try EmbraceStorage.createInMemoryDb()
+        defer { realStorage.coreData.destroy() }
+
+        // given a log persisted by a previous process, stamped with its user session id
+        let log = MockLog(
+            attributes: ["session.id": userSessionId.stringValue, "emb.type": "log"],
+            sessionId: userSessionId,
+            processId: otherProcessId
+        )
+        realStorage.saveLog(log)
+
+        // given metadata of that user session
+        realStorage.addMetadata(
+            key: UserResourceKey.identifier.rawValue, value: "user-id", type: .customProperty,
+            lifespan: .userSession, lifespanId: userSessionId.stringValue
+        )
+        realStorage.addMetadata(
+            key: "persona", value: "", type: .personaTag,
+            lifespan: .userSession, lifespanId: userSessionId.stringValue
+        )
+        realStorage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue, value: "1.0.0", type: .requiredResource,
+            lifespan: .permanent
+        )
+
+        sut = .init(
+            storage: realStorage,
+            upload: upload,
+            sessionController: sessionController,
+            queue: loggingQueue
+        )
+        sut.sdkStateProvider = sdkStateProvider
+        sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
+
+        // when uploading the persisted logs
+        let expectation = expectation(description: #function)
+        sut.uploadAllPersistedLogs { expectation.fulfill() }
+        wait(for: [expectation], timeout: .defaultTimeout)
+
+        // then the envelope carries the metadata of the user session
+        let data = try XCTUnwrap(upload.logData)
+        let envelope = try JSONDecoder().decode(DecodedEnvelope.self, from: try data.gunzipped())
+
+        XCTAssertEqual(envelope.metadata.userId, "user-id")
+        XCTAssertEqual(envelope.metadata.personas, ["persona"])
+        XCTAssertEqual(envelope.resource.appVersion, "1.0.0")
     }
 
     func testHavingLogsWithNoSessionId_onSetup_fetchesResourcesFromStorage() throws {
@@ -143,19 +198,19 @@ class LogControllerTests: XCTestCase {
     func testHavingLogs_onBatchFinished_fetchesResourcesFromStorage() throws {
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
-        try thenFetchesResourcesFromStorage(sessionId: sessionController.currentSession?.id)
+        try thenFetchesResourcesFromStorage(userSessionId: sessionController.currentSession?.userSessionId)
     }
 
     func testHavingLogs_onBatchFinished_fetchesMetadataFromStorage() throws {
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
-        try thenFetchesMetadataFromStorage(sessionId: sessionController.currentSession?.id)
+        try thenFetchesMetadataFromStorage(userSessionId: sessionController.currentSession?.userSessionId)
     }
 
     func testHavingLogs_onBatchFinished_logUploaderShouldSendASingleBatch() throws {
         givenLogController()
         whenInvokingBatchFinished(withLogs: [randomLogRecord()])
-        try thenFetchesMetadataFromStorage(sessionId: sessionController.currentSession?.id)
+        try thenFetchesMetadataFromStorage(userSessionId: sessionController.currentSession?.userSessionId)
     }
 
     func testSDKDisabledHavingLogs_onBatchFinished_ontTryToUploadAnything() throws {
@@ -426,7 +481,9 @@ extension LogControllerTests {
             state: .foreground,
             traceId: UUID().uuidString,
             spanId: UUID().uuidString,
-            startTime: Date()
+            startTime: Date(),
+            userSessionId: .random,
+            userSessionPartIndex: 1
         )
     }
 
@@ -557,18 +614,18 @@ extension LogControllerTests {
         XCTAssertFalse(unwrappedStorage.didCallRemoveLogs)
     }
 
-    fileprivate func thenFetchesResourcesFromStorage(sessionId: EmbraceIdentifier?) throws {
+    fileprivate func thenFetchesResourcesFromStorage(userSessionId: EmbraceIdentifier?) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
-        XCTAssertTrue(unwrappedStorage.didCallFetchResourcesForSessionId)
-        XCTAssertEqual(unwrappedStorage.fetchResourcesForSessionIdReceivedParameter, sessionId)
+        XCTAssertTrue(unwrappedStorage.didCallFetchResourcesForUserSessionId)
+        XCTAssertEqual(unwrappedStorage.fetchResourcesForUserSessionIdReceivedParameter, userSessionId)
     }
 
-    fileprivate func thenFetchesMetadataFromStorage(sessionId: EmbraceIdentifier?) throws {
+    fileprivate func thenFetchesMetadataFromStorage(userSessionId: EmbraceIdentifier?) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
-        XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
-        XCTAssertEqual(unwrappedStorage.fetchCustomPropertiesForSessionIdReceivedParameter, sessionId)
-        XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForSessionId)
-        XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForSessionIdReceivedParameter, sessionId)
+        XCTAssertTrue(unwrappedStorage.didCallFetchCustomPropertiesForUserSessionId)
+        XCTAssertEqual(unwrappedStorage.fetchCustomPropertiesForUserSessionIdReceivedParameter, userSessionId)
+        XCTAssertTrue(unwrappedStorage.didCallFetchPersonaTagsForUserSessionId)
+        XCTAssertEqual(unwrappedStorage.fetchPersonaTagsForUserSessionIdReceivedParameter, userSessionId)
     }
 
     fileprivate func thenFetchesResourcesFromStorage(processId: EmbraceIdentifier) throws {
@@ -634,4 +691,10 @@ extension LogControllerTests {
             randomLogRecord()
         }
     }
+}
+
+/// Decodable mirror of the uploaded envelope, which is encode-only in the SDK.
+private struct DecodedEnvelope: Decodable {
+    let resource: ResourcePayload
+    let metadata: MetadataPayload
 }

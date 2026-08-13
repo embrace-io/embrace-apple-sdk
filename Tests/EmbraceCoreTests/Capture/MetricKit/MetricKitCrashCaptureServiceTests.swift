@@ -49,7 +49,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         service.start()
 
         // when the service receives a payload with the right signal
-        service.didReceive(payload: TestConstants.data, signal: 5, sessionId: nil)
+        service.didReceive(payload: TestConstants.data, signal: 5, session: nil)
 
         // then it creates the corresponding otel log
         let log = otel.logs[0]
@@ -73,7 +73,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         service.start()
 
         // when the service receives a payload with the incorrect signal
-        service.didReceive(payload: TestConstants.data, signal: 11, sessionId: nil)
+        service.didReceive(payload: TestConstants.data, signal: 11, session: nil)
 
         // then it doesnt create a log
         XCTAssertEqual(otel.logs.count, 0)
@@ -88,7 +88,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         service.install(otel: otel)
 
         // when the service receives a payload with the right signal
-        service.didReceive(payload: TestConstants.data, signal: 9, sessionId: nil)
+        service.didReceive(payload: TestConstants.data, signal: 9, session: nil)
 
         // then it doesnt create a log
         XCTAssertEqual(otel.logs.count, 0)
@@ -108,7 +108,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         service.start()
 
         // when the service receives a payload with the correct signal
-        service.didReceive(payload: TestConstants.data, signal: 9, sessionId: nil)
+        service.didReceive(payload: TestConstants.data, signal: 9, session: nil)
 
         // then it doesnt create a log
         XCTAssertEqual(otel.logs.count, 0)
@@ -129,7 +129,7 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         service.start()
 
         // when the service receives a payload with the correct signal
-        service.didReceive(payload: TestConstants.data, signal: 9, sessionId: nil)
+        service.didReceive(payload: TestConstants.data, signal: 9, session: nil)
 
         // then it doesnt create a log
         XCTAssertEqual(otel.logs.count, 0)
@@ -138,20 +138,23 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
     func test_session_attributes() throws {
         // given a corresponding session in storage with metadata
         let storage = try EmbraceStorage.createInMemoryDb()
-        storage.addSession(
-            id: TestConstants.sessionId,
-            processId: TestConstants.processId,
-            state: .foreground,
-            traceId: TestConstants.traceId,
-            spanId: TestConstants.spanId,
-            startTime: Date()
+        let part = try XCTUnwrap(
+            storage.addSession(
+                id: TestConstants.sessionId,
+                processId: TestConstants.processId,
+                state: .foreground,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: Date(),
+                userSessionId: TestConstants.userSessionId
+            )
         )
         storage.addMetadata(
             key: "test1",
             value: "metadata",
             type: .customProperty,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test2",
@@ -169,8 +172,8 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         service.install(otel: otel)
         service.start()
 
-        // when the service receives a payload with the right signal and session id
-        service.didReceive(payload: TestConstants.data, signal: 9, sessionId: TestConstants.sessionId)
+        // when the service receives a payload with the right signal, linked to a session part
+        service.didReceive(payload: TestConstants.data, signal: 9, session: part)
 
         // then it creates the corresponding otel log
         let log = otel.logs[0]
@@ -182,5 +185,10 @@ class MetricKitCrashCaptureServiceTests: XCTestCase {
         XCTAssertEqual(log.attributes["emb.payload"] as! String, "test")
         XCTAssertEqual(log.attributes["emb.properties.test1"] as! String, "metadata")
         XCTAssertEqual(log.attributes["emb.properties.test2"] as! String, "metadata")
+
+        // and the log carries both identities: the user session and the session part
+        XCTAssertEqual(log.attributes["session.id"] as! String, TestConstants.userSessionId.stringValue)
+        XCTAssertEqual(log.attributes["emb.user_session_id"] as! String, TestConstants.userSessionId.stringValue)
+        XCTAssertEqual(log.attributes["emb.session_part_id"] as! String, TestConstants.sessionId.stringValue)
     }
 }
