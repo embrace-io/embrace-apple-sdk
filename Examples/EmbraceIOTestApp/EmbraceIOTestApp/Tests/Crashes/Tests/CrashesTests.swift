@@ -9,6 +9,11 @@ import OpenTelemetryApi
 import OpenTelemetrySdk
 import SwiftUI
 
+/// TODO: Crash Tests need more work so we're just removing "currentSessionId" usage for now so that the app compiles and runs.
+/// Need to correlate the crash to the corresponding user session.
+/// Need to also figure out how to add crash tests to the test suite since the debugger stops when a crash happens so it's not possible to test them as of now other than running a manual test.
+///
+
 class CrashesTests: PayloadTest {
     var testRelevantPayloadNames: [String] { [] }
     var requiresCleanup: Bool { false }
@@ -22,7 +27,7 @@ class CrashesTests: PayloadTest {
         if !crashTriggered {
             recordCrash()
 
-            // Gives time for User Defaults to store the crash session.
+            // Gives time for User Defaults to store the crash record.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 var nullPointer: CrashTestDummyObject? = .init()
 
