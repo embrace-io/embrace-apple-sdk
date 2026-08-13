@@ -4,8 +4,8 @@
 
 import EmbraceIO
 
-extension Embrace.Endpoints {
-    static func fromInfoPlist() -> Embrace.Endpoints? {
+extension EmbraceEndpoints {
+    static func fromInfoPlist() -> EmbraceEndpoints? {
         guard let endpoints = Bundle.main.infoDictionary?["EmbraceEndpoints"] as? [String: String],
             let baseURL = value(from: endpoints, key: "baseURL"),
             let configBaseURL = value(from: endpoints, key: "configBaseURL")
@@ -13,7 +13,7 @@ extension Embrace.Endpoints {
             return nil
         }
 
-        return .init(
+        return EmbraceEndpoints(
             baseURL: baseURL,
             configBaseURL: configBaseURL
         )

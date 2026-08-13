@@ -1,5 +1,5 @@
 {
-  "originHash" : "f35065f67c35655933e2b4ed841314daab70232fc79185162a3eea7fe1831c3b",
+  "originHash" : "7f28111f24e70a76ab4b3c70d20da37b0a7bf7415d579e7d16ceaa2ee8d7e07a",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -87,8 +87,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kstenerud/KSCrash",
       "state" : {
-        "revision" : "f7675440853aa7a6dc4e1606fdb2e3423e6f1757",
-        "version" : "2.4.0"
+        "revision" : "95a8895d75f3c22aa9ad9f2a15d2fbd97b0a55e2",
+        "version" : "2.5.1"
       }
     },
     {
@@ -110,12 +110,30 @@
       }
     },
     {
+      "identity" : "opentelemetry-swift-core",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/open-telemetry/opentelemetry-swift-core",
+      "state" : {
+        "revision" : "84b9e341cbb7b4dd62cd1b89cd9e008995084132",
+        "version" : "2.4.1"
+      }
+    },
+    {
       "identity" : "promises",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/promises.git",
       "state" : {
         "revision" : "540318ecedd63d883069ae7f1ed811a2df00b6ac",
         "version" : "2.4.0"
+      }
+    },
+    {
+      "identity" : "swift-atomics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-atomics.git",
+      "state" : {
+        "revision" : "b601256eab081c0f92f059e12818ac1d4f178ff7",
+        "version" : "1.3.0"
       }
     },
     {
