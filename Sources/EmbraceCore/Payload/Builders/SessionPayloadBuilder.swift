@@ -7,6 +7,7 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceStorageInternal
+    import EmbraceSemantics
 #endif
 
 class SessionPayloadBuilder {
@@ -16,11 +17,21 @@ class SessionPayloadBuilder {
         // fetch properties
         let properties = storage.fetchCustomProperties(sessionId: session.idRaw, processId: session.processIdRaw)
 
+        // fetch the experiments tracked by the process this session belongs to
+        // this may be an earlier process, so it can't be read from the handler in memory
+        let experiments = storage.fetchMetadata(
+            key: SpanSemantics.keyExperiments,
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: session.processIdRaw
+        )?.value
+
         // build spans
         let (spans, spanSnapshots) = SpansPayloadBuilder.build(
             for: session,
             storage: storage,
-            customProperties: properties
+            customProperties: properties,
+            experiments: experiments
         )
 
         // build resources payload

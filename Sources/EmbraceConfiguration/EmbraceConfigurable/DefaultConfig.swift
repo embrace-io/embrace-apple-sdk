@@ -5,6 +5,8 @@
 public class DefaultConfig: EmbraceConfigurable {
     public var hangLimits: HangLimits = HangLimits()
 
+    public let experimentsLimits = ExperimentsLimits()
+
     public let isSDKEnabled: Bool = true
 
     public let isBackgroundSessionEnabled: Bool = false

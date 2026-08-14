@@ -41,6 +41,7 @@ class SessionController: SessionControllable {
     private let uploader: SessionUploader
     weak var config: EmbraceConfig?
     weak var sdkStateProvider: EmbraceSDKStateProvider?
+    weak var experiments: ExperimentsHandler?
 
     private struct SessionInfo {
         var session: EmbraceSession? = nil
@@ -84,10 +85,22 @@ class SessionController: SessionControllable {
             self?.update(heartbeat: Date())
             span.end()
         }
+
+        Embrace.notificationCenter.addObserver(
+            self,
+            selector: #selector(onExperimentsChanged),
+            name: .embraceExperimentsChanged,
+            object: nil
+        )
     }
 
     deinit {
         heartbeat.stop()
+        Embrace.notificationCenter.removeObserver(self)
+    }
+
+    @objc private func onExperimentsChanged(notification: Notification) {
+        update(experiments: notification.object as? String)
     }
 
     func clear() {
@@ -143,6 +156,9 @@ class SessionController: SessionControllable {
             // create session span
             let newId = EmbraceIdentifier.random
             let span = SessionSpanUtils.span(id: newId, startTime: startTime, state: state, coldStart: isColdStart)
+
+            // a session started mid-process has to carry whatever is already tracked
+            SessionSpanUtils.setExperiments(span: span, value: experiments?.encodedExperiments)
 
             // increment session counter and create session record
             let sessionNumber = storage.incrementCountForPermanentResource(
@@ -291,6 +307,22 @@ class SessionController: SessionControllable {
             _session.withLock { $0.session = updatedSession }
             guard let span = sessionInfo.sessionSpan else { return nil }
             SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
+            return span
+        }
+        if let span = spanToFlush { Embrace.client?.flush(span) }
+    }
+
+    /// Refreshes the experiments attribute on the current session span.
+    ///
+    /// Only the live span is touched here. The session payload reads the value from storage when it is
+    /// built, since that session may belong to an earlier process.
+    func update(experiments: String?) {
+        let sessionInfo = _session.safeValue
+        let spanToFlush: Span? = lock.locked {
+            guard sessionInfo.session != nil,
+                let span = sessionInfo.sessionSpan
+            else { return nil }
+            SessionSpanUtils.setExperiments(span: span, value: experiments)
             return span
         }
         if let span = spanToFlush { Embrace.client?.flush(span) }

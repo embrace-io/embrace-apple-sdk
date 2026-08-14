@@ -24,6 +24,7 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertEqual(config.spanEventsLimits, SpanEventsLimits())
         XCTAssertEqual(config.logsLimits, LogsLimits())
         XCTAssertEqual(config.internalLogLimits, InternalLogLimits())
+        XCTAssertEqual(config.experimentsLimits, ExperimentsLimits())
         XCTAssertTrue(config.networkPayloadCaptureRules.isEmpty)
     }
 }

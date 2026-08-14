@@ -855,6 +855,151 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNil(resources.first(where: { $0.key == "test7" }))
     }
 
+    func test_fetchResourcesForExport() throws {
+        // given inserted records
+        storage.addMetadata(
+            key: "test1",
+            value: "test",
+            type: .resource,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.stringValue
+        )
+        storage.addMetadata(
+            key: "test2",
+            value: "test",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.stringValue
+        )
+        storage.addMetadata(
+            key: "test3",
+            value: "test",
+            type: .resource,
+            lifespan: .process,
+            lifespanId: "test"
+        )
+        storage.addMetadata(
+            key: "test4",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.stringValue
+        )
+        storage.addMetadata(
+            key: "test5",
+            value: "test",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+        storage.addMetadata(
+            key: "test6",
+            value: "test",
+            type: .customProperty,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.stringValue
+        )
+        storage.addMetadata(
+            key: "test7",
+            value: "test",
+            type: .personaTag,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.stringValue
+        )
+
+        // when fetching the resources to export for a process
+        let resources = storage.fetchResourcesForExport(processId: TestConstants.processId)
+
+        // then the correct records are fetched
+        XCTAssertEqual(resources.count, 4)
+        XCTAssertNotNil(resources.first(where: { $0.key == "test1" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test2" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test3" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test4" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test5" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test6" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test7" }))
+    }
+
+    func test_fetchResourcesForExport_otherProcess() throws {
+        // given the same resource key stored for two different processes
+        let otherProcessId = EmbraceIdentifier.random
+
+        storage.addMetadata(
+            key: "test",
+            value: "current",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.stringValue
+        )
+        storage.addMetadata(
+            key: "test",
+            value: "other",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: otherProcessId.stringValue
+        )
+
+        // when fetching the resources to export for a process
+        let resources = storage.fetchResourcesForExport(processId: TestConstants.processId)
+
+        // then only the record of that process is fetched
+        XCTAssertEqual(resources.count, 1)
+        XCTAssertEqual(resources.first?.value, "current")
+    }
+
+    func test_fetchResourcesForExport_sessionLifespan() throws {
+        // given resources with a session lifespan
+        // (these are the ones added through the metadata handler)
+        storage.addMetadata(
+            key: "test1",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: TestConstants.sessionId.stringValue
+        )
+        storage.addMetadata(
+            key: "test2",
+            value: "test",
+            type: .resource,
+            lifespan: .session,
+            lifespanId: "test"
+        )
+
+        // when fetching the resources to export for a process
+        let resources = storage.fetchResourcesForExport(processId: TestConstants.processId)
+
+        // then they're all kept regardless of the session they belong to
+        XCTAssertEqual(resources.count, 2)
+        XCTAssertNotNil(resources.first(where: { $0.key == "test1" }))
+        XCTAssertNotNil(resources.first(where: { $0.key == "test2" }))
+    }
+
+    func test_fetchResourcesForExport_currentProcess() throws {
+        // given resources for the current process and for another one
+        storage.addMetadata(
+            key: "test1",
+            value: "test",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+        storage.addMetadata(
+            key: "test2",
+            value: "test",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: "test"
+        )
+
+        // when fetching the resources to export without passing a process
+        let resources = storage.fetchResourcesForExport()
+
+        // then only the records of the current process are fetched
+        XCTAssertEqual(resources.count, 1)
+        XCTAssertNotNil(resources.first(where: { $0.key == "test1" }))
+        XCTAssertNil(resources.first(where: { $0.key == "test2" }))
+    }
+
     func test_fetchCustomProperties() throws {
         // given a session in storage
         storage.addSession(

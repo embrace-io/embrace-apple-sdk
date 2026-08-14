@@ -55,5 +55,8 @@
         "reports_watchdog_events": true,
         "sample_trigger_threshold": 0.2,
         "sample_poll_interval": 0.03
-    }
+    },
+    "max_experiment_count": 1000,
+    "max_experiment_id_length": 256,
+    "max_experiment_variant_length": 64
 }

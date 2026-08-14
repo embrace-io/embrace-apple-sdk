@@ -54,6 +54,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
     var useNewStorageForSpanEvents: Bool
 
+    var maxExperimentCount: Int
+    var maxExperimentIdLength: Int
+    var maxExperimentVariantLength: Int
+
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
 
@@ -106,6 +110,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case sampleTriggerThreshold = "sample_trigger_threshold"
             case samplePollInterval = "sample_poll_interval"
         }
+
+        case maxExperimentCount = "max_experiment_count"
+        case maxExperimentIdLength = "max_experiment_id_length"
+        case maxExperimentVariantLength = "max_experiment_variant_length"
 
         case networkPayLoadCapture = "network_capture"
         case useLegacyUrlSessionProxy = "use_legacy_urlsession_proxy"
@@ -376,6 +384,25 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 Bool.self,
                 forKey: .useNewStorageForSpanEvents
             ) ?? defaultPayload.useNewStorageForSpanEvents
+
+        // experiments limits
+        maxExperimentCount =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentCount
+            ) ?? defaultPayload.maxExperimentCount
+
+        maxExperimentIdLength =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentIdLength
+            ) ?? defaultPayload.maxExperimentIdLength
+
+        maxExperimentVariantLength =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentVariantLength
+            ) ?? defaultPayload.maxExperimentVariantLength
     }
 
     // defaults
@@ -419,6 +446,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         networkPayloadCaptureRules = []
         useLegacyUrlSessionProxy = false
         useNewStorageForSpanEvents = false
+
+        maxExperimentCount = ExperimentsLimits.defaultMaxCount
+        maxExperimentIdLength = ExperimentsLimits.defaultMaxIdLength
+        maxExperimentVariantLength = ExperimentsLimits.defaultMaxVariantLength
     }
 }
 

@@ -27,13 +27,22 @@ struct LogPayloadBuilder {
 
     }
 
+    /// Builds a single-log payload.
+    ///
+    /// - Parameters:
+    ///   - sessionId: Session the log belongs to. When present, resources are resolved through the
+    ///                session, which also determines the process.
+    ///   - processId: Process the log belongs to, used when there is no session. A crash recovered
+    ///                from an earlier launch has to pass the process that crashed, so its resources
+    ///                describe that process rather than the one building the payload.
     static func build(
         timestamp: Date,
         severity: LogSeverity,
         body: String,
         attributes: [String: String],
         storage: EmbraceStorage?,
-        sessionId: EmbraceIdentifier?
+        sessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier = ProcessIdentifier.current
     ) -> PayloadEnvelope<[LogPayload]> {
 
         // build resources and metadata payloads
@@ -49,8 +58,8 @@ struct LogPayloadBuilder {
                 metadata.append(contentsOf: properties)
                 metadata.append(contentsOf: tags)
             } else {
-                resources = storage.fetchResourcesForProcessId(ProcessIdentifier.current)
-                metadata = storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
+                resources = storage.fetchResourcesForProcessId(processId)
+                metadata = storage.fetchPersonaTagsForProcessId(processId)
             }
         }
 

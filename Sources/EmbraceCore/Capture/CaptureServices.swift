@@ -60,7 +60,8 @@ final class CaptureServices {
                     session: nil,
                     storage: storage,
                     upload: upload,
-                    otel: Embrace.client
+                    otel: Embrace.client,
+                    processId: ProcessIdentifier.current
                 )
             }
         }

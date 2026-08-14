@@ -77,6 +77,9 @@ import OpenTelemetrySdk
     /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
     @objc public let startupInstrumentation: StartupInstrumentation
 
+    /// Holds the experiments and feature flags tracked during this process.
+    package let experiments: ExperimentsHandler
+
     let metricKit: MetricKitHandler
 
     let config: EmbraceConfig
@@ -225,6 +228,13 @@ import OpenTelemetrySdk
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
         self.metricKit = MetricKitHandler()
 
+        // initialize experiments handler
+        self.experiments = ExperimentsHandler(
+            storage: storage,
+            experimentsLimits: config.experimentsLimits,
+            configNotificationCenter: Embrace.notificationCenter
+        )
+
         // initialize startup instrumentation
         self.startupInstrumentation = StartupInstrumentation()
 
@@ -252,6 +262,10 @@ import OpenTelemetrySdk
 
         sessionController.sdkStateProvider = self
         logController?.sdkStateProvider = self
+
+        // the session span and every log report the experiments tracked so far
+        sessionController.experiments = experiments
+        logController?.experiments = experiments
 
         // setup otel
         EmbraceOTel.setup(
