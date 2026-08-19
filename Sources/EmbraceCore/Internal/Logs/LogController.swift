@@ -38,6 +38,7 @@ class LogController: LogControllable {
     private weak var upload: EmbraceLogUploader?
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
+    weak var privateLogger: EmbracePrivateLogger?
 
     var otel: EmbraceOTelBridge = EmbraceOTel()  // var so we can inject a mock for testing
 
@@ -221,6 +222,15 @@ extension LogController {
             }
             let resourcePayload = try createResourcePayload(sessionId: resolvedSessionId)
             let metadataPayload = try createMetadataPayload(sessionId: resolvedSessionId)
+
+            // the backend drops payloads that are missing the required metadata,
+            // so we discard these logs instead of uploading them
+            guard resourcePayload.hasRequiredMetadata else {
+                Embrace.logger.warning("Dropped \(logs.count) logs due to missing metadata!")
+                storage?.remove(logs: logs)
+                return
+            }
+
             send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload, completion: {})
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
@@ -238,6 +248,11 @@ extension LogController {
         // Process batches sequentially so each compressed payload
         // is released before the next one is allocated.
         let semaphore = DispatchSemaphore(value: 0)
+
+        // Batches missing the required metadata are dropped, and a single private log
+        // is sent at the end reporting the total amount of logs lost. This avoids
+        // sending one private log per batch when many of them are dropped in a row.
+        var droppedLogCount = 0
 
         for batch in batches {
             autoreleasepool {
@@ -265,6 +280,14 @@ extension LogController {
                     let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
                     let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
 
+                    // the backend drops payloads that are missing the required metadata,
+                    // so we discard these logs instead of uploading them
+                    guard resourcePayload.hasRequiredMetadata else {
+                        droppedLogCount += batch.logs.count
+                        storage?.remove(logs: batch.logs)
+                        return
+                    }
+
                     send(
                         logs: batch.logs,
                         resourcePayload: resourcePayload,
@@ -278,6 +301,10 @@ extension LogController {
                     Error.couldntCreatePayload(reason: exception.localizedDescription).log()
                 }
             }
+        }
+
+        if droppedLogCount > 0 {
+            privateLogger?.sendPrivateLog("Logs dropped due to missing metadata: \(droppedLogCount)")
         }
 
         completion?()

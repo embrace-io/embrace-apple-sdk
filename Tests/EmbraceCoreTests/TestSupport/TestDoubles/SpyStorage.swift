@@ -26,10 +26,11 @@ class SpyStorage: Storage {
     var didCallFetchResourcesForSessionId = false
     var fetchResourcesForSessionIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchResourcesForSessionId: [EmbraceMetadata] = []
+    var stubbedFetchResourcesForSessionIdMap: [String: [EmbraceMetadata]] = [:]
     func fetchResourcesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchResourcesForSessionId = true
         fetchResourcesForSessionIdReceivedParameter = sessionId
-        return stubbedFetchResourcesForSessionId
+        return stubbedFetchResourcesForSessionIdMap[sessionId.stringValue] ?? stubbedFetchResourcesForSessionId
     }
 
     var didCallFetchResourcesForProcessId = false

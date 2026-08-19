@@ -18,6 +18,7 @@ class LogControllerTests: XCTestCase {
     private var sessionController: MockSessionController!
     private var upload: SpyEmbraceLogUploader!
     private let sdkStateProvider = MockEmbraceSDKStateProvider()
+    private var privateLogger: SpyPrivateLogger!
     private var otelBridge: MockEmbraceOTelBridge!
     private let loggingQueue = DispatchQueue(label: "loggingQueue")
 
@@ -26,6 +27,7 @@ class LogControllerTests: XCTestCase {
         givenEmbraceLogUploader()
         givenSDKEnabled()
         givenSessionControllerWithSession()
+        givenPrivateLogger()
         givenStorage()
     }
 
@@ -125,6 +127,77 @@ class LogControllerTests: XCTestCase {
         whenInvokingSetup()
         thenLogUploaderShouldSendLogs()
         try thenStorageShouldntCallRemoveLogs()
+    }
+
+    // MARK: - Testing dropped batches
+
+    func testHavingLogsWithoutRequiredMetadata_onSetup_wontUploadAndRemovesThem() throws {
+        let logRecord = randomLogRecord()
+        givenStorage(withLogs: [logRecord])
+        givenStoredResources([])
+        givenLogController()
+        whenInvokingSetup()
+        thenDoesntTryToUploadAnything()
+        try thenStorageShouldCallRemove(withLogs: [logRecord])
+    }
+
+    func testHavingLogsWithoutRequiredMetadata_onSetup_sendsPrivateLogWithTotalAmount() {
+        givenStorage(withLogs: [randomLogRecord(), randomLogRecord(), randomLogRecord()])
+        givenStoredResources([])
+        givenLogController()
+        whenInvokingSetup()
+        thenPrivateLogsSent(["Logs dropped due to missing metadata: 3"])
+    }
+
+    func testHavingMultipleBatchesWithoutRequiredMetadata_onSetup_sendsASinglePrivateLog() {
+        let logs = logsForMoreThanASingleBatch()
+        givenStorage(withLogs: logs)
+        givenStoredResources([])
+        givenLogController()
+        whenInvokingSetup()
+        thenLogUploadShouldUpload(times: 0)
+        thenPrivateLogsSent(["Logs dropped due to missing metadata: \(logs.count)"])
+    }
+
+    func testHavingValidAndInvalidBatches_onSetup_uploadsValidOnesAndCountsTheRest() {
+        // the first batch is filled with logs from a session that still has its resources,
+        // so only the single log left for the second batch is dropped
+        let validSessionId = EmbraceIdentifier.random
+        let invalidSessionId = EmbraceIdentifier.random
+        let logs =
+            (1...LogController.maxLogsPerBatch).map { _ in randomLogRecord(sessionId: validSessionId) }
+            + [randomLogRecord(sessionId: invalidSessionId)]
+
+        givenStorage(withLogs: logs)
+        givenStoredResources([], forSessionId: invalidSessionId)
+        givenLogController()
+        whenInvokingSetup()
+        thenLogUploadShouldUpload(times: 1)
+        thenPrivateLogsSent(["Logs dropped due to missing metadata: 1"])
+    }
+
+    func testHavingLogsWithRequiredMetadata_onSetup_doesntSendAnyPrivateLog() {
+        givenStorage(withLogs: [randomLogRecord()])
+        givenLogController()
+        whenInvokingSetup()
+        thenLogUploaderShouldSendLogs()
+        thenPrivateLogsSent([])
+    }
+
+    func testHavingLogsWithoutRequiredMetadata_onBatchFinished_wontUploadAndRemovesThem() throws {
+        let logRecord = randomLogRecord()
+        givenStoredResources([])
+        givenLogController()
+        whenInvokingBatchFinished(withLogs: [logRecord])
+        thenDoesntTryToUploadAnything()
+        try thenStorageShouldCallRemove(withLogs: [logRecord])
+    }
+
+    func testHavingLogsWithoutRequiredMetadata_onBatchFinished_doesntSendAnyPrivateLog() {
+        givenStoredResources([])
+        givenLogController()
+        whenInvokingBatchFinished(withLogs: [randomLogRecord()])
+        thenPrivateLogsSent([])
     }
 
     // MARK: - Testing `batchFinished` method
@@ -310,6 +383,7 @@ extension LogControllerTests {
         )
 
         sut.sdkStateProvider = sdkStateProvider
+        sut.privateLogger = privateLogger
         sut.otel = otelBridge
         sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
     }
@@ -322,6 +396,7 @@ extension LogControllerTests {
         )
 
         sut.sdkStateProvider = sdkStateProvider
+        sut.privateLogger = privateLogger
         sut.otel = otelBridge
         sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
     }
@@ -365,6 +440,20 @@ extension LogControllerTests {
     fileprivate func givenStorage(withLogs logs: [EmbraceLog] = []) {
         storage = .init()
         storage?.stubbedFetchAllExcludingProcessIdentifier = logs
+        givenStoredResources([MockMetadata.createResourceRecord(key: AppResourceKey.appVersion.rawValue, value: "1.2.3")])
+    }
+
+    fileprivate func givenStoredResources(_ resources: [EmbraceMetadata]) {
+        storage?.stubbedFetchResourcesForSessionId = resources
+        storage?.stubbedFetchResourcesForProcessId = resources
+    }
+
+    fileprivate func givenStoredResources(_ resources: [EmbraceMetadata], forSessionId sessionId: EmbraceIdentifier) {
+        storage?.stubbedFetchResourcesForSessionIdMap[sessionId.stringValue] = resources
+    }
+
+    fileprivate func givenPrivateLogger() {
+        privateLogger = SpyPrivateLogger()
     }
 
     fileprivate func whenInvokingSetup() {
@@ -466,6 +555,10 @@ extension LogControllerTests {
 
             return unwrappedStorage.didCallRemoveLogs && expectedIds == ids
         }
+    }
+
+    fileprivate func thenPrivateLogsSent(_ messages: [String]) {
+        XCTAssertEqual(privateLogger.sendPrivateLogReceivedMessages, messages)
     }
 
     fileprivate func thenStorageShouldntCallRemoveLogs() throws {
