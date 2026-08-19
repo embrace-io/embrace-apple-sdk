@@ -241,6 +241,106 @@
 
             wait(for: [expectation], timeout: .defaultTimeout)
         }
+
+        // MARK: - Injected Termination Report Tests
+
+        // KSCrash 2.6.0's `termination` monitor injects a report at launch for every
+        // termination reason it infers. Its 2.5.1 predecessor only reported OOMs the user
+        // could have perceived, so only those may reach the crash pipeline.
+
+        func testOnInjectedTerminationReport_fetchUnsentCrashReports_userPerceptibleOOMshouldBeReported() throws {
+            givenCrashReporter()
+
+            try copyReport(
+                named: "termination_oom_foreground_report",
+                toFilePath: "/Reports/appId-report-0000000000000001.json"
+            )
+
+            let expectation = XCTestExpectation()
+            crashReporter.fetchUnsentCrashReports { reports in
+                XCTAssertEqual(reports.count, 1)
+                XCTAssertEqual(reports[0].internalId, 1)
+                // KSCrash fabricates a SIGKILL for these, matching what 2.5.1 stamped on a
+                // promoted OOM breadcrumb, so the default block list must not catch it.
+                XCTAssertEqual(reports[0].signal, .SIGKILL)
+                XCTAssertNotNil(reports[0].timestamp)
+                // Known gap versus 2.5.1: KSCrash hand-builds these reports with no `user`
+                // section, so there is no session to attribute them to.
+                XCTAssertNil(reports[0].sessionId)
+
+                expectation.fulfill()
+            }
+
+            wait(for: [expectation], timeout: .defaultTimeout)
+        }
+
+        func testOnInjectedTerminationReport_fetchUnsentCrashReports_backgroundOOMshouldntBeReported() throws {
+            givenCrashReporter()
+
+            try copyReport(
+                named: "termination_oom_background_report",
+                toFilePath: "/Reports/appId-report-0000000000000001.json"
+            )
+
+            let expectation = XCTestExpectation()
+            crashReporter.fetchUnsentCrashReports { reports in
+                XCTAssertEqual(reports.count, 0)
+                self.thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
+
+                expectation.fulfill()
+            }
+
+            wait(for: [expectation], timeout: .defaultTimeout)
+        }
+
+        func testOnInjectedTerminationReport_fetchUnsentCrashReports_unexplainedShouldntBeReported() throws {
+            givenCrashReporter()
+
+            try copyReport(
+                named: "termination_unexplained_report",
+                toFilePath: "/Reports/appId-report-0000000000000001.json"
+            )
+
+            let expectation = XCTestExpectation()
+            crashReporter.fetchUnsentCrashReports { reports in
+                // A plain force-quit lands in `unexplained`; reporting it would turn every
+                // swipe-away in the app switcher into a crash.
+                XCTAssertEqual(reports.count, 0)
+                self.thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
+
+                expectation.fulfill()
+            }
+
+            wait(for: [expectation], timeout: .defaultTimeout)
+        }
+
+        func testOnInjectedTerminationReports_fetchUnsentCrashReports_shouldntAffectRealCrashes() throws {
+            givenCrashReporter()
+
+            // given a real crash report alongside two droppable injected termination reports
+            try copyReport(named: "crash_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
+            try copyReport(
+                named: "termination_unexplained_report",
+                toFilePath: "/Reports/appId-report-0000000000000002.json"
+            )
+            try copyReport(
+                named: "termination_oom_background_report",
+                toFilePath: "/Reports/appId-report-0000000000000003.json"
+            )
+
+            let expectation = XCTestExpectation()
+            crashReporter.fetchUnsentCrashReports { reports in
+                XCTAssertEqual(reports.count, 1)
+                XCTAssertEqual(reports[0].internalId, 1)
+                XCTAssertEqual(reports[0].sessionId, TestConstants.sessionId.stringValue)
+                self.thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
+                self.thenShouldntExistReport(withName: "appId-report-0000000000000003.json")
+
+                expectation.fulfill()
+            }
+
+            wait(for: [expectation], timeout: .defaultTimeout)
+        }
     }
 
     extension EmbraceCrashReporterTests {
