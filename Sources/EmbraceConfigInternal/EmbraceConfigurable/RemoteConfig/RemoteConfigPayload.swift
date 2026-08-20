@@ -114,7 +114,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         case maxExperimentCount = "experiment_max_count"
         case maxExperimentIdLength = "experiment_id_max_length"
         case maxExperimentVariantLength = "experiment_variant_max_length"
-        
 
         case networkPayLoadCapture = "network_capture"
         case useLegacyUrlSessionProxy = "use_legacy_urlsession_proxy"

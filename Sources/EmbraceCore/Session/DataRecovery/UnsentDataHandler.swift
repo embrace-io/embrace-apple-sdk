@@ -163,9 +163,6 @@ class UnsentDataHandler {
         }
     }
 
-    /// - Parameter processId: Process the crash happened in. Pass `nil` when it can't be determined,
-    ///                        so the experiments of the process building the log are not wrongly
-    ///                        attributed to this crash.
     static public func sendCrashLog(
         report: EmbraceCrashReport,
         reporter: EmbraceCrashReporter?,
@@ -173,7 +170,7 @@ class UnsentDataHandler {
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?,
-        processId: EmbraceIdentifier? = ProcessIdentifier.current,
+        processId: EmbraceIdentifier?,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
         let timestamp = (report.timestamp ?? session?.lastHeartbeatTime) ?? Date()
@@ -203,7 +200,7 @@ class UnsentDataHandler {
                 attributes: attributes,
                 storage: storage,
                 sessionId: session?.id,
-                processId: processId ?? ProcessIdentifier.current
+                processId: processId
             )
             let payloadData = try JSONEncoder().encode(payload).gzipped()
 
@@ -516,7 +513,7 @@ extension UnsentDataHandler {
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?,
-        processId: EmbraceIdentifier? = ProcessIdentifier.current
+        processId: EmbraceIdentifier?
     ) async {
         await withCheckedContinuation { continuation in
             sendCrashLog(

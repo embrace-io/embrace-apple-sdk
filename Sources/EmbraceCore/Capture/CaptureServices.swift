@@ -54,6 +54,11 @@ final class CaptureServices {
         // upload action for crash reports
         if let crashReporter {
             crashReporter.onNewReport = { [weak crashReporter, weak storage, weak upload] report in
+                var processId: EmbraceIdentifier? = nil
+                if let reportProcessId = crashReporter?.processId {
+                    processId = EmbraceIdentifier(stringValue: reportProcessId)
+                }
+
                 UnsentDataHandler.sendCrashLog(
                     report: report,
                     reporter: crashReporter,
@@ -61,7 +66,7 @@ final class CaptureServices {
                     storage: storage,
                     upload: upload,
                     otel: Embrace.client,
-                    processId: ProcessIdentifier.current
+                    processId: processId
                 )
             }
         }
