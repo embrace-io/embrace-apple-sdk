@@ -246,9 +246,9 @@ class UnsentDataHandler {
             initialAttributes: [:]
         )
 
-        // The crash belongs to a process that has usually already ended, so its experiments come from
+        // The crash belongs to a process that has already ended, so its experiments come from
         // storage rather than from the handler in memory. When the process can't be determined the
-        // attribute is left off entirely, which is better than reporting this process's enrolments.
+        // attribute is left off entirely.
         var experiments: String?
         if let processId = processId {
             experiments =

@@ -17,8 +17,8 @@ class SessionPayloadBuilder {
         // fetch properties
         let properties = storage.fetchCustomProperties(sessionId: session.idRaw, processId: session.processIdRaw)
 
-        // fetch the experiments tracked by the process this session belongs to
-        // this may be an earlier process, so it can't be read from the handler in memory
+        // Fetch the experiments tracked by the process this session belongs to.
+        // This may be an earlier process, so it can't be read from the handler in memory.
         let experiments = storage.fetchMetadata(
             key: SpanSemantics.keyExperiments,
             type: .requiredResource,
