@@ -32,7 +32,7 @@ package class ExperimentsHandler {
         var records: [ExperimentRecord] = []
         /// Position of each record in `records`, for constant time existence checks.
         var index: [ExperimentRecordKey: Int] = [:]
-        /// Cached encoded value, rebuilt only when the records change.
+        /// Cached encoded value, rejoined from the records' own encoded forms only when they change.
         var encoded: String?
         var limits: ExperimentsLimits
     }
@@ -216,7 +216,7 @@ package class ExperimentsHandler {
                     continue
                 }
 
-                state.records[position].endedAt = endedAt ?? now
+                state.records[position].end(at: endedAt ?? now)
                 changed = true
             }
 

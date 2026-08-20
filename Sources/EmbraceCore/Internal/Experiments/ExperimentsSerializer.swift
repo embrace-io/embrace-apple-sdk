@@ -24,24 +24,39 @@ enum ExperimentsSerializer {
     static let recordSeparator = ";"
     static let fieldSeparator = ":"
 
-    /// Encodes every record into the final attribute value, or `nil` when there is nothing to report.
+    /// Joins every record into the final attribute value, or `nil` when there is nothing to report.
+    ///
+    /// Each record already holds its encoded form, so this only concatenates. Nothing is re-escaped,
+    /// which is what keeps the cost of a change proportional to the value rather than to the work of
+    /// building it from scratch.
     static func serialize(_ records: [ExperimentRecord]) -> String? {
         guard !records.isEmpty else {
             return nil
         }
 
-        return records.map(encode).joined(separator: recordSeparator)
+        return records.map(\.encoded).joined(separator: recordSeparator)
     }
 
-    static func encode(_ record: ExperimentRecord) -> String {
+    /// Builds the encoded form of a single record.
+    ///
+    /// Takes the fields rather than an ``ExperimentRecord`` because a record calls this while it is
+    /// still being initialized. The format lives here and nowhere else; the record only stores what
+    /// this returns.
+    static func encode(
+        kind: ExperimentKind,
+        id: String,
+        variant: String?,
+        startedAt: Date,
+        endedAt: Date?
+    ) -> String {
         var fields = [
-            record.kind.rawValue,
-            escape(record.id),
-            escape(record.variant ?? ""),
-            String(record.startedAt.millisecondsSince1970Truncated)
+            kind.rawValue,
+            escape(id),
+            escape(variant ?? ""),
+            String(startedAt.millisecondsSince1970Truncated)
         ]
 
-        if let endedAt = record.endedAt {
+        if let endedAt = endedAt {
             fields.append(String(endedAt.millisecondsSince1970Truncated))
         }
 

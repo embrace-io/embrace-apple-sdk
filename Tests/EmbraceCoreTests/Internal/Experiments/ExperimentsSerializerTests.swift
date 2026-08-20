@@ -122,7 +122,35 @@ final class ExperimentsSerializerTests: XCTestCase {
     // MARK: - Timestamps
 
     func test_encode_timestampsAreBareEpochMilliseconds() {
-        let value = ExperimentsSerializer.encode(record(id: "a", variant: nil, startedAt: Date(timeIntervalSince1970: 1.5)))
+        let value = record(id: "a", variant: nil, startedAt: Date(timeIntervalSince1970: 1.5)).encoded
         XCTAssertEqual(value, "e:a::1500")
+    }
+
+    // MARK: - Cached encoding
+
+    /// A record encodes itself on creation, so `serialize` has nothing left to build.
+    func test_record_isEncodedOnCreation() {
+        XCTAssertEqual(record(id: "abc1", variant: "A").encoded, "e:abc1:A:1717459200000")
+        XCTAssertEqual(record(id: "abc1", variant: "A", endedAt: end).encoded, "e:abc1:A:1717459200000:1717462800000")
+    }
+
+    /// Ending a record is the one thing that changes its encoded form, and it must refresh the cache.
+    func test_end_refreshesEncodedValue() {
+        var subject = record(id: "abc1", variant: "A")
+        XCTAssertEqual(subject.encoded, "e:abc1:A:1717459200000")
+
+        subject.end(at: end)
+
+        XCTAssertEqual(subject.endedAt, end)
+        XCTAssertEqual(subject.encoded, "e:abc1:A:1717459200000:1717462800000")
+        XCTAssertEqual(ExperimentsSerializer.serialize([subject]), "e:abc1:A:1717459200000:1717462800000")
+    }
+
+    /// Ending in place must match having been created ended, so the cache cannot drift from `init`.
+    func test_end_matchesRecordCreatedAlreadyEnded() {
+        var ended = record(id: "a:b", variant: "x;y")
+        ended.end(at: end)
+
+        XCTAssertEqual(ended.encoded, record(id: "a:b", variant: "x;y", endedAt: end).encoded)
     }
 }
