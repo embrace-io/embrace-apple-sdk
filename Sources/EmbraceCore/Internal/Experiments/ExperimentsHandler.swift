@@ -239,7 +239,10 @@ package class ExperimentsHandler {
     ///
     /// The write goes through `addRequiredResources` rather than the metadata handler because the
     /// value is exempt from the standard attribute length limit, and the metadata handler truncates.
-    /// Called outside the lock so it is never held across a database hop.
+    /// Called outside the lock, and it has to stay that way. Beyond not holding the lock across a
+    /// database hop, the notification below is delivered synchronously, and its observer takes
+    /// `SessionController`'s lock — which `startSession` holds while reading `encodedExperiments`.
+    /// Persisting under the lock would invert that order and deadlock.    
     ///
     /// The record exists so a later process can read back this process's value; it is deliberately
     /// kept out of the reported resources by `ResourcePayload` and `ResourceStorageExporter`.
