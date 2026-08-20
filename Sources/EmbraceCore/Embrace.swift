@@ -252,6 +252,7 @@ import OpenTelemetrySdk
 
         sessionController.sdkStateProvider = self
         logController?.sdkStateProvider = self
+        logController?.privateLogger = self
 
         // setup otel
         EmbraceOTel.setup(
