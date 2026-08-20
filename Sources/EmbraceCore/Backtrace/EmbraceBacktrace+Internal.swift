@@ -6,84 +6,9 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceKSCrashBacktraceSupport
+    import EmbraceSemantics
 #endif
-
-private class EmbraceThreadList {
-    let task: mach_port_t
-    let threads: thread_act_array_t?
-    let threadCount: mach_msg_type_number_t
-
-    init(task: mach_port_t = mach_task_self_) {
-        self.task = task
-
-        var threadList: thread_act_array_t?
-        var threadCount: mach_msg_type_number_t = 0
-
-        let result = task_threads(self.task, &threadList, &threadCount)
-        if result == KERN_SUCCESS {
-            self.threads = threadList
-            self.threadCount = threadCount
-        } else {
-            self.threads = nil
-            self.threadCount = 0
-        }
-    }
-
-    deinit {
-        if let threads {
-            let deallocSize = vm_size_t(threadCount) * vm_size_t(MemoryLayout<thread_t>.size)
-            vm_deallocate(task, vm_address_t(UInt(bitPattern: threads)), deallocSize)
-        }
-    }
-
-    func withThreads(_ block: (_ thread: thread_act_t) -> Void) {
-        guard let threads else {
-            return
-        }
-        let current = pthread_mach_thread_np(pthread_self())
-        for i in 0..<Int(threadCount) {
-            if threads[i] == current {
-                continue
-            }
-            block(threads[i])
-        }
-    }
-
-    /// Suspends all threads except the current one
-    func suspend() {
-        #if !os(watchOS)
-            withThreads {
-                let err = thread_suspend($0)
-                if err != KERN_SUCCESS {
-                    Embrace.logger.warning("[THREAD.SUSPEND] err: \(err), \(String(cString: mach_error_string(err)))")
-                }
-            }
-        #endif
-    }
-
-    /// Resumes all threads except the current one
-    func resume() {
-        #if !os(watchOS)
-            withThreads {
-                let err = thread_resume($0)
-                if err != KERN_SUCCESS {
-                    Embrace.logger.warning("[THREAD.RESUME] err: \(err), \(String(cString: mach_error_string(err)))")
-                }
-            }
-        #endif
-    }
-
-    func indexOf(thread: pthread_t) -> Int {
-        guard let threads else { return -1 }
-        let machThread = pthread_mach_thread_np(thread)
-        for index in 0..<Int(threadCount) {
-            if threads[index] == machThread {
-                return index
-            }
-        }
-        return -1
-    }
-}
 
 private var _symbolCache = SymbolCache()
 
@@ -160,7 +85,7 @@ extension EmbraceBacktraceFrame {
             return cached
         }
 
-        guard let result = Embrace.client?.options.symbolicator?.resolve(address: UInt(address)) else {
+        guard let result = KSCrashBacktracing().resolve(address: UInt(address)) else {
             return self
         }
 
@@ -208,7 +133,7 @@ extension EmbraceBacktrace {
 extension EmbraceBacktrace {
 
     /// Number of Embrace capture-plumbing frames on top of a stack walked on the *current* thread
-    /// (self-capture, `canSuspend == false`): the `Backtracer` call and the `_takeSnapshot` /
+    /// (self-capture, `canSuspend == false`): the `KSCrashBacktracing` call and the `_takeSnapshot` /
     /// `takeSnapshot` / `backtrace(of:threadIndex:)` wrappers above the caller. Dropping exactly
     /// these lands frame 0 on the code that asked for the backtrace.
     ///
@@ -220,7 +145,7 @@ extension EmbraceBacktrace {
     ///   chain above is unchanged. Those wrappers are `@inline(never)` so the depth is identical at
     ///   every optimization level, which lets the Debug-only `BacktraceFrameSkipTests` pin it for
     ///   Release too. If a refactor changes the chain, that test fails and points here.
-    static let selfCaptureFrameSkip = 5
+    static let selfCaptureFrameSkip = 4
 
     /// Upper bound on frames captured per snapshot: deep enough for real call stacks, capped so a
     /// runaway/recursive stack can't blow up capture cost or payload size.
@@ -238,10 +163,6 @@ extension EmbraceBacktrace {
     @inline(never)
     static func _takeSnapshot(of thread: pthread_t, threadIndex: Int = 0) -> [EmbraceBacktraceThread] {
 
-        guard let backtracer = Embrace.client?.options.backtracer else {
-            return []
-        }
-
         // get the mach thread to take the snapshot of
         let machThread = pthread_mach_thread_np(thread)
         let canSuspend = pthread_self() != thread
@@ -250,13 +171,17 @@ extension EmbraceBacktrace {
         let sdkFrameSkip = canSuspend ? 0 : Self.selfCaptureFrameSkip
         let entries = Self.maxCapturedFrames
 
+        // Built before any suspend: instantiating the backtracer is a heap allocation, which is
+        // forbidden inside the suspend window below.
+        let backtracer = KSCrashBacktracing()
+
         let addresses: [UInt]
         if canSuspend {
             // Deadlock hazard: if the suspended thread holds the allocator lock, any `malloc` in the
             // suspend window hangs the process. So allocate the buffer before the suspend and do all
             // heap work (copy/slice) after the resume — only the alloc-free
             // `backtrace(of:into:capacity:)` runs in the window.
-            let buffer = UnsafeMutablePointer<FrameAddress>.allocate(capacity: entries)
+            let buffer = UnsafeMutablePointer<UInt>.allocate(capacity: entries)
             defer { buffer.deallocate() }
 
             guard emb_thread_suspend(machThread) == KERN_SUCCESS else {

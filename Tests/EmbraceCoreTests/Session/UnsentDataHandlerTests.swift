@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 import TestSupport
 import XCTest
@@ -77,7 +78,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(
             options: uploadOptions, logger: logger, queue: queue)
 
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
 
         // given a finished session in the storage
         await storage.addSession(
@@ -122,7 +123,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(
             options: noRetryOptions, logger: logger, queue: queue)
 
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
 
         // given a finished session in the storage
         await storage.addSession(
@@ -166,7 +167,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(
             options: uploadOptions, logger: logger, queue: queue)
 
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
@@ -222,7 +223,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"] as! String, EmbraceType.crash.rawValue)
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
@@ -239,7 +240,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(
             options: noRetryOptions, logger: logger, queue: queue)
 
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
@@ -293,7 +294,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"] as! String, EmbraceType.crash.rawValue)
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
@@ -310,7 +311,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(
             options: uploadOptions, logger: logger, queue: queue)
 
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
@@ -364,7 +365,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was sent
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
+        XCTAssertEqual(otel.logs[0].attributes["emb.type"] as! String, EmbraceType.crash.rawValue)
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
     }
 
@@ -379,7 +380,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         let upload = try EmbraceUpload(
             options: uploadOptions, logger: logger, queue: queue)
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
 
         // given a crash reporter
         let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
@@ -420,15 +421,84 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // then the raw crash log was constructed correctly
         XCTAssertEqual(otel.logs.count, 1)
-        XCTAssertEqual(otel.logs[0].attributes["emb.type"], .string(LogType.crash.rawValue))
+        XCTAssertEqual(otel.logs[0].type, .crash)
         XCTAssertEqual(otel.logs[0].timestamp, report.timestamp)
-        XCTAssertEqual(otel.logs[0].body?.description, "")
+        XCTAssertEqual(otel.logs[0].body, "")
         XCTAssertEqual(otel.logs[0].severity, .fatal)
-        XCTAssertEqual(otel.logs[0].attributes["session.id"], .string(TestConstants.sessionId.stringValue))
-        XCTAssertEqual(otel.logs[0].attributes["emb.state"], .string(SessionState.foreground.rawValue))
-        XCTAssertEqual(otel.logs[0].attributes["log.record.uid"], .string(report.id.withoutHyphen))
-        XCTAssertEqual(otel.logs[0].attributes["emb.provider"], .string(report.provider))
-        XCTAssertEqual(otel.logs[0].attributes["emb.payload"], .string(report.payload))
+        XCTAssertEqual(
+            otel.logs[0].attributes["emb.session_part_id"] as! String,
+            TestConstants.sessionId.stringValue
+        )
+        XCTAssertEqual(otel.logs[0].attributes["emb.state"] as! String, SessionState.foreground.rawValue)
+        XCTAssertEqual(otel.logs[0].attributes["log.record.uid"] as! String, report.id.withoutHyphen)
+        XCTAssertEqual(otel.logs[0].attributes["emb.provider"] as! String, report.provider)
+        XCTAssertEqual(otel.logs[0].attributes["emb.payload"] as! String, report.payload)
+    }
+
+    func test_sendCrashReports_stampsCrashTerminationReasonOnLinkedSession() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on watchOS")
+
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let otel = MockOTelSignalsHandler()
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+
+        // and a finished session in storage that the crash report will link to
+        await storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60),
+            endTime: Date()
+        )
+
+        // The session is deleted by `sendUnsentData`'s session-uploader path at the end of
+        // the flow, so observe the in-flight update via a Core Data listener — it captures
+        // the moment `updateSession` writes the new fields.
+        let listener = CoreDataListener()
+        let didStamp = XCTestExpectation()
+        listener.onUpdatedObjects = { records in
+            for record in records {
+                if let session = record as? SessionRecord,
+                    session.crashReportId != nil,
+                    session.userSessionTerminationReason == TerminationReason.crash.rawValue
+                {
+                    didStamp.fulfill()
+                    return
+                }
+            }
+        }
+
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: nil, otel: otel, crashReporter: embraceReporter
+        )
+
+        await fulfillment(of: [didStamp], timeout: .defaultTimeout)
+        _ = listener  // keep alive for the duration of the test
+    }
+
+    func test_sendCrashReports_unlinkedReport_doesNotCrash() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on watchOS")
+
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let otel = MockOTelSignalsHandler()
+        // Crash report points at a session id that doesn't exist in storage.
+        let crashReporter = CrashReporterMock(crashSessionId: EmbraceIdentifier.random.stringValue)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+
+        // no exception expected; storage stays empty
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: nil, otel: otel, crashReporter: embraceReporter
+        )
+        wait(delay: .shortTimeout)
+
+        XCTAssertEqual((storage.fetchAll() as [SessionRecord]).count, 0)
     }
 
     func test_spanCleanUp_sendUnsentData() async throws {
@@ -443,7 +513,7 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(
             options: uploadOptions, logger: logger, queue: queue)
 
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
 
         // given an unfinished session in the storage
         await storage.addSession(
@@ -457,25 +527,25 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given old closed span in storage
         storage.upsertSpan(
-            id: "oldSpan",
-            name: "test",
-            traceId: "traceId",
-            type: .performance,
-            data: Data(),
-            startTime: Date(timeIntervalSinceNow: -100),
-            endTime: Date(timeIntervalSinceNow: -80)
-        )
+            MockSpan(
+                id: "oldSpan",
+                traceId: "traceId",
+                name: "test",
+                type: .performance,
+                startTime: Date(timeIntervalSinceNow: -100),
+                endTime: Date(timeIntervalSinceNow: -80)
+            ))
 
         // given open span in storage
         storage.upsertSpan(
-            id: TestConstants.spanId,
-            name: "test",
-            traceId: TestConstants.traceId,
-            type: .performance,
-            data: Data(),
-            startTime: Date(timeIntervalSinceNow: -50),
-            processId: TestConstants.processId
-        )
+            MockSpan(
+                id: TestConstants.spanId,
+                traceId: TestConstants.traceId,
+                name: "test",
+                type: .performance,
+                startTime: Date(timeIntervalSinceNow: -50),
+                processId: TestConstants.processId
+            ))
 
         // when sending unsent sessions
         await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel)
@@ -515,16 +585,17 @@ class UnsentDataHandlerTests: XCTestCase {
         let upload = try EmbraceUpload(
             options: uploadOptions, logger: logger, queue: queue)
 
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
 
-        // given an unfinished session in the storage
+        // given an unfinished session part in the storage
         await storage.addSession(
             id: TestConstants.sessionId,
             processId: ProcessIdentifier.current,
             state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
-            startTime: Date(timeIntervalSinceNow: -60)
+            startTime: Date(timeIntervalSinceNow: -60),
+            userSessionId: TestConstants.userSessionId
         )
 
         // given metadata in storage
@@ -535,11 +606,11 @@ class UnsentDataHandlerTests: XCTestCase {
             lifespan: .permanent
         )
         storage.addMetadata(
-            key: "sameSessionId",
+            key: "sameUserSessionId",
             value: "test",
             type: .requiredResource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "sameProcessId",
@@ -549,10 +620,10 @@ class UnsentDataHandlerTests: XCTestCase {
             lifespanId: ProcessIdentifier.current.stringValue
         )
         storage.addMetadata(
-            key: "differentSessionId",
+            key: "differentUserSessionId",
             value: "test",
             type: .requiredResource,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -568,22 +639,23 @@ class UnsentDataHandlerTests: XCTestCase {
             storage: storage,
             upload: upload,
             otel: otel,
-            currentSessionId: TestConstants.sessionId
+            currentSessionId: TestConstants.sessionId,
+            currentUserSessionId: TestConstants.userSessionId
         )
         wait(
             timeout: .longTimeout, interval: .shortInterval,
             until: {
                 let records: [MetadataRecord] = storage.fetchAll()
-                return !records.contains(where: { $0.key == "differentSessionId" })
+                return !records.contains(where: { $0.key == "differentUserSessionId" })
                     && !records.contains(where: { $0.key == "differentProcessId" })
             })
 
         // then all metadata is cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
         XCTAssertNotNil(records.first(where: { $0.key == "permanent" }))
-        XCTAssertNotNil(records.first(where: { $0.key == "sameSessionId" }))
+        XCTAssertNotNil(records.first(where: { $0.key == "sameUserSessionId" }))
         XCTAssertNotNil(records.first(where: { $0.key == "sameProcessId" }))
-        XCTAssertNil(records.first(where: { $0.key == "differentSessionId" }))
+        XCTAssertNil(records.first(where: { $0.key == "differentUserSessionId" }))
         XCTAssertNil(records.first(where: { $0.key == "differentProcessId" }))
     }
 
@@ -611,14 +683,14 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // given old closed span in storage
         storage.upsertSpan(
-            id: "oldSpan",
-            name: "test",
-            traceId: "traceId",
-            type: .performance,
-            data: Data(),
-            startTime: Date(timeIntervalSinceNow: -100),
-            endTime: Date(timeIntervalSinceNow: -80)
-        )
+            MockSpan(
+                id: "oldSpan",
+                traceId: "traceId",
+                name: "test",
+                type: .performance,
+                startTime: Date(timeIntervalSinceNow: -100),
+                endTime: Date(timeIntervalSinceNow: -80)
+            ))
 
         // when uploading the session
         await UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
@@ -713,21 +785,24 @@ class UnsentDataHandlerTests: XCTestCase {
         let logController = LogController(
             storage: storage,
             upload: upload,
-            controller: MockSessionController()
+            sessionController: MockSessionController(),
+            queue: DispatchQueue.main
         )
         logController.sdkStateProvider = sdkStateProvider
         logController.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
-        let otel = MockEmbraceOpenTelemetry()
+        let otel = MockOTelSignalsHandler()
 
         // given logs in storage
         for _ in 0...5 {
-            storage.createLog(
-                id: EmbraceIdentifier.random,
-                processId: TestConstants.processId,
-                severity: .debug,
-                body: "test",
-                attributes: [:]
-            )
+            storage.saveLog(
+                MockLog(
+                    id: EmbraceIdentifier.random.stringValue,
+                    severity: .debug,
+                    body: "test",
+                    attributes: [:],
+                    sessionId: nil,
+                    processId: TestConstants.processId
+                ))
         }
 
         // when sending unsent data
@@ -857,7 +932,7 @@ extension UnsentDataHandlerTests {
 extension EmbraceStorage {
 
     @discardableResult
-    public func addSession(
+    func addSession(
         id: EmbraceIdentifier,
         processId: EmbraceIdentifier,
         state: SessionState,

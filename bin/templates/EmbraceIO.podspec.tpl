@@ -37,7 +37,6 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCaptureService"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceConfigInternal"
-    subs.dependency "EmbraceIO/EmbraceOTelInternal"
     subs.dependency "EmbraceIO/EmbraceStorageInternal"
     subs.dependency "EmbraceIO/EmbraceUploadInternal"
     subs.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
@@ -47,8 +46,8 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceCommonInternal' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
     subs.dependency "EmbraceIO/EmbraceAtomicsShim"
-    subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
   spec.subspec 'EmbraceAtomicsShim' do |subs|
@@ -59,13 +58,12 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceSemantics' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
-    subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
   spec.subspec 'EmbraceCaptureService' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
-    subs.dependency "EmbraceIO/EmbraceOTelInternal"
-    subs.dependency "EmbraceIO/OpenTelemetrySdk"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceConfiguration"
   end
 
@@ -77,6 +75,7 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceConfiguration' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
+    subs.dependency "EmbraceIO/EmbraceSemantics"
   end
 
   spec.subspec 'EmbraceOTelInternal' do |subs|
@@ -105,7 +104,6 @@ Pod::Spec.new do |spec|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceCoreDataInternal"
-    subs.dependency "EmbraceIO/EmbraceOTelInternal"
   end
 
   spec.subspec 'EmbraceCrashlyticsSupport' do |subs|

@@ -4,17 +4,15 @@
 
 #if canImport(UIKit) && !os(watchOS)
     import UIKit
-    import OpenTelemetryApi
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCaptureService
-        import EmbraceOTelInternal
         import EmbraceCommonInternal
         import EmbraceSemantics
     #endif
 
     protocol UIViewControllerHandlerDataSource: AnyObject {
         var serviceState: CaptureServiceState { get }
-        var otel: EmbraceOpenTelemetry? { get }
+        var otel: EmbraceOTelSignalsHandler? { get }
 
         var instrumentVisibility: Bool { get }
         var instrumentFirstRender: Bool { get }
@@ -28,13 +26,13 @@
         private let queue: DispatchableQueue
 
         struct ViewControllerHandlerMutableData {
-            var parentSpans: [String: Span] = [:]
-            var viewDidLoadSpans: [String: Span] = [:]
-            var viewWillAppearSpans: [String: Span] = [:]
-            var viewIsAppearingSpans: [String: Span] = [:]
-            var viewDidAppearSpans: [String: Span] = [:]
-            var visibilitySpans: [String: Span] = [:]
-            var uiReadySpans: [String: Span] = [:]
+            var parentSpans: [String: EmbraceSpan] = [:]
+            var viewDidLoadSpans: [String: EmbraceSpan] = [:]
+            var viewWillAppearSpans: [String: EmbraceSpan] = [:]
+            var viewIsAppearingSpans: [String: EmbraceSpan] = [:]
+            var viewDidAppearSpans: [String: EmbraceSpan] = [:]
+            var visibilitySpans: [String: EmbraceSpan] = [:]
+            var uiReadySpans: [String: EmbraceSpan] = [:]
             var alreadyFinishedUiReadyIds: Set<String> = []
         }
         internal let data = EmbraceMutex(ViewControllerHandlerMutableData())
@@ -53,7 +51,7 @@
             Embrace.notificationCenter.removeObserver(self)
         }
 
-        func parentSpan(for vc: UIViewController) -> Span? {
+        func parentSpan(for vc: UIViewController) -> EmbraceSpan? {
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return nil
             }
@@ -68,7 +66,7 @@
             // also clear all the cached spans
             queue.async {
                 for span in self.data.withLock({ $0.visibilitySpans.values }) {
-                    span.end(time: now)
+                    span.end(endTime: now)
                 }
 
                 for id in self.data.withLock({ $0.parentSpans.keys }) {
@@ -156,7 +154,7 @@
                     return
                 }
 
-                span.end(time: now)
+                span.end(endTime: now)
             }
         }
 
@@ -202,7 +200,7 @@
                     return
                 }
 
-                span.end(time: now)
+                span.end(endTime: now)
             }
         }
 
@@ -247,7 +245,7 @@
                     return
                 }
 
-                span.end(time: now)
+                span.end(endTime: now)
             }
         }
 
@@ -309,8 +307,8 @@
                 }
 
                 // check if we need to create a visibility span
-                if self.dataSource?.instrumentVisibility == true {
-                    let span = self.createSpan(
+                if self.dataSource?.instrumentVisibility == true,
+                    let visibilitySpan = self.createSpan(
                         with: otel,
                         viewName: viewName,
                         className: className,
@@ -318,11 +316,12 @@
                         type: .view,
                         startTime: now
                     )
-                    self.data.withLock { $0.visibilitySpans[id] = span }
+                {
+                    self.data.withLock { $0.visibilitySpans[id] = visibilitySpan }
                 }
 
                 if let span = self.data.withLock({ $0.viewDidAppearSpans.removeValue(forKey: id) }) {
-                    span.end(time: now)
+                    span.end(endTime: now)
                 }
 
                 guard let parentSpan = self.data.withLock({ $0.parentSpans[id] }) else {
@@ -331,7 +330,7 @@
 
                 // end time to first render span
                 if parentSpan.isTimeToFirstRender {
-                    parentSpan.end(time: now)
+                    parentSpan.end(endTime: now)
                     self.clear(id: id)
 
                     // generate ui ready span
@@ -348,8 +347,8 @@
                     // if the view controller was already flagged as ready to interact
                     // we end the spans right away
                     if self.data.withLock({ $0.alreadyFinishedUiReadyIds.contains(id) }) {
-                        span.end(time: now)
-                        parentSpan.end(time: now)
+                        span?.end(endTime: now)
+                        parentSpan.end(endTime: now)
 
                         self.clear(id: id)
 
@@ -371,7 +370,7 @@
 
                 // end visibility span
                 if let span = self.data.withLock({ $0.self.visibilitySpans[id] }) {
-                    span.end(time: now)
+                    span.end(endTime: now)
                     self.data.withLock { $0.visibilitySpans[id] = nil }
                 }
 
@@ -396,8 +395,8 @@
                 // in this case we close the spans
                 if let span = self.data.withLock({ $0.uiReadySpans[id] }) {
                     let now = Date()
-                    span.end(time: now)
-                    parentSpan.end(time: now)
+                    span.end(endTime: now)
+                    parentSpan.end(endTime: now)
                     self.clear(id: id)
 
                     // otherwise it means the view is still loading, in this case we flag
@@ -414,27 +413,27 @@
             data.withLock {
 
                 if let viewDidLoadSpan = $0.viewDidLoadSpans[id] {
-                    viewDidLoadSpan.end(errorCode: .userAbandon, time: time)
+                    viewDidLoadSpan.end(errorCode: .userAbandon, endTime: time)
                 }
 
                 if let viewWillAppearSpan = $0.viewWillAppearSpans[id] {
-                    viewWillAppearSpan.end(errorCode: .userAbandon, time: time)
+                    viewWillAppearSpan.end(errorCode: .userAbandon, endTime: time)
                 }
 
                 if let viewIsAppearingSpan = $0.viewIsAppearingSpans[id] {
-                    viewIsAppearingSpan.end(errorCode: .userAbandon, time: time)
+                    viewIsAppearingSpan.end(errorCode: .userAbandon, endTime: time)
                 }
 
                 if let viewDidAppearSpan = $0.viewDidAppearSpans[id] {
-                    viewDidAppearSpan.end(errorCode: .userAbandon, time: time)
+                    viewDidAppearSpan.end(errorCode: .userAbandon, endTime: time)
                 }
 
                 if let uiReadySpan = $0.uiReadySpans[id] {
-                    uiReadySpan.end(errorCode: .userAbandon, time: time)
+                    uiReadySpan.end(errorCode: .userAbandon, endTime: time)
                 }
 
                 if let parentSpan = $0.parentSpans[id] {
-                    parentSpan.end(errorCode: .userAbandon, time: time)
+                    parentSpan.end(errorCode: .userAbandon, endTime: time)
                 }
 
                 // clear
@@ -450,31 +449,24 @@
         }
 
         private func createSpan(
-            with otel: EmbraceOpenTelemetry,
+            with otel: EmbraceOTelSignalsHandler,
             viewName: String,
             className: String,
             name: String,
-            type: SpanType = .viewLoad,
+            type: EmbraceType = .viewLoad,
             startTime: Date,
-            parent: Span? = nil
-        ) -> Span {
-            let builder = otel.buildSpan(
+            parent: EmbraceSpan? = nil
+        ) -> EmbraceSpan? {
+            return try? otel.createInternalSpan(
                 name: name,
+                parentSpan: parent,
                 type: type,
+                startTime: startTime,
                 attributes: [
                     SpanSemantics.View.keyViewTitle: viewName,
                     SpanSemantics.View.keyViewName: className
-                ],
-                autoTerminationCode: nil
+                ]
             )
-
-            if let parent = parent {
-                builder.setParent(parent)
-            }
-
-            builder.setStartTime(time: startTime)
-
-            return builder.startSpan()
         }
 
         private func clear(id: String) {
@@ -490,7 +482,7 @@
         }
     }
 
-    extension Span {
+    extension EmbraceSpan {
         var isTimeToFirstRender: Bool {
             return name.contains("time-to-first-render")
         }

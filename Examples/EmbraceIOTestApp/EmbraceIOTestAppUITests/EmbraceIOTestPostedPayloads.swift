@@ -43,7 +43,7 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
     }
 
     private func addPersona() {
-        let lifespanButton = app.buttons["MetadataLifespan_session"]
+        let lifespanButton = app.buttons["MetadataLifespan_user_session"]
         XCTAssertTrue(lifespanButton.waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollUntilHittableElementVisible(lifespanButton))
         lifespanButton.tap()
@@ -59,28 +59,6 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(removeAllButton.waitForExistence(timeout: 10))
         XCTAssertTrue(app.scrollUntilHittableElementVisible(removeAllButton))
         removeAllButton.tap()
-
-        // Enter Username
-        let usernameTextField = app.textFields["SessionTests_UserInfo_Username"]
-        XCTAssertTrue(usernameTextField.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.scrollUntilHittableElementVisible(usernameTextField))
-        usernameTextField.tap()
-
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-
-        usernameTextField.typeText("TestUsername123")
-        usernameTextField.typeText(XCUIKeyboardKey.return.rawValue)
-
-        // Enter Email
-        let emailTextField = app.textFields["SessionTests_UserInfo_Email"]
-        XCTAssertTrue(emailTextField.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.scrollUntilHittableElementVisible(emailTextField))
-        emailTextField.tap()
-
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-
-        emailTextField.typeText("Some@Email.com")
-        emailTextField.typeText(XCUIKeyboardKey.return.rawValue)
 
         // Enter User ID
         let identifierTextField = app.textFields["SessionTests_UserInfo_Identifier"]

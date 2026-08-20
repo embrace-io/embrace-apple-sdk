@@ -14,9 +14,8 @@ extension BrandGameApp {
 
         switch ProcessInfo.processInfo.arguments[1] {
         case "Metadata":
-            Embrace.client?
-                .buildSpan(name: "Test Started for Metadata", type: .performance)
-                .startSpan()
+            EmbraceIO.shared
+                .createSpan(name: "Test Started for Metadata", type: .performance)?
                 .end()
         default:
             break

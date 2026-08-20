@@ -2,16 +2,13 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
-#endif
-
-extension SpanType {
-    public static let view = SpanType(ux: "view")
-    public static let viewLoad = SpanType(performance: "ui_load")
+extension EmbraceType {
+    public static let view = EmbraceType(ux: "view")
+    public static let viewLoad = EmbraceType(performance: "ui_load")
 }
 
 extension SpanSemantics {
+    /// Attribute keys and values for view spans.
     public struct View {
         public static let screenName = "emb-screen-view"
         public static let timeToFirstRenderName = "emb-NAME-time-to-first-render"
@@ -25,6 +22,7 @@ extension SpanSemantics {
         public static let keyViewName = "view.name"
     }
 
+    /// Attribute keys and values for SwiftUI view spans.
     public struct SwiftUIView {
         /// A span that begins the first time an instrumented body is encountered,
         /// and ends on the next tick of the run loop.
@@ -49,6 +47,5 @@ extension SpanSemantics {
         /// A span that begins when a `View` is first initialized, and ends
         /// when that content is deemed complete.
         public static let timeToFirstContentComplete = "time-to-first-content-complete"
-
     }
 }

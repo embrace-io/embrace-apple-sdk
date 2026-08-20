@@ -65,7 +65,6 @@ class SwiftUICaptureTest: PayloadTest {
                 }
             }
 
-            MetadataResourceTest.testMetadataInclussion(on: span.resource, testItems: &testItems)
             testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(span.attributes))
         }
 

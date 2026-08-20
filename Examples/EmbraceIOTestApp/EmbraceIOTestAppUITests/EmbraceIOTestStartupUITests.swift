@@ -18,7 +18,6 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
         case processLaunch
         case appStartup
         case firstFrameCapture
-        case resourceMetadata
 
         var identifier: String {
             switch self {
@@ -38,8 +37,6 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
                 "appStartupInitSpanTestButton"
             case .firstFrameCapture:
                 "firstFrameCaptureSpanTestButton"
-            case .resourceMetadata:
-                "payloadResourceAttributesTestButton"
             }
         }
     }
@@ -94,11 +91,6 @@ final class EmbraceIOTestWARMStartupUITests: XCTestCase {
 
     func test_initStartup_FirstFrameCapture_Span() {
         selectMetadataTest(.firstFrameCapture)
-        evaluateTestResults(app)
-    }
-
-    func test_initStartup_MetadataItems() {
-        selectMetadataTest(.resourceMetadata)
         evaluateTestResults(app)
     }
 }

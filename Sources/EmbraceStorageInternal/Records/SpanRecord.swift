@@ -6,75 +6,104 @@ import CoreData
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 /// Represents a span in the storage
 @objc(SpanRecord)
 public class SpanRecord: NSManagedObject {
     @NSManaged public var id: String
-    @NSManaged public var name: String
     @NSManaged public var traceId: String
-    @NSManaged public var typeRaw: String  // SpanType
-    @NSManaged public var data: Data
+    @NSManaged public var parentSpanId: String?
+    @NSManaged public var name: String
+    @NSManaged public var typeRaw: String
+    @NSManaged public var statusRaw: EMBInt
     @NSManaged public var startTime: Date
     @NSManaged public var endTime: Date?
-    @NSManaged public var processIdRaw: String  // ProcessIdentifier
-    @NSManaged public var sessionIdRaw: String?  // SessionIdentifier
+    @NSManaged public var sessionIdRaw: String?
+    @NSManaged public var processIdRaw: String
+    @NSManaged public var attributes: String
     @NSManaged public var events: Set<SpanEventRecord>
+    @NSManaged public var links: Set<SpanLinkRecord>
 
     class func create(
         context: NSManagedObjectContext,
-        id: String,
-        name: String,
-        traceId: String,
-        type: SpanType,
-        data: Data,
-        startTime: Date,
-        endTime: Date? = nil,
-        processId: EmbraceIdentifier,
-        sessionId: EmbraceIdentifier? = nil
-    ) -> EmbraceSpan? {
-        var result: EmbraceSpan?
-
+        span: EmbraceSpan
+    ) {
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
             let record = SpanRecord(entity: description, insertInto: context)
-            record.id = id
-            record.name = name
-            record.traceId = traceId
-            record.typeRaw = type.rawValue
-            record.data = data
-            record.startTime = startTime
-            record.endTime = endTime
-            record.processIdRaw = processId.stringValue
-            record.sessionIdRaw = sessionId?.stringValue
-            record.events = Set()
+            record.id = span.context.spanId
+            record.traceId = span.context.traceId
+            record.parentSpanId = span.parentSpanId
+            record.name = span.name
+            record.typeRaw = span.type.rawValue
+            record.statusRaw = span.status.rawValue
+            record.startTime = span.startTime
+            record.endTime = span.endTime
+            record.sessionIdRaw = span.sessionId?.stringValue
+            record.processIdRaw = span.processId.stringValue
+            record.attributes = span.attributes.keyValueEncoded()
 
-            result = record.toImmutable()
+            // events
+            for event in span.events {
+                if let event = SpanEventRecord.create(
+                    context: context,
+                    event: event,
+                    span: record
+                ) {
+                    record.events.insert(event)
+                }
+            }
+
+            // links
+            for link in span.links {
+                if let link = SpanLinkRecord.create(
+                    context: context,
+                    link: link,
+                    span: record
+                ) {
+                    record.links.insert(link)
+                }
+            }
         }
-
-        return result
     }
 
     static func createFetchRequest() -> NSFetchRequest<SpanRecord> {
         return NSFetchRequest<SpanRecord>(entityName: entityName)
     }
 
-    func toImmutable() -> EmbraceSpan {
+    func toImmutable(attributes: EmbraceAttributes? = nil) -> EmbraceSpan {
+
+        var sessionId: EmbraceIdentifier?
+        if let sessionIdRaw {
+            sessionId = EmbraceIdentifier(stringValue: sessionIdRaw)
+        }
+
+        let finalEvents = events.map {
+            $0.toImmutable()
+        }
+
+        let finalLinks = links.map {
+            $0.toImmutable()
+        }
+
         return ImmutableSpanRecord(
-            id: id,
+            context: EmbraceSpanContext(spanId: id, traceId: traceId),
+            parentSpanId: parentSpanId,
             name: name,
-            traceId: traceId,
-            typeRaw: typeRaw,
-            data: data,
+            type: EmbraceType(rawValue: typeRaw) ?? .performance,
+            status: EmbraceSpanStatus(rawValue: statusRaw) ?? .unset,
             startTime: startTime,
             endTime: endTime,
-            processIdRaw: processIdRaw,
-            events: events.sorted(by: { $0.timestamp < $1.timestamp }).map { $0.toImmutable() }
+            events: finalEvents,
+            links: finalLinks,
+            attributes: attributes ?? .keyValueDecode(self.attributes),
+            sessionId: sessionId,
+            processId: EmbraceIdentifier(stringValue: processIdRaw)
         )
     }
 }
@@ -87,30 +116,48 @@ extension SpanRecord: EmbraceStorageRecord {
         entity.name = entityName
         entity.managedObjectClassName = NSStringFromClass(SpanRecord.self)
 
-        let child = NSEntityDescription()
-        child.name = SpanEventRecord.entityName
-        child.managedObjectClassName = NSStringFromClass(SpanEventRecord.self)
+        let events = NSEntityDescription()
+        events.name = SpanEventRecord.entityName
+        events.managedObjectClassName = NSStringFromClass(SpanEventRecord.self)
 
-        // parent attributes
+        let links = NSEntityDescription()
+        links.name = SpanLinkRecord.entityName
+        links.managedObjectClassName = NSStringFromClass(SpanLinkRecord.self)
+
+        // span
         let idAttribute = NSAttributeDescription()
         idAttribute.name = "id"
         idAttribute.attributeType = .stringAttributeType
-
-        let nameAttribute = NSAttributeDescription()
-        nameAttribute.name = "name"
-        nameAttribute.attributeType = .stringAttributeType
 
         let traceIdAttribute = NSAttributeDescription()
         traceIdAttribute.name = "traceId"
         traceIdAttribute.attributeType = .stringAttributeType
 
+        let parentSpanIdAttribute = NSAttributeDescription()
+        parentSpanIdAttribute.name = "parentSpanId"
+        parentSpanIdAttribute.attributeType = .stringAttributeType
+        parentSpanIdAttribute.isOptional = true
+
+        let sessionIdAttribute = NSAttributeDescription()
+        sessionIdAttribute.name = "sessionIdRaw"
+        sessionIdAttribute.attributeType = .stringAttributeType
+        sessionIdAttribute.isOptional = true
+
+        let processIdAttribute = NSAttributeDescription()
+        processIdAttribute.name = "processIdRaw"
+        processIdAttribute.attributeType = .stringAttributeType
+
+        let nameAttribute = NSAttributeDescription()
+        nameAttribute.name = "name"
+        nameAttribute.attributeType = .stringAttributeType
+
         let typeAttribute = NSAttributeDescription()
         typeAttribute.name = "typeRaw"
         typeAttribute.attributeType = .stringAttributeType
 
-        let dataAttribute = NSAttributeDescription()
-        dataAttribute.name = "data"
-        dataAttribute.attributeType = .binaryDataAttributeType
+        let statusAttribute = NSAttributeDescription()
+        statusAttribute.name = "statusRaw"
+        statusAttribute.attributeType = .integer64AttributeType
 
         let startTimeAttribute = NSAttributeDescription()
         startTimeAttribute.name = "startTime"
@@ -122,77 +169,175 @@ extension SpanRecord: EmbraceStorageRecord {
         endTimeAttribute.attributeType = .dateAttributeType
         endTimeAttribute.isOptional = true
 
-        let processIdAttribute = NSAttributeDescription()
-        processIdAttribute.name = "processIdRaw"
-        processIdAttribute.attributeType = .stringAttributeType
+        let attributesAttribute = NSAttributeDescription()
+        attributesAttribute.name = "attributes"
+        attributesAttribute.attributeType = .stringAttributeType
 
-        let sessionIdAttribute = NSAttributeDescription()
-        sessionIdAttribute.name = "sessionIdRaw"
-        sessionIdAttribute.attributeType = .stringAttributeType
-        sessionIdAttribute.isOptional = true
-
-        // child attributes
+        // event
         let eventNameAttribute = NSAttributeDescription()
         eventNameAttribute.name = "name"
         eventNameAttribute.attributeType = .stringAttributeType
 
-        let timestampAttribute = NSAttributeDescription()
-        timestampAttribute.name = "timestamp"
-        timestampAttribute.attributeType = .dateAttributeType
-        timestampAttribute.defaultValue = Date()
+        let eventTypeAttribute = NSAttributeDescription()
+        eventTypeAttribute.name = "typeRaw"
+        eventTypeAttribute.attributeType = .stringAttributeType
+        eventTypeAttribute.isOptional = true
 
-        let attributesDataAttribute = NSAttributeDescription()
-        attributesDataAttribute.name = "attributesData"
-        attributesDataAttribute.attributeType = .binaryDataAttributeType
+        let eventTimestampAttribute = NSAttributeDescription()
+        eventTimestampAttribute.name = "timestamp"
+        eventTimestampAttribute.attributeType = .dateAttributeType
+        eventTimestampAttribute.defaultValue = Date()
 
-        // relationships
-        let parentRelationship = NSRelationshipDescription()
-        let childRelationship = NSRelationshipDescription()
+        let eventAttributesAttribute = NSAttributeDescription()
+        eventAttributesAttribute.name = "attributes"
+        eventAttributesAttribute.attributeType = .stringAttributeType
 
-        parentRelationship.name = "events"
-        parentRelationship.deleteRule = .cascadeDeleteRule
-        parentRelationship.destinationEntity = child
-        parentRelationship.inverseRelationship = childRelationship
+        let eventParentRelationship = NSRelationshipDescription()
+        let eventChildRelationship = NSRelationshipDescription()
 
-        childRelationship.name = "span"
-        childRelationship.minCount = 1
-        childRelationship.maxCount = 1
-        childRelationship.destinationEntity = entity
-        childRelationship.inverseRelationship = parentRelationship
+        eventParentRelationship.name = "events"
+        eventParentRelationship.deleteRule = .cascadeDeleteRule
+        eventParentRelationship.destinationEntity = events
+        eventParentRelationship.inverseRelationship = eventChildRelationship
 
-        // set properties
+        eventChildRelationship.name = "span"
+        eventChildRelationship.minCount = 1
+        eventChildRelationship.maxCount = 1
+        eventChildRelationship.destinationEntity = entity
+        eventChildRelationship.inverseRelationship = eventParentRelationship
+
+        // link
+        let linkSpanIdAttribute = NSAttributeDescription()
+        linkSpanIdAttribute.name = "spanId"
+        linkSpanIdAttribute.attributeType = .stringAttributeType
+
+        let linkTraceIdAttribute = NSAttributeDescription()
+        linkTraceIdAttribute.name = "traceId"
+        linkTraceIdAttribute.attributeType = .stringAttributeType
+
+        let linkAttributesAttribute = NSAttributeDescription()
+        linkAttributesAttribute.name = "attributes"
+        linkAttributesAttribute.attributeType = .stringAttributeType
+
+        let linkParentRelationship = NSRelationshipDescription()
+        let linkChildRelationship = NSRelationshipDescription()
+
+        linkParentRelationship.name = "links"
+        linkParentRelationship.deleteRule = .cascadeDeleteRule
+        linkParentRelationship.destinationEntity = links
+        linkParentRelationship.inverseRelationship = linkChildRelationship
+
+        linkChildRelationship.name = "span"
+        linkChildRelationship.minCount = 1
+        linkChildRelationship.maxCount = 1
+        linkChildRelationship.destinationEntity = entity
+        linkChildRelationship.inverseRelationship = linkParentRelationship
+
+        // result
         entity.properties = [
             idAttribute,
-            nameAttribute,
             traceIdAttribute,
+            parentSpanIdAttribute,
+            nameAttribute,
             typeAttribute,
-            dataAttribute,
+            statusAttribute,
             startTimeAttribute,
             endTimeAttribute,
-            processIdAttribute,
             sessionIdAttribute,
-            parentRelationship
+            processIdAttribute,
+            attributesAttribute,
+            eventParentRelationship,
+            linkParentRelationship
         ]
 
-        child.properties = [
+        events.properties = [
             eventNameAttribute,
-            timestampAttribute,
-            attributesDataAttribute,
-            childRelationship
+            eventTypeAttribute,
+            eventTimestampAttribute,
+            eventAttributesAttribute,
+            eventChildRelationship
         ]
 
-        return [entity, child]
+        links.properties = [
+            linkSpanIdAttribute,
+            linkTraceIdAttribute,
+            linkAttributesAttribute,
+            linkChildRelationship
+        ]
+
+        return [
+            entity,
+            events,
+            links
+        ]
     }
 }
 
-struct ImmutableSpanRecord: EmbraceSpan {
-    let id: String
+class ImmutableSpanRecord: EmbraceSpan {
+    let context: EmbraceSpanContext
+    let parentSpanId: String?
     let name: String
-    let traceId: String
-    let typeRaw: String
-    let data: Data
+    let type: EmbraceType
+    let status: EmbraceSpanStatus
     let startTime: Date
     let endTime: Date?
-    let processIdRaw: String
     let events: [EmbraceSpanEvent]
+    let links: [EmbraceSpanLink]
+    let attributes: EmbraceAttributes
+    let sessionId: EmbraceIdentifier?
+    let processId: EmbraceIdentifier
+
+    init(
+        context: EmbraceSpanContext,
+        parentSpanId: String? = nil,
+        name: String,
+        type: EmbraceType,
+        status: EmbraceSpanStatus,
+        startTime: Date,
+        endTime: Date? = nil,
+        events: [EmbraceSpanEvent],
+        links: [EmbraceSpanLink],
+        attributes: EmbraceAttributes,
+        sessionId: EmbraceIdentifier? = nil,
+        processId: EmbraceIdentifier
+    ) {
+        self.context = context
+        self.parentSpanId = parentSpanId
+        self.name = name
+        self.type = type
+        self.status = status
+        self.startTime = startTime
+        self.endTime = endTime
+        self.events = events
+        self.links = links
+        self.attributes = attributes
+        self.sessionId = sessionId
+        self.processId = processId
+    }
+
+    func setStatus(_ status: EmbraceSpanStatus) {
+        // no op
+    }
+
+    func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: EmbraceAttributes) -> EmbraceSpanEvent? {
+        // no op
+        return nil
+    }
+
+    func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) -> EmbraceSpanLink? {
+        // no op
+        return nil
+    }
+
+    func end(endTime: Date) {
+        // no op
+    }
+
+    func end() {
+        // no op
+    }
+
+    func setAttribute(key: String, value: EmbraceAttributeValue?) {
+        // no op
+    }
 }

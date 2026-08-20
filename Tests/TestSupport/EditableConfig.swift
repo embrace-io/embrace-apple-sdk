@@ -3,6 +3,7 @@
 //
 
 import EmbraceConfiguration
+import Foundation
 
 public class EditableConfig: EmbraceConfigurable {
 
@@ -34,22 +35,24 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isMetricKitInternalMetricsCaptureEnabled: Bool = false
 
-    public var spanEventsLimits = SpanEventsLimits()
+    public var spanEventTypeLimits = SpanEventTypeLimits()
 
-    public var logsLimits = LogsLimits()
+    public var logSeverityLimits = LogSeverityLimits()
 
     public var internalLogLimits = InternalLogLimits()
 
     public var networkPayloadCaptureRules = [NetworkPayloadCaptureRule]()
 
-    public var useLegacyUrlSessionProxy: Bool = false
-
     public var useNewStorageForSpanEvents: Bool = false
+
+    public var userSessionMaxDuration: TimeInterval = 12 * 3600
+
+    public var userSessionInactivityTimeout: TimeInterval = 30 * 60
 
     public var traceparentInjectionEnabled: Bool = false
 
-    public func update(completion: (Bool, (any Error)?) -> Void) {
-        completion(false, nil)
+    public func update(completion: (Result<Bool, Error>) -> Void) {
+        completion(.success(false))
     }
 
     public init(
@@ -66,8 +69,9 @@ public class EditableConfig: EmbraceConfigurable {
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         hangLimits: HangLimits = HangLimits(),
-        useLegacyUrlSessionProxy: Bool = false,
-        useNewStorageForSpanEvents: Bool = false
+        useNewStorageForSpanEvents: Bool = false,
+        userSessionMaxDuration: TimeInterval = 12 * 3600,
+        userSessionInactivityTimeout: TimeInterval = 30 * 60
     ) {
         self.isSDKEnabled = isSdkEnabled
         self.isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -82,8 +86,9 @@ public class EditableConfig: EmbraceConfigurable {
         self.internalLogLimits = internalLogLimits
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
         self.hangLimits = hangLimits
-        self.useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
         self.useNewStorageForSpanEvents = useNewStorageForSpanEvents
+        self.userSessionMaxDuration = userSessionMaxDuration
+        self.userSessionInactivityTimeout = userSessionInactivityTimeout
     }
 }
 

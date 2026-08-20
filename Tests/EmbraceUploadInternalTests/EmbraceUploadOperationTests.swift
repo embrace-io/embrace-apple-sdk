@@ -495,4 +495,34 @@ class EmbraceUploadOperationTests: XCTestCase {
 
         XCTAssertEqual(headers["x-emb-retry-count"], "1")
     }
+
+    func test_getSuggestedDelay_parsesRetryAfterHeader() throws {
+        // given an upload operation
+        let operation = EmbraceUploadOperation(
+            urlSession: urlSession,
+            queue: queue,
+            metadataOptions: testMetadataOptions,
+            endpoint: TestConstants.url,
+            identifier: "id",
+            data: Data(),
+            retryCount: 0,
+            exponentialBackoffBehavior: .withNoDelay(),
+            attemptCount: 0
+        ) { _, _ in }
+
+        func response(_ headers: [String: String]) -> HTTPURLResponse {
+            HTTPURLResponse(url: TestConstants.url, statusCode: 429, httpVersion: nil, headerFields: headers)!
+        }
+
+        // a valid integer header is honored
+        XCTAssertEqual(operation.getSuggestedDelay(fromResponse: response(["Retry-After": "5"])), 5)
+        // a fractional value is not an Int, so it falls back to 0 (documents the current contract)
+        XCTAssertEqual(operation.getSuggestedDelay(fromResponse: response(["Retry-After": "0.01"])), 0)
+        // a non-numeric value falls back to 0
+        XCTAssertEqual(operation.getSuggestedDelay(fromResponse: response(["Retry-After": "soon"])), 0)
+        // a missing header falls back to 0
+        XCTAssertEqual(operation.getSuggestedDelay(fromResponse: response([:])), 0)
+        // a nil / non-HTTP response falls back to 0
+        XCTAssertEqual(operation.getSuggestedDelay(fromResponse: nil), 0)
+    }
 }

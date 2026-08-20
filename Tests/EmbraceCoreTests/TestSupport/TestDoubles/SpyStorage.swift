@@ -3,9 +3,9 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import Foundation
-import OpenTelemetryApi
 import TestSupport
 
 class RandomError: Error, CustomNSError {
@@ -15,7 +15,6 @@ class RandomError: Error, CustomNSError {
 }
 
 class SpyStorage: Storage {
-
     var didCallFetchAllResources = false
     var stubbedFetchAllResources: [EmbraceMetadata] = []
     func fetchAllResources() -> [EmbraceMetadata] {
@@ -23,13 +22,15 @@ class SpyStorage: Storage {
         return stubbedFetchAllResources
     }
 
-    var didCallFetchResourcesForSessionId = false
-    var fetchResourcesForSessionIdReceivedParameter: EmbraceIdentifier!
-    var stubbedFetchResourcesForSessionId: [EmbraceMetadata] = []
-    func fetchResourcesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
-        didCallFetchResourcesForSessionId = true
-        fetchResourcesForSessionIdReceivedParameter = sessionId
-        return stubbedFetchResourcesForSessionId
+    var didCallFetchResourcesForUserSessionId = false
+    var fetchResourcesForUserSessionIdReceivedParameter: EmbraceIdentifier!
+    var fetchResourcesForUserSessionIdReceivedProcessId: EmbraceIdentifier!
+    var stubbedFetchResourcesForUserSessionId: [EmbraceMetadata] = []
+    func fetchResources(userSessionId: EmbraceIdentifier?, processId: EmbraceIdentifier) -> [EmbraceMetadata] {
+        didCallFetchResourcesForUserSessionId = true
+        fetchResourcesForUserSessionIdReceivedParameter = userSessionId
+        fetchResourcesForUserSessionIdReceivedProcessId = processId
+        return stubbedFetchResourcesForUserSessionId
     }
 
     var didCallFetchResourcesForProcessId = false
@@ -41,22 +42,26 @@ class SpyStorage: Storage {
         return stubbedFetchResourcesForProcessId
     }
 
-    var didCallFetchCustomPropertiesForSessionId = false
-    var fetchCustomPropertiesForSessionIdReceivedParameter: EmbraceIdentifier!
-    var stubbedFetchCustomPropertiesForSessionId: [EmbraceMetadata] = []
-    func fetchCustomPropertiesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
-        didCallFetchCustomPropertiesForSessionId = true
-        fetchCustomPropertiesForSessionIdReceivedParameter = sessionId
-        return stubbedFetchCustomPropertiesForSessionId
+    var didCallFetchCustomPropertiesForUserSessionId = false
+    var fetchCustomPropertiesForUserSessionIdReceivedParameter: EmbraceIdentifier!
+    var fetchCustomPropertiesForUserSessionIdReceivedProcessId: EmbraceIdentifier!
+    var stubbedFetchCustomPropertiesForUserSessionId: [EmbraceMetadata] = []
+    func fetchCustomProperties(userSessionId: EmbraceIdentifier?, processId: EmbraceIdentifier) -> [EmbraceMetadata] {
+        didCallFetchCustomPropertiesForUserSessionId = true
+        fetchCustomPropertiesForUserSessionIdReceivedParameter = userSessionId
+        fetchCustomPropertiesForUserSessionIdReceivedProcessId = processId
+        return stubbedFetchCustomPropertiesForUserSessionId
     }
 
-    var didCallFetchPersonaTagsForSessionId = false
-    var fetchPersonaTagsForSessionIdReceivedParameter: EmbraceIdentifier!
-    var stubbedFetchPersonaTagsForSessionId: [EmbraceMetadata] = []
-    func fetchPersonaTagsForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
-        didCallFetchPersonaTagsForSessionId = true
-        fetchPersonaTagsForSessionIdReceivedParameter = sessionId
-        return stubbedFetchPersonaTagsForSessionId
+    var didCallFetchPersonaTagsForUserSessionId = false
+    var fetchPersonaTagsForUserSessionIdReceivedParameter: EmbraceIdentifier!
+    var fetchPersonaTagsForUserSessionIdReceivedProcessId: EmbraceIdentifier!
+    var stubbedFetchPersonaTagsForUserSessionId: [EmbraceMetadata] = []
+    func fetchPersonaTags(userSessionId: EmbraceIdentifier?, processId: EmbraceIdentifier) -> [EmbraceMetadata] {
+        didCallFetchPersonaTagsForUserSessionId = true
+        fetchPersonaTagsForUserSessionIdReceivedParameter = userSessionId
+        fetchPersonaTagsForUserSessionIdReceivedProcessId = processId
+        return stubbedFetchPersonaTagsForUserSessionId
     }
 
     var didCallFetchPersonaTagsForProcessId = false
@@ -69,30 +74,14 @@ class SpyStorage: Storage {
     }
 
     var didCallCreate = false
-    func createLog(
-        id: EmbraceIdentifier,
-        processId: EmbraceIdentifier,
-        severity: LogSeverity,
-        body: String,
-        timestamp: Date,
-        attributes: [String: AttributeValue]
-    ) -> EmbraceLog? {
+    func saveLog(_ log: EmbraceLog) {
         didCallCreate = true
-
-        return MockLog(
-            id: id,
-            processId: processId,
-            severity: severity,
-            body: body,
-            timestamp: timestamp,
-            attributes: attributes
-        )
     }
 
     var didCallFetchAllExcludingProcessIdentifier = false
     var stubbedFetchAllExcludingProcessIdentifier: [EmbraceLog] = []
     var fetchAllExcludingProcessIdentifierReceivedParameter: EmbraceIdentifier!
-    func fetchAll(excludingProcessIdentifier processIdentifier: EmbraceIdentifier) -> [EmbraceLog] {
+    func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier?) -> [EmbraceLog] {
         didCallFetchAllExcludingProcessIdentifier = true
         fetchAllExcludingProcessIdentifierReceivedParameter = processIdentifier
         return stubbedFetchAllExcludingProcessIdentifier
@@ -103,10 +92,5 @@ class SpyStorage: Storage {
     func remove(logs: [EmbraceLog]) {
         didCallRemoveLogs = true
         removeLogsReceivedParameter = logs
-    }
-
-    var didCallRemoveAllLogs = false
-    func removeAllLogs() {
-        didCallRemoveAllLogs = true
     }
 }

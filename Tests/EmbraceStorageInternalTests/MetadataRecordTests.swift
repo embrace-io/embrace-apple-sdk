@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import TestSupport
 import XCTest
 
@@ -84,8 +85,8 @@ class MetadataRecordTests: XCTestCase {
                 key: "metadata_\(i)",
                 value: "test",
                 type: .resource,
-                lifespan: .session,
-                lifespanId: i % 2 == 0 ? TestConstants.sessionId.stringValue : "test"
+                lifespan: .userSession,
+                lifespanId: i % 2 == 0 ? TestConstants.userSessionId.stringValue : "test"
             )
 
             storage.addMetadata(
@@ -102,8 +103,8 @@ class MetadataRecordTests: XCTestCase {
             key: "test1",
             value: "test",
             type: .resource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         let resource2 = storage.addMetadata(
             key: "test2",
@@ -132,8 +133,8 @@ class MetadataRecordTests: XCTestCase {
                 key: "metadata_\(i)",
                 value: "test",
                 type: .customProperty,
-                lifespan: .session,
-                lifespanId: i % 2 == 0 ? TestConstants.sessionId.stringValue : "test"
+                lifespan: .userSession,
+                lifespanId: i % 2 == 0 ? TestConstants.userSessionId.stringValue : "test"
             )
 
             storage.addMetadata(
@@ -150,8 +151,8 @@ class MetadataRecordTests: XCTestCase {
             key: "test1",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         let property2 = storage.addMetadata(
             key: "test2",
@@ -209,14 +210,15 @@ class MetadataRecordTests: XCTestCase {
     }
 
     func test_cleanMetadata() throws {
-        // given a stored session
+        // given a stored session part
         storage.addSession(
             id: TestConstants.sessionId,
             processId: TestConstants.processId,
             state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
-            startTime: Date()
+            startTime: Date(),
+            userSessionId: TestConstants.userSessionId
         )
 
         // and inserted metadata records
@@ -224,14 +226,14 @@ class MetadataRecordTests: XCTestCase {
             key: "test1",
             value: "test",
             type: .resource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test2",
             value: "test",
             type: .resource,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -264,17 +266,20 @@ class MetadataRecordTests: XCTestCase {
     func test_cleanMetadata_multipleSessions() throws {
         let sessionIdA = EmbraceIdentifier.random
         let sessionIdB = EmbraceIdentifier.random
+        let userSessionIdA = EmbraceIdentifier.random
+        let userSessionIdB = EmbraceIdentifier.random
         let processIdA = EmbraceIdentifier.random
         let processIdB = EmbraceIdentifier.random
 
-        // given two stored sessions (B shares processId with A)
+        // given two stored session parts of different user sessions (B shares processId with A)
         storage.addSession(
             id: sessionIdA,
             processId: processIdA,
             state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
-            startTime: Date()
+            startTime: Date(),
+            userSessionId: userSessionIdA
         )
         storage.addSession(
             id: sessionIdB,
@@ -282,15 +287,20 @@ class MetadataRecordTests: XCTestCase {
             state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
-            startTime: Date()
+            startTime: Date(),
+            userSessionId: userSessionIdB
         )
 
-        // session-lifespan metadata for both sessions (should be kept)
-        storage.addMetadata(key: "sesA", value: "v", type: .resource, lifespan: .session, lifespanId: sessionIdA.stringValue)
-        storage.addMetadata(key: "sesB", value: "v", type: .resource, lifespan: .session, lifespanId: sessionIdB.stringValue)
+        // user-session-lifespan metadata for both user sessions (should be kept)
+        storage.addMetadata(key: "sesA", value: "v", type: .resource, lifespan: .userSession, lifespanId: userSessionIdA.stringValue)
+        storage.addMetadata(key: "sesB", value: "v", type: .resource, lifespan: .userSession, lifespanId: userSessionIdB.stringValue)
 
-        // session-lifespan metadata for a non-existent session (should be deleted)
-        storage.addMetadata(key: "sesOrphan", value: "v", type: .resource, lifespan: .session, lifespanId: "nonexistent")
+        // user-session-lifespan metadata for a non-existent user session (should be deleted)
+        storage.addMetadata(key: "sesOrphan", value: "v", type: .resource, lifespan: .userSession, lifespanId: "nonexistent")
+
+        // user-session-lifespan metadata keyed by a session part id, as written before the lifespan
+        // was scoped to user sessions (should be deleted)
+        storage.addMetadata(key: "sesLegacy", value: "v", type: .resource, lifespan: .userSession, lifespanId: sessionIdA.stringValue)
 
         // process-lifespan metadata for the shared process (should be kept)
         storage.addMetadata(key: "procA", value: "v", type: .resource, lifespan: .process, lifespanId: processIdA.stringValue)
@@ -311,8 +321,9 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNotNil(records.first(where: { $0.key == "procA" }))
         XCTAssertNotNil(records.first(where: { $0.key == "perm" }))
 
-        // and orphaned metadata is deleted
+        // and orphaned metadata is deleted, including the part-keyed one
         XCTAssertNil(records.first(where: { $0.key == "sesOrphan" }))
+        XCTAssertNil(records.first(where: { $0.key == "sesLegacy" }))
         XCTAssertNil(records.first(where: { $0.key == "procOrphan" }))
 
         XCTAssertEqual(records.count, 4)
@@ -320,21 +331,79 @@ class MetadataRecordTests: XCTestCase {
 
     func test_cleanMetadata_noSessions() throws {
         // given no stored sessions but existing metadata
-        storage.addMetadata(key: "ses", value: "v", type: .resource, lifespan: .session, lifespanId: "any")
+        storage.addMetadata(key: "ses", value: "v", type: .resource, lifespan: .userSession, lifespanId: "any")
         storage.addMetadata(key: "proc", value: "v", type: .resource, lifespan: .process, lifespanId: "any")
         storage.addMetadata(key: "perm", value: "v", type: .resource, lifespan: .permanent)
 
         // when cleaning metadata
         storage.cleanMetadata()
 
-        // then all session and process metadata is deleted, permanent is kept
+        // then all user session and process metadata is deleted, permanent is kept
         let records: [MetadataRecord] = storage.fetchAll()
         XCTAssertEqual(records.count, 1)
         XCTAssertNotNil(records.first(where: { $0.key == "perm" }))
     }
 
+    func test_cleanMetadata_keepsMetadataOfActiveUserSession_whenNoSessionPartRemains() throws {
+        let activeUserSessionId = EmbraceIdentifier.random
+
+        // given metadata of the active user session, but no stored session part referencing it
+        // (its parts were already uploaded and deleted)
+        storage.addMetadata(
+            key: "active", value: "v", type: .customProperty,
+            lifespan: .userSession, lifespanId: activeUserSessionId.stringValue
+        )
+        storage.addMetadata(
+            key: "other", value: "v", type: .customProperty,
+            lifespan: .userSession, lifespanId: EmbraceIdentifier.random.stringValue
+        )
+
+        // when cleaning metadata protecting the active user session
+        storage.cleanMetadata(activeUserSessionId: activeUserSessionId)
+
+        // then its metadata survives and the rest is deleted
+        let records: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(records.count, 1)
+        XCTAssertNotNil(records.first(where: { $0.key == "active" }))
+    }
+
+    func test_cleanMetadata_keepsUserSessionMetadata_whenOnlySomePartsRemain() throws {
+        let userSessionId = EmbraceIdentifier.random
+        let processId = EmbraceIdentifier.random
+        let partId1 = EmbraceIdentifier.random
+        let partId2 = EmbraceIdentifier.random
+
+        // given two session parts of the same user session
+        for partId in [partId1, partId2] {
+            storage.addSession(
+                id: partId,
+                processId: processId,
+                state: .foreground,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: Date(),
+                userSessionId: userSessionId
+            )
+        }
+
+        storage.addMetadata(
+            key: "prop", value: "v", type: .customProperty,
+            lifespan: .userSession, lifespanId: userSessionId.stringValue
+        )
+
+        // when one of the parts is uploaded and deleted
+        storage.deleteSession(id: partId1)
+        storage.cleanMetadata()
+
+        // then the metadata is kept, since the user session still has a stored part
+        let records: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(records.count, 1)
+        XCTAssertNotNil(records.first(where: { $0.key == "prop" }))
+    }
+
     func test_cleanMetadata_preservesAllMetadataTypes() throws {
         let sessionId = EmbraceIdentifier.random
+        let userSessionId = EmbraceIdentifier.random
         let processId = EmbraceIdentifier.random
 
         storage.addSession(
@@ -343,19 +412,20 @@ class MetadataRecordTests: XCTestCase {
             state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
-            startTime: Date()
+            startTime: Date(),
+            userSessionId: userSessionId
         )
 
-        // metadata of various types tied to the stored session
-        storage.addMetadata(key: "res", value: "v", type: .resource, lifespan: .session, lifespanId: sessionId.stringValue)
-        storage.addMetadata(key: "cp", value: "v", type: .customProperty, lifespan: .session, lifespanId: sessionId.stringValue)
+        // metadata of various types tied to the stored session part's user session
+        storage.addMetadata(key: "res", value: "v", type: .resource, lifespan: .userSession, lifespanId: userSessionId.stringValue)
+        storage.addMetadata(key: "cp", value: "v", type: .customProperty, lifespan: .userSession, lifespanId: userSessionId.stringValue)
         storage.addMetadata(key: "pt", value: "v", type: .personaTag, lifespan: .process, lifespanId: processId.stringValue)
         storage.addMetadata(key: "rr", value: "v", type: .requiredResource, lifespan: .process, lifespanId: processId.stringValue)
 
         // orphaned metadata of various types
-        storage.addMetadata(key: "res_orphan", value: "v", type: .resource, lifespan: .session, lifespanId: "gone")
+        storage.addMetadata(key: "res_orphan", value: "v", type: .resource, lifespan: .userSession, lifespanId: "gone")
         storage.addMetadata(key: "cp_orphan", value: "v", type: .customProperty, lifespan: .process, lifespanId: "gone")
-        storage.addMetadata(key: "pt_orphan", value: "v", type: .personaTag, lifespan: .session, lifespanId: "gone")
+        storage.addMetadata(key: "pt_orphan", value: "v", type: .personaTag, lifespan: .userSession, lifespanId: "gone")
 
         storage.cleanMetadata()
 
@@ -412,18 +482,20 @@ class MetadataRecordTests: XCTestCase {
 
     func test_cleanMetadata_sessionDeletedThenClean() throws {
         let sessionId = EmbraceIdentifier.random
+        let userSessionId = EmbraceIdentifier.random
         let processId = EmbraceIdentifier.random
 
-        // add a session and metadata for it
+        // add a session part and metadata for its user session
         storage.addSession(
             id: sessionId,
             processId: processId,
             state: .foreground,
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
-            startTime: Date()
+            startTime: Date(),
+            userSessionId: userSessionId
         )
-        storage.addMetadata(key: "ses", value: "v", type: .resource, lifespan: .session, lifespanId: sessionId.stringValue)
+        storage.addMetadata(key: "ses", value: "v", type: .resource, lifespan: .userSession, lifespanId: userSessionId.stringValue)
         storage.addMetadata(key: "proc", value: "v", type: .resource, lifespan: .process, lifespanId: processId.stringValue)
 
         // delete the session (simulating it was uploaded)
@@ -442,12 +514,12 @@ class MetadataRecordTests: XCTestCase {
             key: "test",
             value: "test",
             type: .resource,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
 
         // when removing it
-        storage.removeMetadata(key: "test", type: .resource, lifespan: .session, lifespanId: "test")
+        storage.removeMetadata(key: "test", type: .resource, lifespan: .userSession, lifespanId: "test")
 
         // then record should not exist in storage
         let records: [MetadataRecord] = storage.fetchAll()
@@ -460,7 +532,7 @@ class MetadataRecordTests: XCTestCase {
             key: "test1",
             value: "test",
             type: .resource,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -474,7 +546,7 @@ class MetadataRecordTests: XCTestCase {
             key: "test3",
             value: "test",
             type: .resource,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -492,7 +564,7 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when removing all by type and lifespans
-        storage.removeAllMetadata(type: .resource, lifespans: [.session, .process])
+        storage.removeAllMetadata(type: .resource, lifespans: [.userSession, .process])
 
         // then only the correct records should be removed
         let records: [MetadataRecord] = storage.fetchAll()
@@ -596,21 +668,21 @@ class MetadataRecordTests: XCTestCase {
             key: "test4",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
             key: "test5",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
             key: "test6",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
 
@@ -657,14 +729,14 @@ class MetadataRecordTests: XCTestCase {
             key: "test3",
             value: "test",
             type: .resource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test4",
             value: "test",
             type: .resource,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -684,15 +756,12 @@ class MetadataRecordTests: XCTestCase {
             key: "test7",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
 
         // when fetching all resources by session id and process id
-        let resources = storage.fetchResources(
-            sessionId: TestConstants.sessionId.stringValue,
-            processId: TestConstants.processId.stringValue
-        )
+        let resources = storage.fetchResources(userSessionId: TestConstants.userSessionId, processId: TestConstants.processId)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -705,15 +774,18 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNil(resources.first(where: { $0.key == "test7" }))
     }
 
-    func test_fetchResourcesForSessionId() throws {
-        // given a session in storage
-        storage.addSession(
-            id: TestConstants.sessionId,
-            processId: TestConstants.processId,
-            state: .foreground,
-            traceId: TestConstants.traceId,
-            spanId: TestConstants.spanId,
-            startTime: Date()
+    func test_fetchResourcesForSessionPart() throws {
+        // given a session part in storage, belonging to a user session with a different id
+        let part = try XCTUnwrap(
+            storage.addSession(
+                id: TestConstants.sessionId,
+                processId: TestConstants.processId,
+                state: .foreground,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: Date(),
+                userSessionId: TestConstants.userSessionId
+            )
         )
 
         // given inserted records
@@ -735,14 +807,14 @@ class MetadataRecordTests: XCTestCase {
             key: "test3",
             value: "test",
             type: .resource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test4",
             value: "test",
             type: .resource,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -762,12 +834,12 @@ class MetadataRecordTests: XCTestCase {
             key: "test7",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
 
-        // when fetching all resources by session id
-        let resources = storage.fetchResourcesForSessionId(TestConstants.sessionId)
+        // when fetching all resources for the session part
+        let resources = storage.fetchResources(for: part)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -810,14 +882,14 @@ class MetadataRecordTests: XCTestCase {
             key: "test3",
             value: "test",
             type: .resource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test4",
             value: "test",
             type: .resource,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -837,8 +909,8 @@ class MetadataRecordTests: XCTestCase {
             key: "test7",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
 
         // when fetching all resources by process id
@@ -885,14 +957,14 @@ class MetadataRecordTests: XCTestCase {
             key: "test3",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test4",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -912,15 +984,12 @@ class MetadataRecordTests: XCTestCase {
             key: "test7",
             value: "test",
             type: .resource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
 
         // when fetching all resources by session id and process id
-        let resources = storage.fetchCustomProperties(
-            sessionId: TestConstants.sessionId.stringValue,
-            processId: TestConstants.processId.stringValue
-        )
+        let resources = storage.fetchCustomProperties(userSessionId: TestConstants.userSessionId, processId: TestConstants.processId)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -933,15 +1002,18 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNil(resources.first(where: { $0.key == "test7" }))
     }
 
-    func test_fetchCustomPropertiesForSessionId() throws {
-        // given a session in storage
-        storage.addSession(
-            id: TestConstants.sessionId,
-            processId: TestConstants.processId,
-            state: .foreground,
-            traceId: TestConstants.traceId,
-            spanId: TestConstants.spanId,
-            startTime: Date()
+    func test_fetchCustomPropertiesForSessionPart() throws {
+        // given a session part in storage, belonging to a user session with a different id
+        let part = try XCTUnwrap(
+            storage.addSession(
+                id: TestConstants.sessionId,
+                processId: TestConstants.processId,
+                state: .foreground,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: Date(),
+                userSessionId: TestConstants.userSessionId
+            )
         )
 
         // given inserted records
@@ -963,14 +1035,14 @@ class MetadataRecordTests: XCTestCase {
             key: "test3",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test4",
             value: "test",
             type: .customProperty,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -990,12 +1062,12 @@ class MetadataRecordTests: XCTestCase {
             key: "test7",
             value: "test",
             type: .resource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
 
-        // when fetching all resources by session id
-        let resources = storage.fetchCustomPropertiesForSessionId(TestConstants.sessionId)
+        // when fetching all custom properties for the session part
+        let resources = storage.fetchCustomProperties(for: part)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -1031,8 +1103,8 @@ class MetadataRecordTests: XCTestCase {
             key: "test2",
             value: "test",
             type: .resource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test3",
@@ -1044,7 +1116,7 @@ class MetadataRecordTests: XCTestCase {
             key: "test4",
             value: "test",
             type: .personaTag,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -1057,8 +1129,8 @@ class MetadataRecordTests: XCTestCase {
             key: "test6",
             value: "test",
             type: .personaTag,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test7",
@@ -1069,10 +1141,7 @@ class MetadataRecordTests: XCTestCase {
         )
 
         // when fetching all persona tags by session id and process id
-        let resources = storage.fetchPersonaTags(
-            sessionId: TestConstants.sessionId.stringValue,
-            processId: TestConstants.processId.stringValue
-        )
+        let resources = storage.fetchPersonaTags(userSessionId: TestConstants.userSessionId, processId: TestConstants.processId)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -1085,15 +1154,18 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNotNil(resources.first(where: { $0.key == "test7" }))
     }
 
-    func test_fetchPersonaTagsForSessionId() throws {
-        // given a session in storage
-        storage.addSession(
-            id: TestConstants.sessionId,
-            processId: TestConstants.processId,
-            state: .foreground,
-            traceId: TestConstants.traceId,
-            spanId: TestConstants.spanId,
-            startTime: Date()
+    func test_fetchPersonaTagsForSessionPart() throws {
+        // given a session part in storage, belonging to a user session with a different id
+        let part = try XCTUnwrap(
+            storage.addSession(
+                id: TestConstants.sessionId,
+                processId: TestConstants.processId,
+                state: .foreground,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: Date(),
+                userSessionId: TestConstants.userSessionId
+            )
         )
 
         // given inserted records
@@ -1108,8 +1180,8 @@ class MetadataRecordTests: XCTestCase {
             key: "test2",
             value: "test",
             type: .resource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test3",
@@ -1121,7 +1193,7 @@ class MetadataRecordTests: XCTestCase {
             key: "test4",
             value: "test",
             type: .personaTag,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -1134,8 +1206,8 @@ class MetadataRecordTests: XCTestCase {
             key: "test6",
             value: "test",
             type: .personaTag,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test7",
@@ -1145,8 +1217,8 @@ class MetadataRecordTests: XCTestCase {
             lifespanId: TestConstants.processId.stringValue
         )
 
-        // when fetching all persona tags by session
-        let resources = storage.fetchPersonaTagsForSessionId(TestConstants.sessionId)
+        // when fetching all persona tags for the session part
+        let resources = storage.fetchPersonaTags(for: part)
 
         // then the correct records are fetched
         XCTAssertEqual(resources.count, 3)
@@ -1182,8 +1254,8 @@ class MetadataRecordTests: XCTestCase {
             key: "test2",
             value: "test",
             type: .resource,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test3",
@@ -1195,7 +1267,7 @@ class MetadataRecordTests: XCTestCase {
             key: "test4",
             value: "test",
             type: .personaTag,
-            lifespan: .session,
+            lifespan: .userSession,
             lifespanId: "test"
         )
         storage.addMetadata(
@@ -1208,8 +1280,8 @@ class MetadataRecordTests: XCTestCase {
             key: "test6",
             value: "test",
             type: .personaTag,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "test7",

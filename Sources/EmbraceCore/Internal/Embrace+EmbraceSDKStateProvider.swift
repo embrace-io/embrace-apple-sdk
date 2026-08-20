@@ -7,7 +7,7 @@
 #endif
 
 extension Embrace: EmbraceSDKStateProvider {
-    public var isEnabled: Bool {
+    package var isEnabled: Bool {
         return isSDKEnabled
     }
 }

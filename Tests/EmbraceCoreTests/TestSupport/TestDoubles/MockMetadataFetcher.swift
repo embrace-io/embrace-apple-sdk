@@ -1,7 +1,9 @@
-import EmbraceCommonInternal
 //
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
+
+import EmbraceCommonInternal
+import EmbraceSemantics
 import XCTest
 
 @testable import EmbraceCore
@@ -18,7 +20,7 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         return metadata
     }
 
-    func fetchResourcesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
+    func fetchResources(userSessionId: EmbraceIdentifier?, processId: EmbraceIdentifier) -> [EmbraceMetadata] {
         return metadata.filter { record in
             (record.type == .resource || record.type == .requiredResource)
         }
@@ -31,15 +33,17 @@ class MockMetadataFetcher: EmbraceStorageMetadataFetcher {
         }
     }
 
-    func fetchCustomPropertiesForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
+    func fetchCustomProperties(userSessionId: EmbraceIdentifier?, processId: EmbraceIdentifier) -> [EmbraceMetadata] {
         return metadata.filter { record in
-            record.type == .customProperty && record.lifespan == .session && record.lifespanId == sessionId.stringValue
+            record.type == .customProperty && record.lifespan == .userSession
+                && record.lifespanId == userSessionId?.stringValue
         }
     }
 
-    func fetchPersonaTagsForSessionId(_ sessionId: EmbraceIdentifier) -> [EmbraceMetadata] {
+    func fetchPersonaTags(userSessionId: EmbraceIdentifier?, processId: EmbraceIdentifier) -> [EmbraceMetadata] {
         return metadata.filter { record in
-            record.type == .personaTag && record.lifespan == .session && record.lifespanId == sessionId.stringValue
+            record.type == .personaTag && record.lifespan == .userSession
+                && record.lifespanId == userSessionId?.stringValue
         }
     }
 

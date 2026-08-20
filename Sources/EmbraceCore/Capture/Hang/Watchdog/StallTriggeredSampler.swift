@@ -132,11 +132,9 @@
                 guard !shared.running.load(order: .acquire) else { return }
                 shared.running.store(true, order: .release)
 
-                if !EmbraceBacktrace.isAvailable {
-                    logger?.warning(
-                        "[Hang] during-block sampler started with no Backtracer configured; hang spans "
-                            + "will have no stack. Wire a Backtracer via EmbraceCore options, or use EmbraceIO.")
-                }
+                logger?.debug(
+                    "[Hang] during-block sampler started (trigger \(Int(effectiveTriggerThreshold * 1000)) ms, "
+                        + "poll \(Int(effectivePollInterval * 1000)) ms).")
 
                 if let observer = makeObserver() {
                     state.observer = observer
@@ -254,8 +252,6 @@
         }
 
         private func captureSample() {
-            guard EmbraceBacktrace.isAvailable else { return }
-
             let pre = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
             let backtrace = EmbraceBacktrace.backtrace(of: config.mainThread, threadIndex: 0)  // suspends main; alloc-free
             let post = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)

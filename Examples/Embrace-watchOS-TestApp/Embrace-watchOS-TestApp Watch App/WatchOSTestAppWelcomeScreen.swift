@@ -7,13 +7,14 @@
 
 import EmbraceCommonInternal
 import EmbraceIO
+import EmbraceSemantics
 import SwiftUI
 
 struct WatchOSTestAppWelcomeScreen: View {
     var body: some View {
         VStack {
             Button {
-                Embrace.client?.log("Test Log from Apple Watch", severity: .info)
+                EmbraceIO.shared.log("Test Log from Apple Watch", severity: .info)
             } label: {
                 Text("Test Log")
             }

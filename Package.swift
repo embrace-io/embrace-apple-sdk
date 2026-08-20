@@ -36,9 +36,7 @@ let package = Package(
         .library(name: "EmbraceCore", targets: ["EmbraceCore", "EmbraceConfiguration"]),
         .library(name: "EmbraceSemantics", targets: ["EmbraceSemantics"]),
         .library(name: "EmbraceMacros", targets: ["EmbraceMacros", "EmbraceCore"]),
-        .library(name: "EmbraceCrash", targets: ["EmbraceCrash"]),
-        .library(name: "EmbraceKSCrashBacktraceSupport", targets: ["EmbraceKSCrashBacktraceSupport"]),
-        .library(name: "EmbraceCrashlyticsSupport", targets: ["EmbraceCrashlyticsSupport"])
+        .library(name: "EmbraceKSCrashBacktraceSupport", targets: ["EmbraceKSCrashBacktraceSupport"])
     ],
     dependencies: [
         .package(
@@ -65,7 +63,9 @@ let package = Package(
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
                 "EmbraceCrash",
-                "EmbraceKSCrashBacktraceSupport"
+                "EmbraceCrashlyticsSupport",
+                "EmbraceKSCrashBacktraceSupport",
+                "EmbraceOTelBridge"
             ],
             linkerSettings: linkerSettings
         ),
@@ -75,8 +75,10 @@ let package = Package(
             dependencies: [
                 "EmbraceIO",
                 "EmbraceCore",
+                "EmbraceKSCrashBacktraceSupport",
                 "TestSupport",
-                "TestSupportObjc"
+                "TestSupportObjc",
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
 
@@ -88,11 +90,10 @@ let package = Package(
                 "EmbraceCommonInternal",
                 "EmbraceConfigInternal",
                 "EmbraceConfiguration",
-                "EmbraceOTelInternal",
+                "EmbraceKSCrashBacktraceSupport",
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
-                "EmbraceKSCrashBacktraceSupport",
                 "EmbraceSemantics"
             ],
             resources: [
@@ -117,8 +118,8 @@ let package = Package(
         .target(
             name: "EmbraceCommonInternal",
             dependencies: [
-                "EmbraceAtomicsShim",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
+                "EmbraceSemantics",
+                "EmbraceAtomicsShim"
             ],
             exclude: ["Atomic/README.md"]
         ),
@@ -138,10 +139,12 @@ let package = Package(
 
         // semantics -----------------------------------------------------------------
         .target(
-            name: "EmbraceSemantics",
+            name: "EmbraceSemantics"
+        ),
+        .testTarget(
+            name: "EmbraceSemanticsTests",
             dependencies: [
-                "EmbraceCommonInternal",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
+                "TestSupport"
             ]
         ),
 
@@ -149,9 +152,9 @@ let package = Package(
         .target(
             name: "EmbraceCaptureService",
             dependencies: [
-                "EmbraceOTelInternal",
-                "EmbraceConfiguration",
-                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
+                "EmbraceSemantics",
+                "EmbraceCommonInternal",
+                "EmbraceConfiguration"
             ]
         ),
         .testTarget(
@@ -165,7 +168,7 @@ let package = Package(
         // config --------------------------------------------------------------------
         .target(
             name: "EmbraceConfiguration",
-            dependencies: []
+            dependencies: ["EmbraceSemantics"]
         ),
 
         .testTarget(
@@ -194,21 +197,22 @@ let package = Package(
             ]
         ),
 
-        // OTel ----------------------------------------------------------------------
+        // OTel bridge ---------------------------------------------------------------
         .target(
-            name: "EmbraceOTelInternal",
+            name: "EmbraceOTelBridge",
             dependencies: [
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",
-                "EmbraceCoreDataInternal",
-                "EmbraceStorageInternal",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ]
         ),
         .testTarget(
-            name: "EmbraceOTelInternalTests",
+            name: "EmbraceOTelBridgeTests",
             dependencies: [
-                "EmbraceOTelInternal",
+                "EmbraceOTelBridge",
+                "EmbraceSemantics",
+                "EmbraceCommonInternal",
+                .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core"),
                 "TestSupport"
             ]
         ),
@@ -224,7 +228,7 @@ let package = Package(
         ),
         .testTarget(
             name: "EmbraceStorageInternalTests",
-            dependencies: ["EmbraceStorageInternal", "TestSupport"],
+            dependencies: ["EmbraceStorageInternal", "EmbraceCoreDataInternal", "TestSupport"],
             resources: [
                 .copy("Mocks/")
             ]
@@ -235,7 +239,6 @@ let package = Package(
             name: "EmbraceUploadInternal",
             dependencies: [
                 "EmbraceCommonInternal",
-                "EmbraceOTelInternal",
                 "EmbraceCoreDataInternal"
             ]
         ),
@@ -243,7 +246,6 @@ let package = Package(
             name: "EmbraceUploadInternalTests",
             dependencies: [
                 "EmbraceUploadInternal",
-                "EmbraceOTelInternal",
                 "EmbraceCoreDataInternal",
                 "TestSupport"
             ]
@@ -345,7 +347,6 @@ let package = Package(
             name: "TestSupport",
             dependencies: [
                 "EmbraceCore",
-                "EmbraceOTelInternal",
                 "EmbraceCommonInternal",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ],

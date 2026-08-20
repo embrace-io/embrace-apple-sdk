@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import TestSupport
 import XCTest
 
@@ -119,8 +120,8 @@ final class RemoteConfigTests: XCTestCase {
         config.payload.tapLimit = 654
 
         XCTAssertEqual(
-            config.spanEventsLimits,
-            SpanEventsLimits(breadcrumb: 987, tap: 654)
+            config.spanEventTypeLimits,
+            SpanEventTypeLimits(breadcrumb: 987, tap: 654)
         )
     }
 
@@ -133,8 +134,8 @@ final class RemoteConfigTests: XCTestCase {
         config.payload.logsErrorLimit = 30
 
         XCTAssertEqual(
-            config.logsLimits,
-            LogsLimits(info: 10, warning: 20, error: 30)
+            config.logSeverityLimits,
+            LogSeverityLimits(info: 10, warn: 20, error: 30)
         )
     }
 
@@ -262,11 +263,11 @@ final class RemoteConfigTests: XCTestCase {
         }
 
         // First fetch: payload changed from the default → the correction is logged once.
-        config.update { _, _ in }
+        config.update { _ in }
         XCTAssertEqual(hangWarnings(), 1, "a changed out-of-range payload should log its correction")
 
         // Second fetch: identical payload → didUpdate is false → must not re-log.
-        config.update { _, _ in }
+        config.update { _ in }
         XCTAssertEqual(hangWarnings(), 1, "an unchanged payload must not re-log (didUpdate gate)")
     }
 }

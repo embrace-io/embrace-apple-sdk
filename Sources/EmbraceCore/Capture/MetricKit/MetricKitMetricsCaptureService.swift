@@ -33,6 +33,7 @@ class MetricKitMetricsCaptureService: CaptureService, MetricKitMetricsPayloadLis
 
     func didReceive(metric payload: Data) {
         guard isActive,
+            let otel,
             let stateProvider = options.stateProvider,
             stateProvider.isMetricKitEnabled,
             stateProvider.isMetricKitInternalMetricsCaptureEnabled
@@ -55,7 +56,7 @@ class MetricKitMetricsCaptureService: CaptureService, MetricKitMetricsPayloadLis
         let attributes =
             attributesBuilder
             .addLogType(.metricKitMetrics)
-            .addApplicationState(SessionState.unknown.rawValue)
+            .addApplicationState(SessionState.unknown)
             .addMetricKitMetricsProperties(
                 id: UUID().withoutHyphen,
                 provider: LogSemantics.MetricKitMetrics.metrickitProvider,
@@ -63,11 +64,12 @@ class MetricKitMetricsCaptureService: CaptureService, MetricKitMetricsPayloadLis
             )
             .build()
 
-        otel?.log(
+        try? otel.internalLog(
             "MetricKit Internal Metrics",
             severity: .info,
             type: .metricKitMetrics,
             timestamp: Date(),
+            attachment: nil,
             attributes: attributes,
             stackTraceBehavior: .notIncluded
         )

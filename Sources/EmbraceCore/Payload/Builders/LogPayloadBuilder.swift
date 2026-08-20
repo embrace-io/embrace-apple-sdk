@@ -12,16 +12,16 @@ import Foundation
 
 struct LogPayloadBuilder {
     static func build(log: EmbraceLog) -> LogPayload {
-        var finalAttributes: [Attribute] = log.allAttributes().map { entry in
-            Attribute(key: entry.key, value: entry.valueRaw)
+        var finalAttributes: [Attribute] = log.attributes.map { entry in
+            Attribute(key: entry.key, value: String(describing: entry.value))
         }
 
-        finalAttributes.append(.init(key: LogSemantics.keyId, value: log.idRaw))
+        finalAttributes.append(.init(key: LogSemantics.keyId, value: log.id))
 
         return .init(
             timeUnixNano: String(EMBInt(log.timestamp.nanosecondsSince1970)),
-            severityNumber: log.severity.number,
-            severityText: log.severity.text,
+            severityNumber: log.severity.rawValue,
+            severityText: log.severity.name,
             body: log.body,
             attributes: finalAttributes)
 
@@ -29,11 +29,12 @@ struct LogPayloadBuilder {
 
     static func build(
         timestamp: Date,
-        severity: LogSeverity,
+        severity: EmbraceLogSeverity,
         body: String,
-        attributes: [String: String],
+        attributes: EmbraceAttributes,
         storage: EmbraceStorage?,
-        sessionId: EmbraceIdentifier?
+        userSessionId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier = ProcessIdentifier.current
     ) -> PayloadEnvelope<[LogPayload]> {
 
         // build resources and metadata payloads
@@ -41,27 +42,27 @@ struct LogPayloadBuilder {
         var metadata: [EmbraceMetadata] = []
 
         if let storage = storage {
-            if let sessionId = sessionId {
-                resources = storage.fetchResourcesForSessionId(sessionId)
+            if let userSessionId = userSessionId {
+                resources = storage.fetchResources(userSessionId: userSessionId, processId: processId)
 
-                let properties = storage.fetchCustomPropertiesForSessionId(sessionId)
-                let tags = storage.fetchPersonaTagsForSessionId(sessionId)
+                let properties = storage.fetchCustomProperties(userSessionId: userSessionId, processId: processId)
+                let tags = storage.fetchPersonaTags(userSessionId: userSessionId, processId: processId)
                 metadata.append(contentsOf: properties)
                 metadata.append(contentsOf: tags)
             } else {
-                resources = storage.fetchResourcesForProcessId(ProcessIdentifier.current)
-                metadata = storage.fetchPersonaTagsForProcessId(ProcessIdentifier.current)
+                resources = storage.fetchResourcesForProcessId(processId)
+                metadata = storage.fetchPersonaTagsForProcessId(processId)
             }
         }
 
         let finalAttributes: [Attribute] = attributes.map { entry in
-            Attribute(key: entry.key, value: entry.value)
+            Attribute(key: entry.key, value: String(describing: entry.value))
         }
 
         let logPayload = LogPayload(
             timeUnixNano: String(timestamp.nanosecondsSince1970Truncated),
             severityNumber: severity.rawValue,
-            severityText: severity.text,
+            severityText: severity.name,
             body: body,
             attributes: finalAttributes
         )

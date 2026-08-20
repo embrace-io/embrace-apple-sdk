@@ -7,35 +7,29 @@
     import WebKit
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
-        import EmbraceOTelInternal
         import EmbraceCaptureService
         import EmbraceSemantics
         import EmbraceObjCUtilsInternal
     #endif
-    import OpenTelemetryApi
 
     /// Service that generates OpenTelemetry span events when a `WKWebView` loads an URL or throws an error.
-    @objc(EMBWebViewCaptureService)
     public final class WebViewCaptureService: CaptureService {
 
-        @objc public let options: WebViewCaptureService.Options
+        /// The options used to configure this service.
+        public let options: WebViewCaptureService.Options
         private static let knownBadProxies = [
             "SafeDKWKNavigationDelegateInterceptor"
         ]
         private let lock: NSLocking
         private var swizzlers: [any Swizzlable] = []
 
-        @objc public convenience init(options: WebViewCaptureService.Options) {
-            self.init(options: options, lock: NSLock())
-        }
-
-        public convenience override init() {
-            self.init(lock: NSLock())
-        }
-
-        init(
+        /// Creates a new `WebViewCaptureService` with the given options.
+        /// - Parameters:
+        ///   - options: The options used to configure the service.
+        ///   - lock: Lock used to synchronize swizzling. Exposed for testing.
+        public init(
             options: WebViewCaptureService.Options = WebViewCaptureService.Options(),
-            lock: NSLocking
+            lock: NSLocking = NSLock()
         ) {
             self.options = options
             self.lock = lock
@@ -97,21 +91,19 @@
 
             let urlString = getUrlString(url: url)
 
-            var attributes: [String: AttributeValue] = [
-                SpanEventSemantics.keyEmbraceType: .string(SpanEventType.webView.rawValue),
-                SpanEventSemantics.WebView.keyUrl: .string(urlString)
+            var attributes: [String: String] = [
+                SpanEventSemantics.WebView.keyUrl: urlString
             ]
 
             if let errorCode = statusCode, errorCode != 200 {
-                attributes[SpanEventSemantics.WebView.keyErrorCode] = .int(errorCode)
+                attributes[SpanEventSemantics.WebView.keyErrorCode] = String(errorCode)
             }
 
-            let event = RecordingSpanEvent(
+            _ = try? otel?.addInternalSessionEvent(
                 name: SpanEventSemantics.WebView.name,
-                timestamp: Date(),
+                type: .webView,
                 attributes: attributes
             )
-            otel?.add(event: event)
         }
 
         private func getUrlString(url: URL) -> String {

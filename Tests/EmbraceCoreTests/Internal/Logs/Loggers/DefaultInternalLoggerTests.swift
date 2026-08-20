@@ -6,7 +6,6 @@ import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceConfiguration
 import EmbraceStorageInternal
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 

@@ -66,13 +66,7 @@ class SpanTestUIComponentViewModel: UIComponentViewModelBase {
         else { return }
 
         let testReport = payloadTestObject.test(spans: spans)
-        if !testReport.passed {
-            failureCount += 1
-            if failureCount < maxFailureCount {
-                print("[FAIL:\(failureCount)] all spans available but still failing, waiting for more data...")
-                return
-            }
-        }
+
         testFinished(with: testReport)
         unregisterNotification()
     }

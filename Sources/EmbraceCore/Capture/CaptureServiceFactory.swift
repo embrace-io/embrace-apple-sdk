@@ -6,7 +6,7 @@
     import EmbraceCaptureService
 #endif
 
-public enum CaptureServiceFactory {}
+package enum CaptureServiceFactory {}
 
 extension CaptureServiceFactory {
 

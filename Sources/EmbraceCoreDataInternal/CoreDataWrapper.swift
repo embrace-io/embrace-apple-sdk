@@ -139,7 +139,7 @@ public class CoreDataWrapper {
     ) -> Result {
 
         if !allowMainQueue && Thread.isMainThread {
-            logger.critical("Warning: performBlockAndWait on main thread can easily deadlock! Proceeding with caution.")
+            logger.warning("Warning: performBlockAndWait on main thread can easily deadlock! Proceeding with caution.")
         }
 
         let id = workTracker.increment(name)
@@ -201,12 +201,12 @@ extension CoreDataWrapper {
     }
 
     /// Synchronously fetches the records that satisfy the given request and calls the block with them.
-    public func fetchAndPerform<T>(withRequest request: NSFetchRequest<T>, block: ([T]) -> Void)
+    public func fetchAndPerform<T>(withRequest request: NSFetchRequest<T>, block: ([T], NSManagedObjectContext) -> Void)
     where T: NSManagedObject {
         performOperation {
             do {
                 let result = try $0.fetch(request)
-                block(result)
+                block(result, $0)
             } catch {
                 logger.critical("Error fetching with perform!!!:\n\(error.localizedDescription)")
             }
@@ -214,12 +214,12 @@ extension CoreDataWrapper {
     }
 
     /// Synchronously fetches the first record that satisfy the given request and calls the block with it.
-    public func fetchFirstAndPerform<T>(withRequest request: NSFetchRequest<T>, block: (T?) -> Void)
+    public func fetchFirstAndPerform<T>(withRequest request: NSFetchRequest<T>, block: (T?, NSManagedObjectContext) -> Void)
     where T: NSManagedObject {
         performOperation {
             do {
                 let result = try $0.fetch(request)
-                block(result.first)
+                block(result.first, $0)
             } catch {
                 logger.critical("Error fetching first with perform!!!:\n\(error.localizedDescription)")
             }

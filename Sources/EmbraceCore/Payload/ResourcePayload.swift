@@ -3,8 +3,6 @@
 //
 
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceStorageInternal
@@ -43,7 +41,9 @@ struct ResourcePayload: Codable {
         DeviceResourceKey.locale.rawValue,
         DeviceResourceKey.timezone.rawValue,
         DeviceResourceKey.osDescription.rawValue,
-        SessionController.sessionNumberKey
+        // Storage key for the permanent per-part counter. The value is emitted as a
+        // dedicated attribute on every part span rather than as a resource.
+        SessionController.sessionPartNumberKey
     ]
 
     enum CodingKeys: String, CodingKey, CaseIterable {
@@ -167,23 +167,11 @@ struct ResourcePayload: Codable {
                     self.osBuild = resource.value
                 case .osVariant:
                     self.osAlternateType = resource.value
-                default:
-                    break
-                }
-            } else if let key = SemanticConventions.Device(rawValue: resource.key) {
-                switch key {
-                case .modelIdentifier:
+                case .deviceModelIdentifier:
                     self.deviceModel = resource.value
-                case .manufacturer:
-                    self.deviceManufacturer = resource.value
-                default:
-                    break
-                }
-            } else if let key = SemanticConventions.Os(rawValue: resource.key) {
-                switch key {
-                case .version:
+                case .osVersion:
                     self.osVersion = resource.value
-                case .type:
+                case .osType:
                     self.osType = resource.value
                 default:
                     break

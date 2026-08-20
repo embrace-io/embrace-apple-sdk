@@ -18,8 +18,9 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 /// Clears the proxy's strong `originalDelegate`, simulating what happens on session
-/// invalidation. Done in Objective-C because the legacy proxy is an `NSProxy` subclass and a
-/// Swift `as?`/`as!` cast to the `@objc` `EMBURLSessionDelegateProxy` protocol fails for it.
+/// invalidation. Kept in Objective-C so the test can poke the proxy through
+/// `EMBURLSessionDelegateProxyType` without going through Swift's bridging of the `@objc`
+/// protocol.
 FOUNDATION_EXPORT void EMBClearOriginalDelegate(id proxy);
 
 /// Sends `selector` to `target` by building an `NSInvocation` and invoking it directly,

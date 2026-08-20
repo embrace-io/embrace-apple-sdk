@@ -66,7 +66,7 @@ class CoreDataWrapperTests: XCTestCase {
         let request = NSFetchRequest<MockRecord>(entityName: MockRecord.entityName)
         request.predicate = NSPredicate(format: "id == %@", "test")
 
-        wrapper.fetchAndPerform(withRequest: request) { records in
+        wrapper.fetchAndPerform(withRequest: request) { records, _ in
 
             // then the data is correct
             XCTAssertEqual(records.count, 1)
@@ -84,7 +84,7 @@ class CoreDataWrapperTests: XCTestCase {
         let request = NSFetchRequest<MockRecord>(entityName: MockRecord.entityName)
         request.sortDescriptors = [NSSortDescriptor(key: "id", ascending: true)]
 
-        wrapper.fetchFirstAndPerform(withRequest: request) { record in
+        wrapper.fetchFirstAndPerform(withRequest: request) { record, _ in
 
             // then the data is correct
             XCTAssertEqual(record!.id, "a")

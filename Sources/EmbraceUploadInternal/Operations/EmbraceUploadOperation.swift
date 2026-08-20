@@ -223,7 +223,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     /// Extracts the suggested delay from `Retry-After` header from the `URLResponse` if present.
     /// - Parameter response: the URLResponse recevied when executing a request.
     /// - Returns:the time in seconds (as `Int`) extracted from the `Retry-After` header.
-    private func getSuggestedDelay(fromResponse response: URLResponse?) -> Int {
+    func getSuggestedDelay(fromResponse response: URLResponse?) -> Int {
         guard let httpResponse = response as? HTTPURLResponse,
             let retryAfterHeaderValue = httpResponse.allHeaderFields["Retry-After"] as? String,
             let retryAfterDelay = Int(retryAfterHeaderValue)

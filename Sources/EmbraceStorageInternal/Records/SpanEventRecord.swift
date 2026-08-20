@@ -6,76 +6,65 @@ import CoreData
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 @objc(SpanEventRecord)
 public class SpanEventRecord: NSManagedObject {
     @NSManaged public var name: String
+    @NSManaged public var typeRaw: String?
     @NSManaged public var timestamp: Date
-    @NSManaged public var attributesData: Data
+    @NSManaged public var attributes: String
     @NSManaged public var span: SpanRecord?
 
     class func create(
         context: NSManagedObjectContext,
-        name: String,
-        timestamp: Date,
-        attributes: [String: String],
+        event: EmbraceSpanEvent,
         span: SpanRecord?
     ) -> SpanEventRecord? {
-        var record: SpanEventRecord?
+        var result: SpanEventRecord?
 
         context.performAndWait {
             guard let description = NSEntityDescription.entity(forEntityName: Self.entityName, in: context) else {
                 return
             }
 
-            record = SpanEventRecord(entity: description, insertInto: context)
-            record?.name = name
-            record?.timestamp = timestamp
-            record?.setAttributes(attributes)
-            record?.span = span
+            let record = SpanEventRecord(entity: description, insertInto: context)
+            record.span = span
+            record.typeRaw = event.type?.rawValue
+            record.update(
+                name: event.name,
+                timestamp: event.timestamp,
+                attributes: event.attributes
+            )
+
+            result = record
         }
 
-        return record
+        return result
     }
 
-    func setAttributes(_ attributes: [String: String]) {
-        if let data = try? JSONEncoder().encode(attributes) {
-            attributesData = data
-        } else {
-            attributesData = Data()
-        }
-    }
-
-    func getAttributes() -> [String: String] {
-        if let attributes = try? JSONDecoder().decode([String: String].self, from: attributesData) {
-            return attributes
-        }
-        return [:]
+    func update(name: String, timestamp: Date, attributes: EmbraceAttributes) {
+        self.name = name
+        self.timestamp = timestamp
+        self.attributes = attributes.keyValueEncoded()
     }
 
     func toImmutable() -> EmbraceSpanEvent {
-        return ImmutableSpanEventRecord(name: name, timestamp: timestamp, attributes: getAttributes())
-    }
+        var type: EmbraceType = .performance
+        if let typeRaw = typeRaw {
+            type = EmbraceType(rawValue: typeRaw) ?? .performance
+        }
 
-    static func createFetchRequest() -> NSFetchRequest<SpanEventRecord> {
-        return NSFetchRequest<SpanEventRecord>(entityName: entityName)
+        return EmbraceSpanEvent(
+            name: name,
+            type: type,
+            timestamp: timestamp,
+            attributes: .keyValueDecode(attributes)
+        )
     }
 }
 
 extension SpanEventRecord: EmbraceStorageRecord {
     public static var entityName = "SpanEventRecord"
-}
-
-package struct ImmutableSpanEventRecord: EmbraceSpanEvent {
-    package let name: String
-    package let timestamp: Date
-    package let attributes: [String: String]
-
-    package init(name: String, timestamp: Date, attributes: [String: String]) {
-        self.name = name
-        self.timestamp = timestamp
-        self.attributes = attributes
-    }
 }

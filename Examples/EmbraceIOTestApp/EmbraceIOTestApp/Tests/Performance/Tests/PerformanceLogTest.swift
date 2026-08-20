@@ -17,7 +17,7 @@ class PerformanceLogTest: PayloadTest {
     var maxNumberOfLogs: Int = 0
 
     func runTestPreparations() {
-        Embrace.client?.buildSpan(name: "LoggingTestStart").startSpan().end()
+        EmbraceIO.shared.createSpan(name: "LoggingTestStart")?.end()
     }
 
     func test(spans: [SpanData]) -> TestReport {
@@ -68,7 +68,7 @@ class PerformanceLogTest: PayloadTest {
                     hasher.combine(UUID())
                     let hash = hasher.finalize()
                     if totalLogs <= limitNumberOfLogsPerLoop {
-                        Embrace.client?.log("hashed: \(hash)", severity: .info)
+                        EmbraceIO.shared.log("hashed: \(hash)", severity: .info)
                         totalLogs += 1
                     }
                 }
