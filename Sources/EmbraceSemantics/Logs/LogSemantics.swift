@@ -16,6 +16,9 @@ public struct LogSemantics {
     public static let keyStackTrace = "emb.stacktrace.ios"
     public static let keyPropertiesPrefix = "emb.properties.%@"
 
+    /// Experiments and feature flags the user is enrolled in during the current process.
+    public static let keyExperiments = "emb.experiments"
+
     public static let keyAttachmentId = "emb.attachment_id"
     public static let keyAttachmentSize = "emb.attachment_size"
     public static let keyAttachmentUrl = "emb.attachment_url"

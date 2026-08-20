@@ -10,6 +10,7 @@ import OpenTelemetrySdk
     import EmbraceStorageInternal
     import EmbraceObjCUtilsInternal
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 struct ResourcePayload: Codable {
@@ -43,7 +44,10 @@ struct ResourcePayload: Codable {
         DeviceResourceKey.locale.rawValue,
         DeviceResourceKey.timezone.rawValue,
         DeviceResourceKey.osDescription.rawValue,
-        SessionController.sessionNumberKey
+        SessionController.sessionNumberKey,
+        // Stored as a required resource so a later process can read back the value of the process
+        // that produced it, but reported as an attribute of the session span and of each log.
+        SpanSemantics.keyExperiments
     ]
 
     enum CodingKeys: String, CodingKey, CaseIterable {

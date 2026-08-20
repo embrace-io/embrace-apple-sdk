@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import EmbraceStorageInternal
 import OpenTelemetryApi
 import TestSupport
@@ -125,5 +126,133 @@ class LogPayloadBuilderTests: XCTestCase {
 
         let attribute2 = logs[0].attributes.first { $0.key == "key2" }
         XCTAssertEqual(attribute2!.value, "value2")
+    }
+    /// Experiments are stored as a required resource so a later process can read them back, but they
+    /// are reported as an attribute of each log. They must never surface in the resource block.
+    func test_manualBuild_experimentsAreNeverAResource() throws {
+        // given experiments stored for the current process
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        storage.addMetadata(
+            key: LogSemantics.keyExperiments,
+            value: "e:exp::1000000",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+        storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "1.0.0",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+
+        // when manually building a log payload
+        let payload = LogPayloadBuilder.build(
+            timestamp: Date(timeIntervalSince1970: 30),
+            severity: .fatal,
+            body: "test",
+            attributes: [:],
+            storage: storage,
+            sessionId: nil
+        )
+
+        // then the experiments are absent from the resource, in the struct and in the encoded json
+        let jsonData = try JSONEncoder().encode(payload)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any])
+        let resource = try XCTUnwrap(json["resource"] as? [String: Any])
+
+        XCTAssertNil(payload.resource.additionalResources[LogSemantics.keyExperiments])
+        XCTAssertNil(resource[LogSemantics.keyExperiments])
+
+        // then the other resources are unaffected
+        XCTAssertEqual(payload.resource.appVersion, "1.0.0")
+        XCTAssertEqual(resource["app_version"] as? String, "1.0.0")
+    }
+
+    func test_manualBuild_sessionFromAnotherProcess() throws {
+        // given a session in storage that belongs to a previous process
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let previousProcessId = EmbraceIdentifier.random
+
+        storage.addSession(
+            id: TestConstants.sessionId,
+            processId: previousProcessId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSince1970: 0),
+            endTime: Date(timeIntervalSince1970: 60)
+        )
+
+        // given a process scoped resource stored for that process and for the current one
+        storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "1.0.0",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: previousProcessId.stringValue
+        )
+        storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "2.0.0",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+
+        // when manually building a log payload for that session
+        let payload = LogPayloadBuilder.build(
+            timestamp: Date(timeIntervalSince1970: 30),
+            severity: .fatal,
+            body: "test",
+            attributes: [:],
+            storage: storage,
+            sessionId: TestConstants.sessionId
+        )
+
+        // then the payload describes the session's process, not the one building it
+        XCTAssertEqual(payload.resource.appVersion, "1.0.0")
+    }
+
+    func test_manualBuild_withProcessId() throws {
+        // given a process scoped resource stored for two different processes
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let previousProcessId = EmbraceIdentifier.random
+
+        storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "1.0.0",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: previousProcessId.stringValue
+        )
+        storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "2.0.0",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+
+        // when manually building a log payload for a given process and no session
+        let payload = LogPayloadBuilder.build(
+            timestamp: Date(timeIntervalSince1970: 30),
+            severity: .fatal,
+            body: "test",
+            attributes: [:],
+            storage: storage,
+            sessionId: nil,
+            processId: previousProcessId
+        )
+
+        // then the payload describes that process
+        XCTAssertEqual(payload.resource.appVersion, "1.0.0")
     }
 }
