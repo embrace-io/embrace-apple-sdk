@@ -320,6 +320,160 @@ final class ExperimentsHandlerTests: XCTestCase {
         XCTAssertEqual(warnings(), 1)
     }
 
+    // MARK: - Unusable dates
+
+    /// Every value a caller can hand over that no timestamp can express. Encoding any of these would
+    /// crash the process, so each one has to be turned away before it reaches a record.
+    private var unusableDates: [(String, Date)] {
+        [
+            ("nan", Date(timeIntervalSince1970: .nan)),
+            ("infinity", Date(timeIntervalSince1970: .infinity)),
+            ("negativeInfinity", Date(timeIntervalSince1970: -.infinity)),
+            ("greatestFiniteMagnitude", Date(timeIntervalSince1970: .greatestFiniteMagnitude)),
+            ("distantFuture", Date.distantFuture),
+            ("distantPast", Date.distantPast)
+        ]
+    }
+
+    func test_unusableStartedAt_dropsEntry() {
+        for (name, date) in unusableDates {
+            let handler = handler()
+            handler.trackExperiments([.init(id: "exp", startedAt: date)])
+
+            XCTAssertNil(handler.encodedExperiments, "\(name) should have been dropped")
+        }
+    }
+
+    func test_unusableStartedAt_dropsOnlyThatEntry() {
+        let handler = handler()
+
+        handler.trackExperiments([
+            .init(id: "ok1", startedAt: Date(timeIntervalSince1970: 1000)),
+            .init(id: "bad", startedAt: Date(timeIntervalSince1970: .nan)),
+            .init(id: "ok2", startedAt: Date(timeIntervalSince1970: 1000))
+        ])
+
+        XCTAssertEqual(handler.encodedExperiments, "e:ok1::1000000;e:ok2::1000000")
+    }
+
+    func test_unusableStartedAt_dropsFeatureFlagsToo() {
+        let handler = handler()
+
+        handler.trackFeatureFlags([
+            .init(id: "bad", startedAt: Date(timeIntervalSince1970: .infinity)),
+            .init(id: "ok", startedAt: Date(timeIntervalSince1970: 1000))
+        ])
+
+        XCTAssertEqual(handler.encodedExperiments, "f:ok::1000000")
+    }
+
+    /// The drop is silent, unlike the drops driven by the length and count limits.
+    func test_unusableStartedAt_doesNotWarn() {
+        let handler = handler()
+        logger.reset()
+
+        handler.trackExperiments([.init(id: "exp", startedAt: Date(timeIntervalSince1970: .nan))])
+
+        XCTAssertEqual(warnings(), 0)
+    }
+
+    func test_unusableStartedAt_persistsNothing() {
+        let handler = handler()
+
+        handler.trackExperiments([.init(id: "exp", startedAt: Date(timeIntervalSince1970: .nan))])
+        wait(delay: .shortTimeout)
+
+        XCTAssertNil(handler.encodedExperiments)
+        XCTAssertNil(storedValue())
+    }
+
+    /// A dropped entry must not consume one of the limited record slots, which is only true while the
+    /// date is checked before the cap.
+    func test_unusableStartedAt_doesNotConsumeARecordSlot() {
+        let handler = handler(limits: ExperimentsLimits(maxCount: 1))
+
+        handler.trackExperiments([
+            .init(id: "bad", startedAt: Date(timeIntervalSince1970: .nan)),
+            .init(id: "ok", startedAt: Date(timeIntervalSince1970: 1000))
+        ])
+
+        XCTAssertEqual(handler.encodedExperiments, "e:ok::1000000")
+    }
+
+    /// An already tracked record is a no-op whatever it passes, so an unusable date in a repeat call
+    /// leaves it exactly as it was.
+    func test_unusableStartedAt_onAlreadyTrackedId_leavesRecordUntouched() {
+        let handler = handler()
+        handler.trackExperiments([.init(id: "exp", variant: "A", startedAt: Date(timeIntervalSince1970: 1000))])
+
+        handler.trackExperiments([.init(id: "exp", variant: "B", startedAt: Date(timeIntervalSince1970: .nan))])
+
+        XCTAssertEqual(handler.encodedExperiments, "e:exp:A:1000000")
+    }
+
+    /// The end time applies to every id in the call, so an unusable one discards the whole call: closing
+    /// even one record with it would crash when the value is rebuilt.
+    func test_unusableEndedAt_ignoresWholeCall() {
+        for (name, date) in unusableDates {
+            let handler = handler()
+            handler.trackExperiments([
+                .init(id: "a", startedAt: Date(timeIntervalSince1970: 1000)),
+                .init(id: "b", startedAt: Date(timeIntervalSince1970: 1000))
+            ])
+
+            handler.untrackExperiments(ids: ["a", "b"], endedAt: date)
+
+            XCTAssertEqual(
+                handler.encodedExperiments,
+                "e:a::1000000;e:b::1000000",
+                "\(name) should have left both records open"
+            )
+        }
+    }
+
+    func test_unusableEndedAt_ignoresWholeFeatureFlagCall() {
+        let handler = handler()
+        handler.trackFeatureFlags([.init(id: "flag", startedAt: Date(timeIntervalSince1970: 1000))])
+
+        handler.untrackFeatureFlags(ids: ["flag"], endedAt: Date(timeIntervalSince1970: .nan))
+
+        XCTAssertEqual(handler.encodedExperiments, "f:flag::1000000")
+    }
+
+    func test_unusableEndedAt_doesNotWarn() {
+        let handler = handler()
+        handler.trackExperiments([.init(id: "exp", startedAt: Date(timeIntervalSince1970: 1000))])
+        logger.reset()
+
+        handler.untrackExperiments(ids: ["exp"], endedAt: Date(timeIntervalSince1970: .infinity))
+
+        XCTAssertEqual(warnings(), 0)
+    }
+
+    /// The ignored call must not count as the one call that takes effect: the record is still open, so a
+    /// later usable end time closes it.
+    func test_unusableEndedAt_leavesRecordCloseableAfterwards() {
+        let handler = handler()
+        handler.trackExperiments([.init(id: "exp", startedAt: Date(timeIntervalSince1970: 1000))])
+
+        handler.untrackExperiments(ids: ["exp"], endedAt: Date(timeIntervalSince1970: .nan))
+        handler.untrackExperiments(ids: ["exp"], endedAt: Date(timeIntervalSince1970: 2000))
+
+        XCTAssertEqual(handler.encodedExperiments, "e:exp::1000000:2000000")
+    }
+
+    /// A record tracked with a usable date still encodes, which is what would crash if an unusable one
+    /// had slipped through into the same value.
+    func test_usableDatesAtTheEdgeOfTheRange_areKeptAndEncoded() {
+        let handler = handler()
+        let edge = Date(timeIntervalSince1970: 9_223_372_036)
+
+        handler.trackExperiments([.init(id: "exp", startedAt: edge)])
+        handler.untrackExperiments(ids: ["exp"], endedAt: edge)
+
+        XCTAssertEqual(handler.encodedExperiments, "e:exp::9223372036000:9223372036000")
+    }
+
     // MARK: - Remote config updates
 
     func test_configUpdate_raisingLimits_letsNewRecordsThrough() {

@@ -443,9 +443,7 @@ class UnsentDataHandler {
             timestamp: Date(),
             severity: .critical,
             body: logs,
-            attributes: attributes,
-            storage: nil,
-            sessionId: nil
+            attributes: attributes
         )
 
         // send log

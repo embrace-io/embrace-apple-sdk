@@ -36,6 +36,10 @@ extension EmbraceIO {
     /// refer to a different experiment. Duplicate ids within one call resolve to the first one.
     /// An empty list does nothing.
     ///
+    /// An entry whose start time cannot be represented as a timestamp is dropped the same way, with
+    /// no error and nothing logged. That covers a `Date` built from a value such as `nan` or
+    /// `infinity`, and any date further than roughly 292 years from 1970.
+    ///
     /// - Parameter experiments: The experiments to track.
     public func trackExperiments(_ experiments: [TrackedExperiment]) {
         Embrace.client?.experiments.trackExperiments(experiments)
@@ -49,7 +53,9 @@ extension EmbraceIO {
     ///   - id: Identifier of the experiment. Surrounding whitespace is removed.
     ///   - variant: Variant the user was assigned to. `nil`, an empty string and a whitespace-only
     ///              string are all equivalent.
-    ///   - startedAt: When the enrollment started. Defaults to the moment of the call.
+    ///   - startedAt: When the enrollment started. Defaults to the moment of the call. A date that
+    ///                cannot be represented as a timestamp is not usable, and the whole call is
+    ///                ignored.
     public func trackExperiment(id: String, variant: String? = nil, startedAt: Date? = nil) {
         trackExperiments([TrackedExperiment(id: id, variant: variant, startedAt: startedAt)])
     }
@@ -60,6 +66,11 @@ extension EmbraceIO {
     /// so the end is known rather than inferred. Only the first call for a given id takes effect.
     /// Ids that were never tracked, or that belong to a feature flag rather than an experiment, are
     /// ignored.
+    ///
+    /// The end time applies to every id in the call, so one that cannot be represented as a
+    /// timestamp — a `Date` built from a value such as `nan` or `infinity`, or a date further than
+    /// roughly 292 years from 1970 — makes the whole call do nothing, with no error and nothing
+    /// logged.
     ///
     /// - Parameters:
     ///   - ids: Identifiers of the experiments to end.
@@ -75,7 +86,9 @@ extension EmbraceIO {
     ///
     /// - Parameters:
     ///   - id: Identifier of the experiment to end.
-    ///   - endedAt: When the enrollment ended. Defaults to the moment of the call.
+    ///   - endedAt: When the enrollment ended. Defaults to the moment of the call. A date that
+    ///              cannot be represented as a timestamp is not usable, and the whole call is
+    ///              ignored.
     public func untrackExperiment(id: String, endedAt: Date? = nil) {
         untrackExperiments(ids: [id], endedAt: endedAt)
     }
@@ -98,6 +111,10 @@ extension EmbraceIO {
     /// refer to a different flag. Duplicate ids within one call resolve to the first one.
     /// An empty list does nothing.
     ///
+    /// An entry whose start time cannot be represented as a timestamp is dropped the same way, with
+    /// no error and nothing logged. That covers a `Date` built from a value such as `nan` or
+    /// `infinity`, and any date further than roughly 292 years from 1970.
+    ///
     /// - Parameter flags: The feature flags to track.
     public func trackFeatureFlags(_ flags: [TrackedFeatureFlag]) {
         Embrace.client?.experiments.trackFeatureFlags(flags)
@@ -111,7 +128,9 @@ extension EmbraceIO {
     ///   - id: Identifier of the feature flag. Surrounding whitespace is removed.
     ///   - variant: Variant the user was assigned to. `nil`, an empty string and a whitespace-only
     ///              string are all equivalent.
-    ///   - startedAt: When the exposure started. Defaults to the moment of the call.
+    ///   - startedAt: When the exposure started. Defaults to the moment of the call. A date that
+    ///                cannot be represented as a timestamp is not usable, and the whole call is
+    ///                ignored.
     public func trackFeatureFlag(id: String, variant: String? = nil, startedAt: Date? = nil) {
         trackFeatureFlags([TrackedFeatureFlag(id: id, variant: variant, startedAt: startedAt)])
     }
@@ -122,6 +141,11 @@ extension EmbraceIO {
     /// so the end is known rather than inferred. Only the first call for a given id takes effect.
     /// Ids that were never tracked, or that belong to an experiment rather than a feature flag, are
     /// ignored.
+    ///
+    /// The end time applies to every id in the call, so one that cannot be represented as a
+    /// timestamp — a `Date` built from a value such as `nan` or `infinity`, or a date further than
+    /// roughly 292 years from 1970 — makes the whole call do nothing, with no error and nothing
+    /// logged.
     ///
     /// - Parameters:
     ///   - ids: Identifiers of the feature flags to end.
@@ -137,7 +161,9 @@ extension EmbraceIO {
     ///
     /// - Parameters:
     ///   - id: Identifier of the feature flag to end.
-    ///   - endedAt: When the exposure ended. Defaults to the moment of the call.
+    ///   - endedAt: When the exposure ended. Defaults to the moment of the call. A date that
+    ///              cannot be represented as a timestamp is not usable, and the whole call is
+    ///              ignored.
     public func untrackFeatureFlag(id: String, endedAt: Date? = nil) {
         untrackFeatureFlags(ids: [id], endedAt: endedAt)
     }

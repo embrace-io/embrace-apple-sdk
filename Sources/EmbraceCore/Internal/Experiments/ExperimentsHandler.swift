@@ -137,6 +137,13 @@ package class ExperimentsHandler {
                     continue
                 }
 
+                // A caller-provided date can hold a value that no timestamp can express: `NaN`, an
+                // infinity, or a date thousands of years away. Encoding one crashes, so the entry is
+                // dropped on its own, quietly, leaving the rest of the list untouched.
+                if let startedAt = entry.startedAt, !startedAt.isValid {
+                    continue
+                }
+
                 // Over-limit values drop the whole entry and are never truncated: a truncated id is a
                 // different id, and a truncated variant is a different variant.
                 guard id.count <= limits.maxIdLength else {
@@ -197,6 +204,13 @@ package class ExperimentsHandler {
     }
 
     private func untrack(ids: [String], kind: ExperimentKind, endedAt: Date?) {
+        // The end time applies to every id in the call, so one that no timestamp can express — and
+        // that would crash every record it is written to — discards the whole call rather than part
+        // of it. Dropped quietly, like an unusable start time.
+        if let endedAt = endedAt, !endedAt.isValid {
+            return
+        }
+
         let now = Date()
         var newValue: String?
 
@@ -242,7 +256,7 @@ package class ExperimentsHandler {
     /// Called outside the lock, and it has to stay that way. Beyond not holding the lock across a
     /// database hop, the notification below is delivered synchronously, and its observer takes
     /// `SessionController`'s lock — which `startSession` holds while reading `encodedExperiments`.
-    /// Persisting under the lock would invert that order and deadlock.    
+    /// Persisting under the lock would invert that order and deadlock.
     ///
     /// The record exists so a later process can read back this process's value; it is deliberately
     /// kept out of the reported resources by `ResourcePayload` and `ResourceStorageExporter`.

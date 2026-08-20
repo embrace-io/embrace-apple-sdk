@@ -40,9 +40,9 @@ struct LogPayloadBuilder {
         severity: LogSeverity,
         body: String,
         attributes: [String: String],
-        storage: EmbraceStorage?,
-        sessionId: EmbraceIdentifier?,
-        processId: EmbraceIdentifier?
+        storage: EmbraceStorage? = nil,
+        sessionId: EmbraceIdentifier? = nil,
+        processId: EmbraceIdentifier? = nil
     ) -> PayloadEnvelope<[LogPayload]> {
 
         // build resources and metadata payloads
