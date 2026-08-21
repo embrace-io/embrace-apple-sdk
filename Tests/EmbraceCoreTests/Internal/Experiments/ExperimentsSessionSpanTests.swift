@@ -38,7 +38,10 @@ final class ExperimentsSessionSpanTests: XCTestCase {
             storage: storage,
             experimentsLimits: ExperimentsLimits(),
             configNotificationCenter: Embrace.notificationCenter,
-            logger: MockLogger()
+            logger: MockLogger(),
+            // These assert the span right after tracking, and the notification that updates it is
+            // debounced in production. Reporting inline keeps them about the span, not the timing.
+            persistDebounceInterval: 0
         )
         controller.experiments = handler
     }

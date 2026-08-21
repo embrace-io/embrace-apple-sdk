@@ -28,12 +28,20 @@ final class ExperimentsHandlerTests: XCTestCase {
         storage = nil
     }
 
-    private func handler(limits: ExperimentsLimits = ExperimentsLimits()) -> ExperimentsHandler {
+    /// Defaults to reporting inline, so tests that aren't about the debounce don't have to wait it
+    /// out. The debounce tests pass their own interval.
+    private func handler(
+        limits: ExperimentsLimits = ExperimentsLimits(),
+        persistDebounceInterval: TimeInterval = 0,
+        maxPersistDelay: TimeInterval = ExperimentsHandler.defaultMaxPersistDelay
+    ) -> ExperimentsHandler {
         ExperimentsHandler(
             storage: storage,
             experimentsLimits: limits,
             configNotificationCenter: notificationCenter,
-            logger: logger
+            logger: logger,
+            persistDebounceInterval: persistDebounceInterval,
+            maxPersistDelay: maxPersistDelay
         )
     }
 
@@ -622,6 +630,110 @@ final class ExperimentsHandlerTests: XCTestCase {
 
         XCTAssertNil(handler.encodedExperiments)
         XCTAssertNil(storedValue())
+    }
+
+    // MARK: - Persistence debounce
+
+    /// Counts the change notifications, which is the observable side of a report: one per write.
+    private func countReports(on center: NotificationCenter) -> () -> Int {
+        let count = EmbraceMutex(0)
+        let observer = center.addObserver(forName: .embraceExperimentsChanged, object: nil, queue: nil) { _ in
+            count.withLock { $0 += 1 }
+        }
+        addTeardownBlock { center.removeObserver(observer) }
+        return { count.safeValue }
+    }
+
+    func test_debounce_burstOfChanges_isReportedOnce() {
+        let handler = handler(persistDebounceInterval: .veryShortTimeout)
+        let reports = countReports(on: notificationCenter)
+
+        for index in 0..<10 {
+            handler.trackExperiments([.init(id: "exp-\(index)", startedAt: Date(timeIntervalSince1970: 1000))])
+        }
+
+        XCTAssertEqual(reports(), 0, "the burst should still be waiting out the debounce")
+
+        wait(timeout: .defaultTimeout, until: { reports() == 1 })
+
+        // The single report carries every record in the burst, not just the one that scheduled it.
+        XCTAssertEqual(records(storedValue()).count, 10)
+        XCTAssertEqual(storedValue(), handler.encodedExperiments)
+    }
+
+    /// A change arriving after the previous one was reported is a new burst, and reported on its own.
+    func test_debounce_changesInSeparateBursts_areReportedSeparately() {
+        let handler = handler(persistDebounceInterval: .veryShortTimeout)
+        let reports = countReports(on: notificationCenter)
+
+        handler.trackExperiments([.init(id: "first", startedAt: Date(timeIntervalSince1970: 1000))])
+        wait(timeout: .defaultTimeout, until: { reports() == 1 })
+
+        handler.trackExperiments([.init(id: "second", startedAt: Date(timeIntervalSince1970: 2000))])
+        wait(timeout: .defaultTimeout, until: { reports() == 2 })
+
+        XCTAssertEqual(records(storedValue()).count, 2)
+    }
+
+    /// A steady stream of changes keeps pushing the debounce out, so the max wait is what gets the
+    /// value reported. Without it the first report would only land after the stream stopped.
+    func test_debounce_steadyStreamOfChanges_isReportedWithinTheMaxDelay() {
+        let handler = handler(
+            persistDebounceInterval: .veryShortTimeout,
+            maxPersistDelay: .veryShortTimeout * 2
+        )
+        let reports = countReports(on: notificationCenter)
+
+        // Changes closer together than the debounce interval, for longer than the max delay.
+        let deadline = Date().addingTimeInterval(.shortTimeout)
+        var index = 0
+        while Date() < deadline {
+            handler.trackExperiments([.init(id: "exp-\(index)", startedAt: Date(timeIntervalSince1970: 1000))])
+            index += 1
+            wait(delay: .veryShortTimeout / 2)
+        }
+
+        XCTAssertGreaterThan(reports(), 0, "the max delay should have forced a report mid-stream")
+    }
+
+    /// Nothing is reported while a burst is pending, so the value has to be flushed on the way out.
+    func test_flushPendingPersist_reportsImmediately() {
+        // An interval long enough that only the flush can be what reported the value.
+        let handler = handler(persistDebounceInterval: .longTimeout)
+        let reports = countReports(on: notificationCenter)
+
+        handler.trackExperiments([.init(id: "exp", variant: "A", startedAt: Date(timeIntervalSince1970: 1000))])
+        XCTAssertEqual(reports(), 0)
+
+        handler.flushPendingPersist()
+
+        XCTAssertEqual(reports(), 1)
+        wait(timeout: .defaultTimeout, until: { self.storedValue() == "e:exp:A:1000000" })
+    }
+
+    func test_flushPendingPersist_withNothingPending_reportsNothing() {
+        let handler = handler(persistDebounceInterval: .longTimeout)
+        let reports = countReports(on: notificationCenter)
+
+        handler.flushPendingPersist()
+        XCTAssertEqual(reports(), 0)
+
+        // Nor does a flush re-report a value that already went out.
+        handler.trackExperiments([.init(id: "exp", startedAt: Date(timeIntervalSince1970: 1000))])
+        handler.flushPendingPersist()
+        XCTAssertEqual(reports(), 1)
+
+        handler.flushPendingPersist()
+        XCTAssertEqual(reports(), 1)
+    }
+
+    /// The debounce only defers reporting. What callers read is never behind.
+    func test_debounce_doesNotDelayTheInMemoryValue() {
+        let handler = handler(persistDebounceInterval: .longTimeout)
+
+        handler.trackExperiments([.init(id: "exp", variant: "A", startedAt: Date(timeIntervalSince1970: 1000))])
+
+        XCTAssertEqual(handler.encodedExperiments, "e:exp:A:1000000")
     }
 
     // MARK: - Concurrency

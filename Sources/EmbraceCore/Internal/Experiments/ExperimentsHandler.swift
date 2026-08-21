@@ -4,6 +4,12 @@
 
 import Foundation
 
+#if canImport(UIKit) && !os(watchOS)
+    import UIKit
+#endif
+#if os(watchOS)
+    import WatchKit
+#endif
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceConfiguration
@@ -25,6 +31,10 @@ extension Notification.Name {
 /// required resource, purely so a later process can read back the value of the process that produced
 /// it — which is what lets a recovered crash report carry the right one. That storage record is not
 /// meant to be reported as a resource, and the two resource consumers exclude it explicitly.
+///
+/// Reporting the value is debounced. Tracking a batch of flags one call at a time would otherwise
+/// mirror the value once per call, and each of those does a keyed CoreData fetch plus a session span
+/// upsert. See ``schedulePersist()`` for what the debounce costs.
 package class ExperimentsHandler {
 
     private struct State {
@@ -35,7 +45,17 @@ package class ExperimentsHandler {
         /// Cached encoded value, rejoined from the records' own encoded forms only when they change.
         var encoded: String?
         var limits: ExperimentsLimits
+        /// The debounced write waiting to run, if any. Replaced on every change.
+        var pendingPersist: DispatchWorkItem?
+        /// When the burst of changes now waiting to be reported began, for the max wait.
+        var firstPendingChange: Date?
     }
+
+    /// How long the records have to stay unchanged before the value is reported.
+    package static let defaultPersistDebounceInterval: TimeInterval = 0.2
+
+    /// Longest the reporting of a change may be deferred, however many changes keep arriving.
+    package static let defaultMaxPersistDelay: TimeInterval = 1.0
 
     private let state: EmbraceMutex<State>
 
@@ -43,15 +63,25 @@ package class ExperimentsHandler {
     private let notificationCenter: NotificationCenter
     private weak var logger: InternalLogger?
 
+    private let persistQueue: DispatchQueue
+    private let persistDebounceInterval: TimeInterval
+    private let maxPersistDelay: TimeInterval
+
     package init(
         storage: EmbraceStorage?,
         experimentsLimits: ExperimentsLimits,
         configNotificationCenter: NotificationCenter,
-        logger: InternalLogger? = Embrace.logger
+        logger: InternalLogger? = Embrace.logger,
+        persistDebounceInterval: TimeInterval = ExperimentsHandler.defaultPersistDebounceInterval,
+        maxPersistDelay: TimeInterval = ExperimentsHandler.defaultMaxPersistDelay,
+        persistQueue: DispatchQueue = DispatchQueue(label: "io.embrace.experiments.persist", qos: .utility)
     ) {
         self.storage = storage
         self.notificationCenter = configNotificationCenter
         self.logger = logger
+        self.persistDebounceInterval = persistDebounceInterval
+        self.maxPersistDelay = maxPersistDelay
+        self.persistQueue = persistQueue
         self.state = EmbraceMutex(State(limits: experimentsLimits))
 
         notificationCenter.addObserver(
@@ -60,10 +90,13 @@ package class ExperimentsHandler {
             name: .embraceConfigUpdated,
             object: nil
         )
+
+        addLifecycleObservers()
     }
 
     deinit {
         notificationCenter.removeObserver(self)
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Current value
@@ -114,7 +147,7 @@ package class ExperimentsHandler {
         var droppedForCap = false
         var droppedEmptyId = false
         var droppedTooLong = false
-        var newValue: String?
+        var didChange = false
 
         state.withLock { state in
             // Read under the same lock as the mutation, so a config update landing mid-call can't
@@ -181,7 +214,7 @@ package class ExperimentsHandler {
 
             if changed {
                 state.encoded = ExperimentsSerializer.serialize(state.records)
-                newValue = state.encoded
+                didChange = true
             }
         }
 
@@ -197,9 +230,9 @@ package class ExperimentsHandler {
             logger?.warning("The limit of tracked experiments for this process was reached!")
         }
 
-        // A bulk call rebuilds the value once and writes it once.
-        if let newValue = newValue {
-            persist(newValue)
+        // A bulk call rebuilds the value once and reports it once.
+        if didChange {
+            schedulePersist()
         }
     }
 
@@ -212,7 +245,7 @@ package class ExperimentsHandler {
         }
 
         let now = Date()
-        var newValue: String?
+        var didChange = false
 
         state.withLock { state in
             var changed = false
@@ -236,20 +269,64 @@ package class ExperimentsHandler {
 
             if changed {
                 state.encoded = ExperimentsSerializer.serialize(state.records)
-                newValue = state.encoded
+                didChange = true
             }
         }
 
         // There is no cap check anywhere in this path. Ending a record has to keep working once the
         // record limit is reached, even though it makes the encoded value grow.
-        if let newValue = newValue {
-            persist(newValue)
+        if didChange {
+            schedulePersist()
         }
     }
 
     // MARK: - Persistence
 
-    /// Mirrors the encoded value into storage and announces the change.
+    /// Schedules the current value to be reported once the records stop changing.
+    ///
+    /// Tracking is bursty — a launch typically tracks several flags in a row — and every report costs
+    /// a keyed CoreData fetch plus a session span upsert, so a burst is collapsed into one report
+    /// instead of one per call. Two rules bound the wait:
+    ///
+    /// - the records must be unchanged for ``persistDebounceInterval`` before the value is reported;
+    /// - the value is reported anyway once the oldest unreported change reaches ``maxPersistDelay``,
+    ///   so a caller changing records in a steady stream can't defer the write indefinitely.
+    ///
+    ///
+    /// An interval of `0` reports inline, which is what the tests use to stay deterministic.
+    private func schedulePersist() {
+        guard persistDebounceInterval > 0 else {
+            persistCurrentValue()
+            return
+        }
+
+        let item = DispatchWorkItem { [weak self] in
+            self?.persistCurrentValue()
+        }
+
+        let delay: TimeInterval = state.withLock { state in
+            state.pendingPersist?.cancel()
+            state.pendingPersist = item
+
+            let now = Date()
+            guard let firstChange = state.firstPendingChange else {
+                state.firstPendingChange = now
+                return persistDebounceInterval
+            }
+
+            // Whatever is left of the max wait, so the deadline set by the first unreported change
+            // survives every later change that pushes the debounce out.
+            let remaining = maxPersistDelay - now.timeIntervalSince(firstChange)
+            return max(0, min(persistDebounceInterval, remaining))
+        }
+
+        persistQueue.asyncAfter(deadline: .now() + delay, execute: item)
+    }
+
+    /// Reports whatever the current value is, clearing the pending state.
+    ///
+    /// Reads the value here rather than capturing it at schedule time: coalescing then comes for
+    /// free, and a work item that fires late can't write a value the records have moved past.
     ///
     /// The write goes through `addRequiredResources` rather than the metadata handler because the
     /// value is exempt from the standard attribute length limit, and the metadata handler truncates.
@@ -260,9 +337,67 @@ package class ExperimentsHandler {
     ///
     /// The record exists so a later process can read back this process's value; it is deliberately
     /// kept out of the reported resources by `ResourcePayload` and `ResourceStorageExporter`.
-    private func persist(_ value: String) {
+    private func persistCurrentValue() {
+        let value: String? = state.withLock { state in
+            state.pendingPersist = nil
+            state.firstPendingChange = nil
+            return state.encoded
+        }
+
+        guard let value = value else {
+            return
+        }
+
         storage?.addRequiredResources([SpanSemantics.keyExperiments: value])
         notificationCenter.post(name: .embraceExperimentsChanged, object: value)
+    }
+
+    /// Reports a pending value immediately, if there is one.
+    ///
+    /// Called when the app is about to background or terminate, where waiting out the debounce would
+    /// mean the newest value is only seen on the next launch. This makes the value reach the CoreData
+    /// context and the session span; getting the context itself to disk is `CoreDataWrapper`'s job,
+    /// which runs its own save under a background task assertion.
+    package func flushPendingPersist() {
+        let pending: DispatchWorkItem? = state.withLock { $0.pendingPersist }
+
+        guard let pending = pending else {
+            return
+        }
+
+        pending.cancel()
+        persistCurrentValue()
+    }
+
+    private func addLifecycleObservers() {
+        #if canImport(UIKit) && !os(watchOS)
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(onAppWillSuspend),
+                name: UIApplication.didEnterBackgroundNotification,
+                object: nil
+            )
+
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(onAppWillSuspend),
+                name: UIApplication.willTerminateNotification,
+                object: nil
+            )
+        #elseif os(watchOS)
+            if #available(watchOS 7.0, *) {
+                NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(onAppWillSuspend),
+                    name: WKExtension.applicationDidEnterBackgroundNotification,
+                    object: nil
+                )
+            }
+        #endif
+    }
+
+    @objc private func onAppWillSuspend() {
+        flushPendingPersist()
     }
 
     // MARK: - Config

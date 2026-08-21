@@ -34,7 +34,8 @@ final class ExperimentsResourceProviderTests: XCTestCase {
             storage: storage,
             experimentsLimits: ExperimentsLimits(),
             configNotificationCenter: NotificationCenter(),
-            logger: MockLogger()
+            logger: MockLogger(),
+            persistDebounceInterval: 0
         )
     }
 
