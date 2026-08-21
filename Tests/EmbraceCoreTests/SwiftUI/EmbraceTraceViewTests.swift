@@ -167,8 +167,8 @@
             // Given: tracing is enabled
             mockConfig.isSwiftUiViewInstrumentationEnabled = true
 
-            // When: we create and render an EmbraceTraceView
-            let traceView = EmbraceTraceView("ProfileScreen") {
+            // When: we create and render an EmbraceTraceView opted in to body tracking
+            let traceView = EmbraceTraceView("ProfileScreen", trackBodyEvaluations: true) {
                 Text("User Profile")
             }
             .environment(\.embraceTraceViewLogger, traceViewLogger)
@@ -192,6 +192,199 @@
             XCTAssertTrue(spanNames.contains("emb-swiftui.view.ProfileScreen.body"))
             XCTAssertTrue(spanNames.contains("emb-swiftui.view.ProfileScreen.appear"))
             XCTAssertTrue(spanNames.contains("emb-swiftui.view.ProfileScreen.time-to-first-render"))
+
+            window.isHidden = true
+        }
+
+        // MARK: - trackBodyEvaluations
+
+        /// Renders `view` in a key window and waits for the pending run loop tick, so that
+        /// cycled spans have been ended by the time the caller inspects `mockOTel`.
+        @MainActor
+        private func render<V: View>(_ view: V) async {
+            let hostingController = UIHostingController(
+                rootView:
+                    view
+                    .environment(\.embraceTraceViewLogger, traceViewLogger)
+                    .environment(\.embraceTraceViewContext, traceViewContext)
+            )
+            let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 600))
+            window.rootViewController = hostingController
+            window.makeKeyAndVisible()
+
+            hostingController.loadViewIfNeeded()
+            hostingController.view.layoutIfNeeded()
+
+            await RunLoop.main.waitForNextTick()
+
+            window.isHidden = true
+        }
+
+        @MainActor
+        private func spanNames() -> [String] {
+            (mockOTel.startedSpans + mockOTel.endedSpans).map { $0.name }
+        }
+
+        @MainActor
+        func testBodyAndRenderLoopSpansSuppressedByDefault() async {
+            // Given: tracing is enabled and trackBodyEvaluations is left at its default
+            mockConfig.isSwiftUiViewInstrumentationEnabled = true
+
+            // When: we render an EmbraceTraceView without opting in
+            await render(
+                EmbraceTraceView("DefaultScreen") {
+                    Text("Body spans off")
+                }
+            )
+
+            // Then: neither the body nor the render-loop span is emitted...
+            let names = spanNames()
+            XCTAssertFalse(
+                names.contains("emb-swiftui.view.DefaultScreen.body"),
+                "Body spans must be opt-in")
+            XCTAssertFalse(
+                names.contains("emb-swiftui.view.DefaultScreen.render-loop"),
+                "The render-loop span has nothing to group when body spans are off")
+
+            // ...while the always-on spans are untouched.
+            XCTAssertTrue(names.contains("emb-swiftui.view.DefaultScreen.appear"))
+            XCTAssertTrue(names.contains("emb-swiftui.view.DefaultScreen.time-to-first-render"))
+        }
+
+        @MainActor
+        func testBodyAndRenderLoopSpansEmittedWhenOptedIn() async {
+            // Given: tracing is enabled
+            mockConfig.isSwiftUiViewInstrumentationEnabled = true
+
+            // When: we render an EmbraceTraceView that opts in
+            await render(
+                EmbraceTraceView("OptedInScreen", trackBodyEvaluations: true) {
+                    Text("Body spans on")
+                }
+            )
+
+            // Then: both spans are emitted
+            let names = spanNames()
+            XCTAssertTrue(names.contains("emb-swiftui.view.OptedInScreen.body"))
+            XCTAssertTrue(names.contains("emb-swiftui.view.OptedInScreen.render-loop"))
+        }
+
+        @MainActor
+        func testEmbraceTraceModifierSuppressesBodySpansByDefault() async {
+            // Given: tracing is enabled
+            mockConfig.isSwiftUiViewInstrumentationEnabled = true
+
+            // When: we use the `.embraceTrace` modifier rather than the view directly
+            await render(Text("Modifier").embraceTrace("ModifierScreen"))
+
+            // Then: the default flows through the modifier
+            let names = spanNames()
+            XCTAssertFalse(names.contains("emb-swiftui.view.ModifierScreen.body"))
+            XCTAssertFalse(names.contains("emb-swiftui.view.ModifierScreen.render-loop"))
+            XCTAssertTrue(names.contains("emb-swiftui.view.ModifierScreen.appear"))
+        }
+
+        @MainActor
+        func testEmbraceTraceModifierEmitsBodySpansWhenOptedIn() async {
+            // Given: tracing is enabled
+            mockConfig.isSwiftUiViewInstrumentationEnabled = true
+
+            // When: we opt in through the modifier
+            await render(
+                Text("Modifier").embraceTrace("ModifierOptInScreen", trackBodyEvaluations: true)
+            )
+
+            // Then: body spans are emitted
+            let names = spanNames()
+            XCTAssertTrue(names.contains("emb-swiftui.view.ModifierOptInScreen.body"))
+            XCTAssertTrue(names.contains("emb-swiftui.view.ModifierOptInScreen.render-loop"))
+        }
+
+        @MainActor
+        func testAppearSpanIsRootWhenBodyEvaluationsAreNotTracked() async {
+            // Given: tracing is enabled and body tracking is off, so there is no render-loop span
+            mockConfig.isSwiftUiViewInstrumentationEnabled = true
+
+            // When: we render without opting in
+            await render(
+                EmbraceTraceView("RootAppearScreen") {
+                    Text("No parent")
+                }
+            )
+
+            // Then: the appear span has no parent rather than attaching to an unrelated cycle span
+            let appearSpans = mockOTel.startedSpans.filter {
+                $0.name == "emb-swiftui.view.RootAppearScreen.appear"
+            }
+            XCTAssertFalse(appearSpans.isEmpty, "Expected an appear span")
+            for span in appearSpans {
+                XCTAssertNil(span.parentSpanId)
+            }
+        }
+
+        @MainActor
+        func testAppearSpanNestsUnderRenderLoopWhenBodyEvaluationsAreTracked() async throws {
+            // Given: tracing is enabled
+            mockConfig.isSwiftUiViewInstrumentationEnabled = true
+
+            // When: we render with body tracking on
+            await render(
+                EmbraceTraceView("NestedAppearScreen", trackBodyEvaluations: true) {
+                    Text("Parented")
+                }
+            )
+
+            // Then: the appear span nests under this view's render-loop span
+            let renderLoop = mockOTel.startedSpans.first {
+                $0.name == "emb-swiftui.view.NestedAppearScreen.render-loop"
+            }
+            let appearSpans = mockOTel.startedSpans.filter {
+                $0.name == "emb-swiftui.view.NestedAppearScreen.appear"
+            }
+
+            let renderLoopId = try XCTUnwrap(renderLoop?.context.spanId, "Expected a render-loop span")
+            XCTAssertFalse(appearSpans.isEmpty, "Expected an appear span")
+            for span in appearSpans {
+                XCTAssertEqual(span.parentSpanId, renderLoopId)
+            }
+        }
+
+        @MainActor
+        func testContentCompleteSpanStillEmittedWhenBodyEvaluationsAreNotTracked() async {
+            // Given: tracing is enabled, body tracking off, and a content-complete trigger that flips.
+            // The content-complete bookkeeping lives inside `body`, so this guards against the
+            // opt-out accidentally short-circuiting it.
+            mockConfig.isSwiftUiViewInstrumentationEnabled = true
+
+            func view(contentComplete: Bool) -> some View {
+                EmbraceTraceView("ContentCompleteScreen", contentComplete: contentComplete) {
+                    Text("Loading")
+                }
+                .environment(\.embraceTraceViewLogger, traceViewLogger)
+                .environment(\.embraceTraceViewContext, traceViewContext)
+            }
+
+            let hostingController = UIHostingController(rootView: view(contentComplete: false))
+            let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 600))
+            window.rootViewController = hostingController
+            window.makeKeyAndVisible()
+
+            hostingController.loadViewIfNeeded()
+            hostingController.view.layoutIfNeeded()
+            await RunLoop.main.waitForNextTick()
+
+            // When: the content-complete value changes, forcing a re-evaluation of `body`
+            hostingController.rootView = view(contentComplete: true)
+            hostingController.view.setNeedsLayout()
+            hostingController.view.layoutIfNeeded()
+            await RunLoop.main.waitForNextTick()
+
+            // Then: the content-complete span is emitted, and body spans still are not
+            let names = spanNames()
+            XCTAssertTrue(
+                names.contains("emb-swiftui.view.ContentCompleteScreen.time-to-first-content-complete"),
+                "Content-complete must be unaffected by the body-span opt-out")
+            XCTAssertFalse(names.contains("emb-swiftui.view.ContentCompleteScreen.body"))
 
             window.isHidden = true
         }

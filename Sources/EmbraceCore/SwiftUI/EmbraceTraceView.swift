@@ -12,9 +12,14 @@ import SwiftUI
 /// A SwiftUI wrapper view that instruments performance tracing for any content.
 ///
 /// Use `EmbraceTraceView` to automatically record:
-///  - Body evaluation spans (each time SwiftUI recomputes the view)
 ///  - Appear and disappear events (when the view enters or leaves the screen)
-///  - A “RenderLoop” span that groups all child spans in a single render tick
+///  - Time to first render, and time to first content complete (when `contentComplete` is used)
+///
+/// Body evaluation spans — and the “RenderLoop” span that groups them within a single render
+/// tick — are **opt-in** via `trackBodyEvaluations`. They are disabled by default because
+/// SwiftUI recomputes `body` far more often than is useful to report: typing six characters
+/// into a text field produces six spans, and an animation can produce thousands per minute.
+/// Turn them on when you are actively investigating the render behavior of a specific view.
 ///
 /// If tracing is disabled or the OTel client is unavailable, this view simply forwards
 /// to `content()` without additional overhead (only invokes an empty `onAppear`/`onDisappear`).
@@ -32,6 +37,11 @@ import SwiftUI
 ///                  attributes: ["user_id": someUser.id]) {
 ///     ProfileDetailView(user: someUser)
 /// }
+///
+/// // Opt in to body/render-loop spans while debugging a specific view
+/// EmbraceTraceView("SlowList", trackBodyEvaluations: true) {
+///     SlowListView()
+/// }
 /// ```
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
@@ -48,17 +58,21 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
     private let name: String
     private let attributes: EmbraceAttributes?
     private let contentCompleteValue: Value?
+    private let trackBodyEvaluations: Bool
 
     /// Creates a new `EmbraceTraceView` that wraps the given content for tracing.
     ///
     /// - Parameters:
     ///   - viewName: The stable identifier used in trace dashboards (e.g., screen or component name).
     ///   - attributes: Optional metadata to associate with all spans created by this view.
+    ///   - trackBodyEvaluations: Whether to emit a span for every `body` evaluation, plus the
+    ///     `render-loop` span that groups them. Defaults to `false`; see the type documentation.
     ///   - contentComplete: Optional value representing the "content complete" state.
     ///   - content: A closure returning the view content to wrap.
     public init(
         _ viewName: String,
         attributes: EmbraceAttributes? = nil,
+        trackBodyEvaluations: Bool = false,
         contentComplete: Value? = nil,
         content: @escaping () -> Content
     ) {
@@ -66,6 +80,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
         self.attributes = attributes
         self.content = content
         self.contentCompleteValue = contentComplete
+        self.trackBodyEvaluations = trackBodyEvaluations
 
         // Ensure counters are updated
         if self.state.initialize == 0 {
@@ -83,18 +98,31 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
     /// - Parameters:
     ///   - viewName: Name used for the generated trace.
     ///   - attributes: Attributes to set on the trace.
+    ///   - trackBodyEvaluations: Whether to emit a span for every `body` evaluation, plus the
+    ///     `render-loop` span that groups them. Defaults to `false`; see the type documentation.
     ///   - content: The content view to trace.
     public init(
         _ viewName: String,
         attributes: EmbraceAttributes? = nil,
+        trackBodyEvaluations: Bool = false,
         content: @escaping () -> Content
     ) where Value == Never {
         self.init(
             viewName,
             attributes: attributes,
+            trackBodyEvaluations: trackBodyEvaluations,
             contentComplete: nil,
             content: content
         )
+    }
+
+    /// The render-cycle span that this view's lifecycle spans nest under.
+    ///
+    /// `nil` unless body evaluations are tracked: with no render-loop span of its own, this view's
+    /// `appear`/`disappear` spans become roots rather than attaching to whichever sibling view
+    /// happened to open the shared cycle span first.
+    private var cycleParent: EmbraceSpan? {
+        trackBodyEvaluations ? context.firstCycleSpan : nil
     }
 
     public var body: some View {
@@ -113,28 +141,33 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
         state.bodyTime = startTime
         state.body += 1
 
-        // If no _RenderLoop_ span exists for this render tick, create one.
-        if context.firstCycleSpan == nil {
-            context.firstCycleSpan = logger.cycledSpan(
-                name,
-                semantics: SpanSemantics.SwiftUIView.renderLoopName,
-                time: startTime,
-                parent: nil,
-                attributes: attributes
-            ) {
-                // Reset cycle root after the run loop tick completes
-                context.firstCycleSpan = nil
+        // The body and render-loop spans are opt-in. The bookkeeping below this point still runs
+        // either way, so `time-to-first-content-complete` is unaffected by the opt-out.
+        var bodySpan: EmbraceSpan?
+        if trackBodyEvaluations {
+            // If no _RenderLoop_ span exists for this render tick, create one.
+            if context.firstCycleSpan == nil {
+                context.firstCycleSpan = logger.cycledSpan(
+                    name,
+                    semantics: SpanSemantics.SwiftUIView.renderLoopName,
+                    time: startTime,
+                    parent: nil,
+                    attributes: attributes
+                ) {
+                    // Reset cycle root after the run loop tick completes
+                    context.firstCycleSpan = nil
+                }
             }
-        }
 
-        // Start a span for this body evaluation
-        let bodySpan = logger.startSpan(
-            name,
-            semantics: SpanSemantics.SwiftUIView.bodyName,
-            time: startTime,
-            parent: context.firstCycleSpan,
-            attributes: attributes
-        )
+            // Start a span for this body evaluation
+            bodySpan = logger.startSpan(
+                name,
+                semantics: SpanSemantics.SwiftUIView.bodyName,
+                time: startTime,
+                parent: context.firstCycleSpan,
+                attributes: attributes
+            )
+        }
         defer {
             logger.endSpan(bodySpan)
         }
@@ -188,7 +221,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
                     name,
                     semantics: SpanSemantics.SwiftUIView.appearName,
                     time: time,
-                    parent: context.firstCycleSpan,
+                    parent: cycleParent,
                     attributes: attributes
                 ) {}
             }
@@ -204,7 +237,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
                     name,
                     semantics: SpanSemantics.SwiftUIView.disappearName,
                     time: time,
-                    parent: context.firstCycleSpan,
+                    parent: cycleParent,
                     attributes: attributes
                 ) {}
             }
