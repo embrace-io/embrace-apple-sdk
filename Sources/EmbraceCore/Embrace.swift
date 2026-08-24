@@ -262,6 +262,7 @@ import OpenTelemetrySdk
 
         sessionController.sdkStateProvider = self
         logController?.sdkStateProvider = self
+        logController?.privateLogger = self
 
         // the session span and every log report the experiments tracked so far
         sessionController.experiments = experiments
