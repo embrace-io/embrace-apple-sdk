@@ -386,7 +386,9 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         }
 
         // The session part span links to the state span so the backend can find a part's states.
-        let link = part.addLink(
+        // This is a structural link the SDK owns, so it uses the internal path: a busy session's
+        // customer links and events must not be able to squeeze it out.
+        let link = part.addInternalLink(
             spanId: token.span.context.spanId,
             traceId: token.span.context.traceId,
             attributes: [SpanSemantics.keyLinkType: SpanSemantics.State.linkType]

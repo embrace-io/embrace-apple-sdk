@@ -141,6 +141,19 @@ extension MockSpan: EmbraceSpanInternalAttributes {
     }
 }
 
+extension MockSpan: EmbraceSpanInternalLinks {
+    /// The mock enforces no limits, so an internal link is stored the same way a customer one is —
+    /// what matters for tests is that the internal path exists and is reachable.
+    @discardableResult
+    public func _addInternalLink(
+        spanId: String,
+        traceId: String,
+        attributes: EmbraceAttributes
+    ) -> EmbraceSpanLink? {
+        addLink(spanId: spanId, traceId: traceId, attributes: attributes)
+    }
+}
+
 extension MockSpan: EmbraceSpanSessionEvents {
     @discardableResult
     public func _addSessionEvent(

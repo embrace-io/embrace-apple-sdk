@@ -220,6 +220,43 @@ final class StateRecorderLimitsTests: XCTestCase {
             "10")
     }
 
+    func testTheStateLinkSurvivesASessionThatExhaustedTheCustomerLinkBudget() throws {
+        // Given a session part span carrying plenty of customer events — breadcrumbs, in production.
+        let sessionSpan = try XCTUnwrap(sessionController.currentSessionSpan)
+        let customerEvents = Int(SessionLimits().links.customSpanLinkCount) * 2
+        for i in 0..<customerEvents {
+            sessionSpan.addEvent(name: "breadcrumb-\(i)", type: nil, timestamp: Date(), attributes: [:])
+        }
+
+        // ...and a customer link budget that is fully spent.
+        for i in 0..<customerEvents {
+            sessionSpan.addLink(spanId: .randomSpanId(), traceId: .randomTraceId(), attributes: ["i": "\(i)"])
+        }
+
+        let recorder = StateRecorder<String>(
+            stateName: "limits-test",
+            defaultValue: "initial",
+            otel: capturing
+        )
+        recorder.onSessionPartStart(sessionSpan: sessionSpan, at: Date())
+        recorder.activate(at: Date())
+
+        let stateSpan = try XCTUnwrap(
+            capturing.createdSpans.first { $0.name == SpanSemantics.State.spanName(for: "limits-test") }
+        )
+
+        // When the part ends
+        recorder.onSessionPartWillEnd(at: Date())
+
+        // Then the SDK's own structural link is still there, because it does not compete with
+        // customer telemetry for the per-span budget.
+        let stateLinks = sessionSpan.links.filter {
+            $0.attributes[SpanSemantics.keyLinkType]?.description == SpanSemantics.State.linkType
+        }
+        XCTAssertEqual(stateLinks.count, 1, "the STATE link must survive a busy session")
+        XCTAssertEqual(stateLinks.first?.context.spanId, stateSpan.context.spanId)
+    }
+
     func testNewValueSurvivesAlongsideManyCallerAttributes() throws {
         // Given more caller attributes than the customer-facing per-event attribute cap
         let (recorder, _) = try makeRecorder(maxTransitions: 100)
