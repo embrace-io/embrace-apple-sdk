@@ -2,6 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import TestSupport
 import XCTest
 
@@ -143,5 +144,29 @@ final class EmbraceStorage_SpanTests: XCTestCase {
             Set(allRecords.map(\.name)),
             ["network 0", "network 1", "network 2", "performance"]
         )
+    }
+
+    // MARK: - Payload fetch budget
+
+    /// `jsonSpansLimit` is the per-payload span fetch budget, and it is derived by summing
+    /// `limitByType` over every `PrimaryType`. Adding a category therefore raises the budget for
+    /// every customer, whether or not they emit that category — a side effect that is easy to ship
+    /// unnoticed, so it is pinned here.
+    func test_jsonSpansLimit_isTheDefaultLimitPerPrimaryCategory() throws {
+        storage.options.spanLimitDefault = 100
+
+        XCTAssertEqual(
+            storage.jsonSpansLimit,
+            PrimaryType.allCases.count * 100,
+            "the payload fetch budget scales with the number of primary categories")
+    }
+
+    /// State spans are a category of their own; they must get the same storage allowance as the
+    /// others rather than falling through to a different bucket.
+    func test_limitByType_coversTheStateCategory() throws {
+        storage.options.spanLimitDefault = 42
+
+        XCTAssertEqual(storage.limitByType(.state), 42)
+        XCTAssertEqual(storage.limitByType(EmbraceType(primary: .state, secondary: nil)), 42)
     }
 }

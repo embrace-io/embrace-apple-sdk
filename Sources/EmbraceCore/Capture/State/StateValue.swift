@@ -11,12 +11,15 @@
 /// This is intentionally a dedicated protocol rather than a use of `CustomStringConvertible` —
 /// `description` is inherited too easily and its output is not a wire contract, whereas
 /// ``stateDescription`` is written verbatim into the telemetry payload.
-public protocol StateValue: Equatable {
+///
+/// Deliberately **not** `public`: no public API exposes a state value, so making this public would
+/// commit the SDK to it (and to a retroactive conformance on `String`) for no benefit.
+protocol StateValue: Equatable {
     /// Canonical serialization of this value, written to `emb.state.initial_value` and
     /// `emb.state.new_value`.
     var stateDescription: String { get }
 }
 
 extension String: StateValue {
-    public var stateDescription: String { self }
+    var stateDescription: String { self }
 }

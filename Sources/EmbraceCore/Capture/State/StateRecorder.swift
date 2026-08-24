@@ -13,15 +13,15 @@ import Foundation
 /// differing value types.
 protocol StateRecording: AnyObject {
 
-    /// Name of the state, e.g. `screen-automatic`. Forms the span name and the log attribute key.
+    /// Name of the state, e.g. `screen-automatic`.
     var stateName: String { get }
 
-    /// The `emb.state.<name>` stamp for the current value, or `nil` if this state has not been
-    /// activated yet. Lazily-activated states are absent from log metadata until their first change.
-    var logAttribute: (key: String, value: String)? { get }
+    /// Serialized current value, or `nil` if this state has not been activated yet. Lazily-activated
+    /// states are absent from log metadata until their first change.
+    var currentStateDescription: String? { get }
 
     /// Whether this state opens its span as soon as capture is enabled, rather than waiting for the
-    /// first change.
+    /// first change. See ``StateRecorder/capturesOnCreation``.
     var capturesOnCreation: Bool { get }
 
     /// Opens this state's span for a newly started session part.
@@ -31,9 +31,22 @@ protocol StateRecording: AnyObject {
     /// so the state span makes it into the part's payload and can be linked from it.
     func onSessionPartWillEnd(at time: Date)
 
+    /// Closes this state's span for a part whose telemetry is being **thrown away**.
+    ///
+    /// Unlike ``onSessionPartWillEnd(at:)`` the accumulated counters are retained rather than
+    /// flushed, because a span that is about to be discarded cannot carry them.
+    func onSessionPartDiscarded(at time: Date)
+
     /// Marks the state as active, opening a span immediately if a session part is already running.
-    /// Eager states are activated as soon as capture is enabled.
     func activate(at time: Date)
+}
+
+/// A transition the recorder has committed to under its lock, to be written to the span after the
+/// lock is released.
+private struct PendingTransition {
+    let token: StateSpanToken
+    let count: Int
+    let flushed: UnrecordedTransitions
 }
 
 /// Records the history of one named, continuously-valued signal.
@@ -46,13 +59,24 @@ protocol StateRecording: AnyObject {
 /// - **Value retention.** ``currentValue`` is updated before any decision to drop a change, so the
 ///   next span's `emb.state.initial_value` is right even when the change itself never became an event.
 /// - **Lossless counting.** Dropped changes are counted and flushed onto the next recorded event, or
-///   onto the span at close.
+///   onto the span at close. If a write fails, the counts are put back rather than discarded.
 /// - **Duplicate suppression.** Two equal consecutive values never produce two events.
 ///
 /// ## Threading
-/// Every mutation runs under a single lock, so concurrent ``onStateChange(to:at:attributes:coalescing:)``
-/// calls can neither lose counts nor open two spans. Callers supply the observation time themselves
-/// so dispatch latency never skews event timestamps.
+/// All accounting happens under a single lock, so concurrent calls can neither lose counts nor open
+/// two spans. Span I/O is deliberately performed **outside** that lock: `span.end()` drives the OTel
+/// processor/exporter chain synchronously, and those exporters can be customer-supplied code that
+/// calls back into the SDK. Holding a non-reentrant lock across them would let
+/// `LogController.createLog` → ``currentStateDescription`` re-enter this lock on the same thread and
+/// trap. Every method therefore decides under the lock, performs I/O after releasing it, and
+/// re-acquires only to reconcile a failure.
+///
+/// A consequence worth naming: because the writes happen outside this lock, concurrent transitions
+/// can write to the same span at once, so this relies on `EmbraceSpan` conformances being
+/// thread-safe. `DefaultEmbraceSpan` is — it guards its events, links and attributes with its own
+/// mutex — and any test double must be too.
+///
+/// Callers supply the observation time themselves so dispatch latency never skews event timestamps.
 final class StateRecorder<Value: StateValue>: StateRecording {
 
     let stateName: String
@@ -66,12 +90,26 @@ final class StateRecorder<Value: StateValue>: StateRecording {
 
     private weak var otel: EmbraceOTelSignalsHandler?
 
+    /// Where this recorder stands relative to the session part.
+    ///
+    /// Modelling the part and its token together makes "a token without a part" unrepresentable, and
+    /// turns "a part started while one was already recording" into a case that can be reported
+    /// rather than a silently-skipped guard.
+    private enum PartRecording {
+        case noPart
+        case part(EmbraceSpan)
+        case recording(part: EmbraceSpan, token: StateSpanToken)
+    }
+
     private struct Storage {
         var currentValue: Value
-        var token: StateSpanToken?
         var unrecorded: UnrecordedTransitions
         var isActive: Bool
-        var sessionSpan: EmbraceSpan?
+        var recording: PartRecording
+
+        /// Recorded transitions in the current part. Lives here rather than on the token because the
+        /// cap decision must be made under the lock while the write happens outside it.
+        var transitionsRecorded: Int
     }
 
     private let storage: EmbraceMutex<Storage>
@@ -84,16 +122,17 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         capturesOnCreation: Bool = true
     ) {
         self.stateName = stateName
-        self.maxTransitions = maxTransitions
+        // A non-positive cap would silently convert every change into a dropped one.
+        self.maxTransitions = max(1, maxTransitions)
         self.capturesOnCreation = capturesOnCreation
         self.otel = otel
         self.storage = EmbraceMutex(
             Storage(
                 currentValue: defaultValue,
-                token: nil,
                 unrecorded: .none,
                 isActive: false,
-                sessionSpan: nil
+                recording: .noPart,
+                transitionsRecorded: 0
             )
         )
     }
@@ -103,15 +142,9 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         storage.withLock { $0.currentValue }
     }
 
-    var logAttribute: (key: String, value: String)? {
+    var currentStateDescription: String? {
         storage.withLock { storage in
-            guard storage.isActive else {
-                return nil
-            }
-            return (
-                SpanSemantics.State.logAttributeKey(for: stateName),
-                storage.currentValue.stateDescription
-            )
+            storage.isActive ? storage.currentValue.stateDescription : nil
         }
     }
 
@@ -124,8 +157,8 @@ final class StateRecorder<Value: StateValue>: StateRecording {
     ///     dropped rather than recorded.
     ///   - time: When the change was *observed* — pass the timestamp captured at the originating
     ///     callback, not the time this method runs.
-    ///   - attributes: Extra attributes for this transition. The built-in `emb.state.*` keys always
-    ///     take precedence, so these can never overwrite the contract.
+    ///   - attributes: Extra attributes for this transition. The reserved `emb.state.*` namespace is
+    ///     stripped, so these can never overwrite the contract.
     ///   - coalescing: Number of changes the caller already collapsed into this one; counted as
     ///     dropped so the total stays accurate.
     func onStateChange(
@@ -134,120 +167,235 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         attributes: EmbraceAttributes = [:],
         coalescing coalescedTransitions: Int = 0
     ) {
-        storage.withLock { storage in
-            // Lazy states open their span on the first change rather than at enable time.
-            if !storage.isActive {
-                activate(&storage, at: time)
-            }
+        // Lazy states open their span on the first change. Done first, and outside the lock, so the
+        // decision below sees the token this may install.
+        openSpanIfNeeded(activating: true, at: time)
 
+        let pending: PendingTransition? = storage.withLock { storage in
             // The value is retained before any drop decision below — this is what keeps the next
             // part's `initial_value` correct even when this change is never recorded.
             let oldValue = storage.currentValue
             storage.currentValue = newValue
-            storage.unrecorded.droppedByInstrumentation += coalescedTransitions
+            storage.unrecorded.droppedByInstrumentation += max(0, coalescedTransitions)
 
-            guard let token = storage.token else {
+            guard case .recording(_, let token) = storage.recording else {
                 storage.unrecorded.notInSession += 1
-                return
+                return nil
             }
 
             guard newValue != oldValue else {
                 // Duplicate suppression belongs to the infrastructure, not to the feature; the
                 // caller's attributes for this change are discarded along with it.
                 storage.unrecorded.droppedByInstrumentation += 1
-                return
+                return nil
             }
 
-            guard token.transitionCount < maxTransitions else {
+            guard storage.transitionsRecorded < maxTransitions else {
                 storage.unrecorded.droppedByInstrumentation += 1
-                return
+                return nil
             }
 
+            storage.transitionsRecorded += 1
             let flushed = storage.unrecorded
             storage.unrecorded = .none
 
-            let recorded = token.recordTransition(
-                value: newValue.stateDescription,
-                at: time,
-                attributes: attributes,
-                flushing: flushed
-            )
+            return PendingTransition(token: token, count: storage.transitionsRecorded, flushed: flushed)
+        }
 
-            if !recorded {
-                // The span was closed underneath us. Put the flushed counts back and count this
-                // change as having happened outside a session part rather than losing it.
-                storage.unrecorded = flushed + UnrecordedTransitions(notInSession: 1)
+        guard let pending else {
+            return
+        }
+
+        let outcome = pending.token.recordTransition(
+            value: newValue.stateDescription,
+            at: time,
+            count: pending.count,
+            attributes: attributes,
+            flushing: pending.flushed
+        )
+
+        guard outcome != .recorded else {
+            return
+        }
+
+        // The write failed. Put the flushed counts back — adding rather than assigning, since other
+        // threads may have accumulated more while the lock was released — and give up this
+        // transition's slot in the per-part budget.
+        storage.withLock { storage in
+            storage.transitionsRecorded = max(0, storage.transitionsRecorded - 1)
+
+            switch outcome {
+            case .spanEnded:
+                // The part was torn down underneath us: recycle as a change outside a session part.
+                storage.unrecorded = storage.unrecorded + pending.flushed + UnrecordedTransitions(notInSession: 1)
+            case .eventDropped, .recorded:
+                storage.unrecorded =
+                    storage.unrecorded + pending.flushed + UnrecordedTransitions(droppedByInstrumentation: 1)
             }
+        }
+
+        if outcome == .eventDropped {
+            Embrace.logger.warning(
+                "State '\(stateName)': a transition event was dropped by the span; counted as dropped instead.")
         }
     }
 
     // MARK: - Session part boundaries
 
     func activate(at time: Date) {
-        storage.withLock { activate(&$0, at: time) }
+        openSpanIfNeeded(activating: true, at: time)
     }
 
     func onSessionPartStart(sessionSpan: EmbraceSpan, at time: Date) {
-        storage.withLock { storage in
-            storage.sessionSpan = sessionSpan
-            guard storage.isActive else {
-                return
-            }
-            openSpan(&storage, at: time)
+        // Binding to an already-closed part would open a span that outlives it and gets linked from
+        // the wrong part. This makes a registration racing a part boundary harmless.
+        guard sessionSpan.endTime == nil else {
+            Embrace.logger.warning(
+                "State '\(stateName)': ignoring a part start for an already-ended session span.")
+            return
         }
+
+        let stale: (token: StateSpanToken, part: EmbraceSpan)? = storage.withLock { storage in
+            var stale: (StateSpanToken, EmbraceSpan)?
+            if case .recording(let part, let token) = storage.recording {
+                stale = (token, part)
+            }
+            storage.recording = .part(sessionSpan)
+            storage.transitionsRecorded = 0
+            return stale
+        }
+
+        // A live token at a part start can only mean the previous part was never closed. Report it
+        // and clean up, rather than silently leaving the old span open and mis-attributing.
+        if let stale {
+            Embrace.logger.error(
+                "State '\(stateName)': a span was still open at part start; the previous part was not closed.")
+            close(token: stale.token, linkingFrom: stale.part, at: time, flushing: .none)
+        }
+
+        openSpanIfNeeded(activating: false, at: time)
     }
 
     func onSessionPartWillEnd(at time: Date) {
-        storage.withLock { storage in
-            closeSpan(&storage, at: time)
-            storage.sessionSpan = nil
+        let pending: (token: StateSpanToken, part: EmbraceSpan, flushed: UnrecordedTransitions)? =
+            storage.withLock { storage in
+                defer { storage.recording = .noPart }
+
+                guard case .recording(let part, let token) = storage.recording else {
+                    return nil
+                }
+                let flushed = storage.unrecorded
+                storage.unrecorded = .none
+                return (token, part, flushed)
+            }
+
+        guard let pending else {
+            return
         }
+        close(token: pending.token, linkingFrom: pending.part, at: time, flushing: pending.flushed)
+    }
+
+    func onSessionPartDiscarded(at time: Date) {
+        let token: StateSpanToken? = storage.withLock { storage in
+            defer { storage.recording = .noPart }
+
+            guard case .recording(_, let token) = storage.recording else {
+                return nil
+            }
+            // The counters are deliberately NOT flushed: this span is being thrown away with its
+            // part, so they have to survive into the next part instead.
+            return token
+        }
+
+        token?.end(at: time, flushing: .none)
     }
 
     // MARK: - Private
 
-    private func activate(_ storage: inout Storage, at time: Date) {
-        guard !storage.isActive else {
-            return
-        }
-        storage.isActive = true
-        openSpan(&storage, at: time)
-    }
-
-    private func openSpan(_ storage: inout Storage, at time: Date) {
+    /// Opens the state span if this recorder is active and a part is running but has no span yet.
+    ///
+    /// Span creation happens outside the lock; the resulting token is installed under it, and a span
+    /// that lost its part in between is closed rather than leaked.
+    private func openSpanIfNeeded(activating: Bool, at time: Date) {
         // No live session part means no span. Changes in that window accumulate as
         // `not_in_session` and land on the next part's first recorded transition.
-        guard storage.sessionSpan != nil, storage.token == nil else {
+        let initialValue: String? = storage.withLock { storage in
+            if activating {
+                storage.isActive = true
+            }
+            guard storage.isActive, case .part = storage.recording else {
+                return nil
+            }
+            return storage.currentValue.stateDescription
+        }
+
+        guard let initialValue else {
             return
         }
 
-        let span = try? otel?.createInternalSpan(
-            name: SpanSemantics.State.spanName(for: stateName),
-            type: .state,
-            startTime: time,
-            attributes: [
-                SpanSemantics.State.keyInitialValue: storage.currentValue.stateDescription
-            ]
-        )
+        guard let otel else {
+            Embrace.logger.error(
+                "State '\(stateName)': no OTel handler available; state capture is inert for this part.")
+            return
+        }
 
-        storage.token = span.map { StateSpanToken(span: $0) }
+        let span: EmbraceSpan
+        do {
+            span = try otel.createInternalSpan(
+                name: SpanSemantics.State.spanName(for: stateName),
+                type: .state,
+                startTime: time,
+                attributes: [
+                    SpanSemantics.State.keyInitialValue: initialValue
+                ]
+            )
+        } catch {
+            Embrace.logger.error(
+                "State '\(stateName)': failed to create the state span: \(error.localizedDescription)")
+            return
+        }
+
+        let orphaned: Bool = storage.withLock { storage in
+            guard case .part(let part) = storage.recording, part.endTime == nil else {
+                return true
+            }
+            storage.recording = .recording(part: part, token: StateSpanToken(span: span))
+            storage.transitionsRecorded = 0
+            return false
+        }
+
+        if orphaned {
+            // The part ended while the span was being created. Close it so it isn't left open.
+            span.end(endTime: time)
+        }
     }
 
-    private func closeSpan(_ storage: inout Storage, at time: Date) {
-        guard let token = storage.token else {
-            return
+    /// Ends a state span and links it from its part span. Must be called outside the lock.
+    private func close(
+        token: StateSpanToken,
+        linkingFrom part: EmbraceSpan,
+        at time: Date,
+        flushing flushed: UnrecordedTransitions
+    ) {
+        if !token.end(at: time, flushing: flushed) && !flushed.isEmpty {
+            // The span had already ended, so the residual counts were not written. Retain them for
+            // the next part instead of losing them.
+            storage.withLock { $0.unrecorded = $0.unrecorded + flushed }
+            Embrace.logger.warning(
+                "State '\(stateName)': span had already ended at close; residual counts carried to the next part.")
         }
-        storage.token = nil
-
-        let flushed = storage.unrecorded
-        storage.unrecorded = .none
-        token.end(at: time, flushing: flushed)
 
         // The session part span links to the state span so the backend can find a part's states.
-        storage.sessionSpan?.addLink(
+        let link = part.addLink(
             spanId: token.span.context.spanId,
             traceId: token.span.context.traceId,
             attributes: [SpanSemantics.keyLinkType: SpanSemantics.State.linkType]
         )
+
+        if link == nil {
+            Embrace.logger.error(
+                "State '\(stateName)': failed to link the state span from its session part span; "
+                    + "the span will not be reachable from the part.")
+        }
     }
 }

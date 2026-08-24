@@ -406,7 +406,7 @@ class SessionController: SessionControllable {
         let now = endTime ?? Date()
 
         guard sdkStateProvider?.isEnabled == true else {
-            deleteNoLock(inProgressSession)
+            deleteNoLock(inProgressSession, at: now)
             return now
         }
 
@@ -414,7 +414,7 @@ class SessionController: SessionControllable {
         // are disabled in the config, we drop the session!
         // +
         if inProgressSession.coldStart == true && inProgressSession.state == SessionState.background && backgroundSessionsEnabled == false {
-            deleteNoLock(inProgressSession)
+            deleteNoLock(inProgressSession, at: now)
             return now
         }
         // -
@@ -613,15 +613,17 @@ extension SessionController {
         lock.locked { deleteNoLock(info.session) }
     }
 
-    private func deleteNoLock(_ session: EmbraceSession?) {
+    private func deleteNoLock(_ session: EmbraceSession?, at time: Date = Date()) {
         guard let session else {
             return
         }
 
-        // Close the state spans even though this part is being discarded: leaving a token pointing
-        // at a deleted part would block the next part from opening a fresh span, silently ending
-        // state capture for the rest of the process.
-        stateCoordinator?.onSessionPartWillEnd()
+        // Close the state spans even though this part is being discarded. Leaving a token behind
+        // would make the *next* part reuse this discarded part's span instead of opening its own,
+        // so its transitions would be recorded onto a span belonging to a deleted session.
+        // Discarding rather than ending: the accumulated counters must survive into the next part,
+        // because a span that is about to be thrown away cannot carry them.
+        stateCoordinator?.onSessionPartDiscarded(at: time)
 
         storage?.deleteSession(id: session.id)
 

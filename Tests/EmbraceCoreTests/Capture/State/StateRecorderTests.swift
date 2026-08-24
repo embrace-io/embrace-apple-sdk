@@ -335,14 +335,12 @@ final class StateRecorderTests: XCTestCase {
 
     func testLogAttributeIsAbsentUntilTheStateIsActive() {
         let recorder = makeRecorder(capturesOnCreation: false)
-        XCTAssertNil(recorder.logAttribute)
+        XCTAssertNil(recorder.currentStateDescription)
 
         recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
         recorder.onStateChange(to: "second", at: time(1))
 
-        let attribute = recorder.logAttribute
-        XCTAssertEqual(attribute?.key, "emb.state.test-state")
-        XCTAssertEqual(attribute?.value, "second")
+        XCTAssertEqual(recorder.currentStateDescription, "second")
     }
 
     func testLogAttributeTracksTheCurrentValueEvenWithoutAPart() {
@@ -351,7 +349,204 @@ final class StateRecorderTests: XCTestCase {
 
         recorder.onStateChange(to: "offline-change", at: time(1))
 
-        XCTAssertEqual(recorder.logAttribute?.value, "offline-change")
+        XCTAssertEqual(recorder.currentStateDescription, "offline-change")
+    }
+
+    // MARK: - Write failures (the paths the defensive code exists for)
+
+    func testCountsSurviveAPartCloseWhoseSpanAlreadyEnded() throws {
+        // Regression: `closeSpan` used to zero the counters before handing them to `end`, which
+        // dropped them when the span had already been closed — losing them permanently.
+        let recorder = startedRecorder()
+        let span = try XCTUnwrap(stateSpans.first)
+
+        recorder.onStateChange(to: "a", at: time(1))
+        recorder.onStateChange(to: "a", at: time(2))  // duplicate → dropped, counted
+
+        // Something else ends the span underneath the recorder.
+        span.end(endTime: time(30))
+
+        recorder.onSessionPartWillEnd(at: time(60))
+
+        // The residual count could not be written to the dead span, so it must have been retained
+        // and must land on the next part instead of vanishing.
+        let nextPart = try mockOTel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(70)
+        )
+        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
+        recorder.onStateChange(to: "b", at: time(71))
+
+        let event = try XCTUnwrap(stateSpans.last?.events.first)
+        XCTAssertEqual(
+            event.attributes[SpanSemantics.State.keyDroppedByInstrumentation]?.description,
+            "1",
+            "counts must survive a close whose span had already ended")
+    }
+
+    func testTransitionOntoAnEndedSpanIsRecycledAsNotInSession() throws {
+        let recorder = startedRecorder()
+        let span = try XCTUnwrap(stateSpans.first)
+
+        span.end(endTime: time(10))
+
+        // The write fails; per §1.4 the change is recycled rather than lost.
+        recorder.onStateChange(to: "a", at: time(11))
+
+        let nextPart = try mockOTel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(70)
+        )
+        recorder.onSessionPartWillEnd(at: time(60))
+        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
+        recorder.onStateChange(to: "b", at: time(71))
+
+        let event = try XCTUnwrap(stateSpans.last?.events.first)
+        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "1")
+    }
+
+    func testTheBudgetSlotIsReturnedWhenAWriteFails() throws {
+        // A failed write must not consume the per-part transition budget.
+        let recorder = startedRecorder(maxTransitions: 1)
+        let span = try XCTUnwrap(stateSpans.first)
+        span.end(endTime: time(5))
+
+        recorder.onStateChange(to: "a", at: time(6))  // fails, must not spend the only slot
+
+        let nextPart = try mockOTel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(70)
+        )
+        recorder.onSessionPartWillEnd(at: time(60))
+        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
+        recorder.onStateChange(to: "b", at: time(71))
+
+        XCTAssertEqual(stateSpans.last?.events.count, 1)
+    }
+
+    // MARK: - Discarded parts
+
+    func testDiscardingAPartRetainsTheCountersForTheNextPart() throws {
+        let recorder = startedRecorder()
+
+        recorder.onStateChange(to: "a", at: time(1))
+        recorder.onStateChange(to: "a", at: time(2))  // dropped duplicate
+
+        // The part is thrown away — its span cannot carry the counts.
+        recorder.onSessionPartDiscarded(at: time(60))
+        XCTAssertEqual(stateSpans.first?.endTime, time(60))
+
+        let nextPart = try mockOTel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(70)
+        )
+        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
+        recorder.onStateChange(to: "b", at: time(71))
+
+        let event = try XCTUnwrap(stateSpans.last?.events.first)
+        XCTAssertEqual(
+            event.attributes[SpanSemantics.State.keyDroppedByInstrumentation]?.description,
+            "1",
+            "counts from a discarded part must carry over rather than being flushed onto it")
+    }
+
+    func testDiscardingAPartDoesNotLinkItFromThePartSpan() throws {
+        let recorder = startedRecorder()
+
+        recorder.onSessionPartDiscarded(at: time(60))
+
+        XCTAssertTrue(
+            sessionSpan.links.isEmpty,
+            "a discarded part must not gain a STATE link to a span that is going away")
+    }
+
+    func testANewPartAfterADiscardOpensItsOwnSpan() throws {
+        // The bug the discard path exists to prevent: a stale token blocking the next part.
+        let recorder = startedRecorder()
+        recorder.onSessionPartDiscarded(at: time(60))
+
+        let nextPart = try mockOTel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(70)
+        )
+        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
+
+        XCTAssertEqual(stateSpans.count, 2, "the next part must open its own state span")
+        XCTAssertNil(stateSpans.last?.endTime)
+    }
+
+    // MARK: - Lifecycle robustness
+
+    func testAPartStartForAnAlreadyEndedSpanIsIgnored() throws {
+        let recorder = makeRecorder()
+        let deadPart = try mockOTel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: partStart
+        )
+        deadPart.end(endTime: time(5))
+
+        recorder.onSessionPartStart(sessionSpan: deadPart, at: time(6))
+        recorder.activate(at: time(6))
+
+        XCTAssertTrue(
+            stateSpans.isEmpty,
+            "binding to a dead part would open a span that outlives it and links from the wrong part")
+    }
+
+    func testASecondPartStartClosesTheSpanLeftOpenByTheFirst() throws {
+        let recorder = startedRecorder()
+        let firstSpan = try XCTUnwrap(stateSpans.first)
+
+        let nextPart = try mockOTel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(70)
+        )
+        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
+
+        XCTAssertEqual(firstSpan.endTime, time(70), "the orphaned span must be closed, not left open")
+        XCTAssertEqual(stateSpans.count, 2)
+        XCTAssertNil(stateSpans.last?.endTime)
+    }
+
+    // MARK: - Concurrency
+
+    func testConcurrentChangesNeitherLoseCountsNorOpenTwoSpans() throws {
+        let threads = 8
+        let perThread = 250
+        let recorder = startedRecorder(maxTransitions: threads * perThread)
+
+        DispatchQueue.concurrentPerform(iterations: threads) { thread in
+            for i in 0..<perThread {
+                recorder.onStateChange(to: "value-\(thread)-\(i)", at: self.time(Double(i)))
+            }
+        }
+
+        XCTAssertEqual(stateSpans.count, 1, "concurrent activation must not open two spans")
+        let span = try XCTUnwrap(stateSpans.first)
+        recorder.onSessionPartWillEnd(at: time(9_999))
+
+        // Every change is either an event or counted somewhere — nothing vanishes.
+        func counted(_ key: String) -> Int {
+            let onSpan = Int(span.attributes[key]?.description ?? "") ?? 0
+            let onEvents = span.events.compactMap { Int($0.attributes[key]?.description ?? "") }.reduce(0, +)
+            return onSpan + onEvents
+        }
+
+        let events = span.events.filter { $0.name == SpanSemantics.State.transitionEventName }.count
+        let accounted =
+            events
+            + counted(SpanSemantics.State.keyDroppedByInstrumentation)
+            + counted(SpanSemantics.State.keyNotInSession)
+
+        XCTAssertEqual(accounted, threads * perThread)
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, String(events))
     }
 
     // MARK: - Coordinator
