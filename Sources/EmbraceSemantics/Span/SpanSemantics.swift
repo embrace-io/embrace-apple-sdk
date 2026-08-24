@@ -14,4 +14,6 @@ public struct SpanSemantics {
     public static let keyNSErrorCode = "error.code"
 
     public static let keyAutoTerminationCode = "emb.auto_termination.code"
+
+    public static let keyLinkType = "emb.link_type"
 }

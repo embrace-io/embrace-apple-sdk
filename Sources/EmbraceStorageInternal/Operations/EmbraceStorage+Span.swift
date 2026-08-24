@@ -384,7 +384,8 @@ extension EmbraceStorage {
         switch type.primary {
         case .performance,
             .system,
-            .ux:
+            .ux,
+            .state:
             return options.spanLimitDefault
         }
     }

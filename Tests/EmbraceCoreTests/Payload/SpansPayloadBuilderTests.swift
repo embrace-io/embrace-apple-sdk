@@ -414,13 +414,13 @@ final class SpansPayloadBuilderTests: XCTestCase {
             .ux: 10,
             .system: 10
         ]
-        storage.options.spanLimitDefault = 10
+        storage.options.spanLimitDefault = 5
         defer {
             storage.options.spanLimits = oldLimits
             storage.options.spanLimitDefault = oldLimitDefault
         }
 
-        // given more than 800 spans
+        // given 36 spans across secondary types
         for _ in 1...6 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
@@ -472,8 +472,13 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // when building the spans payload
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
-        // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 31)  // 30 spans + session span
+        // then the payload is capped by the fetch budget, which is `spanLimitDefault` per primary
+        // category summed over all of them — so it is derived here rather than hard-coded, and
+        // stays correct when a new primary category is added.
+        let fetchBudget = PrimaryType.allCases.count * storage.options.spanLimitDefault
+        XCTAssertLessThan(fetchBudget, 36, "the test must create more spans than the budget can hold")
+
+        XCTAssertEqual(closed.count, fetchBudget + 1)  // capped spans + session span
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }
