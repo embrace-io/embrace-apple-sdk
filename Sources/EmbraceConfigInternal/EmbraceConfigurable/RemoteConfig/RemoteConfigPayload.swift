@@ -45,12 +45,18 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var hangLimitsHangThreshold: TimeInterval
     var hangLimitsHangPerSession: UInt
     var hangLimitsReportsWatchdogEvents: Bool
+    var hangLimitsSampleTriggerThreshold: TimeInterval
+    var hangLimitsSamplePollInterval: TimeInterval
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
     var useLegacyUrlSessionProxy: Bool
 
     var useNewStorageForSpanEvents: Bool
+
+    var maxExperimentCount: Int
+    var maxExperimentIdLength: Int
+    var maxExperimentVariantLength: Int
 
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
@@ -101,7 +107,13 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case hangThreshold = "hang_threshold"
             case hangPerSession = "hang_per_session"
             case reportsWatchdogEvents = "reports_watchdog_events"
+            case sampleTriggerThreshold = "sample_trigger_threshold"
+            case samplePollInterval = "sample_poll_interval"
         }
+
+        case maxExperimentCount = "experiment_max_count"
+        case maxExperimentIdLength = "experiment_id_max_length"
+        case maxExperimentVariantLength = "experiment_variant_max_length"
 
         case networkPayLoadCapture = "network_capture"
         case useLegacyUrlSessionProxy = "use_legacy_urlsession_proxy"
@@ -254,10 +266,24 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                     Bool.self,
                     forKey: CodingKeys.HangLimitsCodingKeys.reportsWatchdogEvents
                 ) ?? defaultPayload.hangLimitsReportsWatchdogEvents
+
+            hangLimitsSampleTriggerThreshold =
+                try hangLimitsContainer.decodeIfPresent(
+                    TimeInterval.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.sampleTriggerThreshold
+                ) ?? defaultPayload.hangLimitsSampleTriggerThreshold
+
+            hangLimitsSamplePollInterval =
+                try hangLimitsContainer.decodeIfPresent(
+                    TimeInterval.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.samplePollInterval
+                ) ?? defaultPayload.hangLimitsSamplePollInterval
         } else {
             hangLimitsHangThreshold = defaultPayload.hangLimitsHangThreshold
             hangLimitsHangPerSession = defaultPayload.hangLimitsHangPerSession
             hangLimitsReportsWatchdogEvents = defaultPayload.hangLimitsReportsWatchdogEvents
+            hangLimitsSampleTriggerThreshold = defaultPayload.hangLimitsSampleTriggerThreshold
+            hangLimitsSamplePollInterval = defaultPayload.hangLimitsSamplePollInterval
         }
 
         // internal logs limit
@@ -358,6 +384,25 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 Bool.self,
                 forKey: .useNewStorageForSpanEvents
             ) ?? defaultPayload.useNewStorageForSpanEvents
+
+        // experiments limits
+        maxExperimentCount =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentCount
+            ) ?? defaultPayload.maxExperimentCount
+
+        maxExperimentIdLength =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentIdLength
+            ) ?? defaultPayload.maxExperimentIdLength
+
+        maxExperimentVariantLength =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentVariantLength
+            ) ?? defaultPayload.maxExperimentVariantLength
     }
 
     // defaults
@@ -392,13 +437,19 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         internalLogsWarningLimit = 0
         internalLogsErrorLimit = 3
 
-        hangLimitsHangThreshold = 0.249
-        hangLimitsHangPerSession = 20
-        hangLimitsReportsWatchdogEvents = false
+        hangLimitsHangThreshold = HangLimits.defaultHangThreshold
+        hangLimitsHangPerSession = HangLimits.defaultHangPerSession
+        hangLimitsReportsWatchdogEvents = HangLimits.defaultReportsWatchdogEvents
+        hangLimitsSampleTriggerThreshold = HangLimits.defaultSampleTriggerThreshold
+        hangLimitsSamplePollInterval = HangLimits.defaultSamplePollInterval
 
         networkPayloadCaptureRules = []
         useLegacyUrlSessionProxy = false
         useNewStorageForSpanEvents = false
+
+        maxExperimentCount = ExperimentsLimits.defaultMaxCount
+        maxExperimentIdLength = ExperimentsLimits.defaultMaxIdLength
+        maxExperimentVariantLength = ExperimentsLimits.defaultMaxVariantLength
     }
 }
 

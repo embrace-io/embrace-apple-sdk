@@ -43,6 +43,11 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.internalLogsErrorLimit, 3)
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
         XCTAssertEqual(payload.hangLimitsHangThreshold, 0.249)
+        XCTAssertEqual(payload.hangLimitsSampleTriggerThreshold, 0.15)
+        XCTAssertEqual(payload.hangLimitsSamplePollInterval, 0.05)
+        XCTAssertEqual(payload.maxExperimentCount, 500)
+        XCTAssertEqual(payload.maxExperimentIdLength, 128)
+        XCTAssertEqual(payload.maxExperimentVariantLength, 128)
     }
 
     func testOnHavingValidRemoteConfig_RemoteConfigPayload_shouldOverridedDefaultValuesWithProvidedOnes() throws {
@@ -94,6 +99,49 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.hangLimitsHangThreshold, 0.5)
         XCTAssertEqual(payload.hangLimitsHangPerSession, 100)
         XCTAssertEqual(payload.hangLimitsReportsWatchdogEvents, true)
+        XCTAssertEqual(payload.hangLimitsSampleTriggerThreshold, 0.2)
+        XCTAssertEqual(payload.hangLimitsSamplePollInterval, 0.03)
+        XCTAssertEqual(payload.maxExperimentCount, 1000)
+        XCTAssertEqual(payload.maxExperimentIdLength, 256)
+        XCTAssertEqual(payload.maxExperimentVariantLength, 64)
+    }
+
+    func test_onHavingSomeExperimentKeys_RemoteConfigPayload_shouldUseDefaultsForMissingOnes() throws {
+        // given a remote config that only sets one of the experiment keys
+        let data = Data(
+            """
+            {
+                "experiment_id_max_length": 256
+            }
+            """.utf8)
+
+        // when decoding payload
+        let payload = try XCTUnwrap(try JSONDecoder().decode(RemoteConfigPayload.self, from: data))
+
+        // then only the provided key is overridden
+        XCTAssertEqual(payload.maxExperimentCount, 500)
+        XCTAssertEqual(payload.maxExperimentIdLength, 256)
+        XCTAssertEqual(payload.maxExperimentVariantLength, 128)
+    }
+
+    func test_onHavingOutOfRangeExperimentValues_RemoteConfigPayload_shouldDecodeThemVerbatim() throws {
+        // given a remote config with values outside the allowed range
+        let data = Data(
+            """
+            {
+                "experiment_max_count": 999999,
+                "experiment_id_max_length": -1,
+                "experiment_variant_max_length": 0
+            }
+            """.utf8)
+
+        // when decoding payload
+        let payload = try XCTUnwrap(try JSONDecoder().decode(RemoteConfigPayload.self, from: data))
+
+        // then the payload carries them as-is; clamping is `ExperimentsLimits`' job
+        XCTAssertEqual(payload.maxExperimentCount, 999999)
+        XCTAssertEqual(payload.maxExperimentIdLength, -1)
+        XCTAssertEqual(payload.maxExperimentVariantLength, 0)
     }
 
     func test_onHavingOldAndInvalidRemoteConfigPayload_RemoteConfigPayload_shouldBeCreatedWithDefaults() throws {
@@ -128,6 +176,11 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.internalLogsErrorLimit, 3)
         XCTAssertEqual(payload.networkPayloadCaptureRules.count, 0)
         XCTAssertEqual(payload.hangLimitsHangThreshold, 0.249)
+        XCTAssertEqual(payload.hangLimitsSampleTriggerThreshold, 0.15)
+        XCTAssertEqual(payload.hangLimitsSamplePollInterval, 0.05)
+        XCTAssertEqual(payload.maxExperimentCount, 500)
+        XCTAssertEqual(payload.maxExperimentIdLength, 128)
+        XCTAssertEqual(payload.maxExperimentVariantLength, 128)
     }
 
     func getRemoteConfigData(forResource resource: String) throws -> Data {

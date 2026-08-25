@@ -229,7 +229,7 @@ class CaptureServiceBuilderTests: XCTestCase {
             let builder = CaptureServiceBuilder()
 
             // when adding a HangCaptureService
-            builder.add(.hangWatchdog())
+            builder.add(.hangs())
 
             // then the list contains the capture service
             let list = builder.build()

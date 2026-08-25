@@ -9,11 +9,23 @@ public class MockLogger: InternalLogger {
 
     public var level: LogLevel = .debug
 
+    /// Every message passed to `log`, regardless of level, so tests can assert on what was logged.
+    /// Guarded by a mutex so a shared `MockLogger` stays safe to log to from multiple threads.
+    private let _loggedMessages = EmbraceMutex<[(level: LogLevel, message: String)]>([])
+    public var loggedMessages: [(level: LogLevel, message: String)] { _loggedMessages.withLock { $0 } }
+
     public init(level: LogLevel = .none) {
         self.level = level
     }
 
+    /// Clears the recorded messages (for tests that reuse a single instance across cases).
+    public func reset() {
+        _loggedMessages.withLock { $0.removeAll() }
+    }
+
     public func log(level: LogLevel, message: String, attributes: [String: String] = [:]) -> Bool {
+        _loggedMessages.withLock { $0.append((level, message)) }
+
         guard self.level != .none && self.level.rawValue <= level.rawValue else {
             return false
         }

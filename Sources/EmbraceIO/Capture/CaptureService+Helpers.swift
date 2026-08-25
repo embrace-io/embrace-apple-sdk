@@ -67,7 +67,7 @@ import Foundation
         /// - Note: Available on iOS and tvOS only. Hang detection relies on
         ///   `CADisplayLink`, which has no standalone initializer on macOS and
         ///   is not available on watchOS.
-        static func hangWatchdog() -> HangCaptureService {
+        public static func hangs() -> HangCaptureService {
             return HangCaptureService()
         }
     #endif

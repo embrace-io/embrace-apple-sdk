@@ -43,6 +43,8 @@ import Foundation
 
     var hangLimits: HangLimits { get }
 
+    var experimentsLimits: ExperimentsLimits { get }
+
     var useLegacyUrlSessionProxy: Bool { get }
 
     var useNewStorageForSpanEvents: Bool { get }

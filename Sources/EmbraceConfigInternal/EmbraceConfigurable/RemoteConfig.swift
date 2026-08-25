@@ -70,9 +70,9 @@ public class RemoteConfig {
 
         do {
             let data = try Data(contentsOf: url)
-            try _payload.withLock {
-                $0 = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
-            }
+            let decoded = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
+            _payload.withLock { $0 = decoded }
+            logHangLimitCorrections(for: decoded)
         } catch {
             logger.error("Error loading cached remote config!")
         }
@@ -98,7 +98,17 @@ extension RemoteConfig: EmbraceConfigurable {
         HangLimits(
             hangThreshold: payload.hangLimitsHangThreshold,
             hangPerSession: payload.hangLimitsHangPerSession,
-            reportsWatchdogEvents: payload.hangLimitsReportsWatchdogEvents
+            reportsWatchdogEvents: payload.hangLimitsReportsWatchdogEvents,
+            sampleTriggerThreshold: payload.hangLimitsSampleTriggerThreshold,
+            samplePollInterval: payload.hangLimitsSamplePollInterval
+        )
+    }
+
+    public var experimentsLimits: ExperimentsLimits {
+        ExperimentsLimits(
+            maxCount: payload.maxExperimentCount,
+            maxIdLength: payload.maxExperimentIdLength,
+            maxVariantLength: payload.maxExperimentVariantLength
         )
     }
 
@@ -185,6 +195,9 @@ extension RemoteConfig: EmbraceConfigurable {
                 $0 = newPayload
                 return changed
             }
+            if didUpdate {
+                strongSelf.logHangLimitCorrections(for: newPayload)
+            }
             strongSelf.saveToCache(data)
 
             completion(didUpdate, nil)
@@ -193,6 +206,71 @@ extension RemoteConfig: EmbraceConfigurable {
 }
 
 extension RemoteConfig {
+
+    /// Descriptions of any hang-limit payload values that were *invalid* and had to be corrected — a
+    /// non-finite/non-positive fallback, an out-of-range clamp, or a `sampleTriggerThreshold` at or
+    /// above `hangThreshold`. Empty when the payload is valid. The routine cap that keeps the trigger
+    /// a margin below `hangThreshold` is expected policy, not a misconfiguration, so a valid in-range
+    /// request the cap merely trims is deliberately *not* reported. `HangLimits` applies all of this
+    /// silently (by design — it can't reach a logger and must not trap), so this surfaces the genuine
+    /// misconfigurations one layer up where a bad remote-config push can be diagnosed. Pure, so it can
+    /// be unit-tested without the fetch/logging plumbing.
+    static func hangLimitCorrections(for payload: RemoteConfigPayload) -> [String] {
+        let limits = HangLimits(
+            hangThreshold: payload.hangLimitsHangThreshold,
+            hangPerSession: payload.hangLimitsHangPerSession,
+            reportsWatchdogEvents: payload.hangLimitsReportsWatchdogEvents,
+            sampleTriggerThreshold: payload.hangLimitsSampleTriggerThreshold,
+            samplePollInterval: payload.hangLimitsSamplePollInterval
+        )
+
+        var corrections: [String] = []
+
+        if limits.hangThreshold != payload.hangLimitsHangThreshold {
+            corrections.append(
+                "hang_threshold \(payload.hangLimitsHangThreshold) → \(limits.hangThreshold) "
+                    + "(not finite or <= 0; reset to default)")
+        }
+
+        // The trigger is routinely capped at a fraction of hang_threshold; that's expected policy, not
+        // a misconfiguration — so a valid request (`[floor, hang_threshold)`) is never reported even
+        // when the cap trims it. Only genuinely invalid values warn.
+        let rawTrigger = payload.hangLimitsSampleTriggerThreshold
+        let triggerReason: String?
+        if !rawTrigger.isFinite {
+            triggerReason = "not finite; reset to default"
+        } else if rawTrigger < HangLimits.minSampleTriggerThreshold {
+            triggerReason = "below the floor of \(HangLimits.minSampleTriggerThreshold); clamped up"
+        } else if rawTrigger > HangLimits.maxSampleTriggerThreshold {
+            triggerReason = "above the max of \(HangLimits.maxSampleTriggerThreshold) (a seconds/ms mixup?); capped"
+        } else if rawTrigger >= limits.hangThreshold {
+            triggerReason = "at or above hang_threshold (\(limits.hangThreshold)); capped"
+        } else {
+            triggerReason = nil
+        }
+        if let triggerReason {
+            corrections.append("sample_trigger_threshold \(rawTrigger) → \(limits.sampleTriggerThreshold) (\(triggerReason))")
+        }
+
+        if limits.samplePollInterval != payload.hangLimitsSamplePollInterval {
+            let raw = payload.hangLimitsSamplePollInterval
+            let reason =
+                raw.isFinite
+                ? "out of [\(HangLimits.minSamplePollInterval), \(HangLimits.maxSamplePollInterval)]; clamped"
+                : "not finite; reset to default"
+            corrections.append("sample_poll_interval \(raw) → \(limits.samplePollInterval) (\(reason))")
+        }
+
+        return corrections
+    }
+
+    /// Logs a warning for each hang-limit value the incoming payload had to have corrected.
+    func logHangLimitCorrections(for payload: RemoteConfigPayload) {
+        for correction in Self.hangLimitCorrections(for: payload) {
+            logger.warning("[Hang] remote config value out of range, corrected: \(correction)")
+        }
+    }
+
     func isEnabled(threshold: Float) -> Bool {
         return Self.isEnabled(hexValue: deviceIdHexValue, digits: Self.deviceIdUsedDigits, threshold: threshold)
     }

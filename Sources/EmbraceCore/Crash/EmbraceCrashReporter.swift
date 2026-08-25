@@ -25,7 +25,11 @@ public final class EmbraceCrashReporter: NSObject {
     private let signalsBlockList: [CrashSignal]
 
     struct MutableData {
-        let internalKeys: [String] = [CrashReporterInfoKey.sdkVersion, CrashReporterInfoKey.sessionId]
+        let internalKeys: [String] = [
+            CrashReporterInfoKey.sdkVersion,
+            CrashReporterInfoKey.sessionId,
+            CrashReporterInfoKey.processId
+        ]
         var allowsInternalDataChange: Bool = false
     }
     private let data = EmbraceMutex(MutableData())
@@ -63,6 +67,24 @@ public final class EmbraceCrashReporter: NSObject {
         }
     }
 
+    /// Adds the current process identifier to the crash reports.
+    ///
+    /// Written once when the reporter is installed, since it doesn't change for the life of the
+    /// process. A report recovered by a later launch carries it, which is what lets that launch
+    /// attribute the crash to the right process even if the session it belonged to is already gone.
+    private(set) var processId: String? {
+        get {
+            getCrashInfo(key: CrashReporterInfoKey.processId)
+        }
+        set {
+            data.withLock { $0.allowsInternalDataChange = true }
+            defer {
+                data.withLock { $0.allowsInternalDataChange = false }
+            }
+            appendCrashInfo(key: CrashReporterInfoKey.processId, value: newValue)
+        }
+    }
+
     /// Use this to prevent MetricKit reports to be used along with this crash reporter
     public var disableMetricKitReports: Bool {
         reporter.disableMetricKitReports
@@ -96,6 +118,7 @@ public final class EmbraceCrashReporter: NSObject {
 
     public func install(context: CrashReporterContext) {
         sdkVersion = context.sdkVersion
+        processId = ProcessIdentifier.current.stringValue
         do {
             try reporter.install(context: context)
         } catch {

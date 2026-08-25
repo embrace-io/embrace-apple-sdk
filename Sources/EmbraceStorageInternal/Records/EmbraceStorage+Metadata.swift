@@ -348,6 +348,44 @@ extension EmbraceStorage {
         return result
     }
 
+    /// Returns immutable copies of the resources that apply to the live telemetry of a given process.
+    ///
+    /// This is everything `fetchAllResources` returns, minus the process-scoped records owned by a
+    /// different process. Without that filter, resources left behind by earlier processes whose
+    /// sessions have not been uploaded yet share keys with the current ones, and the value that wins
+    /// is whichever the store happens to return last.
+    ///
+    /// Session and permanent records are deliberately kept, since resources added through the
+    /// metadata handler default to a session lifespan and would otherwise disappear from exports.
+    public func fetchResourcesForExport(
+        processId: EmbraceIdentifier = ProcessIdentifier.current
+    ) -> [EmbraceMetadata] {
+
+        let foreignProcessPredicate = NSCompoundPredicate(
+            type: .and,
+            subpredicates: [
+                NSPredicate(format: "lifespanRaw == %@", MetadataRecordLifespan.process.rawValue),
+                NSPredicate(format: "lifespanId != %@", processId.stringValue)
+            ]
+        )
+
+        let request = MetadataRecord.createFetchRequest()
+        request.predicate = NSCompoundPredicate(
+            type: .and,
+            subpredicates: [
+                resourcePredicate(),
+                NSCompoundPredicate(notPredicateWithSubpredicate: foreignProcessPredicate)
+            ]
+        )
+
+        var result: [EmbraceMetadata] = []
+        coreData.fetchAndPerform(withRequest: request) { records in
+            result = records.map { $0.toImmutable() }
+        }
+
+        return result
+    }
+
     /// Returns immutable copies of all records with types `.requiredResource` or `.resource` that are tied to a given session id or process id
     public func fetchResources(sessionId: String, processId: String) -> [EmbraceMetadata] {
 

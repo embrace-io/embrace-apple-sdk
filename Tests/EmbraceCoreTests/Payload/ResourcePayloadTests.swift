@@ -97,4 +97,26 @@ class ResourcePayloadTests: XCTestCase {
         XCTAssertEqual(json["os_name"] as? String, "ios")
         XCTAssertEqual(json["sdk_platform"] as? String, "ios")
     }
+
+    func test_hasRequiredMetadata_withAppVersion() {
+        let payloadStruct = ResourcePayload(from: [
+            MockMetadata.createResourceRecord(key: AppResourceKey.appVersion.rawValue, value: "1.2.3")
+        ])
+
+        XCTAssertTrue(payloadStruct.hasRequiredMetadata)
+    }
+
+    func test_hasRequiredMetadata_withoutResources() {
+        let payloadStruct = ResourcePayload(from: [])
+
+        XCTAssertFalse(payloadStruct.hasRequiredMetadata)
+    }
+
+    func test_hasRequiredMetadata_withEmptyAppVersion() {
+        let payloadStruct = ResourcePayload(from: [
+            MockMetadata.createResourceRecord(key: AppResourceKey.appVersion.rawValue, value: "")
+        ])
+
+        XCTAssertFalse(payloadStruct.hasRequiredMetadata)
+    }
 }

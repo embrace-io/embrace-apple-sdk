@@ -154,6 +154,47 @@ final class RemoteConfigTests: XCTestCase {
         )
     }
 
+    func test_experimentsLimits() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        config.payload.maxExperimentCount = 1000
+        config.payload.maxExperimentIdLength = 256
+        config.payload.maxExperimentVariantLength = 64
+
+        XCTAssertEqual(
+            config.experimentsLimits,
+            ExperimentsLimits(maxCount: 1000, maxIdLength: 256, maxVariantLength: 64)
+        )
+    }
+
+    func test_experimentsLimits_clampsOutOfRangePayloadValues() {
+        // given a config with payload values above the ceilings
+        let config = RemoteConfig(options: options, logger: logger)
+
+        config.payload.maxExperimentCount = 6000
+        config.payload.maxExperimentIdLength = 2048
+        config.payload.maxExperimentVariantLength = 2048
+
+        // then the limits are clamped
+        let limits = config.experimentsLimits
+        XCTAssertEqual(limits.maxCount, ExperimentsLimits.maxSettableCount)
+        XCTAssertEqual(limits.maxIdLength, ExperimentsLimits.maxSettableIdLength)
+        XCTAssertEqual(limits.maxVariantLength, ExperimentsLimits.maxSettableVariantLength)
+    }
+
+    func test_experimentsLimits_fallsBackToDefaultsForNegativePayloadValues() {
+        // given a config with malformed (negative) payload values
+        let config = RemoteConfig(options: options, logger: logger)
+
+        config.payload.maxExperimentCount = -1
+        config.payload.maxExperimentIdLength = -1
+        config.payload.maxExperimentVariantLength = -1
+
+        // then the built-in defaults are used
+        XCTAssertEqual(config.experimentsLimits, ExperimentsLimits())
+    }
+
     func test_networkPayloadCaptureRules() {
         // given a config
         let config = RemoteConfig(options: options, logger: logger)
@@ -178,5 +219,103 @@ final class RemoteConfigTests: XCTestCase {
 
         config.payload.networkPayloadCaptureRules = [rule1, rule2]
         XCTAssertEqual(config.networkPayloadCaptureRules, [rule1, rule2])
+    }
+
+    // MARK: - Hang limit corrections
+
+    func test_hangLimitCorrections_emptyForValidPayload() {
+        // Default payload values are all in range.
+        XCTAssertTrue(RemoteConfig.hangLimitCorrections(for: RemoteConfigPayload()).isEmpty)
+    }
+
+    func test_hangLimitCorrections_reportsClampForOutOfRangeSampleTrigger() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsSampleTriggerThreshold = 0.0001  // below floor, still < hangThreshold → clamp
+        let corrections = RemoteConfig.hangLimitCorrections(for: payload)
+        XCTAssertEqual(corrections.count, 1)
+        let msg = corrections.first ?? ""
+        XCTAssertTrue(msg.contains("sample_trigger_threshold"))
+        XCTAssertTrue(msg.contains("clamped"), "an out-of-range trigger should be reported as a clamp: \(msg)")
+    }
+
+    func test_hangLimitCorrections_reportsCapWhenTriggerAtOrAboveHangThreshold() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsHangThreshold = 0.1
+        payload.hangLimitsSampleTriggerThreshold = 0.15  // >= hangThreshold → capped below it
+        let msg = RemoteConfig.hangLimitCorrections(for: payload).first { $0.contains("sample_trigger_threshold") } ?? ""
+        XCTAssertTrue(msg.contains("capped"), "a trigger >= hang_threshold should be reported as capped: \(msg)")
+    }
+
+    func test_hangLimitCorrections_reportsAboveMaxForOversizedSampleTrigger() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsSampleTriggerThreshold = 5000  // > max → likely a seconds/ms mixup
+        let msg = RemoteConfig.hangLimitCorrections(for: payload).first { $0.contains("sample_trigger_threshold") } ?? ""
+        XCTAssertTrue(msg.contains("above the max"), "an oversized trigger should be reported as above the max: \(msg)")
+    }
+
+    func test_hangLimitCorrections_silentForInRangeTriggerTrimmedByCap() {
+        // 0.2 is a valid request (< hangThreshold) that the routine 60% cap trims to ~0.149. That's
+        // expected policy, not a misconfiguration, so it must NOT be reported.
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsHangThreshold = 0.249
+        payload.hangLimitsSampleTriggerThreshold = 0.2
+        XCTAssertFalse(
+            RemoteConfig.hangLimitCorrections(for: payload).contains { $0.contains("sample_trigger_threshold") },
+            "a valid-but-capped trigger should not be reported as a correction")
+    }
+
+    func test_hangLimitCorrections_reportsFallbackForNonFiniteSampleTrigger() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsSampleTriggerThreshold = .nan
+        let msg = RemoteConfig.hangLimitCorrections(for: payload).first { $0.contains("sample_trigger_threshold") } ?? ""
+        XCTAssertTrue(msg.contains("not finite"), "a non-finite trigger should be reported as a fallback: \(msg)")
+    }
+
+    func test_hangLimitCorrections_reportsClampForOutOfRangeSamplePollInterval() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsSamplePollInterval = 5000
+        let corrections = RemoteConfig.hangLimitCorrections(for: payload)
+        XCTAssertEqual(corrections.count, 1)
+        let msg = corrections.first ?? ""
+        XCTAssertTrue(msg.contains("sample_poll_interval"))
+        XCTAssertTrue(msg.contains("clamped"), "an out-of-range poll interval should be reported as a clamp: \(msg)")
+    }
+
+    func test_hangLimitCorrections_flagsNonPositiveHangThreshold() {
+        var payload = RemoteConfigPayload()
+        payload.hangLimitsHangThreshold = -1
+        XCTAssertTrue(RemoteConfig.hangLimitCorrections(for: payload).contains { $0.contains("hang_threshold") })
+    }
+
+    // MARK: - Hang correction logging is wired into config updates
+
+    func test_update_logsHangCorrections_onlyWhenPayloadChanges() {
+        let recording = MockLogger()
+        let fetcher = StubRemoteConfigFetcher(options: options, logger: recording)
+        let config = RemoteConfig(options: options, fetcher: fetcher, logger: recording)
+
+        var bad = RemoteConfigPayload()
+        bad.hangLimitsSampleTriggerThreshold = 5000  // out of range → HangLimits corrects it
+        fetcher.payloadToReturn = bad
+
+        func hangWarnings() -> Int {
+            recording.loggedMessages.filter { $0.message.contains("[Hang] remote config value out of range") }.count
+        }
+
+        // First fetch: payload changed from the default → the correction is logged once.
+        config.update { _, _ in }
+        XCTAssertEqual(hangWarnings(), 1, "a changed out-of-range payload should log its correction")
+
+        // Second fetch: identical payload → didUpdate is false → must not re-log.
+        config.update { _, _ in }
+        XCTAssertEqual(hangWarnings(), 1, "an unchanged payload must not re-log (didUpdate gate)")
+    }
+}
+
+/// Returns a canned payload synchronously instead of hitting the network.
+private final class StubRemoteConfigFetcher: RemoteConfigFetcher {
+    var payloadToReturn: RemoteConfigPayload?
+    override func fetch(completion: @escaping (RemoteConfigPayload?, Data?) -> Void) {
+        completion(payloadToReturn, nil)
     }
 }
