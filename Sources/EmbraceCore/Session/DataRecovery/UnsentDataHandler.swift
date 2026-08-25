@@ -170,7 +170,7 @@ class UnsentDataHandler {
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
         otel: EmbraceOpenTelemetry?,
-        processId: EmbraceIdentifier?,
+        processId: EmbraceIdentifier? = nil,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
         let timestamp = (report.timestamp ?? session?.lastHeartbeatTime) ?? Date()
@@ -506,12 +506,12 @@ extension UnsentDataHandler {
 
     static public func sendCrashLog(
         report: EmbraceCrashReport,
-        reporter: EmbraceCrashReporter?,
-        session: EmbraceSession?,
-        storage: EmbraceStorage?,
-        upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?,
-        processId: EmbraceIdentifier?
+        reporter: EmbraceCrashReporter? = nil,
+        session: EmbraceSession? = nil,
+        storage: EmbraceStorage? = nil,
+        upload: EmbraceUpload? = nil,
+        otel: EmbraceOpenTelemetry? = nil,
+        processId: EmbraceIdentifier? = nil
     ) async {
         await withCheckedContinuation { continuation in
             sendCrashLog(

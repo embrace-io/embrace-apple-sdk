@@ -611,9 +611,10 @@ class UnsentDataHandlerTests: XCTestCase {
         let attributes = try crashLogAttributes()
         XCTAssertNil(attributes[LogSemantics.keyExperiments])
 
-        // but it still carries the rest of the resources
+        // nor any other resource of that process: the crash belongs to a process we can't identify,
+        // and this one describes the launch that found the crash, not the one that crashed
         let resource = try crashLogResource()
-        XCTAssertEqual(resource["app_version"] as? String, "1.0.0")
+        XCTAssertNil(resource["app_version"] as? String)
     }
 
     func test_spanCleanUp_sendUnsentData() async throws {

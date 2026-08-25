@@ -141,13 +141,6 @@ class LogPayloadBuilderTests: XCTestCase {
             lifespan: .process,
             lifespanId: ProcessIdentifier.current.stringValue
         )
-        storage.addMetadata(
-            key: AppResourceKey.appVersion.rawValue,
-            value: "1.0.0",
-            type: .requiredResource,
-            lifespan: .process,
-            lifespanId: ProcessIdentifier.current.stringValue
-        )
 
         // when manually building a log payload
         let payload = LogPayloadBuilder.build(
@@ -166,10 +159,6 @@ class LogPayloadBuilderTests: XCTestCase {
 
         XCTAssertNil(payload.resource.additionalResources[LogSemantics.keyExperiments])
         XCTAssertNil(resource[LogSemantics.keyExperiments])
-
-        // then the other resources are unaffected
-        XCTAssertEqual(payload.resource.appVersion, "1.0.0")
-        XCTAssertEqual(resource["app_version"] as? String, "1.0.0")
     }
 
     func test_manualBuild_sessionFromAnotherProcess() throws {

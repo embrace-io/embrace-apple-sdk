@@ -49,7 +49,8 @@ extension Embrace: EmbracePrivateLogger {
                 body: message,
                 attributes: attributes,
                 storage: storage,
-                sessionId: session?.id
+                sessionId: session?.id,
+                processId: ProcessIdentifier.current
             )
             let payloadData = try JSONEncoder().encode(payload).gzipped()
 

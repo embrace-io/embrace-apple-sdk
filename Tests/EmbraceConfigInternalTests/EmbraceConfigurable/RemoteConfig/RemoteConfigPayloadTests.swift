@@ -111,7 +111,7 @@ class RemoteConfigPayloadTests: XCTestCase {
         let data = Data(
             """
             {
-                "max_experiment_id_length": 256
+                "experiment_id_max_length": 256
             }
             """.utf8)
 
@@ -129,9 +129,9 @@ class RemoteConfigPayloadTests: XCTestCase {
         let data = Data(
             """
             {
-                "max_experiment_count": 999999,
-                "max_experiment_id_length": -1,
-                "max_experiment_variant_length": 0
+                "experiment_max_count": 999999,
+                "experiment_id_max_length": -1,
+                "experiment_variant_max_length": 0
             }
             """.utf8)
 
