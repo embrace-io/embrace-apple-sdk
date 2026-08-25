@@ -38,6 +38,7 @@ class LogController: LogControllable {
     private weak var upload: EmbraceLogUploader?
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
+    weak var experiments: ExperimentsHandler?
     weak var privateLogger: EmbracePrivateLogger?
 
     var otel: EmbraceOTelBridge = EmbraceOTel()  // var so we can inject a mock for testing
@@ -126,6 +127,7 @@ class LogController: LogControllable {
             .addLogType(type)
             .addApplicationState()
             .addSessionIdentifier()
+            .addExperiments(experiments?.encodedExperiments)
 
         // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.

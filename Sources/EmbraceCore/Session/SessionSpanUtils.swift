@@ -40,13 +40,29 @@ struct SessionSpanUtils {
         span?.setAttribute(key: SpanSemantics.Session.keyTerminated, value: terminated)
     }
 
+    /// Sets the experiments and feature flags tracked so far in this process.
+    /// A `nil` value means nothing is tracked, and the attribute is left off entirely.
+    static func setExperiments(span: Span?, value: String?) {
+        guard let value = value else {
+            return
+        }
+        span?.setAttribute(key: SpanSemantics.keyExperiments, value: value)
+    }
+
     static func payload(
         from session: EmbraceSession,
         spanData: SpanData? = nil,
         properties: [EmbraceMetadata] = [],
-        sessionNumber: EMBInt
+        sessionNumber: EMBInt,
+        experiments: String? = nil
     ) -> SpanPayload {
-        return SpanPayload(from: session, spanData: spanData, properties: properties, sessionNumber: sessionNumber)
+        return SpanPayload(
+            from: session,
+            spanData: spanData,
+            properties: properties,
+            sessionNumber: sessionNumber,
+            experiments: experiments
+        )
     }
 }
 
@@ -55,7 +71,8 @@ extension SpanPayload {
         from session: EmbraceSession,
         spanData: SpanData? = nil,
         properties: [EmbraceMetadata],
-        sessionNumber: EMBInt
+        sessionNumber: EMBInt,
+        experiments: String?
     ) {
         self.traceId = session.traceId
         self.spanId = session.spanId
@@ -106,6 +123,16 @@ extension SpanPayload {
                 Attribute(
                     key: SpanSemantics.Session.keyCrashId,
                     value: crashId
+                ))
+        }
+
+        // Read from storage for this session's own process, so a session recovered from an earlier
+        // launch reports what that process had tracked rather than what this one has.
+        if let experiments = experiments {
+            attributeArray.append(
+                Attribute(
+                    key: SpanSemantics.keyExperiments,
+                    value: experiments
                 ))
         }
 

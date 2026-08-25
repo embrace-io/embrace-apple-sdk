@@ -10,11 +10,17 @@ import OpenTelemetrySdk
     import EmbraceObjCUtilsInternal
     import EmbraceStorageInternal
     import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 class ResourceStorageExporter: EmbraceResourceProvider {
     private(set) weak var storage: EmbraceStorage?
     private(set) var resource: Resource?
+
+    /// Resources that are stored as such only so they survive a process boundary, and that must not
+    /// be reported as resource attributes. Experiments travel as an attribute of the session span and
+    /// of each log instead.
+    private static let excludedKeys: Set<String> = [SpanSemantics.keyExperiments]
 
     public init(storage: EmbraceStorage, resource: Resource? = nil) {
         self.storage = storage
@@ -26,9 +32,12 @@ class ResourceStorageExporter: EmbraceResourceProvider {
             return resource ?? Resource()
         }
 
-        let records = storage.fetchAllResources()
+        let records = storage.fetchResourcesForExport()
 
         var attributes: [String: AttributeValue] = records.reduce(into: [:]) { partialResult, record in
+            guard !Self.excludedKeys.contains(record.key) else {
+                return
+            }
             partialResult[record.key] = .string(record.value)
         }
 

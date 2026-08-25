@@ -8,6 +8,8 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var hangLimits: HangLimits = HangLimits()
 
+    public var experimentsLimits: ExperimentsLimits = ExperimentsLimits()
+
     public var isSDKEnabled: Bool = true
 
     public var isBackgroundSessionEnabled: Bool = false
@@ -66,6 +68,7 @@ public class EditableConfig: EmbraceConfigurable {
         internalLogLimits: InternalLogLimits = InternalLogLimits(),
         networkPayloadCaptureRules: [NetworkPayloadCaptureRule] = [],
         hangLimits: HangLimits = HangLimits(),
+        experimentsLimits: ExperimentsLimits = ExperimentsLimits(),
         useLegacyUrlSessionProxy: Bool = false,
         useNewStorageForSpanEvents: Bool = false
     ) {
@@ -82,6 +85,7 @@ public class EditableConfig: EmbraceConfigurable {
         self.internalLogLimits = internalLogLimits
         self.networkPayloadCaptureRules = networkPayloadCaptureRules
         self.hangLimits = hangLimits
+        self.experimentsLimits = experimentsLimits
         self.useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
         self.useNewStorageForSpanEvents = useNewStorageForSpanEvents
     }
