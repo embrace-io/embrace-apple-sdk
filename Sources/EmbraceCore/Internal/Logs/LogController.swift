@@ -96,7 +96,6 @@ class LogController: LogBatcherDelegate {
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default,
-        send: Bool = true,
         completion: ((EmbraceLog?) -> Void)? = nil
     ) {
 
@@ -199,9 +198,7 @@ class LogController: LogBatcherDelegate {
                 sessionId: sessionController.currentSession?.id
             )
 
-            if send {
-                addLog(log)
-            }
+            addLog(log)
 
             completion?(log)
         }

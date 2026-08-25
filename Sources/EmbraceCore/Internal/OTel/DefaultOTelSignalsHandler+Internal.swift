@@ -182,8 +182,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default,
-        isInternal: Bool = true,
-        send: Bool = true
+        isInternal: Bool = true
     ) throws {
 
         guard isInternal || limiter.shouldCreateLog(type: type, severity: severity) else {
@@ -197,8 +196,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             timestamp: timestamp,
             attachment: attachment,
             attributes: isInternal ? attributes : sanitizer.sanitizeLogAttributes(attributes),
-            stackTraceBehavior: stackTraceBehavior,
-            send: send
+            stackTraceBehavior: stackTraceBehavior
         ) { [weak self] log in
             if let log {
                 self?.bridge.createLog(log)
@@ -222,25 +220,15 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         limiter.reset()
     }
 
-    // creates a log that is not saved nor added to the batch
-    // only used for logs that are handled in a special manner
-    // but still need to be exported externally (i.e crash logs)
-    func exportLog(
-        _ message: String,
-        severity: EmbraceLogSeverity,
-        type: EmbraceType = .message,
-        timestamp: Date = Date(),
-        attributes: EmbraceAttributes = [:]
-    ) {
-        try? _log(
-            message,
-            severity: severity,
-            type: type,
-            timestamp: timestamp,
-            attributes: attributes,
-            isInternal: true,
-            send: false
-        )
+    // forwards an already-built log to the OTel pipeline, without saving it nor adding it
+    // to the batch. Only used for logs that are handled in a special manner but still need
+    // to be exported externally (i.e crash logs).
+    //
+    // The log is passed through untouched on purpose: these logs can describe a session and a
+    // process that already ended, so the caller owns their attributes and nothing is derived
+    // from the current session here.
+    func exportLog(_ log: EmbraceLog) {
+        bridge.createLog(log)
     }
 
     // creates a new span

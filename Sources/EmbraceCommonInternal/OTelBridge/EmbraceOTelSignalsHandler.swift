@@ -43,8 +43,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
         attachment: EmbraceLogAttachment?,
         attributes: EmbraceAttributes,
         stackTraceBehavior: EmbraceStackTraceBehavior,
-        isInternal: Bool,
-        send: Bool
+        isInternal: Bool
     ) throws
 }
 
@@ -109,8 +108,7 @@ extension EmbraceOTelSignalsHandler {
             attachment: attachment,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior,
-            isInternal: true,
-            send: true
+            isInternal: true
         )
     }
 }
