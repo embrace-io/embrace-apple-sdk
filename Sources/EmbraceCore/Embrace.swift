@@ -240,6 +240,7 @@ package class Embrace {
         sessionController.sdkStateProvider = self
         sessionController.otel = self.otel
         logController.sdkStateProvider = self
+        logController.privateLogger = self
         Embrace.logger.otel = self.otel
 
         // fetch app state

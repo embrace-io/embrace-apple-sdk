@@ -792,6 +792,15 @@ class UnsentDataHandlerTests: XCTestCase {
         logController.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
         let otel = MockOTelSignalsHandler()
 
+        // given the resources required for the payload to be valid
+        storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "1.2.3",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.stringValue
+        )
+
         // given logs in storage
         for _ in 0...5 {
             storage.saveLog(
