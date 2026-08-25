@@ -8,6 +8,7 @@ import Foundation
     import EmbraceStorageInternal
     import EmbraceObjCUtilsInternal
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 struct ResourcePayload: Codable {
@@ -54,7 +55,10 @@ struct ResourcePayload: Codable {
         DeviceResourceKey.osDescription.rawValue,
         // Storage key for the permanent per-part counter. The value is emitted as a
         // dedicated attribute on every part span rather than as a resource.
-        SessionController.sessionPartNumberKey
+        SessionController.sessionPartNumberKey,
+        // Stored as a required resource so a later process can read back the value of the process
+        // that produced it, but reported as an attribute of the session span and of each log.
+        SpanSemantics.keyExperiments
     ]
 
     enum CodingKeys: String, CodingKey, CaseIterable {

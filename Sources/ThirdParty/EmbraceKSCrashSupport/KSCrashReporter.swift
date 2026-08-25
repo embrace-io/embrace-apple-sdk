@@ -155,12 +155,18 @@ package final class KSCrashReporter: CrashReporter {
 
             // get custom data from report
             var sessionId: EmbraceIdentifier?
+            var processId: EmbraceIdentifier?
             var timestamp: Date?
             let signal: CrashSignal? = getCrashSignal(fromReport: report)
 
             if let userDict = report[KSCrashKey.user] as? [AnyHashable: Any] {
                 if let value = userDict[CrashReporterInfoKey.sessionId] as? String {
                     sessionId = EmbraceIdentifier(stringValue: value)
+                }
+
+                // Absent in reports written before the SDK started recording it.
+                if let value = userDict[CrashReporterInfoKey.processId] as? String {
+                    processId = EmbraceIdentifier(stringValue: value)
                 }
             }
 
@@ -176,6 +182,7 @@ package final class KSCrashReporter: CrashReporter {
                 provider: "kscrash",  // from LogSemantics+Crash.swift
                 internalId: EMBInt(id),
                 sessionId: sessionId?.stringValue,
+                processId: processId?.stringValue,
                 timestamp: timestamp,
                 signal: signal
             )

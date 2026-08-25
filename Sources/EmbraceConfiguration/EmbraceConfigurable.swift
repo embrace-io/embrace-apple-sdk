@@ -72,6 +72,9 @@ public protocol EmbraceConfigurable: AnyObject {
     /// Limits for the app hangs captured through the SDK.
     var hangLimits: HangLimits { get }
 
+    /// Limits for the experiments and feature flags tracked through the SDK.
+    var experimentsLimits: ExperimentsLimits { get }
+
     /// Whether span events are persisted using the new storage backend.
     var useNewStorageForSpanEvents: Bool { get }
 

@@ -51,6 +51,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
     var useNewStorageForSpanEvents: Bool
 
+    var maxExperimentCount: Int
+    var maxExperimentIdLength: Int
+    var maxExperimentVariantLength: Int
+
     var userSessionMaxDurationSeconds: TimeInterval
     var userSessionInactivityTimeoutSeconds: TimeInterval
 
@@ -106,6 +110,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case sampleTriggerThreshold = "sample_trigger_threshold"
             case samplePollInterval = "sample_poll_interval"
         }
+
+        case maxExperimentCount = "experiment_max_count"
+        case maxExperimentIdLength = "experiment_id_max_length"
+        case maxExperimentVariantLength = "experiment_variant_max_length"
 
         case networkPayLoadCapture = "network_capture"
         case useNewStorageForSpanEvents = "use_new_storage_for_span_events"
@@ -375,6 +383,25 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 forKey: .useNewStorageForSpanEvents
             ) ?? defaultPayload.useNewStorageForSpanEvents
 
+        // experiments limits
+        maxExperimentCount =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentCount
+            ) ?? defaultPayload.maxExperimentCount
+
+        maxExperimentIdLength =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentIdLength
+            ) ?? defaultPayload.maxExperimentIdLength
+
+        maxExperimentVariantLength =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentVariantLength
+            ) ?? defaultPayload.maxExperimentVariantLength
+
         // user session
         if rootContainer.contains(.userSession) {
             let userSessionContainer = try rootContainer.nestedContainer(
@@ -470,6 +497,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         networkPayloadCaptureRules = []
         useNewStorageForSpanEvents = false
+
+        maxExperimentCount = ExperimentsLimits.defaultMaxCount
+        maxExperimentIdLength = ExperimentsLimits.defaultMaxIdLength
+        maxExperimentVariantLength = ExperimentsLimits.defaultMaxVariantLength
 
         userSessionMaxDurationSeconds = UserSessionSemantics.defaultMaxDurationSeconds
         userSessionInactivityTimeoutSeconds = UserSessionSemantics.defaultInactivityTimeoutSeconds

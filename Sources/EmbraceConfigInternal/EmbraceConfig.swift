@@ -160,6 +160,10 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.networkPayloadCaptureRules
     }
 
+    public var experimentsLimits: ExperimentsLimits {
+        configurable.experimentsLimits
+    }
+
     public var useNewStorageForSpanEvents: Bool {
         configurable.useNewStorageForSpanEvents
     }

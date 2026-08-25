@@ -26,6 +26,9 @@ public struct EmbraceCrashReport {
     /// If available, the session id that was ended by this crash.
     public private(set) var sessionId: String?
 
+    /// If available, the id of the process this crash happened in.
+    public private(set) var processId: String?
+
     /// The date when the crash occurred if available.
     public private(set) var timestamp: Date?
 
@@ -37,6 +40,7 @@ public struct EmbraceCrashReport {
         provider: String,
         internalId: EMBInt? = nil,
         sessionId: String? = nil,
+        processId: String? = nil,
         timestamp: Date? = nil,
         signal: CrashSignal? = nil
     ) {
@@ -45,6 +49,7 @@ public struct EmbraceCrashReport {
         self.provider = provider
         self.internalId = internalId
         self.sessionId = sessionId
+        self.processId = processId
         self.timestamp = timestamp
         self.signal = signal
     }

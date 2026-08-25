@@ -30,6 +30,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         updateCompletionParamDidUpdate: Bool = false,
         updateCompletionParamError: Error? = nil,
         hangLimits: HangLimits = HangLimits(),
+        experimentsLimits: ExperimentsLimits = ExperimentsLimits(),
         useNewStorageForSpanEvents: Bool = false,
         userSessionMaxDuration: TimeInterval = 12 * 3600,
         userSessionInactivityTimeout: TimeInterval = 30 * 60
@@ -51,6 +52,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._logSeverityLimits = logSeverityLimits
         self._internalLogLimits = internalLogLimits
         self._hangLimits = hangLimits
+        self._experimentsLimits = experimentsLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self._useNewStorageForSpanEvents = useNewStorageForSpanEvents
         self._userSessionMaxDuration = userSessionMaxDuration
@@ -270,6 +272,18 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
         set {
             _hangLimits = newValue
+        }
+    }
+
+    private var _experimentsLimits: ExperimentsLimits
+    public let experimentsLimitsExpectation = XCTestExpectation(description: "experimentsLimits called")
+    public var experimentsLimits: ExperimentsLimits {
+        get {
+            experimentsLimitsExpectation.fulfill()
+            return _experimentsLimits
+        }
+        set {
+            _experimentsLimits = newValue
         }
     }
 

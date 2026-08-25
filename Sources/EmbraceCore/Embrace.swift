@@ -58,6 +58,9 @@ package class Embrace {
     /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
     package let startupInstrumentation: StartupInstrumentation
 
+    /// Holds the experiments and feature flags tracked during this process.
+    package let experiments: ExperimentsHandler
+
     let metricKit: MetricKitHandler
 
     let config: EmbraceConfig
@@ -226,6 +229,13 @@ package class Embrace {
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
         self.metricKit = MetricKitHandler()
 
+        // initialize experiments handler
+        self.experiments = ExperimentsHandler(
+            storage: storage,
+            experimentsLimits: config.experimentsLimits,
+            configNotificationCenter: Embrace.notificationCenter
+        )
+
         // initialize startup instrumentation
         self.startupInstrumentation = StartupInstrumentation()
 
@@ -242,6 +252,10 @@ package class Embrace {
         logController.sdkStateProvider = self
         logController.privateLogger = self
         Embrace.logger.otel = self.otel
+
+        // the session span and every log report the experiments tracked so far
+        sessionController.experiments = experiments
+        logController.experiments = experiments
 
         // fetch app state
         sessionLifecycle.setup()

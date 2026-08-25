@@ -23,6 +23,7 @@ class LogController: LogBatcherDelegate {
     let queue: DispatchQueue
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
+    weak var experiments: ExperimentsHandler?
     weak var privateLogger: EmbracePrivateLogger?
 
     /// This will probably be injected eventually.
@@ -122,6 +123,7 @@ class LogController: LogBatcherDelegate {
             .addLogType(type)
             .addApplicationState()
             .addSessionIdentifier()
+            .addExperiments(experiments?.encodedExperiments)
 
         // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.

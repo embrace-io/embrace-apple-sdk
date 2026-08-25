@@ -33,6 +33,9 @@ public struct CrashReporterInfoKey {
 
     /// SDK version string (e.g., "5.2.1"). Use to correlate reports with the runtime SDK build.
     static public let sdkVersion = "emb-sdk"
+    /// Identifier of the process the report was captured in. Lets a report recovered by a later
+    /// launch be attributed to the process that crashed, even when its session is no longer stored.
+    static public let processId = "emb-pid"
 }
 
 // MARK: - Crash Reporter

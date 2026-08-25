@@ -451,6 +451,17 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
             return
         }
 
+        // Logs coming in through the bridge don't go through `LogController.createLog`, which is
+        // where the experiments attribute is normally stamped, so it is added here instead. Applied
+        // after sanitization: the value is exempt from the attribute value length limit, and
+        // truncating it would corrupt the records it carries.
+        var attributes = sanitizer.sanitizeLogAttributes(log.attributes, protecting: Self.bridgeProtectedKeys)
+        if attributes[LogSemantics.keyExperiments] == nil,
+            let experiments = logController?.experiments?.encodedExperiments
+        {
+            attributes[LogSemantics.keyExperiments] = experiments
+        }
+
         // sanitize and add log
         let sanitizedLog = DefaultEmbraceLog(
             id: log.id,
@@ -458,7 +469,7 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
             type: log.type,
             timestamp: log.timestamp,
             body: log.body,
-            attributes: sanitizer.sanitizeLogAttributes(log.attributes, protecting: Self.bridgeProtectedKeys),
+            attributes: attributes,
             sessionId: log.sessionId,
             processId: log.processId
         )

@@ -14,4 +14,7 @@ public struct SpanSemantics {
     public static let keyNSErrorCode = "error.code"
 
     public static let keyAutoTerminationCode = "emb.auto_termination.code"
+
+    /// Experiments and feature flags the user is enrolled in during the current process.
+    public static let keyExperiments = "emb.experiments"
 }
