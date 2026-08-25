@@ -19,7 +19,7 @@ public enum EmbraceSetupError: Error, Equatable {
 extension EmbraceSetupError: LocalizedError, CustomNSError {
 
     public static var errorDomain: String {
-        return "Embrace"
+        return EmbraceErrorSemantics.domain
     }
 
     public var errorCode: Int {
@@ -61,6 +61,6 @@ extension EmbraceSetupError: LocalizedError, CustomNSError {
     }
 
     public var localizedDescription: String {
-        return self.errorDescription ?? "No Matching Error"
+        return self.errorDescription ?? EmbraceErrorSemantics.fallbackDescription
     }
 }

@@ -179,7 +179,7 @@ package final class KSCrashReporter: CrashReporter {
             // add report
             let crashReport = EmbraceCrashReport(
                 payload: payload,
-                provider: "kscrash",  // from LogSemantics+Crash.swift
+                provider: LogSemantics.Crash.ksCrashProvider,
                 internalId: EMBInt(id),
                 sessionId: sessionId?.stringValue,
                 processId: processId?.stringValue,

@@ -13,17 +13,17 @@ extension SpanSemantics {
 
         /// `session.id` now identifies the **user session**, not the individual part.
         /// Stamped on every span and log (empty string when unknown).
-        public static let keyId = "session.id"
+        public static let keyId = CommonSemantics.keySessionId
 
         /// `emb.user_session_id` — same value as `session.id` for now (until a future override
         /// API lets customers override `session.id` independently). Stamped on every span and log.
-        public static let keyUserSessionId = "emb.user_session_id"
+        public static let keyUserSessionId = CommonSemantics.keyUserSessionId
 
         /// `emb.session_part_id` — the part UUID (the value `session.id` had historically).
         /// Stamped on every span and log.
-        public static let keyPartId = "emb.session_part_id"
+        public static let keyPartId = CommonSemantics.keyPartId
 
-        public static let keyState = "emb.state"
+        public static let keyState = CommonSemantics.keyState
         public static let keyColdStart = "emb.cold_start"
         public static let keyTerminated = "emb.terminated"
         public static let keyCleanExit = "emb.clean_exit"
