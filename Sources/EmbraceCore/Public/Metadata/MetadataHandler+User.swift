@@ -68,14 +68,14 @@ import Foundation
 extension MetadataHandler {
 
     private func value(for key: UserResourceKey) -> String? {
-        let record = storage?.fetchMetadata(key: key.rawValue, type: .customProperty, lifespan: .permanent)
+        let record = storage?.fetchMetadata(key: key.rawValue, type: .resource, lifespan: .permanent)
         return record?.value
     }
 
     private func update(key: UserResourceKey, value: String?) {
         if let value = value {
             do {
-                try addProperty(key: key.rawValue, value: value, lifespan: .permanent)
+				try addMetadata(key: key.rawValue, value: value, type: .resource, lifespan: .permanent)
             } catch {
                 Embrace.logger.warning("Unable to update user metadata!")
             }
@@ -86,7 +86,7 @@ extension MetadataHandler {
 
     private func remove(_ key: UserResourceKey) {
         do {
-            try remove(key: key.rawValue, type: .customProperty, lifespan: .permanent)
+            try remove(key: key.rawValue, type: .resource, lifespan: .permanent)
         } catch {
             Embrace.logger.warning("An error occurred when removing this user resource key: \(key)")
         }
