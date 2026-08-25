@@ -22,9 +22,17 @@ class SpansPayloadBuilder {
 
         let endTime = session.endTime ?? session.lastHeartbeatTime
 
-        // fetch spans that started during the session
-        // ignore spans where emb.type == session
-        let records = storage.fetchSpans(for: session, ignoreSessionSpans: true)
+        // fetch spans that started during the session, minus the two types this builder fetches
+        // for itself: the session span (added below) and state spans (fetched uncapped, next).
+        let cappedRecords = storage.fetchSpans(for: session, excluding: [.session, .state])
+
+        // State spans are fetched on their own so a session busy enough to exhaust the capped
+        // budget above can't crowd them out. There are only a handful per part, and losing one
+        // loses the whole state timeline for that part plus the session span's link target.
+        let stateRecords = storage.fetchSpans(for: session, fetchOnly: .state)
+
+        // processed identically from here on — being uncapped is their only difference
+        let records = cappedRecords + stateRecords
 
         // decode spans and separate them by closed/open
         var spans: [SpanPayload] = []

@@ -305,12 +305,16 @@ extension EmbraceStorage {
     /// that occur within the same process. For cold start sessions, will include spans that occur before the session starts.
     /// - Parameters:
     ///   - session: The session record to fetch spans for
-    ///   - ignoreSessionSpans: Whether to ignore the session's (or any other session's) own span
-    ///   - limit: Limit of the amount of spans to be retrieved
+    ///   - fetchOnly: When set, restricts the result to this one span type. Lets a caller fetch a
+    ///     low-volume type on its own so it can't be crowded out of the capped result.
+    ///     Defaults to `nil`, meaning all span types are considered.
+    ///   - excludedTypes: Span types to leave out. Empty by default, so every span for the session
+    ///     is returned; excluding is the caller's decision, not this method's.
     /// - Returns: Array containing the immutable copies of the spans.
     package func fetchSpans(
         for session: EmbraceSession,
-        ignoreSessionSpans: Bool = true
+        fetchOnly onlyType: EmbraceType? = nil,
+        excluding excludedTypes: [EmbraceType] = [],
     ) -> [EmbraceSpan] {
 
         let request = SpanRecord.createFetchRequest()
@@ -357,13 +361,18 @@ extension EmbraceStorage {
             predicate = NSCompoundPredicate(type: .or, subpredicates: [sessionPredicate, predicate1, predicate2])
         }
 
-        // ignore session spans?
-        if ignoreSessionSpans {
-            let sessionTypePredicate = NSPredicate(format: "typeRaw != %@", EmbraceType.session.rawValue)
-            request.predicate = NSCompoundPredicate(type: .and, subpredicates: [sessionTypePredicate, predicate])
-        } else {
-            request.predicate = predicate
+        // filter by type?
+        var subpredicates: [NSPredicate] = [predicate]
+
+        if let type = onlyType {
+            subpredicates.append(NSPredicate(format: "typeRaw == %@", type.rawValue))
         }
+
+        for type in excludedTypes {
+            subpredicates.append(NSPredicate(format: "typeRaw != %@", type.rawValue))
+        }
+
+        request.predicate = NSCompoundPredicate(type: .and, subpredicates: subpredicates)
 
         // fetch
         var result: [EmbraceSpan] = []
@@ -384,9 +393,13 @@ extension EmbraceStorage {
         switch type.primary {
         case .performance,
             .system,
-            .ux,
-            .state:
+            .ux:
             return options.spanLimitDefault
+        case .state:
+            // In practical terms, there should only be a couple of state spans
+            // But since they're for internal use and we control how many we're adding to a session,
+            // We won't apply a limit.
+            return 0
         }
     }
 
@@ -407,7 +420,7 @@ extension EmbraceStorage {
         request.predicate = NSPredicate(format: "typeRaw == %@", type.rawValue)
         let count = coreData.count(withRequest: request)
 
-        if count >= limit {
+        if limit > 0 && count >= limit {
             request.fetchLimit = count - limit + 1
             request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
 

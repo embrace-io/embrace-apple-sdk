@@ -148,25 +148,58 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
     // MARK: - Payload fetch budget
 
-    /// `jsonSpansLimit` is the per-payload span fetch budget, and it is derived by summing
-    /// `limitByType` over every `PrimaryType`. Adding a category therefore raises the budget for
-    /// every customer, whether or not they emit that category — a side effect that is easy to ship
-    /// unnoticed, so it is pinned here.
-    func test_jsonSpansLimit_isTheDefaultLimitPerPrimaryCategory() throws {
-        storage.options.spanLimitDefault = 100
+    /// `jsonSpansLimit` is the per-payload span fetch budget, summed from `limitByType` over every
+    /// `PrimaryType`. State spans deliberately contribute nothing (see `limitByType` below), which
+    /// is what keeps the budget where it was before that category existed.
+    ///
+    /// The expected values are hard-coded on purpose: this number should not move because someone
+    /// added a span category, so a change here should fail and force a human to look.
+    func test_jsonSpansLimit_excludesTheUncappedStateCategory() throws {
+        // three capped categories at the shipped default, plus state contributing 0
+        XCTAssertEqual(storage.jsonSpansLimit, 4500)
 
-        XCTAssertEqual(
+        storage.options.spanLimitDefault = 100
+        XCTAssertEqual(storage.jsonSpansLimit, 300)
+
+        XCTAssertNotEqual(
             storage.jsonSpansLimit,
             PrimaryType.allCases.count * 100,
-            "the payload fetch budget scales with the number of primary categories")
+            "an uncapped category must not add to the payload fetch budget")
     }
 
-    /// State spans are a category of their own; they must get the same storage allowance as the
-    /// others rather than falling through to a different bucket.
-    func test_limitByType_coversTheStateCategory() throws {
+    /// `limitByType` returns 0 for state spans, and **0 means uncapped**, not a cap of zero.
+    ///
+    /// The SDK decides how many state spans exist (a couple per session part), so they are neither
+    /// pruned at insert time nor given an allowance in the payload budget. Both current consumers
+    /// read 0 that way — `removeOldSpanIfNeeded` skips pruning and `jsonSpansLimit` adds nothing —
+    /// so a future consumer that reads it literally would silently discard every state span.
+    func test_limitByType_treatsStateAsUncapped() throws {
         storage.options.spanLimitDefault = 42
 
-        XCTAssertEqual(storage.limitByType(.state), 42)
-        XCTAssertEqual(storage.limitByType(EmbraceType(primary: .state, secondary: nil)), 42)
+        XCTAssertEqual(storage.limitByType(.performance), 42)
+        XCTAssertEqual(storage.limitByType(.ux), 42)
+        XCTAssertEqual(storage.limitByType(.system), 42)
+
+        XCTAssertEqual(storage.limitByType(.state), 0, "0 means uncapped, not a cap of zero")
+    }
+
+    /// The behavioral half of the contract above: an uncapped type is never pruned on insert.
+    func test_upsertSpan_doesNotPruneUncappedStateSpans() throws {
+        storage.options.spanLimitDefault = 3
+
+        for i in 0..<10 {
+            storage.upsertSpan(
+                MockSpan(
+                    name: "state \(i)",
+                    type: .state
+                ))
+        }
+
+        let request = SpanRecord.createFetchRequest()
+        let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
+
+        XCTAssertEqual(
+            allRecords.count, 10,
+            "state spans are uncapped, so the insert-time limit must not evict them")
     }
 }
