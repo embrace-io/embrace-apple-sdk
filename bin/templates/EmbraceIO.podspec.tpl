@@ -43,6 +43,7 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
     subs.dependency "EmbraceIO/EmbraceSemantics"
     subs.dependency "EmbraceIO/EmbraceConfiguration"
+    subs.dependency "EmbraceIO/EmbraceKSCrashBacktraceSupport"
   end
 
   spec.subspec 'EmbraceCommonInternal' do |subs|
