@@ -686,6 +686,140 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertNil(resource["app_version"] as? String)
     }
 
+    func test_sendCrashReports_exportedLog_describesTheCrashedSession() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given a storage and upload modules
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue)
+
+        let otel = MockOTelSignalsHandler()
+
+        // given a crash reporter with a report tied to a session
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+        let report = crashReporter.mockReports[0]
+
+        // given that session in the storage, backgrounded and belonging to a previous process
+        let previousProcessId = EmbraceIdentifier.random
+        let previousUserSessionId = EmbraceIdentifier.random
+        await storage.addSession(
+            id: TestConstants.sessionId,
+            processId: previousProcessId,
+            state: .background,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60),
+            endTime: Date(),
+            userSessionId: previousUserSessionId
+        )
+
+        // given experiments in storage for that process and for the current one
+        storage.addMetadata(
+            key: LogSemantics.keyExperiments,
+            value: "previous_experiments",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: previousProcessId.stringValue
+        )
+        storage.addMetadata(
+            key: LogSemantics.keyExperiments,
+            value: "current_experiments",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+
+        // when sending unsent data
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
+        wait(
+            timeout: .longTimeout, interval: .shortInterval,
+            until: { EmbraceHTTPMock.requestBodiesForUrl(self.testLogsUrl()).count == 1 })
+        wait(timeout: .defaultTimeout, until: { otel.logs.count == 1 })
+
+        // then the log pushed through the OTel pipeline describes the session and the process
+        // that crashed, not the ones sending it
+        let exported = try XCTUnwrap(otel.logs.first)
+        XCTAssertEqual(exported.type, .crash)
+        XCTAssertEqual(exported.severity, .fatal)
+        XCTAssertEqual(exported.timestamp, report.timestamp)
+        XCTAssertEqual(exported.sessionId, TestConstants.sessionId)
+        XCTAssertEqual(exported.processId, previousProcessId)
+
+        XCTAssertEqual(exported.attributes[LogSemantics.keyPartId] as? String, TestConstants.sessionId.stringValue)
+        XCTAssertEqual(exported.attributes[LogSemantics.keySessionId] as? String, previousUserSessionId.stringValue)
+        XCTAssertEqual(
+            exported.attributes[LogSemantics.keyUserSessionId] as? String,
+            previousUserSessionId.stringValue
+        )
+        XCTAssertEqual(exported.attributes[LogSemantics.keyState] as? String, SessionState.background.rawValue)
+        XCTAssertEqual(exported.attributes[LogSemantics.keyExperiments] as? String, "previous_experiments")
+
+        // then the log is identified by the crash report it carries
+        XCTAssertEqual(exported.id, report.id.withoutHyphen)
+        XCTAssertEqual(exported.attributes[LogSemantics.Crash.keyId] as? String, report.id.withoutHyphen)
+    }
+
+    func test_sendCrashReports_exportedLog_noSessionNoProcessId_hasNoExperiments() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given a storage and upload modules
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue)
+
+        let otel = MockOTelSignalsHandler()
+
+        // given a crash reporter with a report that has no session nor process
+        let crashReporter = CrashReporterMock(
+            mockReports: [
+                EmbraceCrashReport(
+                    payload: "test",
+                    provider: "mock",
+                    internalId: 123,
+                    sessionId: nil,
+                    processId: nil,
+                    timestamp: Date()
+                )
+            ]
+        )
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+
+        // given experiments in storage for the current process
+        storage.addMetadata(
+            key: LogSemantics.keyExperiments,
+            value: "current_experiments",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+
+        // when sending unsent data
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
+        wait(
+            timeout: .longTimeout, interval: .shortInterval,
+            until: { EmbraceHTTPMock.requestBodiesForUrl(self.testLogsUrl()).count == 1 })
+        wait(timeout: .defaultTimeout, until: { otel.logs.count == 1 })
+
+        // then the log pushed through the OTel pipeline carries no experiments: the crash belongs
+        // to a process that can't be identified, so the ones of this process would be a wrong guess
+        let exported = try XCTUnwrap(otel.logs.first)
+        XCTAssertNil(exported.attributes[LogSemantics.keyExperiments])
+    }
+
     func test_spanCleanUp_sendUnsentData() async throws {
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())

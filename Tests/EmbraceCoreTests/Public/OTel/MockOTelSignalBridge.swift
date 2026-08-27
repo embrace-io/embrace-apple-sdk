@@ -58,7 +58,9 @@ class MockOTelSignalBridge: EmbraceOTelSignalBridge {
     }
 
     var createLogCallCount: Int = 0
+    var createdLogs: [EmbraceLog] = []
     func createLog(_ log: any EmbraceLog) {
         createLogCallCount += 1
+        createdLogs.append(log)
     }
 }

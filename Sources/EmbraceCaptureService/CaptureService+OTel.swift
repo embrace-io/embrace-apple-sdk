@@ -119,8 +119,7 @@ extension CaptureService {
             attachment: attachment,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior,
-            isInternal: false,
-            send: true
+            isInternal: false
         )
     }
 }
