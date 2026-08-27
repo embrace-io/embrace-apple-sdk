@@ -43,6 +43,7 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
     subs.dependency "EmbraceIO/EmbraceSemantics"
     subs.dependency "EmbraceIO/EmbraceConfiguration"
+    subs.dependency "EmbraceIO/EmbraceKSCrashBacktraceSupport"
   end
 
   spec.subspec 'EmbraceCommonInternal' do |subs|
@@ -132,7 +133,7 @@ Pod::Spec.new do |spec|
 
   # External
   spec.subspec 'EmbraceKSCrash' do |subs|
-    subs.dependency "KSCrash", "~> 2.4"
+    subs.dependency "KSCrash", "2.6.0"
   end
 
   spec.subspec 'OpenTelemetrySdk' do |subs|

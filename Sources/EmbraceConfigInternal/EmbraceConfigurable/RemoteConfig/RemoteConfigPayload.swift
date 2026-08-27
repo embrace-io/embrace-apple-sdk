@@ -14,7 +14,8 @@ import Foundation
 public struct RemoteConfigPayload: Decodable, Equatable {
     var sdkEnabledThreshold: Float
     var backgroundSessionThreshold: Float
-    var networkSpansForwardingThreshold: Float
+    var nsfThreshold: Float?
+    var traceparentInjectionThreshold: Float?
     var walModeThreshold: Float
 
     var uiLoadInstrumentationEnabled: Bool
@@ -29,6 +30,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var metricKitInternalMetricsCaptureEnabled: Bool
 
     var breadcrumbLimit: Int
+    var tapLimit: Int
 
     var logsInfoLimit: Int
     var logsWarningLimit: Int
@@ -40,15 +42,21 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var internalLogsWarningLimit: Int
     var internalLogsErrorLimit: Int
 
+    var hangLimitsHangThreshold: TimeInterval
     var hangLimitsHangPerSession: UInt
-    var hangLimitsSamplesPerHang: UInt
     var hangLimitsReportsWatchdogEvents: Bool
+    var hangLimitsSampleTriggerThreshold: TimeInterval
+    var hangLimitsSamplePollInterval: TimeInterval
 
     var networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
 
     var useLegacyUrlSessionProxy: Bool
 
     var useNewStorageForSpanEvents: Bool
+
+    var maxExperimentCount: Int
+    var maxExperimentIdLength: Int
+    var maxExperimentVariantLength: Int
 
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
@@ -58,10 +66,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case threshold
         }
 
-        case networkSpansForwarding = "network_span_forwarding"
-        enum NetworkSpansForwardingCodingKeys: String, CodingKey {
-            case threshold = "pct_enabled"
-        }
+        case nsfThreshold = "nsf_pct_enabled"
+        case traceparentInjectionThreshold = "traceparent_injection_pct_enabled"
 
         case walModeThreshold = "core_data_wal_mode_pct_enabled"
         case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled_v2"
@@ -77,6 +83,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         case ui
         enum UICodingKeys: String, CodingKey {
             case breadcrumbs
+            case taps
         }
 
         case logLimits = "log"
@@ -95,12 +102,18 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case error
         }
 
-        case hangLimits = "hang_limits"
+        case hangLimits = "hang_limits_v2"
         enum HangLimitsCodingKeys: String, CodingKey {
+            case hangThreshold = "hang_threshold"
             case hangPerSession = "hang_per_session"
-            case samplesPerHang = "samples_per_hang"
             case reportsWatchdogEvents = "reports_watchdog_events"
+            case sampleTriggerThreshold = "sample_trigger_threshold"
+            case samplePollInterval = "sample_poll_interval"
         }
+
+        case maxExperimentCount = "experiment_max_count"
+        case maxExperimentIdLength = "experiment_id_max_length"
+        case maxExperimentVariantLength = "experiment_variant_max_length"
 
         case networkPayLoadCapture = "network_capture"
         case useLegacyUrlSessionProxy = "use_legacy_urlsession_proxy"
@@ -133,20 +146,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             backgroundSessionThreshold = defaultPayload.backgroundSessionThreshold
         }
 
-        // network span forwarding
-        if rootContainer.contains(.networkSpansForwarding) {
-            let networkSpansForwardingContainer = try rootContainer.nestedContainer(
-                keyedBy: CodingKeys.NetworkSpansForwardingCodingKeys.self,
-                forKey: .networkSpansForwarding
-            )
-            networkSpansForwardingThreshold =
-                try networkSpansForwardingContainer.decodeIfPresent(
-                    Float.self,
-                    forKey: CodingKeys.NetworkSpansForwardingCodingKeys.threshold
-                ) ?? defaultPayload.networkSpansForwardingThreshold
-        } else {
-            networkSpansForwardingThreshold = defaultPayload.networkSpansForwardingThreshold
-        }
+        // network span forwarding (new flat keys — old SDKs keep reading legacy nested key)
+        nsfThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .nsfThreshold)
+        traceparentInjectionThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .traceparentInjectionThreshold)
 
         // is wal mode enabled config
         walModeThreshold =
@@ -198,8 +200,15 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                     Int.self,
                     forKey: CodingKeys.UICodingKeys.breadcrumbs
                 ) ?? defaultPayload.breadcrumbLimit
+
+            tapLimit =
+                try uiContainer.decodeIfPresent(
+                    Int.self,
+                    forKey: CodingKeys.UICodingKeys.taps
+                ) ?? defaultPayload.tapLimit
         } else {
             breadcrumbLimit = defaultPayload.breadcrumbLimit
+            tapLimit = defaultPayload.tapLimit
         }
 
         // logs limit
@@ -240,27 +249,41 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 forKey: .hangLimits
             )
 
+            hangLimitsHangThreshold =
+                try hangLimitsContainer.decodeIfPresent(
+                    TimeInterval.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.hangThreshold
+                ) ?? defaultPayload.hangLimitsHangThreshold
+
             hangLimitsHangPerSession =
                 try hangLimitsContainer.decodeIfPresent(
                     UInt.self,
                     forKey: CodingKeys.HangLimitsCodingKeys.hangPerSession
                 ) ?? defaultPayload.hangLimitsHangPerSession
 
-            hangLimitsSamplesPerHang =
-                try hangLimitsContainer.decodeIfPresent(
-                    UInt.self,
-                    forKey: CodingKeys.HangLimitsCodingKeys.samplesPerHang
-                ) ?? defaultPayload.hangLimitsSamplesPerHang
-
             hangLimitsReportsWatchdogEvents =
                 try hangLimitsContainer.decodeIfPresent(
                     Bool.self,
                     forKey: CodingKeys.HangLimitsCodingKeys.reportsWatchdogEvents
                 ) ?? defaultPayload.hangLimitsReportsWatchdogEvents
+
+            hangLimitsSampleTriggerThreshold =
+                try hangLimitsContainer.decodeIfPresent(
+                    TimeInterval.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.sampleTriggerThreshold
+                ) ?? defaultPayload.hangLimitsSampleTriggerThreshold
+
+            hangLimitsSamplePollInterval =
+                try hangLimitsContainer.decodeIfPresent(
+                    TimeInterval.self,
+                    forKey: CodingKeys.HangLimitsCodingKeys.samplePollInterval
+                ) ?? defaultPayload.hangLimitsSamplePollInterval
         } else {
+            hangLimitsHangThreshold = defaultPayload.hangLimitsHangThreshold
             hangLimitsHangPerSession = defaultPayload.hangLimitsHangPerSession
-            hangLimitsSamplesPerHang = defaultPayload.hangLimitsSamplesPerHang
             hangLimitsReportsWatchdogEvents = defaultPayload.hangLimitsReportsWatchdogEvents
+            hangLimitsSampleTriggerThreshold = defaultPayload.hangLimitsSampleTriggerThreshold
+            hangLimitsSamplePollInterval = defaultPayload.hangLimitsSamplePollInterval
         }
 
         // internal logs limit
@@ -361,13 +384,33 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                 Bool.self,
                 forKey: .useNewStorageForSpanEvents
             ) ?? defaultPayload.useNewStorageForSpanEvents
+
+        // experiments limits
+        maxExperimentCount =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentCount
+            ) ?? defaultPayload.maxExperimentCount
+
+        maxExperimentIdLength =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentIdLength
+            ) ?? defaultPayload.maxExperimentIdLength
+
+        maxExperimentVariantLength =
+            try rootContainer.decodeIfPresent(
+                Int.self,
+                forKey: .maxExperimentVariantLength
+            ) ?? defaultPayload.maxExperimentVariantLength
     }
 
     // defaults
     public init() {
         sdkEnabledThreshold = 100.0
         backgroundSessionThreshold = 0.0
-        networkSpansForwardingThreshold = 0.0
+        nsfThreshold = nil
+        traceparentInjectionThreshold = nil
         walModeThreshold = 100.0
 
         uiLoadInstrumentationEnabled = true
@@ -375,13 +418,14 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         uiInstrumentationCaptureHostingControllers = false
         swiftUiViewInstrumentationEnabled = true
 
-        metricKitEnabledThreshold = 0.0
-        metricKitCrashCaptureEnabled = false
+        metricKitEnabledThreshold = 100.0
+        metricKitCrashCaptureEnabled = true
         metricKitCrashSignals = [CrashSignal.SIGKILL.stringValue]
         metricKitHangCaptureEnabled = false
         metricKitInternalMetricsCaptureEnabled = false
 
         breadcrumbLimit = 100
+        tapLimit = 80
 
         logsInfoLimit = 100
         logsWarningLimit = 200
@@ -393,13 +437,19 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         internalLogsWarningLimit = 0
         internalLogsErrorLimit = 3
 
-        hangLimitsHangPerSession = 200
-        hangLimitsSamplesPerHang = 0
-        hangLimitsReportsWatchdogEvents = false
+        hangLimitsHangThreshold = HangLimits.defaultHangThreshold
+        hangLimitsHangPerSession = HangLimits.defaultHangPerSession
+        hangLimitsReportsWatchdogEvents = HangLimits.defaultReportsWatchdogEvents
+        hangLimitsSampleTriggerThreshold = HangLimits.defaultSampleTriggerThreshold
+        hangLimitsSamplePollInterval = HangLimits.defaultSamplePollInterval
 
         networkPayloadCaptureRules = []
         useLegacyUrlSessionProxy = false
         useNewStorageForSpanEvents = false
+
+        maxExperimentCount = ExperimentsLimits.defaultMaxCount
+        maxExperimentIdLength = ExperimentsLimits.defaultMaxIdLength
+        maxExperimentVariantLength = ExperimentsLimits.defaultMaxVariantLength
     }
 }
 

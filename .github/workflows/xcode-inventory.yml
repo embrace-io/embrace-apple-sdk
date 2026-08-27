@@ -1,0 +1,48 @@
+name: Xcode Inventory
+
+# Manual diagnostic: snapshot the Xcode versions, simulator SDKs, and simulator
+# runtimes baked into a runner image. Use it before migrating runners (e.g. to
+# macos-26) to confirm which Xcode_*.app paths exist and which platform SDKs are
+# preinstalled vs. need an on-demand download. Read-only; never runs on PRs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Runner image label to snapshot
+        default: macos-26
+        type: choice
+        options:
+          - macos-26
+          - macos-15
+          - macos-latest
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 15
+    steps:
+      - name: Dump Xcode / SDK / runtime inventory
+        env:
+          RUNNER_LABEL: ${{ inputs.runner }}
+        run: |
+          # No `set -e`: a single bad Xcode shouldn't abort the whole inventory.
+          {
+            echo "# Inventory for \`${RUNNER_LABEL}\` (image ${ImageVersion:-unknown})"
+            echo ""
+            for app in /Applications/Xcode_*.app; do
+              dev="$app/Contents/Developer"
+              ver=$(DEVELOPER_DIR="$dev" xcodebuild -version 2>/dev/null | tr '\n' ' ')
+              echo "## \`$(basename "$app")\` — ${ver:-(version unavailable)}"
+              echo '```'
+              echo "--- simulator SDKs ---"
+              DEVELOPER_DIR="$dev" xcodebuild -showsdks 2>/dev/null | grep -i simulator || echo "(no simulator SDKs)"
+              echo "--- simulator runtimes ---"
+              DEVELOPER_DIR="$dev" xcrun simctl list runtimes 2>/dev/null || echo "(simctl unavailable)"
+              echo '```'
+              echo ""
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import os
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceStorageInternal
@@ -37,12 +38,19 @@ class LogController: LogControllable {
     private weak var upload: EmbraceLogUploader?
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
+    weak var experiments: ExperimentsHandler?
+    weak var privateLogger: EmbracePrivateLogger?
 
     var otel: EmbraceOTelBridge = EmbraceOTel()  // var so we can inject a mock for testing
 
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
     static let maxLogsPerBatch: Int = 20
+
+    /// Returns the batch size to use for unsent log uploads.
+    /// Defaults to adaptive sizing based on available memory.
+    /// Can be overridden in tests to use a fixed value.
+    var maxLogsPerBatchProvider: () -> Int = { LogController.adaptiveMaxLogsPerBatch() }
 
     struct MutableState {
         var limits: LogsLimits = LogsLimits()
@@ -75,7 +83,8 @@ class LogController: LogControllable {
 
         let logs: [EmbraceLog] = storage.fetchAll(excludingProcessIdentifier: ProcessIdentifier.current)
         if logs.isEmpty == false {
-            send(batches: divideInBatches(logs)) {
+            let batchSize = maxLogsPerBatchProvider()
+            send(batches: divideInBatches(logs, maxLogsPerBatch: batchSize)) {
                 completion?()
             }
         } else {
@@ -95,6 +104,12 @@ class LogController: LogControllable {
         stackTraceBehavior: StackTraceBehavior = .default,
         queue: DispatchQueue
     ) {
+
+        guard severity != .critical else {
+            Embrace.logger.info("Critical logs are for internal use only!")
+            return
+        }
+
         guard let sessionController = sessionController else {
             return
         }
@@ -112,6 +127,7 @@ class LogController: LogControllable {
             .addLogType(type)
             .addApplicationState()
             .addSessionIdentifier()
+            .addExperiments(experiments?.encodedExperiments)
 
         // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.
@@ -193,17 +209,30 @@ class LogController: LogControllable {
 }
 
 extension LogController {
-    func batchFinished(withLogs logs: [EmbraceLog]) {
+    func batchFinished(withLogs logs: [EmbraceLog], sessionId: EmbraceIdentifier?) {
         guard sdkStateProvider?.isEnabled == true else {
             return
         }
 
         do {
-            guard let sessionId = sessionController?.currentSession?.id, logs.isEmpty == false else {
+            // Use the provided session ID (passed at call time for session-boundary flushes)
+            // and fall back to the current session for normal mid-session batch rotations.
+            guard let resolvedSessionId = sessionId ?? sessionController?.currentSession?.id,
+                logs.isEmpty == false
+            else {
                 return
             }
-            let resourcePayload = try createResourcePayload(sessionId: sessionId)
-            let metadataPayload = try createMetadataPayload(sessionId: sessionId)
+            let resourcePayload = try createResourcePayload(sessionId: resolvedSessionId)
+            let metadataPayload = try createMetadataPayload(sessionId: resolvedSessionId)
+
+            // the backend drops payloads that are missing the required metadata,
+            // so we discard these logs instead of uploading them
+            guard resourcePayload.hasRequiredMetadata else {
+                Embrace.logger.warning("Dropped \(logs.count) logs due to missing metadata!")
+                storage?.remove(logs: logs)
+                return
+            }
+
             send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload, completion: {})
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
@@ -213,26 +242,23 @@ extension LogController {
 
 extension LogController {
     fileprivate func send(batches: [LogsBatch], completion: (() -> Void)? = nil) {
-        guard sdkStateProvider?.isEnabled == true else {
+        guard sdkStateProvider?.isEnabled == true, !batches.isEmpty else {
             completion?()
             return
         }
 
-        guard batches.isEmpty == false else {
-            completion?()
-            return
-        }
+        // Process batches sequentially so each compressed payload
+        // is released before the next one is allocated.
+        let semaphore = DispatchSemaphore(value: 0)
 
-        let group = DispatchGroup()
-        group.enter()
+        // Batches missing the required metadata are dropped, and a single private log
+        // is sent at the end reporting the total amount of logs lost. This avoids
+        // sending one private log per batch when many of them are dropped in a row.
+        var droppedLogCount = 0
 
         for batch in batches {
-            do {
-                guard batch.logs.isEmpty == false else {
-                    continue
-                }
-
-                guard let processId = batch.logs[0].processId else {
+            autoreleasepool {
+                guard !batch.logs.isEmpty, let processId = batch.logs[0].processId else {
                     return
                 }
 
@@ -245,35 +271,45 @@ extension LogController {
                 //
                 // If we can't find a sessionId, we use the processId instead
 
-                var sessionId: EmbraceIdentifier?
-                if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
-                    if let id = log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw {
-                        sessionId = EmbraceIdentifier(stringValue: id)
+                do {
+                    var sessionId: EmbraceIdentifier?
+                    if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
+                        if let id = log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw {
+                            sessionId = EmbraceIdentifier(stringValue: id)
+                        }
                     }
+
+                    let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
+                    let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
+
+                    // the backend drops payloads that are missing the required metadata,
+                    // so we discard these logs instead of uploading them
+                    guard resourcePayload.hasRequiredMetadata else {
+                        droppedLogCount += batch.logs.count
+                        storage?.remove(logs: batch.logs)
+                        return
+                    }
+
+                    send(
+                        logs: batch.logs,
+                        resourcePayload: resourcePayload,
+                        metadataPayload: metadataPayload,
+                        completion: { semaphore.signal() }
+                    )
+
+                    semaphore.wait()
+
+                } catch let exception {
+                    Error.couldntCreatePayload(reason: exception.localizedDescription).log()
                 }
-
-                let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
-                let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
-
-                group.enter()
-
-                send(
-                    logs: batch.logs,
-                    resourcePayload: resourcePayload,
-                    metadataPayload: metadataPayload,
-                    completion: {
-                        group.leave()
-                    }
-                )
-            } catch let exception {
-                Error.couldntCreatePayload(reason: exception.localizedDescription).log()
             }
         }
 
-        group.leave()
-        group.notify(queue: .global(qos: .default)) {
-            completion?()
+        if droppedLogCount > 0 {
+            privateLogger?.sendPrivateLog("Logs dropped due to missing metadata: \(droppedLogCount)")
         }
+
+        completion?()
     }
 
     fileprivate func send(
@@ -316,16 +352,35 @@ extension LogController {
         }
     }
 
-    fileprivate func divideInBatches(_ logs: [EmbraceLog]) -> [LogsBatch] {
+    static func adaptiveMaxLogsPerBatch() -> Int {
+        #if os(macOS)
+            return maxLogsPerBatch
+        #else
+            let availableMemory = os_proc_available_memory()
+
+            switch availableMemory {
+            case 0..<(15 * 1024 * 1024):
+                return 1
+            case ..<(30 * 1024 * 1024):
+                return 5
+            case ..<(50 * 1024 * 1024):
+                return 10
+            default:
+                return maxLogsPerBatch
+            }
+        #endif
+    }
+
+    fileprivate func divideInBatches(_ logs: [EmbraceLog], maxLogsPerBatch: Int = LogController.maxLogsPerBatch) -> [LogsBatch] {
         var batches: [LogsBatch] = []
-        var batch: LogsBatch = .init(limits: .init(maxBatchAge: .infinity, maxLogsPerBatch: Self.maxLogsPerBatch))
+        var batch: LogsBatch = .init(limits: .init(maxBatchAge: .infinity, maxLogsPerBatch: maxLogsPerBatch))
         for log in logs {
             let result = batch.add(log: log)
             switch result {
             case .success(let batchState):
                 if batchState == .closed {
                     batches.append(batch)
-                    batch = LogsBatch(limits: .init(maxLogsPerBatch: Self.maxLogsPerBatch))
+                    batch = LogsBatch(limits: .init(maxLogsPerBatch: maxLogsPerBatch))
                 }
             case .failure:
                 // This shouldn't happen.

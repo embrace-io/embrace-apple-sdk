@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
@@ -79,14 +80,28 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
         }
     }
 
-    var injectTracingHeader: Bool {
-        // check remote config
-        guard Embrace.client?.config.isNetworkSpansForwardingEnabled == true else {
-            return false
-        }
+    func shouldInjectHeader(for request: URLRequest) -> Bool {
+        let injectionEnabled = Embrace.client?.config.traceparentInjectionEnabled ?? false
 
-        // check local config
-        return options.injectTracingHeader
+        /// Check the feature is even enabled.
+        guard injectionEnabled else { return false }
+
+        /// If the allowedDomains list is nil, all requests should be injected.
+        guard let allowedDomains = options.traceparent.onlyAllowDomains else { return true }
+
+        /// If the list is not-nil, apply filtering.
+        guard
+            HostAllowlistMatcher.matches(
+                host: request.url?.host,
+                allowlist: allowedDomains
+            )
+        else { return false }
+
+        return true
+    }
+
+    var isNSFEligible: Bool {
+        Embrace.client?.config.isNetworkSpansForwardingEnabled == true
     }
 
     var requestsDataSource: URLSessionRequestsDataSource? {
@@ -228,15 +243,17 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
                 return { [weak handler = self.handler] task in
                     let handled = handler?.create(task: task) ?? true
 
-                    // if the task was handled by this swizzler
-                    // by the time resume was called it probably means
-                    // it was an async/await task
-                    // we set a proxy delegate to get a callback when the task finishes
-                    if handled, let handler = handler, task.state == .suspended {
-                        let originalDelegate = task.delegate
-                        task.delegate = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
+                    // setting task delegate on background tasks is not supported and throws an exception.
+                    if !task.isBackgroundTask {
+                        // if the task was handled by this swizzler
+                        // by the time resume was called it probably means
+                        // it was an async/await task
+                        // we set a proxy delegate to get a callback when the task finishes
+                        if handled, let handler = handler, task.state == .suspended {
+                            let originalDelegate = task.delegate
+                            task.delegate = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
+                        }
                     }
-
                     // call original
                     originalImplementation(task, Self.selector)
                 }

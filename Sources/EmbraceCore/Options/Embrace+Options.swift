@@ -10,6 +10,7 @@ import Foundation
     import EmbraceOTelInternal
     import EmbraceConfigInternal
     import EmbraceConfiguration
+    import EmbraceKSCrashBacktraceSupport
 #endif
 
 extension Embrace {
@@ -45,10 +46,11 @@ extension Embrace {
         ///   - logLevel: The `LogLevel` to use for console logs.
         ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
         ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
-        ///   - backtracer: Optional `Backtracer` to capture stack traces. Defaults to the
-        ///     built-in mechanism, which is sufficient for most apps.
-        ///   - symbolicator: Optional `Symbolicator` to resolve frames into symbols;
-        ///     without it, only raw addresses are shown.
+        ///   - backtracer: Optional `Backtracer` used to capture stack traces. Defaults to the
+        ///     built-in `KSCrashBacktracing`; pass `nil` to disable custom stack-trace capture.
+        ///   - symbolicator: Optional `Symbolicator` used to resolve frames into symbols. Defaults to
+        ///     the built-in `KSCrashBacktracing`; pass `nil` to disable symbolication (unresolved
+        ///     frames are then dropped rather than emitted as raw addresses).
         @objc public init(
             appId: String,
             appGroupId: String? = nil,
@@ -59,8 +61,8 @@ extension Embrace {
             logLevel: LogLevel = .default,
             export: OpenTelemetryExport? = nil,
             processors: [OpenTelemetryProcessor]? = nil,
-            backtracer: Backtracer? = nil,
-            symbolicator: Symbolicator? = nil
+            backtracer: Backtracer? = KSCrashBacktracing(),
+            symbolicator: Symbolicator? = KSCrashBacktracing()
         ) {
             self.appId = appId
             self.appGroupId = appGroupId
@@ -82,6 +84,7 @@ extension Embrace {
         ///
         /// - Parameters:
         ///   - export: `OpenTelemetryExport` object to export telemetry using OpenTelemetry protocols
+        ///   - processors: `OpenTelemetryProcessor` objects to do extra processing
         ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
         ///   - captureServices: The `CaptureServices` to be installed.
         ///   - crashReporter: The `CrashReporter` to be installed.
@@ -89,13 +92,14 @@ extension Embrace {
         ///   - runtimeConfiguration: An object to control runtime behavior of the SDK itself.
         @objc public init(
             export: OpenTelemetryExport,
+            processors: [OpenTelemetryProcessor]? = nil,
             platform: Platform = .default,
             captureServices: [CaptureService],
             crashReporter: CrashReporter?,
             logLevel: LogLevel = .default,
             runtimeConfiguration: EmbraceConfigurable = .default,
-            backtracer: Backtracer? = nil,
-            symbolicator: Symbolicator? = nil
+            backtracer: Backtracer? = KSCrashBacktracing(),
+            symbolicator: Symbolicator? = KSCrashBacktracing()
         ) {
             self.appId = nil
             self.appGroupId = nil
@@ -106,7 +110,7 @@ extension Embrace {
             self.logLevel = logLevel
             self.export = export
             self.runtimeConfiguration = runtimeConfiguration
-            self.processors = nil
+            self.processors = processors
             self.backtracer = backtracer
             self.symbolicator = symbolicator
         }

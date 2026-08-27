@@ -11,16 +11,6 @@ on:
       - 'Package.swift'
       - 'Sources/**'
       - 'Examples/Benchmarks/**'
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/run-device-benchmarks.yml'
-      - '.github/workflows/browserstack.yml'
-      - 'bin/perfcomp.py'
-      - 'Package.swift'
-      - 'Sources/**'
-      - 'Examples/Benchmarks/**'
 
 permissions:
   contents: read
@@ -63,12 +53,12 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
 
       - name: Setup Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.13'
 

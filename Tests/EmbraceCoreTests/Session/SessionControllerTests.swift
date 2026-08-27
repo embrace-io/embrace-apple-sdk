@@ -25,7 +25,7 @@ final class SessionControllerTests: XCTestCase {
         userAgent: "userAgent",
         deviceId: "12345678"
     )
-    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
+    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: -1)
 
     var uploadTestOptions: EmbraceUpload.Options!
 
@@ -55,10 +55,20 @@ final class SessionControllerTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        // Stop any in-flight/retrying uploads so their async retries (the error
+        // test uses retryCount -1) don't outlive the test and land in another
+        // iteration's mock request counts.
+        upload.spansQueue.cancelAllOperations()
+        upload.logsQueue.cancelAllOperations()
+        upload.attachmentsQueue.cancelAllOperations()
+
         storage.coreData.destroy()
         upload.cache.coreData.destroy()
         upload = nil
         controller = nil
+
+        // EmbraceHTTPMock state is process-wide; reset between methods.
+        EmbraceHTTPMock.clearRequests()
     }
 
     func test_startSession_returnsNewSessionEveryTime() throws {
@@ -231,52 +241,39 @@ final class SessionControllerTests: XCTestCase {
     // completion on sessions.
     @MainActor
     func test_endSession_uploadsSession() throws {
-        try XCTSkipIfRunMoreThanOnce()
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSessionsUrl())
 
-        // given a started session
-        let controller = SessionController(storage: storage, upload: upload, config: nil)
+        // given a started session. A synchronous upload queue keeps the end-session
+        // upload dispatch on the calling thread instead of hopping through the shared
+        // GCD pool, which can be starved under CI load and leave the request unsent.
+        let controller = SessionController(
+            storage: storage, upload: upload, config: nil, queue: MockQueue())
         controller.sdkStateProvider = sdkStateProvider
         controller.startSession(state: .foreground)
 
         // when ending the session
         controller.endSession()
 
-        let expectation = expectation(description: "waiting for session to end")
-        // we need to wait for the controller to async send it data,
-        // as well as storgage (CoreData) to update the session info.
-        // we don't have a better async way than to tack onto their queue's,
-        // and just run a block at the end.
-        storage.coreData.performAsyncOperation { _ in
-            controller.queue.async { [self] in
-                storage.coreData.performAsyncOperation { _ in
-                    controller.queue.async { [self] in
-                        upload.queue.async {
-                            expectation.fulfill()
-                        }
-                    }
-                }
-            }
+        // Ending the session uploads it, removes it from storage, and clears its
+        // cached upload data — all asynchronous. Poll the observable end state
+        // rather than chaining onto the controller/storage/upload queues, which
+        // only approximates "settled" and races the mock's request bookkeeping.
+        wait(timeout: .longTimeout, interval: .shortInterval) { [self] in
+            EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count == 1
+                && storage.fetchSession(id: TestConstants.sessionId) == nil
+                && upload.cache.fetchAllUploadData().isEmpty
         }
-        wait(for: [expectation], timeout: .longTimeout)
-        wait { EmbraceHTTPMock.requestsForUrl(self.testSessionsUrl()).count == 1 }
 
         // then a session request was sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
 
         // then the session is no longer on storage
-        let session = storage.fetchSession(id: TestConstants.sessionId)
-        XCTAssertNil(session)
+        XCTAssertNil(storage.fetchSession(id: TestConstants.sessionId))
 
         // then the session upload data is no longer cached
-        wait { [self] in
-            let uploadData = upload.cache.fetchAllUploadData()
-            return uploadData.isEmpty
-        }
-        let uploadData = upload.cache.fetchAllUploadData()
-        XCTAssertEqual(uploadData.count, 0)
+        XCTAssertEqual(upload.cache.fetchAllUploadData().count, 0)
     }
 
     func test_endSession_uploadsSession_error() throws {
@@ -284,31 +281,37 @@ final class SessionControllerTests: XCTestCase {
         // mock error requests
         EmbraceHTTPMock.mock(url: testSessionsUrl(), errorCode: 500)
 
-        // given a started session
-        let controller = SessionController(storage: storage, upload: upload, config: nil)
+        // given a started session. A synchronous upload queue keeps the end-session
+        // upload dispatch on the calling thread instead of hopping through the shared
+        // GCD pool, which can be starved under CI load and leave the request unsent.
+        let controller = SessionController(
+            storage: storage, upload: upload, config: nil, queue: MockQueue())
         controller.sdkStateProvider = sdkStateProvider
         controller.startSession(state: .foreground)
 
         // when ending the session and the upload fails
         controller.endSession()
-        wait { EmbraceHTTPMock.requestsForUrl(self.testSessionsUrl()).count > 0 }
 
-        // then a session request was attempted
+        // the request is attempted asynchronously; wait for it, then confirm
+        // exactly one was sent. The upload retries on failure (retryCount -1),
+        // so assert the count here — before a retry can fire — rather than after
+        // the later waits.
+        wait(timeout: .longTimeout, interval: .shortInterval) { [self] in
+            EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count > 0
+        }
         XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
-
-        // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
 
-        // then the session is no longer on storage
-        let session = storage.fetchSession(id: TestConstants.sessionId)
-        XCTAssertNil(session)
-
-        // then the session upload data cached
-        let uploadData = upload.cache.fetchAllUploadData()
-        XCTAssertEqual(uploadData.count, 1)
+        // the session is removed from storage asynchronously; the failed
+        // upload's data stays cached for retry.
+        wait(timeout: .longTimeout, interval: .shortInterval) { [self] in
+            storage.fetchSession(id: TestConstants.sessionId) == nil
+        }
+        XCTAssertNil(storage.fetchSession(id: TestConstants.sessionId))
+        XCTAssertEqual(upload.cache.fetchAllUploadData().count, 1)
     }
 
-    func testOnHavingBatcher_endSession_forcesEndBatchAndWaits() throws {
+    func testOnHavingBatcher_endSession_forcesEndBatch() throws {
         // given sesion controller has a batcher
         let batcher = SpyLogBatcher()
         controller.setLogBatcher(batcher)
@@ -319,11 +322,12 @@ final class SessionControllerTests: XCTestCase {
         // when ending the session
         controller.endSession()
 
-        // then should force end current batch
+        // then should force end current batch without blocking the caller
         XCTAssertTrue(batcher.didCallForceEndCurrentBatch)
+        XCTAssertFalse(try XCTUnwrap(batcher.forceEndCurrentBatchParameters).waitUntilFinished)
 
-        // then should wait for log batch to be closed
-        XCTAssertTrue(try XCTUnwrap(batcher.forceEndCurrentBatchParameters))
+        // then the ending session's ID should be passed so logs are attributed correctly
+        XCTAssertNotNil(try XCTUnwrap(batcher.forceEndCurrentBatchParameters).sessionId)
     }
 
     // MARK: update
@@ -462,6 +466,52 @@ final class SessionControllerTests: XCTestCase {
 
     // MARK: heartbeat
 
+    func test_startSession_assignsSessionNumber() throws {
+        // when starting a session
+        let session = controller.startSession(state: .foreground)
+
+        // then the session has sessionNumber 1
+        XCTAssertEqual(session?.sessionNumber, 1)
+
+        // and the MetadataRecord counter was incremented to 1
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        XCTAssertEqual(resource?.value, "1")
+    }
+
+    func test_startSession_incrementsSessionNumberEachTime() throws {
+        // when starting and ending two sessions
+        let first = controller.startSession(state: .foreground)
+        controller.endSession()
+        let second = controller.startSession(state: .foreground)
+
+        // then each session has a distinct, incrementing sessionNumber
+        XCTAssertEqual(first?.sessionNumber, 1)
+        XCTAssertEqual(second?.sessionNumber, 2)
+
+        // and the MetadataRecord reflects the final count
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        XCTAssertEqual(resource?.value, "2")
+    }
+
+    func test_startSession_continuesFromExistingCounter() throws {
+        // given an existing counter value of 5
+        storage.addMetadata(
+            key: SessionController.sessionNumberKey,
+            value: "5",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+
+        // when starting a session
+        let session = controller.startSession(state: .foreground)
+
+        // then sessionNumber continues from 6
+        XCTAssertEqual(session?.sessionNumber, 6)
+
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
+        XCTAssertEqual(resource?.value, "6")
+    }
+
     func test_heartbeat() throws {
         // given a session controller
         let controller = SessionController(storage: storage, upload: nil, config: nil, heartbeatInterval: 0.1)
@@ -471,12 +521,65 @@ final class SessionControllerTests: XCTestCase {
         let session = controller.startSession(state: .foreground)
         var lastDate = session!.lastHeartbeatTime
 
-        // then the heartbeat time is updated
+        // The heartbeat advances on a timer that CI load can delay, so poll for
+        // the timestamp to actually change instead of assuming it happens within
+        // a fixed window.
         for _ in 1...3 {
-            wait(delay: 0.3)
-            XCTAssertNotEqual(lastDate, controller.currentSession!.lastHeartbeatTime)
-            lastDate = controller.currentSession!.lastHeartbeatTime
+            wait(timeout: .longTimeout, interval: .shortInterval) {
+                controller.currentSession?.lastHeartbeatTime != lastDate
+            }
+            lastDate = try XCTUnwrap(controller.currentSession?.lastHeartbeatTime)
         }
+    }
+
+    func test_startSession_coldStart_backgroundDropped_deletesOldSession() throws {
+        // given a cold-start background session with background sessions disabled (config == nil)
+        let backgroundSession = controller.startSession(state: .background)
+        XCTAssertNotNil(backgroundSession)
+
+        // when a foreground session starts (this is the appDidBecomeActive path)
+        let foregroundSession = controller.startSession(state: .foreground)
+
+        // then the new session is a foreground session
+        XCTAssertNotNil(foregroundSession)
+        XCTAssertEqual(foregroundSession?.state, "foreground")
+
+        // and the old background session is deleted from storage
+        // (fetching via performAndWait drains the async CoreData queue first)
+        let sessions: [SessionRecord] = storage.fetchAll()
+        XCTAssertEqual(sessions.count, 1)
+        XCTAssertEqual(sessions.first?.idRaw, foregroundSession?.idRaw)
+    }
+
+    // Verifies that moving flush(span:) outside the lock in update(state:) does not
+    // break the in-memory session state update.
+    func test_update_state_updatesSessionAndSpanStateCorrectly() throws {
+        let spanProcessor = MockSpanProcessor()
+        EmbraceOTel.setup(spanProcessors: [spanProcessor])
+
+        // given an active foreground session
+        controller.startSession(state: .foreground)
+        XCTAssertEqual(controller.currentSession?.state, "foreground")
+
+        // when transitioning to background
+        controller.update(state: .background)
+
+        // then in-memory session state is updated immediately
+        XCTAssertEqual(controller.currentSession?.state, "background")
+    }
+
+    // Verifies that moving flush(span:) outside the lock in update(appTerminated:) does not
+    // break the in-memory session state update.
+    func test_update_appTerminated_updatesSessionStateCorrectly() throws {
+        // given an active session
+        controller.startSession(state: .foreground)
+        XCTAssertEqual(controller.currentSession?.appTerminated, false)
+
+        // when marking as app terminated
+        controller.update(appTerminated: true)
+
+        // then in-memory session state is updated immediately
+        XCTAssertEqual(controller.currentSession?.appTerminated, true)
     }
 }
 

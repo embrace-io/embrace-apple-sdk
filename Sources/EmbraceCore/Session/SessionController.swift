@@ -28,6 +28,8 @@ extension Notification.Name {
 
 class SessionController: SessionControllable {
 
+    static let sessionNumberKey = "emb.session.upload_index"
+
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
 
@@ -39,6 +41,7 @@ class SessionController: SessionControllable {
     private let uploader: SessionUploader
     weak var config: EmbraceConfig?
     weak var sdkStateProvider: EmbraceSDKStateProvider?
+    weak var experiments: ExperimentsHandler?
 
     private struct SessionInfo {
         var session: EmbraceSession? = nil
@@ -82,10 +85,22 @@ class SessionController: SessionControllable {
             self?.update(heartbeat: Date())
             span.end()
         }
+
+        Embrace.notificationCenter.addObserver(
+            self,
+            selector: #selector(onExperimentsChanged),
+            name: .embraceExperimentsChanged,
+            object: nil
+        )
     }
 
     deinit {
         heartbeat.stop()
+        Embrace.notificationCenter.removeObserver(self)
+    }
+
+    @objc private func onExperimentsChanged(notification: Notification) {
+        update(experiments: notification.object as? String)
     }
 
     func clear() {
@@ -142,7 +157,13 @@ class SessionController: SessionControllable {
             let newId = EmbraceIdentifier.random
             let span = SessionSpanUtils.span(id: newId, startTime: startTime, state: state, coldStart: isColdStart)
 
-            // create session record and save it
+            // a session started mid-process has to carry whatever is already tracked
+            SessionSpanUtils.setExperiments(span: span, value: experiments?.encodedExperiments)
+
+            // increment session counter and create session record
+            let sessionNumber = storage.incrementCountForPermanentResource(
+                key: SessionController.sessionNumberKey
+            )
             let session = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,
@@ -150,7 +171,8 @@ class SessionController: SessionControllable {
                 traceId: span.context.traceId.hexString,
                 spanId: span.context.spanId.hexString,
                 startTime: startTime,
-                coldStart: isColdStart
+                coldStart: isColdStart,
+                sessionNumber: sessionNumber
             )
 
             // start heartbeat
@@ -213,8 +235,9 @@ class SessionController: SessionControllable {
             NotificationCenter.default.post(name: .embraceSessionWillEnd, object: mainQueueSession)
         }
 
-        // end log batches
-        logBatcher?.forceEndCurrentBatch(waitUntilFinished: true)
+        // end log batches — session ID captured now so batchFinished attributes correctly
+        // even if it runs after the session has been swapped.
+        logBatcher?.forceEndCurrentBatch(waitUntilFinished: false, sessionId: inProgressSession.id)
 
         // end span
         if let inProgressSessionSpan {
@@ -223,7 +246,6 @@ class SessionController: SessionControllable {
             // to prevent race conditions.
             inProgressSessionSpan.end(time: now)
 
-            // Manually updating the span record synchronously.
             storage?.endSpan(
                 id: inProgressSessionSpan.context.spanId.hexString,
                 traceId: inProgressSessionSpan.context.traceId.hexString,
@@ -266,59 +288,57 @@ class SessionController: SessionControllable {
 
     func update(state: SessionState) {
         let sessionInfo = _session.safeValue
-        lock.locked {
-            guard let session = sessionInfo.session else {
-                return
-            }
-
+        let spanToFlush: Span? = lock.locked {
+            guard let session = sessionInfo.session else { return nil }
             let updatedSession = storage?.updateSession(session: session, state: state)
-            _session.withLock {
-                $0.session = updatedSession
-            }
-
-            if let span = sessionInfo.sessionSpan {
-                SessionSpanUtils.setState(span: span, state: state)
-                Embrace.client?.flush(span)
-            }
+            _session.withLock { $0.session = updatedSession }
+            guard let span = sessionInfo.sessionSpan else { return nil }
+            SessionSpanUtils.setState(span: span, state: state)
+            return span
         }
+        if let span = spanToFlush { Embrace.client?.flush(span) }
     }
 
     func update(appTerminated: Bool) {
         let sessionInfo = _session.safeValue
-        lock.locked {
-            guard let session = sessionInfo.session else {
-                return
-            }
-
+        let spanToFlush: Span? = lock.locked {
+            guard let session = sessionInfo.session else { return nil }
             let updatedSession = storage?.updateSession(session: session, appTerminated: appTerminated)
-            _session.withLock {
-                $0.session = updatedSession
-            }
-
-            if let span = sessionInfo.sessionSpan {
-                SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
-                Embrace.client?.flush(span)
-            }
+            _session.withLock { $0.session = updatedSession }
+            guard let span = sessionInfo.sessionSpan else { return nil }
+            SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
+            return span
         }
+        if let span = spanToFlush { Embrace.client?.flush(span) }
+    }
+
+    /// Refreshes the experiments attribute on the current session span.
+    ///
+    /// Only the live span is touched here. The session payload reads the value from storage when it is
+    /// built, since that session may belong to an earlier process.
+    func update(experiments: String?) {
+        let sessionInfo = _session.safeValue
+        let spanToFlush: Span? = lock.locked {
+            guard sessionInfo.session != nil,
+                let span = sessionInfo.sessionSpan
+            else { return nil }
+            SessionSpanUtils.setExperiments(span: span, value: experiments)
+            return span
+        }
+        if let span = spanToFlush { Embrace.client?.flush(span) }
     }
 
     func update(heartbeat: Date) {
         let sessionInfo = _session.safeValue
-        lock.locked {
-            guard let session = sessionInfo.session else {
-                return
-            }
-
+        let spanToFlush: Span? = lock.locked {
+            guard let session = sessionInfo.session else { return nil }
             let updatedSession = storage?.updateSession(session: session, lastHeartbeatTime: heartbeat)
-            _session.withLock {
-                $0.session = updatedSession
-            }
-
-            if let span = sessionInfo.sessionSpan {
-                SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
-                Embrace.client?.flush(span)
-            }
+            _session.withLock { $0.session = updatedSession }
+            guard let span = sessionInfo.sessionSpan else { return nil }
+            SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
+            return span
         }
+        if let span = spanToFlush { Embrace.client?.flush(span) }
     }
 
     func uploadSessionNoLock(_ session: EmbraceSession?) {

@@ -138,11 +138,16 @@ extension Data {
     /// - Throws: `GzipError`
     func gzipped(
         level: CompressionLevel = .defaultCompression,
-        wBits: Int32 = Gzip.maxWindowBits + 16
+        wBits: Int32 = Gzip.maxWindowBits + 16,
+        maxInputSize: Int = 50 * 1024 * 1024
     ) throws -> Data {
 
         guard !self.isEmpty else {
             return Data()
+        }
+
+        guard self.count <= maxInputSize else {
+            throw GzipError(code: Z_MEM_ERROR, msg: nil)
         }
 
         var stream = z_stream()
@@ -196,6 +201,13 @@ extension Data {
                 }
 
                 stream.next_in = nil
+            }
+
+            // Break early on fatal deflate errors instead of
+            // continuing to allocate memory.
+            if status != Z_OK && status != Z_STREAM_END && status != Z_BUF_ERROR {
+                deflateEnd(&stream)
+                throw GzipError(code: status, msg: stream.msg)
             }
 
         } while stream.avail_out == 0 && status != Z_STREAM_END

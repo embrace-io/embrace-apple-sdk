@@ -14,6 +14,27 @@ class URLSessionDelegateProxyTests: XCTestCase {
     private var sut: EMBURLSessionDelegateProxy!
     private var handler: MockURLSessionTaskHandler!
 
+    func test_onSessionInvalidated_shouldNilOutOriginalDelegateAndHandler() throws {
+        givenProxyWithFullyImplementedOriginalDelegate()
+
+        // when the session becomes invalid
+        try whenInvokingDidBecomeInvalidWithError()
+
+        // then the proxy releases its references, breaking the retain cycle
+        XCTAssertNil(sut.originalDelegate)
+        XCTAssertNil(sut.handler)
+    }
+
+    func test_onSessionInvalidated_shouldForwardToOriginalDelegateBeforeNilling() throws {
+        givenProxyWithFullyImplementedOriginalDelegate()
+
+        // when the session becomes invalid
+        try whenInvokingDidBecomeInvalidWithError()
+
+        // then the original delegate received the callback
+        XCTAssertTrue(originalDelegate.didCallDidBecomeInvalidWithError)
+    }
+
     func test_onExecuteDidCompleteWithError_shouldCallBothProxyAndOriginalDelegate() throws {
         givenProxyWithFullyImplementedOriginalDelegate()
         // This method is implemented in both proxy and original delegate.

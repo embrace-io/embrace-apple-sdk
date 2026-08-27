@@ -4,8 +4,10 @@
 
 import Foundation
 import OpenTelemetryApi
+import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
     import EmbraceSemantics
 #endif
 
@@ -32,9 +34,17 @@ extension Span {
         var errorCode = errorCode
 
         // get attributes from error
-        if let error = error as? NSError {
-            setAttribute(key: SpanSemantics.keyNSErrorMessage, value: error.localizedDescription)
-            setAttribute(key: SpanSemantics.keyNSErrorCode, value: error.code)
+        if let error {
+            // prefer LocalizedError.errorDescription over NSError.localizedDescription
+            // to avoid loosing info and producing generic messages like
+            // "The operation can't be completed. (Domain error Code.)"
+            let message =
+                (error as? LocalizedError)?.errorDescription
+                ?? error.localizedDescription
+            let nsError = error as NSError
+
+            setAttribute(key: SpanSemantics.keyNSErrorMessage, value: message)
+            setAttribute(key: SpanSemantics.keyNSErrorCode, value: nsError.code)
 
             errorCode = errorCode ?? .failure
         }
@@ -49,6 +59,27 @@ extension Span {
         }
 
         end(time: time)
+    }
+}
+
+extension ReadableSpan {
+    public var embType: SpanType {
+        if let raw = getAttributes()[SpanSemantics.keyEmbraceType] {
+            switch raw {
+            case let .string(val):
+                return SpanType(rawValue: val) ?? .performance
+            default:
+                break
+            }
+        }
+        return .performance
+    }
+
+    var errorCode: SpanErrorCode? {
+        guard let value = getAttributes()[SpanSemantics.keyErrorCode] else {
+            return nil
+        }
+        return SpanErrorCode(rawValue: value.description)
     }
 }
 

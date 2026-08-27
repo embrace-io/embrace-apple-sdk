@@ -9,10 +9,35 @@ import OpenTelemetrySdk
 
 public class MockSpanProcessor: SpanProcessor {
 
-    private(set) public var startedSpans = [SpanData]()
-    private(set) public var endedSpans = [SpanData]()
-    private(set) public var didShutdown = false
-    private(set) public var didForceFlush = false
+    private let lock = NSLock()
+
+    private var _startedSpans = [SpanData]()
+    public var startedSpans: [SpanData] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _startedSpans
+    }
+
+    private var _endedSpans = [SpanData]()
+    public var endedSpans: [SpanData] {
+        lock.lock()
+        defer { lock.unlock() }
+        return _endedSpans
+    }
+
+    private var _didShutdown = false
+    public var didShutdown: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _didShutdown
+    }
+
+    private var _didForceFlush = false
+    public var didForceFlush: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return _didForceFlush
+    }
 
     public init() {}
 
@@ -21,19 +46,29 @@ public class MockSpanProcessor: SpanProcessor {
     public let isEndRequired: Bool = true
 
     public func onStart(parentContext: SpanContext?, span: ReadableSpan) {
-        startedSpans.append(span.toSpanData())
+        let data = span.toSpanData()
+        lock.lock()
+        defer { lock.unlock() }
+        _startedSpans.append(data)
     }
 
     public func onEnd(span: ReadableSpan) {
-        endedSpans.append(span.toSpanData())
+        let data = span.toSpanData()
+        lock.lock()
+        defer { lock.unlock() }
+        _endedSpans.append(data)
     }
 
     public func forceFlush(timeout: TimeInterval?) {
-        didForceFlush = true
+        lock.lock()
+        defer { lock.unlock() }
+        _didForceFlush = true
     }
 
     public func shutdown(explicitTimeout: TimeInterval?) {
-        didShutdown = true
+        lock.lock()
+        defer { lock.unlock() }
+        _didShutdown = true
     }
 
 }

@@ -5,6 +5,8 @@
 public class DefaultConfig: EmbraceConfigurable {
     public var hangLimits: HangLimits = HangLimits()
 
+    public let experimentsLimits = ExperimentsLimits()
+
     public let isSDKEnabled: Bool = true
 
     public let isBackgroundSessionEnabled: Bool = false
@@ -21,13 +23,13 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let isSwiftUiViewInstrumentationEnabled: Bool = true
 
-    public let isMetricKitEnabled: Bool = false
+    public let isMetricKitEnabled: Bool = true
 
     public var isMetricKitInstrumentationEnabled: Bool = false
 
-    public var isMetricKitCrashCaptureEnabled: Bool = false
+    public var isMetricKitCrashCaptureEnabled: Bool = true
 
-    public var metricKitCrashSignals: [String] = []
+    public var metricKitCrashSignals: [String] = ["SIGKILL"]
 
     public var isMetricKitHangCaptureEnabled: Bool = false
 
@@ -44,6 +46,8 @@ public class DefaultConfig: EmbraceConfigurable {
     public let useLegacyUrlSessionProxy = false
 
     public let useNewStorageForSpanEvents = false
+
+    public let traceparentInjectionEnabled: Bool = false
 
     public func update(completion: (Bool, (any Error)?) -> Void) {
         completion(false, nil)

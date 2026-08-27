@@ -39,7 +39,8 @@ extension Embrace {
         customExporter: OpenTelemetryExport? = nil,
         customProcessors: [any SpanProcessor]? = nil,
         sdkStateProvider: EmbraceSDKStateProvider,
-        useNewStorageForSpanEvents: Bool
+        useNewStorageForSpanEvents: Bool,
+        resource: Resource? = nil
     ) -> [any SpanProcessor] {
 
         // Base Embrace exporter used by everything.
@@ -59,15 +60,16 @@ extension Embrace {
 
         // The core processor that dispatches completed spans to all exporters.
         let baseProcessor = EmbraceSpanProcessor(
+            spanProcessors: customProcessors ?? [],
             spanExporters: combinedExporters,
             sdkStateProvider: sdkStateProvider,
             logger: Embrace.logger,
             sessionIdProvider: { sessionController.currentSession?.idRaw },
             criticalResourceGroup: captureServicesGroup,
-            resourceProvider: { ResourceStorageExporter(storage: storage).getResource() }
+            resourceProvider: { ResourceStorageExporter(storage: storage, resource: resource).getResource() }
         )
 
         // Combine with any custom processors.
-        return [baseProcessor] + (customProcessors ?? [])
+        return [baseProcessor]
     }
 }

@@ -46,3 +46,98 @@ Make sure that your code is readable, well-encapsulated, and follows existing co
 ## Questions?
 
 You can reach us at [support@embrace.io](mailto:support@embrace.io) or in our [Community Slack](https://join.slack.com/t/embraceio-community/shared_invite/zt-ywr4jhzp-DLROX0ndN9a0soHMf6Ksow).
+
+
+## Building and Running Tests
+
+Open the project in Xcode by either selecting the directory or the `Package.swift` file itself. If opening for the first time, Xcode may take a bit to resolve the Package Dependencies and index the project.
+
+To build the project, select the `EmbraceIO-Package` scheme and in the menu select `Product -> Build (⌘+B)`.
+
+### Testing
+
+To run tests in Xcode, select the `EmbraceIO-Package` scheme and in the menu select `Product -> Test (⌘+U)`. You can also open the `Test Navigator (⌘+6)` and run individual tests using Xcode's UI.
+
+There is also the `bin/test` command that can be used to run tests from the command line. It is recommended to pipe this through `xcpretty`.
+
+```sh
+bin/test | xcbeautify
+```
+
+## Linting, Formatting and Guidelines
+
+To ensure consistent formatting across the codebase, we use both [swift-format](https://github.com/apple/swift-format) and [clang-format](https://clang.llvm.org/docs/ClangFormat.html), as well as [swiftlint](https://github.com/realm/SwiftLint) for linting.
+
+The easiest way to run both formatters and linters is via:
+
+```sh
+make all
+```
+
+This will automatically apply formatting and linting to all Swift and C/Obj-C files using project-defined configurations (e.g., `.swift-format`, `.clang-format`, `.swiftlint.yml`).
+
+To install the tools via Homebrew:
+
+```sh
+brew bundle
+```
+
+You can also run individual format and lint targets:
+
+```sh
+make format 
+make check-format 
+make swift-format 
+make check-swift-format
+make lint
+make check-lint
+```
+
+Make sure your code is formatted before submitting a pull request.
+
+### Using SwiftLint
+
+The SwiftLint Xcode plugin can be optionally enabled during development by using an environmental variable when opening the project from the commandline. 
+```
+EMBRACE_ENABLE_SWIFTLINT=1 open Package.swift
+```
+Note: Xcode must be completely closed before running the above command, close Xcode using `⌘Q` or running `killall xcode` in the commandline. 
+
+Aside from the warnings and errors that will appear directly in Xcode, you can use SwiftLint to automatically correct some issues.
+For this first you'll need to install SwiftLint in your local environment. Follow [SwiftLint's GitHub page](https://github.com/realm/SwiftLint) to see all available options.
+
+* Use `make check-lint` to get a report on all the issues.
+* Use `make lint` to fix issues automatically when possible.
+
+### Third-party licenses
+
+The [`NOTICE.md`](NOTICE.md) file lists the licenses of our third-party dependencies. It is generated from
+the SwiftPM dependencies with [LicensePlist](https://github.com/mono0926/LicensePlist) (installed via
+`brew bundle`, configured via `license_plist.yml`).
+
+Whenever you add, remove, or update a dependency, regenerate it and commit the result:
+
+```sh
+make notice
+```
+
+The pre-push hook (see below) runs `make check-notice` automatically when a dependency manifest changes, so
+you'll be reminded if `NOTICE.md` is out of date before the push leaves your machine.
+
+### Setup git hooks
+
+We strongly recommend installing the provided git hooks so changes are checked before they leave your machine:
+
+- `pre-commit` formats and lints the files you're committing.
+- `pre-push` runs `make check-notice` when a dependency manifest changes, so `NOTICE.md` stays in sync.
+
+Install all hooks (symlinks everything in `.githooks/`) with:
+
+```sh
+make install-hooks
+```
+
+Note that depending on your local environment, you might need to edit `.githooks/pre-commit` to set the path to `swiftlint`. To install a single hook manually instead, copy it into place, e.g. `cp .githooks/pre-commit .git/hooks/pre-commit`.
+
+**Alternatives on how to setup the hook:**
+* Use the `core.hooksPath` setting to change the hooks path (`git config core.hooksPath .githooks`)

@@ -11,6 +11,12 @@ class FullyImplementedURLSessionDelegate: NSObject,
     URLSessionStreamDelegate,
     URLSessionDownloadDelegate
 {
+    // MARK: - Session Delegate Methods
+    var didCallDidBecomeInvalidWithError = false
+    func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
+        didCallDidBecomeInvalidWithError = true
+    }
+
     // MARK: - Task Delegate Methods
     var didCallCreateTask = false
     var didCreateTaskExpectation = XCTestExpectation(description: "called didCreateTask")

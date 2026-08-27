@@ -36,6 +36,26 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(sessions[0].idRaw, TestConstants.sessionId.stringValue)
     }
 
+    func test_addSession_storesSessionNumber() throws {
+        // given a session inserted with an explicit sessionNumber
+        let sessionId = EmbraceIdentifier.random
+        storage.addSession(
+            id: sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(),
+            sessionNumber: 3
+        )
+
+        // when fetching the session back from storage
+        let session = storage.fetchSession(id: sessionId)
+
+        // then the sessionNumber is persisted correctly
+        XCTAssertEqual(session?.sessionNumber, 3)
+    }
+
     func test_fetchSession() throws {
         // given inserted session
         let sessionId = EmbraceIdentifier.random

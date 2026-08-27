@@ -10,7 +10,8 @@ import Foundation
 
 enum EmbraceUploadOperationResult: Equatable {
     case success
-    case failure(retriable: Bool)
+    case failure
+    case cancelled
 }
 
 typealias EmbraceUploadOperationCompletion = (_ result: EmbraceUploadOperationResult, _ attemptCount: Int) -> Void
@@ -25,11 +26,24 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     private let payloadTypes: String?
     private let retryCount: Int
     private let exponentialBackoffBehavior: EmbraceUpload.ExponentialBackoff
-    private var attemptCount: Int
     private let logger: InternalLogger?
     private let completion: EmbraceUploadOperationCompletion?
 
-    private var task: URLSessionDataTask?
+    /// Mutable state guarded by `state`. `hasFinished` guarantees completion
+    /// and `finish()` fire exactly once.
+    private struct State {
+        var attemptCount: Int
+        var task: URLSessionDataTask?
+        var hasFinished: Bool
+
+        init(attemptCount: Int) {
+            self.attemptCount = attemptCount
+            self.task = nil
+            self.hasFinished = false
+        }
+    }
+
+    private let state: EmbraceMutex<State>
 
     init(
         urlSession: URLSession,
@@ -54,17 +68,31 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         self.payloadTypes = payloadTypes
         self.retryCount = retryCount
         self.exponentialBackoffBehavior = exponentialBackoffBehavior
-        self.attemptCount = attemptCount
+        self.state = EmbraceMutex(State(attemptCount: attemptCount))
         self.logger = logger
         self.completion = completion
     }
 
     override func cancel() {
         super.cancel()
-        task?.cancel()
-        task = nil
 
-        completion?(.failure(retriable: true), attemptCount)
+        let (taskToCancel, attemptCount, shouldFire) = state.withLock { s -> (URLSessionDataTask?, Int, Bool) in
+            guard !s.hasFinished else {
+                return (nil, s.attemptCount, false)
+            }
+
+            let taskToCancel = s.task
+            s.task = nil
+            s.hasFinished = true
+
+            return (taskToCancel, s.attemptCount, true)
+        }
+
+        taskToCancel?.cancel()
+        if shouldFire {
+            completion?(.cancelled, attemptCount)
+            finish()
+        }
     }
 
     override func execute() {
@@ -79,59 +107,93 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     }
 
     private func sendRequest(_ r: URLRequest, retryCount: Int) {
-        var request = r
+        // Build next attempt outside lock, then commit attempt + task atomically.
+        let nextAttemptCount: Int? = state.withLock {
+            $0.hasFinished ? nil : $0.attemptCount + 1
+        }
+        guard let nextAttemptCount else { return }
 
-        // increment attempt count
-        attemptCount += 1
+        let request = updateRequest(r, attemptCount: nextAttemptCount)
 
-        // update request's attempt count header
-        request = updateRequest(request, attemptCount: attemptCount)
-
-        task = urlSession.dataTask(
+        let newTask = urlSession.dataTask(
             with: request,
-            completionHandler: { [weak self] _, response, error in
-                guard let strongSelf = self else {
-                    return
-                }
-                // retry?
-                if retryCount > 0 && strongSelf.shouldRetry(basedOn: response, error: error) {
-                    // calculates the necessary delay before retrying the request
-                    let delay = strongSelf.exponentialBackoffBehavior.calculateDelay(
-                        forRetryNumber: (strongSelf.retryCount - (retryCount - 1)),
-                        appending: strongSelf.getSuggestedDelay(fromResponse: response)
-                    )
-
-                    // retry request on the same queue after `delay`
-                    strongSelf.queue.asyncAfter(
-                        deadline: .now() + .seconds(delay),
-                        execute: {
-                            strongSelf.sendRequest(request, retryCount: retryCount - 1)
-                        })
-                    return
-                }
-
-                // check success
-                if let response = response as? HTTPURLResponse {
-                    strongSelf.logger?.debug(
-                        "Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))"
-                    )
-                    if response.statusCode >= 200 && response.statusCode < 300 {
-                        strongSelf.completion?(.success, strongSelf.attemptCount)
-                    } else {
-                        let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
-                        strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
-                    }
-
-                    // no retries left, send completion
-                } else {
-                    let isRetriable = strongSelf.shouldRetry(basedOn: response, error: error)
-                    strongSelf.completion?(.failure(retriable: isRetriable), strongSelf.attemptCount)
-                }
-
-                strongSelf.finish()
+            completionHandler: { [weak self] data, response, error in
+                self?.handleTaskCompletion(
+                    data: data,
+                    response: response,
+                    error: error,
+                    request: request,
+                    retryCount: retryCount
+                )
             })
 
-        task?.resume()
+        // If operation finished meanwhile, drop the unstarted task; it was never resumed.
+        let started = state.withLock {
+            guard !$0.hasFinished else { return false }
+
+            $0.attemptCount = nextAttemptCount
+            $0.task = newTask
+
+            return true
+        }
+
+        if started {
+            newTask.resume()
+        }
+    }
+
+    private func handleTaskCompletion(
+        data: Data?,
+        response: URLResponse?,
+        error: Error?,
+        request: URLRequest,
+        retryCount: Int
+    ) {
+        // Fast path: operation already completed or cancelled.
+        guard !state.safeValue.hasFinished else { return }
+
+        // Check retry budget: -1 = unlimited, 0 = none, >0 = that many remaining
+        let hasRetryBudget = (retryCount != 0)
+        if hasRetryBudget && shouldRetry(basedOn: response, error: error) {
+            let attemptCountForDelay = state.withLock { $0.attemptCount }
+            let delay = exponentialBackoffBehavior.calculateDelay(
+                forRetryNumber: attemptCountForDelay,
+                appending: TimeInterval(getSuggestedDelay(fromResponse: response))
+            )
+
+            let nextRetryCount = retryCount > 0 ? retryCount - 1 : retryCount
+
+            queue.asyncAfter(
+                deadline: .now() + delay,
+                execute: { [weak self] in
+                    self?.sendRequest(request, retryCount: nextRetryCount)
+                })
+            return
+        }
+
+        let result: EmbraceUploadOperationResult
+        if let response = response as? HTTPURLResponse {
+            logger?.debug(
+                "Upload operation complete. Status: \(response.statusCode) URL: \(String(describing: response.url))"
+            )
+            result = (response.statusCode >= 200 && response.statusCode < 300) ? .success : .failure
+        } else {
+            result = .failure
+        }
+
+        let (shouldFire, attemptCount) = state.withLock {
+            guard !$0.hasFinished else {
+                return (false, $0.attemptCount)
+            }
+
+            $0.hasFinished = true
+            return (true, $0.attemptCount)
+        }
+
+        if shouldFire {
+            completion?(result, attemptCount)
+            finish()
+        }
     }
 
     private func shouldRetry(
@@ -139,36 +201,19 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         error: (any Error)?
     ) -> Bool {
         // handle network-related errors
-        if let nsError = error as? URLError {
-            switch nsError.code {
-            case .cancelled,
-                .unsupportedURL,
-                .badURL,
-                .userAuthenticationRequired,
-                .secureConnectionFailed,
-                .serverCertificateUntrusted,
-                .dnsLookupFailed:
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .unsupportedURL,
+                .badURL:
                 return false
             default:
                 return true
             }
         }
 
-        // handle HTTP status codes:
-        // retry only if is an error (client/server) and statusCode is not 429
+        // all 4xx and 5xx are retriable
         if let statusCode = (response as? HTTPURLResponse)?.statusCode, statusCode >= 400 {
-            switch statusCode {
-            // this status code ("Too Many Requests") indicates that the server has applied rate limiting to protect itself from excessive requests.
-            // instead of dropping the request, we should retry this operation at a later time.
-            case 429:
-                return true
-            // server-side errors (5xx): These indicate issues on the server side that may be temporary, so retrying is appropriate.
-            case 500...599:
-                return true
-            // default case for other 4xx errors: These typically indicate client-side issues (e.g. invalid requests) and should not be retried.
-            default:
-                return false
-            }
+            return true
         }
 
         // retry for all other non-handled cases with errors

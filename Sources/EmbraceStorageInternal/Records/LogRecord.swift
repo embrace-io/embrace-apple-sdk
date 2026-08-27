@@ -103,7 +103,11 @@ extension LogRecord: EmbraceStorageRecord {
 
         let severityAttribute = NSAttributeDescription()
         severityAttribute.name = "severityRaw"
-        severityAttribute.attributeType = .integer64AttributeType
+        #if arch(arm64_32)
+            severityAttribute.attributeType = .integer32AttributeType
+        #else
+            severityAttribute.attributeType = .integer64AttributeType
+        #endif
 
         let bodyAttribute = NSAttributeDescription()
         bodyAttribute.name = "body"
@@ -125,7 +129,11 @@ extension LogRecord: EmbraceStorageRecord {
 
         let typeAttribute = NSAttributeDescription()
         typeAttribute.name = "typeRaw"
-        typeAttribute.attributeType = .integer64AttributeType
+        #if arch(arm64_32)
+            typeAttribute.attributeType = .integer32AttributeType
+        #else
+            typeAttribute.attributeType = .integer64AttributeType
+        #endif
 
         // relationships
         let parentRelationship = NSRelationshipDescription()

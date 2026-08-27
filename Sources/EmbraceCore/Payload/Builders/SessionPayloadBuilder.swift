@@ -7,26 +7,31 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceStorageInternal
+    import EmbraceSemantics
 #endif
 
 class SessionPayloadBuilder {
 
-    static var resourceName = "emb.session.upload_index"
-
     class func build(for session: EmbraceSession, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]>? {
-
-        // increment counter or create resource if needed
-        let counter = storage.incrementCountForPermanentResource(key: resourceName)
 
         // fetch properties
         let properties = storage.fetchCustomProperties(sessionId: session.idRaw, processId: session.processIdRaw)
+
+        // Fetch the experiments tracked by the process this session belongs to.
+        // This may be an earlier process, so it can't be read from the handler in memory.
+        let experiments = storage.fetchMetadata(
+            key: SpanSemantics.keyExperiments,
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: session.processIdRaw
+        )?.value
 
         // build spans
         let (spans, spanSnapshots) = SpansPayloadBuilder.build(
             for: session,
             storage: storage,
             customProperties: properties,
-            sessionNumber: counter
+            experiments: experiments
         )
 
         // build resources payload

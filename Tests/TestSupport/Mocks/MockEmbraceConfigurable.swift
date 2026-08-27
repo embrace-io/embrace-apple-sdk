@@ -30,6 +30,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         updateCompletionParamDidUpdate: Bool = false,
         updateCompletionParamError: Error? = nil,
         hangLimits: HangLimits = HangLimits(),
+        experimentsLimits: ExperimentsLimits = ExperimentsLimits(),
         useLegacyUrlSessionProxy: Bool = false,
         useNewStorageForSpanEvents: Bool = false
     ) {
@@ -50,6 +51,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._logsLimits = logsLimits
         self._internalLogLimits = internalLogLimits
         self._hangLimits = hangLimits
+        self._experimentsLimits = experimentsLimits
         self._networkPayloadCaptureRules = networkPayloadCaptureRules
         self._useLegacyUrlSessionProxy = useLegacyUrlSessionProxy
         self._useNewStorageForSpanEvents = useNewStorageForSpanEvents
@@ -271,6 +273,18 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         }
     }
 
+    private var _experimentsLimits: ExperimentsLimits
+    public let experimentsLimitsExpectation = XCTestExpectation(description: "experimentsLimits called")
+    public var experimentsLimits: ExperimentsLimits {
+        get {
+            experimentsLimitsExpectation.fulfill()
+            return _experimentsLimits
+        }
+        set {
+            _experimentsLimits = newValue
+        }
+    }
+
     private var _networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
     public let networkPayloadCaptureRulesExpectation = XCTestExpectation(
         description: "networkPayloadCaptureRules called"
@@ -310,6 +324,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
             _useNewStorageForSpanEvents = newValue
         }
     }
+
+    public var traceparentInjectionEnabled: Bool = false
 
     public var updateCallCount = 0
     public var updateCompletionParamDidUpdate: Bool

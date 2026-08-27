@@ -24,7 +24,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 1),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date(timeInterval: -1300, since: now)
         )
         _ = UploadDataRecord.create(
@@ -33,7 +32,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 1),
             payloadTypes: "test",
-            attemptCount: 0,
             date: oldDate
         )
         _ = UploadDataRecord.create(
@@ -42,7 +40,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 1),
             payloadTypes: "test",
-            attemptCount: 0,
             date: oldDate
         )
         _ = UploadDataRecord.create(
@@ -51,7 +48,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 300),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date(timeInterval: -1200, since: now)
         )
         _ = UploadDataRecord.create(
@@ -60,7 +56,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 400),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date(timeInterval: -1100, since: now)
         )
         _ = UploadDataRecord.create(
@@ -69,7 +64,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 100),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date(timeInterval: -1000, since: now)
         )
 
@@ -118,7 +112,7 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 1),
             payloadTypes: "test",
-            attemptCount: 0, date: Date(timeInterval: -1300, since: now)
+            date: Date(timeInterval: -1300, since: now)
         )
         _ = UploadDataRecord.create(
             context: cache.coreData.context,
@@ -126,7 +120,7 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 1),
             payloadTypes: "test",
-            attemptCount: 0, date: oldDate
+            date: oldDate
         )
         _ = UploadDataRecord.create(
             context: cache.coreData.context,
@@ -134,7 +128,7 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 1),
             payloadTypes: "test",
-            attemptCount: 0, date: oldDate
+            date: oldDate
         )
         _ = UploadDataRecord.create(
             context: cache.coreData.context,
@@ -142,7 +136,7 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 300),
             payloadTypes: "test",
-            attemptCount: 0, date: Date(timeInterval: -1200, since: now)
+            date: Date(timeInterval: -1200, since: now)
         )
         _ = UploadDataRecord.create(
             context: cache.coreData.context,
@@ -150,7 +144,7 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 400),
             payloadTypes: "test",
-            attemptCount: 0, date: Date(timeInterval: -1100, since: now)
+            date: Date(timeInterval: -1100, since: now)
         )
         _ = UploadDataRecord.create(
             context: cache.coreData.context,
@@ -158,7 +152,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 100),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date(timeInterval: -1000, since: now)
         )
 
@@ -210,7 +203,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 1),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date(timeInterval: -1300, since: now)
         )
         _ = UploadDataRecord.create(
@@ -219,7 +211,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 1),
             payloadTypes: "test",
-            attemptCount: 0,
             date: oldDate
         )
         _ = UploadDataRecord.create(
@@ -228,7 +219,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 1),
             payloadTypes: "test",
-            attemptCount: 0,
             date: oldDate
         )
         _ = UploadDataRecord.create(
@@ -237,7 +227,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 300),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date(timeInterval: -1200, since: now)
         )
         _ = UploadDataRecord.create(
@@ -246,7 +235,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 400),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date(timeInterval: -1100, since: now)
         )
         _ = UploadDataRecord.create(
@@ -255,7 +243,6 @@ extension EmbraceUploadCacheTests {
             type: 0,
             data: Data(repeating: 3, count: 100),
             payloadTypes: "test",
-            attemptCount: 0,
             date: Date(timeInterval: -1000, since: now)
         )
 

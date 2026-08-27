@@ -19,7 +19,7 @@ jobs:
 
   build-and-lint-cocoapod:
     name: Cocoapod Build And Lint
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 60
     strategy:
       fail-fast: true
@@ -30,43 +30,51 @@ jobs:
     steps:
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.0.app
+          sudo xcode-select -s /Applications/Xcode_26.5.app
           xcodebuild -version
 
       - name: Ensure the Platform is Downloaded
         run: |
           xcodebuild -runFirstLaunch
           xcrun simctl list
-          xcodebuild -downloadPlatform iOS
+          for i in 1 2 3; do
+            xcodebuild -downloadPlatform iOS && break
+            if [ "$i" -eq 3 ]; then
+              echo "::error title=downloadPlatform failed::all 3 attempts failed for iOS"
+              exit 1
+            fi
+            echo "::warning title=downloadPlatform retry::attempt $i failed for iOS; retrying in 15s"
+            sleep 15
+          done
           xcodebuild -runFirstLaunch
 
       - name: Checkout PR
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         timeout-minutes: 2
         with:
           persist-credentials: false
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@d5126b9b3579e429dd52e51e68624dda2e05be25 # v1
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: 3.2.2
-      
+
       - name: Install Deps
         run: |
           gem install cocoapods
           gem install xcpretty
-      
+
       - name: Install Pods
         working-directory: Examples/BrandGame-CocoaPods
         run: pod install
 
       - name: Build BrandGame-CocoaPods
-        uses: embrace-io/xcodebuild@5ec9e396576d4142d6c8ff01767765ea649e803e # acohen/test-iterations
+        uses: ./.github/actions/run-xcodebuild
         with:
-          action: build
           workspace: Examples/BrandGame-CocoaPods/BrandGame.xcworkspace
           scheme: BrandGame
           platform: iOS
+          action: build
 
       - name: Lint Podspec
         id: lint
@@ -76,8 +84,8 @@ jobs:
           pod lib lint --allow-warnings --verbose --platforms=iOS 2>&1 | tee cocoapod-lint-output.log
 
       - name: Upload Lint Output on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cocoapod-lint-output
           path: cocoapod-lint-output.log

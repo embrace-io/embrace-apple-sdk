@@ -11,7 +11,7 @@ import Foundation
 
 struct SpanEventPayload: Encodable {
     let name: String
-    let timestamp: Int
+    let timestamp: EMBInt
     let attributes: [Attribute]
 
     enum CodingKeys: String, CodingKey {

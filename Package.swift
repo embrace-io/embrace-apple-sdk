@@ -43,7 +43,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/kstenerud/KSCrash",
-            from: "2.4.0"
+            exact: "2.6.0"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift-core",
@@ -51,7 +51,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
-            "509.0.0"..<"603.0.0"
+            "509.0.0"..<"604.0.0"
         )
     ],
     targets: [
@@ -75,7 +75,8 @@ let package = Package(
             dependencies: [
                 "EmbraceIO",
                 "EmbraceCore",
-                "TestSupport"
+                "TestSupport",
+                "TestSupportObjc"
             ]
         ),
 
@@ -91,6 +92,7 @@ let package = Package(
                 "EmbraceStorageInternal",
                 "EmbraceUploadInternal",
                 "EmbraceObjCUtilsInternal",
+                "EmbraceKSCrashBacktraceSupport",
                 "EmbraceSemantics"
             ],
             resources: [
@@ -352,6 +354,7 @@ let package = Package(
         ),
         .target(
             name: "TestSupportObjc",
+            dependencies: ["EmbraceObjCUtilsInternal"],
             path: "Tests/TestSupport/Objc"
         )
     ]

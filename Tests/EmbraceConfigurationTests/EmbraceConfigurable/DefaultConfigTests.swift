@@ -17,13 +17,14 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertTrue(config.viewControllerClassNameBlocklist.isEmpty)
         XCTAssertFalse(config.uiInstrumentationCaptureHostingControllers)
         XCTAssertTrue(config.isSwiftUiViewInstrumentationEnabled)
-        XCTAssertFalse(config.isMetricKitEnabled)
-        XCTAssertFalse(config.isMetricKitCrashCaptureEnabled)
-        XCTAssertEqual(config.metricKitCrashSignals, [])
+        XCTAssertTrue(config.isMetricKitEnabled)
+        XCTAssertTrue(config.isMetricKitCrashCaptureEnabled)
+        XCTAssertEqual(config.metricKitCrashSignals, ["SIGKILL"])
         XCTAssertFalse(config.isMetricKitHangCaptureEnabled)
         XCTAssertEqual(config.spanEventsLimits, SpanEventsLimits())
         XCTAssertEqual(config.logsLimits, LogsLimits())
         XCTAssertEqual(config.internalLogLimits, InternalLogLimits())
+        XCTAssertEqual(config.experimentsLimits, ExperimentsLimits())
         XCTAssertTrue(config.networkPayloadCaptureRules.isEmpty)
     }
 }

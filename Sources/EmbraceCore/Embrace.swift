@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
@@ -76,6 +77,9 @@ import Foundation
     /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
     @objc public let startupInstrumentation: StartupInstrumentation
 
+    /// Holds the experiments and feature flags tracked during this process.
+    package let experiments: ExperimentsHandler
+
     let metricKit: MetricKitHandler
 
     let config: EmbraceConfig
@@ -91,6 +95,8 @@ import Foundation
 
     let spanEventsLimiter: SpanEventsLimiter
 
+    let otelResources: Resource?
+
     let processingQueue = DispatchQueue(
         label: "com.embrace.processing",
         qos: .utility,
@@ -101,7 +107,10 @@ import Foundation
     private static let _syncLock = ReadWriteLock()
     static let notificationCenter: NotificationCenter = NotificationCenter()
 
-    static var logger: DefaultInternalLogger = DefaultInternalLogger(exportFilePath: EmbraceFileSystem.criticalLogsURL)
+    static var logger: DefaultInternalLogger = DefaultInternalLogger(
+        pendingFilePath: EmbraceFileSystem.pendingLogsURL,
+        criticalFilePath: EmbraceFileSystem.criticalLogsURL
+    )
 
     /// Method used to configure the Embrace SDK.
     /// - Parameter options: `Embrace.Options` to be used by the SDK.
@@ -113,6 +122,12 @@ import Foundation
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     @objc public static func setup(options: Embrace.Options) throws -> Embrace {
+        return try setup(options: options, otelResources: nil)
+    }
+
+    @discardableResult
+    package static func setup(options: Embrace.Options, otelResources: Resource?) throws -> Embrace {
+
         if !Thread.isMainThread {
             throw EmbraceSetupError.invalidThread("Embrace must be setup on the main thread")
         }
@@ -137,7 +152,7 @@ import Foundation
 
             try options.validate()
 
-            client = try Embrace(options: options)
+            client = try Embrace(options: options, otelResources: otelResources)
             if let client = client {
                 EMBStartupTracker.shared().sdkSetupEndTime = Date()
                 Embrace.logger.startup("Embrace SDK setup finished")
@@ -160,11 +175,13 @@ import Foundation
     init(
         options: Embrace.Options,
         logControllable: LogControllable? = nil,
-        embraceStorage: EmbraceStorage? = nil
+        embraceStorage: EmbraceStorage? = nil,
+        otelResources: Resource? = nil
     ) throws {
 
         self.options = options
         self.logLevel = options.logLevel
+        self.otelResources = otelResources
 
         // retrieve device identifier
         self.deviceId = EmbraceIdentifier.retrieveDeviceId(fileURL: EmbraceFileSystem.deviceIdURL)
@@ -175,8 +192,12 @@ import Foundation
         // initialize upload module
         self.upload = try Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
 
-        // send critical logs from previous session
-        UnsentDataHandler.sendCriticalLogs(fileUrl: EmbraceFileSystem.criticalLogsURL, upload: upload)
+        // send critical logs from previous session, and clean up any orphan pending-logs file
+        UnsentDataHandler.sendCriticalLogs(
+            fileUrl: EmbraceFileSystem.criticalLogsURL,
+            pendingFileUrl: EmbraceFileSystem.pendingLogsURL,
+            upload: upload
+        )
 
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options, configuration: config.configurable)
@@ -207,6 +228,13 @@ import Foundation
         self.metadata = MetadataHandler(storage: storage, sessionController: sessionController)
         self.metricKit = MetricKitHandler()
 
+        // initialize experiments handler
+        self.experiments = ExperimentsHandler(
+            storage: storage,
+            experimentsLimits: config.experimentsLimits,
+            configNotificationCenter: Embrace.notificationCenter
+        )
+
         // initialize startup instrumentation
         self.startupInstrumentation = StartupInstrumentation()
 
@@ -234,6 +262,11 @@ import Foundation
 
         sessionController.sdkStateProvider = self
         logController?.sdkStateProvider = self
+        logController?.privateLogger = self
+
+        // the session span and every log report the experiments tracked so far
+        sessionController.experiments = experiments
+        logController?.experiments = experiments
 
         // setup otel
         EmbraceOTel.setup(
@@ -243,8 +276,10 @@ import Foundation
                 customExporter: options.export,
                 customProcessors: options.processors?.compactMap { $0.processor },
                 sdkStateProvider: self,
-                useNewStorageForSpanEvents: config.useNewStorageForSpanEvents
-            )
+                useNewStorageForSpanEvents: config.useNewStorageForSpanEvents,
+                resource: otelResources
+            ),
+            resource: otelResources
         )
 
         let logBatcher = DefaultLogBatcher(
@@ -258,8 +293,10 @@ import Foundation
         let logSharedState = DefaultEmbraceLogSharedState.create(
             storage: self.storage,
             batcher: logBatcher,
+            processors: options.processors?.compactMap { $0.logProcessor } ?? [],
             exporter: options.export?.logExporter,
-            sdkStateProvider: self
+            sdkStateProvider: self,
+            resource: otelResources
         )
 
         EmbraceOTel.setup(logSharedState: logSharedState)
@@ -359,6 +396,9 @@ import Foundation
 
                     // remove old versions data
                     self?.cleanUpOldVersionsData()
+
+                    // add otel resources as metadata
+                    self?.addOtelResources()
                 }
 
                 // retry any remaining cached upload data

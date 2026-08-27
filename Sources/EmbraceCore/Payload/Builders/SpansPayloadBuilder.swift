@@ -10,15 +10,18 @@ import OpenTelemetrySdk
     import EmbraceCommonInternal
     import EmbraceStorageInternal
     import EmbraceOTelInternal
+    import EmbraceSemantics
 #endif
 
 class SpansPayloadBuilder {
+
+    static let startupSpanMaxLength: TimeInterval = 10
 
     class func build(
         for session: EmbraceSession,
         storage: EmbraceStorage,
         customProperties: [EmbraceMetadata] = [],
-        sessionNumber: Int = -1
+        experiments: String? = nil
     ) -> (spans: [SpanPayload], spanSnapshots: [SpanPayload]) {
 
         let endTime = session.endTime ?? session.lastHeartbeatTime
@@ -36,9 +39,18 @@ class SpansPayloadBuilder {
             for: session,
             storage: storage,
             customProperties: customProperties,
-            sessionNumber: sessionNumber
+            experiments: experiments
         ) {
             spans.append(sessionSpanPayload)
+        }
+
+        // check if we need to drop startup spans
+        var shouldDropStartupSpans = true
+        let startupRoot = records.first { $0.type == .startup && $0.name.contains(SpanSemantics.Startup.parentName) }
+        if let startupRoot,
+            let endTime = startupRoot.endTime
+        {
+            shouldDropStartupSpans = endTime.timeIntervalSince(startupRoot.startTime) > startupSpanMaxLength
         }
 
         for record in records {
@@ -52,6 +64,12 @@ class SpansPayloadBuilder {
                 let failed = session.crashReportId != nil && (record.endTime == nil || record.endTime == endTime)
 
                 let span = try JSONDecoder().decode(SpanData.self, from: record.data)
+
+                // drop startup span?
+                if span.embType == .startup && shouldDropStartupSpans {
+                    continue
+                }
+
                 let adjustedSpan = spanDataAdjustedForEvents(span, in: record)
                 let payload = SpanPayload(from: adjustedSpan, endTime: failed ? endTime : record.endTime, failed: failed)
 
@@ -91,7 +109,7 @@ class SpansPayloadBuilder {
         for session: EmbraceSession,
         storage: EmbraceStorage,
         customProperties: [EmbraceMetadata] = [],
-        sessionNumber: Int
+        experiments: String? = nil
     ) -> SpanPayload? {
 
         let sessionSpan = storage.fetchSpan(id: session.spanId, traceId: session.traceId)
@@ -113,7 +131,8 @@ class SpansPayloadBuilder {
             from: session,
             spanData: adjustedSpanData,
             properties: customProperties,
-            sessionNumber: sessionNumber
+            sessionNumber: session.sessionNumber,
+            experiments: experiments
         )
     }
 }

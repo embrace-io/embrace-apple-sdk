@@ -67,7 +67,9 @@
         }
 
         @MainActor
-        func testEmbraceTraceViewEnabledPerformance() async {
+        func testEmbraceTraceViewEnabledPerformance() async throws {
+            // Perf measurements are meaningless under sanitizer instrumentation.
+            try XCTSkipIfSanitizing()
             mockConfig.isSwiftUiViewInstrumentationEnabled = true
             measure {
                 runLayout()
@@ -75,7 +77,9 @@
         }
 
         @MainActor
-        func testEmbraceTraceViewDisabledPerformance() async {
+        func testEmbraceTraceViewDisabledPerformance() async throws {
+            // Perf measurements are meaningless under sanitizer instrumentation.
+            try XCTSkipIfSanitizing()
             mockConfig.isSwiftUiViewInstrumentationEnabled = false
             measure {
                 runLayout()

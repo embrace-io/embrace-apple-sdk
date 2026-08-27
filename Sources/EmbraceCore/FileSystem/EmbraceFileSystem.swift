@@ -15,6 +15,7 @@ public struct EmbraceFileSystem {
     static let configDirectoryName = "config"
     static let deviceIdName = "device-identifier"
     static let criticalLogsName = "critical-logs"
+    static let pendingLogsName = "pending-logs"
 
     static let defaultPartitionId = "default"
 
@@ -136,6 +137,16 @@ public struct EmbraceFileSystem {
     /// ```
     static var criticalLogsURL: URL? {
         rootURL()?.appendingPathComponent(criticalLogsName)
+    }
+
+    /// Returns the fileURL for the pending logs staging file.
+    /// Holds startup-level lines until a `.critical` is logged, at which point
+    /// the file is promoted (renamed) to `criticalLogsURL`.
+    /// ```
+    /// io.embrace.data/pending-logs
+    /// ```
+    static var pendingLogsURL: URL? {
+        rootURL()?.appendingPathComponent(pendingLogsName)
     }
 
     /// Returns the possible subdirectories for data from old version that can be safely removed

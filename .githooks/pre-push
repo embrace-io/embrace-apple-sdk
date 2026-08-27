@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+
+# Prefer Homebrew paths (Apple Silicon + Intel)
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+# ---- repo root --------------------------------------------------------------
+REPO_ROOT="$(git rev-parse --show-toplevel)" || exit 1
+cd "$REPO_ROOT" || exit 1
+
+ZERO="0000000000000000000000000000000000000000"
+
+# ---- only run when a dependency manifest changed ----------------------------
+# git feeds pre-push a line per ref on stdin: <local ref> <local oid> <remote ref> <remote oid>
+deps_changed=0
+while read -r _local_ref local_oid _remote_ref remote_oid; do
+  # Skip branch deletions (nothing being pushed).
+  [ "$local_oid" = "$ZERO" ] && continue
+
+  if [ "$remote_oid" = "$ZERO" ]; then
+    # New branch on the remote: diff against the merge-base with main.
+    base="$(git merge-base "$local_oid" origin/main 2>/dev/null)"
+    if [ -z "$base" ]; then
+      # No common base to diff against; check to be safe.
+      deps_changed=1
+      break
+    fi
+    range="$base..$local_oid"
+  else
+    range="$remote_oid..$local_oid"
+  fi
+
+  if git diff --name-only "$range" -- Package.swift Package.resolved | grep -q .; then
+    deps_changed=1
+    break
+  fi
+done
+
+[ "$deps_changed" -eq 0 ] && exit 0
+
+# ---- verify NOTICE.md is in sync --------------------------------------------
+if ! command -v license-plist >/dev/null 2>&1; then
+  echo "pre-push: dependencies changed but 'license-plist' is not installed."
+  echo "Hint: run 'brew bundle' (or 'brew install licenseplist'), then 'make notice'."
+  exit 1
+fi
+
+echo "pre-push: dependencies changed; verifying NOTICE.md is up to date..."
+if ! make check-notice; then
+  printf "\nPush blocked: NOTICE.md is out of date. Run 'make notice' and commit the result.\n\n"
+  exit 1
+fi
+
+exit 0

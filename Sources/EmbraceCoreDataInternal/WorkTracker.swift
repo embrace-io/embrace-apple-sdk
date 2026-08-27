@@ -7,7 +7,9 @@ import Foundation
 #if canImport(UIKit)
     import UIKit
 #endif
-
+#if os(watchOS)
+    import WatchKit
+#endif
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
 #endif
@@ -45,6 +47,14 @@ internal class WorkTracker {
                 forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: nil
             ) { [weak self] _ in
                 self?.didEnterBackground()
+            }
+        #elseif os(watchOS)
+            if #available(watchOS 7.0, *) {
+                self.observer = NotificationCenter.default.addObserver(
+                    forName: WKExtension.applicationDidEnterBackgroundNotification, object: nil, queue: nil
+                ) { [weak self] _ in
+                    self?.didEnterBackground()
+                }
             }
         #endif
     }

@@ -5,6 +5,7 @@
 import EmbraceConfigInternal
 import EmbraceConfiguration
 import EmbraceCore
+import EmbraceKSCrashBacktraceSupport
 import EmbraceOTelInternal
 import TestSupport
 import XCTest
@@ -15,6 +16,27 @@ final class Embrace_OptionsTests: XCTestCase {
         let options = Embrace.Options(appId: "myApp", captureServices: [], crashReporter: nil)
         XCTAssertEqual(options.appId, "myApp")
         XCTAssertNil(options.export)
+    }
+
+    func test_init_defaultsToBuiltInBacktracerAndSymbolicator() throws {
+        // Symbolication works out of the box for EmbraceCore-only integrators (matches 7.0).
+        let options = Embrace.Options(appId: "myApp", captureServices: [], crashReporter: nil)
+        XCTAssertTrue(options.backtracer is KSCrashBacktracing)
+        XCTAssertTrue(options.symbolicator is KSCrashBacktracing)
+    }
+
+    func test_init_exportOverload_defaultsToBuiltInBacktracerAndSymbolicator() throws {
+        // The export/no-appId initializer gets the same built-in defaults as the appId one.
+        let options = Embrace.Options(export: OpenTelemetryExport(), captureServices: [], crashReporter: nil)
+        XCTAssertTrue(options.backtracer is KSCrashBacktracing)
+        XCTAssertTrue(options.symbolicator is KSCrashBacktracing)
+    }
+
+    func test_init_backtracerAndSymbolicatorAreOverridableToNil() throws {
+        let options = Embrace.Options(
+            appId: "myApp", captureServices: [], crashReporter: nil, backtracer: nil, symbolicator: nil)
+        XCTAssertNil(options.backtracer)
+        XCTAssertNil(options.symbolicator)
     }
 
     func test_init_withEndpoints_setsEndpoints() throws {

@@ -11,16 +11,19 @@
 
     // swiftlint:disable force_cast
 
-    final class TapCaptureServiceTests: XCTestCase {
+    final class TapCaptureServiceTests: SwizzlerTestCase {
 
         private var otel: MockEmbraceOpenTelemetry!
 
         override func setUpWithError() throws {
+            try super.setUpWithError()
             otel = MockEmbraceOpenTelemetry()
         }
 
         override func tearDownWithError() throws {
             otel = nil
+            restoreSwizzleCacheAdditions()
+            try super.tearDownWithError()
         }
 
         func test_tap() throws {

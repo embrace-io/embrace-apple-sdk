@@ -17,6 +17,10 @@ extension SpanSemantics {
         public static let keyUrl = SemanticConventions.Url.full.rawValue
         public static let keyMethod = SemanticConventions.Http.requestMethod.rawValue
         public static let keyBodySize = SemanticConventions.Http.requestBodySize.rawValue
+        /// Embrace NSF contract attribute — not an OTel semantic convention.
+        /// Carries the traceparent value as a pre-rendered NSF forwarder input and presence signal.
+        /// `http.request.header.traceparent` (the OTel convention for captured/received headers)
+        /// is intentionally not used here.
         public static let keyTracingHeader = "emb.w3c_traceparent"
         public static let keyStatusCode = SemanticConventions.Http.responseStatusCode.rawValue
         public static let keyResponseSize = SemanticConventions.Http.responseBodySize.rawValue

@@ -18,7 +18,11 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
 
     private func backgroundAndReopenApp() {
         XCUIDevice.shared.press(XCUIDevice.Button.home)
-        sleep(5)
+        let backgrounded = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "state == %d", XCUIApplication.State.runningBackground.rawValue),
+            object: app)
+        let result = XCTWaiter.wait(for: [backgrounded], timeout: 10)
+        XCTAssertEqual(result, .completed, "app didn't background in 10s")
         app.activate()
     }
 
@@ -62,7 +66,7 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(usernameTextField))
         usernameTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: usernameTextField)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         usernameTextField.typeText("TestUsername123")
         usernameTextField.typeText(XCUIKeyboardKey.return.rawValue)
@@ -73,7 +77,7 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(emailTextField))
         emailTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: emailTextField)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         emailTextField.typeText("Some@Email.com")
         emailTextField.typeText(XCUIKeyboardKey.return.rawValue)
@@ -84,14 +88,13 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
         XCTAssertTrue(app.scrollUntilHittableElementVisible(identifierTextField))
         identifierTextField.tap()
 
-        _ = waitUntilElementHasFocus(element: identifierTextField)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
 
         identifierTextField.typeText("ABCD1234")
         identifierTextField.typeText(XCUIKeyboardKey.return.rawValue)
     }
 
     func testSendFinishedSessionSpan() {
-        sleep(5)
         backgroundAndReopenApp()
         XCTAssertTrue(runSessionSpanTest(), "Test Button wait for enabled timed out")
 
@@ -100,7 +103,6 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
 
     func testSendFinishedSessionSpan_withPersona() {
         addPersona()
-        sleep(5)
         backgroundAndReopenApp()
         XCTAssertTrue(runSessionSpanTest(), "Test Button wait for enabled timed out")
 
@@ -109,7 +111,6 @@ final class EmbraceIOTestPostedPayloads: XCTestCase {
 
     func testSendFinishedSessionSpan_withUserInfo() {
         addUserInfo()
-        sleep(5)
         backgroundAndReopenApp()
         XCTAssertTrue(runSessionSpanTest(), "Test Button wait for enabled timed out")
 

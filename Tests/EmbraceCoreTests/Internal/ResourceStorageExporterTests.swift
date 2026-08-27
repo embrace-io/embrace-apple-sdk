@@ -1,3 +1,4 @@
+import EmbraceCommonInternal
 import EmbraceStorageInternal
 import OpenTelemetryApi
 //
@@ -32,11 +33,22 @@ final class ResourceStorageExporterTests: XCTestCase {
             value: "process",
             type: .resource,
             lifespan: .process,
-            lifespanId: "processId"
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+        // A process-scoped resource left behind by an earlier launch. Records like these share keys
+        // with the current process's, and whichever the store returned last used to win. They are
+        // now left out, so only the current process's value can be exported.
+        storage.addMetadata(
+            key: "foreign",
+            value: "foreign",
+            type: .resource,
+            lifespan: .process,
+            lifespanId: "someOtherProcessId"
         )
 
         let resource = exporter.getResource()
         XCTAssertEqual(resource.attributes.count, 6)
+        XCTAssertNil(resource.attributes["foreign"])
 
         XCTAssertEqual(resource.attributes["session"], .string("session"))
         XCTAssertEqual(resource.attributes["process"], .string("process"))

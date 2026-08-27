@@ -17,6 +17,7 @@ public protocol EmbraceSession {
     var coldStart: Bool { get }
     var cleanExit: Bool { get }
     var appTerminated: Bool { get }
+    var sessionNumber: EMBInt { get }
 }
 
 extension EmbraceSession {

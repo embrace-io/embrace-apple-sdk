@@ -3,15 +3,15 @@
         "threshold": 75
     },
     "threshold": 50,
-    "network_span_forwarding": {
-        "pct_enabled": 25
-    },
+    "nsf_pct_enabled": 25,
+    "traceparent_injection_pct_enabled": 10,
     "ui_load_instrumentation_enabled_v2": false,
     "ui_load_instrumentation_blocklist": "MyViewController,TestViewController",
     "ui_load_instrumentation_hosting_controller_capture": true,
     "swift_ui_view_instrumentation_enabled": false,
     "ui":{
-       "breadcrumbs": 1234
+       "breadcrumbs": 1234,
+       "taps": 1234
     },
     "log": {
         "info_limit": 40,
@@ -48,5 +48,15 @@
     ],
     "metrickit_v2_pct_enabled": 55,
     "metrickit_v2_reporters_enabled": "CRASH,HANG",
-    "metrickit_v2_crash_signals_enabled": "SIGKILL,SIGINT"
+    "metrickit_v2_crash_signals_enabled": "SIGKILL,SIGINT",
+    "hang_limits_v2": {
+        "hang_threshold": 0.5,
+        "hang_per_session": 100,
+        "reports_watchdog_events": true,
+        "sample_trigger_threshold": 0.2,
+        "sample_poll_interval": 0.03
+    },
+    "experiment_max_count": 1000,
+    "experiment_id_max_length": 256,
+    "experiment_variant_max_length": 64
 }

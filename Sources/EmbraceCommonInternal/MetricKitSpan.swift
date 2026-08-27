@@ -5,7 +5,7 @@
 import Foundation
 import os
 
-#if canImport(MetricKit) && (os(macOS) || os(iOS))
+#if canImport(MetricKit) && os(iOS)
     import MetricKit
 
     /// Represents a MetricKit signpost interval for SDK performance monitoring
@@ -29,7 +29,7 @@ import os
             guard let signpostId, hasEnded.compareExchange(expected: false, desired: true) else {
                 return
             }
-            mxSignpost(.end, log: Self.log, name: name, signpostID: signpostId)
+            os_signpost(.end, log: Self.log, name: name, signpostID: signpostId)
         }
 
         // MARK: - Private
@@ -53,7 +53,7 @@ import os
             self.name = name
             self.signpostId = signpostId
             if let signpostId {
-                mxSignpost(.begin, log: Self.log, name: name, signpostID: signpostId)
+                os_signpost(.begin, log: Self.log, name: name, signpostID: signpostId)
             }
         }
 

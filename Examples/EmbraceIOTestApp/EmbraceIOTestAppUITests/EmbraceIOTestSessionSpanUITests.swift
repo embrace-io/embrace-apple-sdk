@@ -18,7 +18,11 @@ final class EmbraceIOTestSessionSpanUITests: XCTestCase {
 
     private func backgroundAndReopenApp() {
         XCUIDevice.shared.press(XCUIDevice.Button.home)
-        sleep(5)
+        let backgrounded = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "state == %d", XCUIApplication.State.runningBackground.rawValue),
+            object: app)
+        let result = XCTWaiter.wait(for: [backgrounded], timeout: 10)
+        XCTAssertEqual(result, .completed, "app didn't background in 10s")
         app.activate()
     }
 
@@ -31,7 +35,9 @@ final class EmbraceIOTestSessionSpanUITests: XCTestCase {
 
     func testSendFinishedSessionSpan() {
         runSessionSpanTest()
-        sleep(5)
+        // Brief pause to let the SDK record the span before the session ends on background.
+        // TODO: replace with a UI signal once the app exposes span-written state.
+        sleep(2)
         backgroundAndReopenApp()
         evaluateTestResults(app)
     }

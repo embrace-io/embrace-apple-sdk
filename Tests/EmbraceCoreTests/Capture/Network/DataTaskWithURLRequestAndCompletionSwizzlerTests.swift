@@ -8,7 +8,7 @@ import XCTest
 @testable import EmbraceCommonInternal
 @testable import EmbraceCore
 
-class DataTaskWithURLRequestAndCompletionSwizzlerTests: XCTestCase {
+class DataTaskWithURLRequestAndCompletionSwizzlerTests: SwizzlerTestCase {
     private var session: URLSession!
     private var sut: DataTaskWithURLRequestAndCompletionSwizzler!
     private var handler: MockURLSessionTaskHandler!
@@ -18,6 +18,7 @@ class DataTaskWithURLRequestAndCompletionSwizzlerTests: XCTestCase {
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
+        try super.tearDownWithError()
     }
 
     func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
@@ -127,8 +128,7 @@ extension DataTaskWithURLRequestAndCompletionSwizzlerTests {
     }
 
     fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
-        XCTAssertTrue(handler.didInvokeCreate)
-        XCTAssertEqual(handler.createReceivedTask, dataTask)
+        handler.verifyCreated(dataTask)
     }
 
     fileprivate func thenHandlerShouldntHaveInvokedCreate() {

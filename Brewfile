@@ -1,6 +1,7 @@
 tap "danger/tap"
 brew "bloaty"
 brew "clang-format"
+brew "licenseplist"
 brew "swift-format"
 brew "swiftlint"
 brew "xcbeautify"

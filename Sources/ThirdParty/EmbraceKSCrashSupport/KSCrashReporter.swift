@@ -35,6 +35,15 @@ public final class KSCrashReporter: NSObject, CrashReporter {
         static let watchdgodEvent = "watchdog_event"
     }
 
+    private static let monitors: MonitorType = [
+        .machException,
+        .signal,
+        .cppException,
+        .nsException,
+        .userReported,
+        .termination
+    ]
+
     private let reporter: KSCrash = KSCrash.shared
 
     struct WatchdogEventData {
@@ -70,25 +79,23 @@ public final class KSCrashReporter: NSObject, CrashReporter {
 
     /// Used to determine if the last session ended cleanly or in a crash.
     public func getLastRunState() -> LastRunState {
-        return reporter.crashedLastLaunch ? .crash : .cleanExit
+        return reporter.previousTerminationReason == .crash ? .crash : .cleanExit
     }
 
     public func install(context: CrashReporterContext) throws {
-        #if !os(watchOS)
-            let config = KSCrashConfiguration()
-            config.enableSigTermMonitoring = false
-            config.enableSwapCxaThrow = false
-            config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
-            config.reportStoreConfiguration.appName = context.appId ?? "default"
-            config.didWriteReportCallback = { _, reportID in
-                KSCrashReporter.shared?.watchdogData.withLock {
-                    guard $0.inEvent else { return }
-                    $0.reportID = reportID
-                }
+        let config = KSCrashConfiguration()
+        config.monitors = Self.monitors
+        config.enableSwapCxaThrow = false
+        config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
+        config.reportStoreConfiguration.appName = context.appId ?? "default"
+        config.didWriteReportCallback = { _, reportID in
+            KSCrashReporter.shared?.watchdogData.withLock {
+                guard $0.inEvent else { return }
+                $0.reportID = reportID
             }
-            try reporter.install(with: config)
-            registerForHangs()
-        #endif
+        }
+        try reporter.install(with: config)
+        registerForHangs()
     }
 
     /// Fetches all saved `EmbraceCrashReport`.
@@ -117,6 +124,12 @@ public final class KSCrashReporter: NSObject, CrashReporter {
                 continue
             }
 
+            // Drop all reports except OOMs.
+            if report.isInjectedTerminationReport(), !report.isUserPerceptibleMemoryTermination() {
+                store.deleteReport(with: id)
+                continue
+            }
+
             // check the _name_, if it's a `watchdog_event`, we need to modify the `crashed_thread`.
             if report.isWatchdogEvent() {
                 report.changeCrashedThread(to: 0)
@@ -138,12 +151,18 @@ public final class KSCrashReporter: NSObject, CrashReporter {
 
             // get custom data from report
             var sessionId: EmbraceIdentifier?
+            var processId: EmbraceIdentifier?
             var timestamp: Date?
             let signal: CrashSignal? = getCrashSignal(fromReport: report)
 
             if let userDict = report[KSCrashKey.user] as? [AnyHashable: Any] {
                 if let value = userDict[CrashReporterInfoKey.sessionId] as? String {
                     sessionId = EmbraceIdentifier(stringValue: value)
+                }
+
+                // Absent in reports written before the SDK started recording it.
+                if let value = userDict[CrashReporterInfoKey.processId] as? String {
+                    processId = EmbraceIdentifier(stringValue: value)
                 }
             }
 
@@ -157,8 +176,9 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             let crashReport = EmbraceCrashReport(
                 payload: payload,
                 provider: "kscrash",  // from LogSemantics+Crash.swift
-                internalId: Int(id),
+                internalId: EMBInt(id),
                 sessionId: sessionId?.stringValue,
+                processId: processId?.stringValue,
                 timestamp: timestamp,
                 signal: signal
             )
@@ -258,7 +278,7 @@ extension KSCrashReporter {
 
         reporter.reportUserException(
             KSCrashWatchdogEventKey.watchdgodEvent,
-            reason: "0x8badf00d, main thread blocked for \(event.duration.uptime.secondsValue) seconds.",
+            reason: "0x8badf00d, main thread blocked for \(String(format: "%.3f", event.duration)) seconds.",
             language: nil,
             lineOfCode: nil,
             stackTrace: nil,
@@ -291,6 +311,54 @@ extension KSCrashReporter {
 
 // KSCrash report format support
 extension Dictionary where Key == String, Value == Any {
+
+    private enum TerminationKey {
+        static let monitorId = "Termination"
+        static let memoryLimit = "memory_limit"
+        static let memoryPressure = "memory_pressure"
+    }
+
+    /// Check if this report was injected retroactively by KSCrash's `termination` monitor
+    /// rather than written by a crash handler during the previous run.
+    ///
+    /// These reports are hand-built by KSCrash and contain only a `report` and a `crash`
+    /// section, so they carry no `user` section and therefore no session id.
+    fileprivate func isInjectedTerminationReport() -> Bool {
+        guard let reportData = self["report"] as? [String: Any],
+            let monitorId = reportData["monitor_id"] as? String,
+            monitorId == TerminationKey.monitorId
+        else {
+            return false
+        }
+
+        return true
+    }
+
+    /// Check if an injected termination report describes an out-of-memory kill that the user
+    /// could have perceived, which is the only termination KSCrash 2.5.1 reported.
+    ///
+    /// `user_perceptible` is stitched in from the previous run's `Lifecycle` sidecar when the
+    /// report is read, and mirrors the foreground check 2.5.1 applied before promoting its OOM
+    /// breadcrumb. Its absence means we can't establish the app was in the foreground, so we
+    /// treat that as not perceptible.
+    fileprivate func isUserPerceptibleMemoryTermination() -> Bool {
+        guard let crashData = self["crash"] as? [String: Any],
+            let errorData = crashData["error"] as? [String: Any],
+            let reason = errorData["termination_reason"] as? String,
+            reason == TerminationKey.memoryLimit || reason == TerminationKey.memoryPressure
+        else {
+            return false
+        }
+
+        guard let systemData = self["system"] as? [String: Any],
+            let appStats = systemData["application_stats"] as? [String: Any],
+            let userPerceptible = appStats["user_perceptible"] as? Bool
+        else {
+            return false
+        }
+
+        return userPerceptible
+    }
 
     /// Check if this data shows it being a watchdog event report from KSCrash.
     fileprivate func isWatchdogEvent() -> Bool {

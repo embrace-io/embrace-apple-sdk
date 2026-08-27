@@ -102,6 +102,10 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.isNetworkSpansForwardingEnabled
     }
 
+    public var traceparentInjectionEnabled: Bool {
+        configurable.traceparentInjectionEnabled
+    }
+
     public var isUiLoadInstrumentationEnabled: Bool {
         configurable.isUiLoadInstrumentationEnabled
     }
@@ -154,6 +158,10 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
 
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {
         configurable.networkPayloadCaptureRules
+    }
+
+    public var experimentsLimits: ExperimentsLimits {
+        configurable.experimentsLimits
     }
 
     public var useNewStorageForSpanEvents: Bool {

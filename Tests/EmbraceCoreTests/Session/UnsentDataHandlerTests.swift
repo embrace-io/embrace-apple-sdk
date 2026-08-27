@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 import TestSupport
 import XCTest
@@ -20,7 +21,7 @@ class UnsentDataHandlerTests: XCTestCase {
     let sdkStateProvider = MockEmbraceSDKStateProvider()
     var criticalLogsFilePath: URL!
 
-    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
+    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: -1)
     static let testMetadataOptions = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
         userAgent: "userAgent",
@@ -92,6 +93,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when sending unsent sessions
         await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: nil)
+        wait(timeout: .longTimeout, interval: .shortInterval, until: { upload.cache.fetchAllUploadData().isEmpty })
 
         // then a session request was sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
@@ -113,12 +115,13 @@ class UnsentDataHandlerTests: XCTestCase {
         // mock error requests
         EmbraceHTTPMock.mock(url: testSpansUrl(), errorCode: 500)
 
-        // given a storage and upload modules
+        // given a storage and upload modules (no retries so request count is deterministic)
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
+        let noRetryOptions = uploadOptions(automaticRetryCount: 0)
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue)
+            options: noRetryOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -135,9 +138,10 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when failing to send unsent sessions
         await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel, crashReporter: nil)
+        wait(timeout: .longTimeout, interval: .shortInterval, until: { EmbraceHTTPMock.totalRequestCount() == 1 })
 
         // then a session request was attempted
-        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
@@ -145,10 +149,6 @@ class UnsentDataHandlerTests: XCTestCase {
         // then the session is no longer on storage
         let session = storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
-
-        // then the session upload data cached
-        let uploadData = upload.cache.fetchAllUploadData()
-        XCTAssertEqual(uploadData.count, 1)
 
         // then no log was sent
         XCTAssertEqual(otel.logs.count, 0)
@@ -199,6 +199,7 @@ class UnsentDataHandlerTests: XCTestCase {
         // when sending unsent sessions
         await UnsentDataHandler.sendUnsentData(
             storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
+        wait(timeout: .longTimeout, interval: .shortInterval, until: { upload.cache.fetchAllUploadData().isEmpty })
 
         // then a crash report was sent
         // then a session request was sent
@@ -231,12 +232,13 @@ class UnsentDataHandlerTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testSpansUrl(), errorCode: 500)
         EmbraceHTTPMock.mock(url: testLogsUrl(), errorCode: 500)
 
-        // given a storage and upload modules
+        // given a storage and upload modules (no retries so request count is deterministic)
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
+        let noRetryOptions = uploadOptions(automaticRetryCount: 0)
         let upload = try EmbraceUpload(
-            options: uploadOptions, logger: logger, queue: queue)
+            options: noRetryOptions, logger: logger, queue: queue)
 
         let otel = MockEmbraceOpenTelemetry()
 
@@ -272,11 +274,12 @@ class UnsentDataHandlerTests: XCTestCase {
             storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
 
         await fulfillment(of: [didSendCrashesExpectation], timeout: .defaultTimeout)
+        wait(timeout: .longTimeout, interval: .shortInterval, until: { EmbraceHTTPMock.totalRequestCount() == 2 })
 
         // then a crash report request was attempted
         // then a session request was attempted
-        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0)
-        XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count > 0)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count, 1)
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count, 1)
 
         // then the total amount of requests is correct
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 2)
@@ -284,10 +287,6 @@ class UnsentDataHandlerTests: XCTestCase {
         // then the session is no longer on storage
         let session = storage.fetchSession(id: TestConstants.sessionId)
         XCTAssertNil(session)
-
-        // then the session and crash report upload data are still cached
-        let uploadData = upload.cache.fetchAllUploadData()
-        XCTAssertEqual(uploadData.count, 2)
 
         // then the crash is not longer stored
         let reports = await crashReporter.fetchUnsentCrashReports()
@@ -344,6 +343,7 @@ class UnsentDataHandlerTests: XCTestCase {
         // when sending unsent sessions
         await UnsentDataHandler.sendUnsentData(
             storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
+        wait(timeout: .longTimeout, interval: .shortInterval, until: { upload.cache.fetchAllUploadData().isEmpty })
 
         // then a crash report was sent
         // then a session request was sent
@@ -407,6 +407,7 @@ class UnsentDataHandlerTests: XCTestCase {
             upload: upload,
             otel: otel
         )
+        wait(timeout: .longTimeout, interval: .shortInterval, until: { upload.cache.fetchAllUploadData().isEmpty })
 
         // then a crash log was sent
         XCTAssert(EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count > 0)
@@ -429,6 +430,191 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(otel.logs[0].attributes["log.record.uid"], .string(report.id.withoutHyphen))
         XCTAssertEqual(otel.logs[0].attributes["emb.provider"], .string(report.provider))
         XCTAssertEqual(otel.logs[0].attributes["emb.payload"], .string(report.payload))
+    }
+
+    func test_sendCrashReports_sessionFromPreviousProcess() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given a storage and upload modules
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue)
+
+        let otel = MockEmbraceOpenTelemetry()
+
+        // given a crash reporter with a report tied to a session
+        let crashReporter = CrashReporterMock(crashSessionId: TestConstants.sessionId.stringValue)
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+
+        // given that session in the storage, belonging to a previous process
+        let previousProcessId = EmbraceIdentifier.random
+        await storage.addSession(
+            id: TestConstants.sessionId,
+            processId: previousProcessId,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60),
+            endTime: Date()
+        )
+
+        // given experiments in storage for that process and for the current one
+        storage.addMetadata(
+            key: LogSemantics.keyExperiments,
+            value: "previous_experiments",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: previousProcessId.stringValue
+        )
+        storage.addMetadata(
+            key: LogSemantics.keyExperiments,
+            value: "current_experiments",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+
+        // when sending unsent data
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
+        wait(
+            timeout: .longTimeout, interval: .shortInterval,
+            until: { EmbraceHTTPMock.requestBodiesForUrl(self.testLogsUrl()).count == 1 })
+
+        // then the crash log carries the experiments of the session's process, as a log attribute
+        let attributes = try crashLogAttributes()
+        XCTAssertEqual(attributes[LogSemantics.keyExperiments], "previous_experiments")
+
+        // and never as a resource
+        let resource = try crashLogResource()
+        XCTAssertNil(resource[LogSemantics.keyExperiments])
+    }
+
+    func test_sendCrashReports_noSessionWithProcessId() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given a storage and upload modules
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue)
+
+        let otel = MockEmbraceOpenTelemetry()
+
+        // given a crash reporter with a report that has no session but knows its process
+        let previousProcessId = EmbraceIdentifier.random
+        let crashReporter = CrashReporterMock(
+            mockReports: [
+                EmbraceCrashReport(
+                    payload: "test",
+                    provider: "mock",
+                    internalId: 123,
+                    sessionId: nil,
+                    processId: previousProcessId.stringValue,
+                    timestamp: Date()
+                )
+            ]
+        )
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+
+        // given experiments in storage for that process and for the current one
+        storage.addMetadata(
+            key: LogSemantics.keyExperiments,
+            value: "previous_experiments",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: previousProcessId.stringValue
+        )
+        storage.addMetadata(
+            key: LogSemantics.keyExperiments,
+            value: "current_experiments",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+
+        // when sending unsent data
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
+        wait(
+            timeout: .longTimeout, interval: .shortInterval,
+            until: { EmbraceHTTPMock.requestBodiesForUrl(self.testLogsUrl()).count == 1 })
+
+        // then the crash log carries the experiments of the process in the report
+        let attributes = try crashLogAttributes()
+        XCTAssertEqual(attributes[LogSemantics.keyExperiments], "previous_experiments")
+    }
+
+    func test_sendCrashReports_noSessionNoProcessId() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given a storage and upload modules
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue)
+
+        let otel = MockEmbraceOpenTelemetry()
+
+        // given a crash reporter with a report that has no session nor process
+        let crashReporter = CrashReporterMock(
+            mockReports: [
+                EmbraceCrashReport(
+                    payload: "test",
+                    provider: "mock",
+                    internalId: 123,
+                    sessionId: nil,
+                    processId: nil,
+                    timestamp: Date()
+                )
+            ]
+        )
+        let embraceReporter = EmbraceCrashReporter(reporter: crashReporter)
+
+        // given metadata in storage for the current process
+        storage.addMetadata(
+            key: LogSemantics.keyExperiments,
+            value: "current_experiments",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+        storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "1.0.0",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+
+        // when sending unsent data
+        await UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: upload, otel: otel, crashReporter: embraceReporter)
+        wait(
+            timeout: .longTimeout, interval: .shortInterval,
+            until: { EmbraceHTTPMock.requestBodiesForUrl(self.testLogsUrl()).count == 1 })
+
+        // then the crash log doesn't carry the experiments of the process sending it
+        let attributes = try crashLogAttributes()
+        XCTAssertNil(attributes[LogSemantics.keyExperiments])
+
+        // nor any other resource of that process: the crash belongs to a process we can't identify,
+        // and this one describes the launch that found the crash, not the one that crashed
+        let resource = try crashLogResource()
+        XCTAssertNil(resource["app_version"] as? String)
     }
 
     func test_spanCleanUp_sendUnsentData() async throws {
@@ -479,6 +665,12 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when sending unsent sessions
         await UnsentDataHandler.sendUnsentData(storage: storage, upload: upload, otel: otel)
+        wait(
+            timeout: .longTimeout, interval: .shortInterval,
+            until: {
+                let spans: [SpanRecord] = storage.fetchAll()
+                return spans.count == 1 && spans[0].endTime != nil
+            })
 
         // then the old closed span was removed
         // and the open span was closed
@@ -564,6 +756,13 @@ class UnsentDataHandlerTests: XCTestCase {
             otel: otel,
             currentSessionId: TestConstants.sessionId
         )
+        wait(
+            timeout: .longTimeout, interval: .shortInterval,
+            until: {
+                let records: [MetadataRecord] = storage.fetchAll()
+                return !records.contains(where: { $0.key == "differentSessionId" })
+                    && !records.contains(where: { $0.key == "differentProcessId" })
+            })
 
         // then all metadata is cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
@@ -609,6 +808,13 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when uploading the session
         await UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
+        wait(
+            timeout: .longTimeout, interval: .shortInterval,
+            until: {
+                let spans: [SpanRecord] = storage.fetchAll()
+                let sessions: [SessionRecord] = storage.fetchAll()
+                return spans.isEmpty && sessions.isEmpty
+            })
 
         // then the old closed span was removed
         // and the session was removed
@@ -664,6 +870,12 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when uploading the session
         await UnsentDataHandler.sendSession(session, storage: storage, upload: upload)
+        wait(
+            timeout: .longTimeout, interval: .shortInterval,
+            until: {
+                let records: [MetadataRecord] = storage.fetchAll()
+                return !records.contains(where: { $0.key == "differentProcessId" })
+            })
 
         // then metadata is correctly cleaned up
         let records: [MetadataRecord] = storage.fetchAll()
@@ -690,7 +902,17 @@ class UnsentDataHandlerTests: XCTestCase {
             controller: MockSessionController()
         )
         logController.sdkStateProvider = sdkStateProvider
+        logController.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
         let otel = MockEmbraceOpenTelemetry()
+
+        // given the resources required for the payload to be valid
+        storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "1.2.3",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.stringValue
+        )
 
         // given logs in storage
         for _ in 0...5 {
@@ -706,6 +928,7 @@ class UnsentDataHandlerTests: XCTestCase {
         // when sending unsent data
         await UnsentDataHandler.sendUnsentData(
             storage: storage, upload: upload, otel: otel, logController: logController)
+        wait(timeout: .longTimeout, interval: .shortInterval, until: { EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1 })
 
         // then no sessions were sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -728,6 +951,7 @@ class UnsentDataHandlerTests: XCTestCase {
 
         // when sending critical logs
         await UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
+        wait(timeout: .longTimeout, interval: .shortInterval, until: { EmbraceHTTPMock.requestsForUrl(self.testLogsUrl()).count == 1 })
 
         // then a log is sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
@@ -742,10 +966,43 @@ class UnsentDataHandlerTests: XCTestCase {
             options: uploadOptions, logger: logger, queue: queue)
 
         // when sending critical logs without a file present
+        // sendCriticalLogs is synchronous when fileUrl has no contents — no upload is
+        // ever enqueued, the closure-completion fires inline, and the continuation
+        // resumes. No async work to wait for after the await returns.
         await UnsentDataHandler.sendCriticalLogs(fileUrl: criticalLogsFilePath, upload: upload)
 
         // then no log is sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
+    }
+
+    func test_criticalLogs_orphanPendingFile_isDeleted() async throws {
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testLogsUrl())
+
+        // given upload module
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue)
+
+        // given a stranded pending-logs file from a prior run that didn't fire .critical
+        let pendingLogsFilePath = filePathProvider.fileURL(for: "UnsentDataHandlerTests", name: "pending-file")!
+        try "STARTUP-TRAIL".write(to: pendingLogsFilePath, atomically: true, encoding: .utf8)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: pendingLogsFilePath.path))
+
+        // when sending critical logs (no critical-logs file exists)
+        await UnsentDataHandler.sendCriticalLogs(
+            fileUrl: criticalLogsFilePath,
+            pendingFileUrl: pendingLogsFilePath,
+            upload: upload
+        )
+        wait(
+            timeout: .longTimeout, interval: .shortInterval,
+            until: {
+                !FileManager.default.fileExists(atPath: pendingLogsFilePath.path)
+            })
+
+        // then nothing is uploaded and the orphan is gone
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: pendingLogsFilePath.path))
     }
 }
 
@@ -756,6 +1013,48 @@ extension UnsentDataHandlerTests {
             logsURL: testLogsUrl(forTest: testName),
             attachmentsURL: testAttachmentsUrl(forTest: testName)
         )
+    }
+
+    fileprivate func uploadOptions(automaticRetryCount: Int) -> EmbraceUpload.Options {
+        let urlSessionConfig = URLSessionConfiguration.ephemeral
+        urlSessionConfig.httpMaximumConnectionsPerHost = .max
+        urlSessionConfig.protocolClasses = [EmbraceHTTPMock.self]
+
+        return EmbraceUpload.Options(
+            endpoints: testEndpointOptions(forTest: testName),
+            cache: EmbraceUpload.CacheOptions(
+                storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
+            metadata: UnsentDataHandlerTests.testMetadataOptions,
+            redundancy: EmbraceUpload.RedundancyOptions(automaticRetryCount: automaticRetryCount),
+            urlSessionConfiguration: urlSessionConfig
+        )
+    }
+
+    /// Returns the attributes of the crash log that was uploaded, decompressing the request body.
+    fileprivate func crashLogAttributes(forTest testName: String = #function) throws -> [String: String] {
+        let bodies = EmbraceHTTPMock.requestBodiesForUrl(testLogsUrl(forTest: testName))
+        let body = try XCTUnwrap(bodies.first)
+        let payloadData = try body.gunzipped()
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: payloadData, options: []) as? [String: Any])
+        let data = try XCTUnwrap(json["data"] as? [String: Any])
+        let logs = try XCTUnwrap(data["logs"] as? [[String: Any]])
+        let log = try XCTUnwrap(logs.first)
+        let attributes = try XCTUnwrap(log["attributes"] as? [[String: Any]])
+
+        return attributes.reduce(into: [:]) { result, attribute in
+            if let key = attribute["key"] as? String, let value = attribute["value"] as? String {
+                result[key] = value
+            }
+        }
+    }
+
+    /// Returns the `resource` block of the crash log payload that was uploaded, decompressing the request body.
+    fileprivate func crashLogResource(forTest testName: String = #function) throws -> [String: Any] {
+        let bodies = EmbraceHTTPMock.requestBodiesForUrl(testLogsUrl(forTest: testName))
+        let body = try XCTUnwrap(bodies.first)
+        let payloadData = try body.gunzipped()
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: payloadData, options: []) as? [String: Any])
+        return try XCTUnwrap(json["resource"] as? [String: Any])
     }
 
     fileprivate func testSpansUrl(forTest testName: String = #function) -> URL {

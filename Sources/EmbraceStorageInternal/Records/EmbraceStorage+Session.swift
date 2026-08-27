@@ -38,6 +38,7 @@ extension EmbraceStorage {
         coldStart: Bool = false,
         cleanExit: Bool = false,
         appTerminated: Bool = false,
+        sessionNumber: EMBInt = 0,
         completion: (() -> Void)? = nil
     ) -> EmbraceSession? {
 
@@ -65,7 +66,8 @@ extension EmbraceStorage {
                 lastHeartbeatTime: hbTime,
                 coldStart: coldStart,
                 cleanExit: cleanExit,
-                appTerminated: appTerminated
+                appTerminated: appTerminated,
+                sessionNumber: sessionNumber
             )
             guard created else {
                 logger.critical("Failed to create new session!")
@@ -87,7 +89,8 @@ extension EmbraceStorage {
             crashReportId: crashReportId,
             coldStart: coldStart,
             cleanExit: cleanExit,
-            appTerminated: appTerminated
+            appTerminated: appTerminated,
+            sessionNumber: sessionNumber
         )
     }
 
@@ -115,10 +118,10 @@ extension EmbraceStorage {
         return result
     }
 
-    /// Synchronously deletes the given session from the storage
+    /// Asynchronously deletes the given session from the storage
     public func deleteSession(id: EmbraceIdentifier) {
         let request = fetchSessionRequest(id: id)
-        coreData.deleteRecords(withRequest: request)
+        coreData.deleteRecordsAsync(withRequest: request)
     }
 
     /// Synchronously fetches the newest session in the storage, ignoring the current session if it exists.
@@ -295,7 +298,8 @@ extension EmbraceSession {
             crashReportId: crashReportId ?? self.crashReportId,
             coldStart: self.coldStart,
             cleanExit: cleanExit ?? self.cleanExit,
-            appTerminated: appTerminated ?? self.appTerminated
+            appTerminated: appTerminated ?? self.appTerminated,
+            sessionNumber: self.sessionNumber
         )
     }
 }

@@ -54,13 +54,19 @@ final class CaptureServices {
         // upload action for crash reports
         if let crashReporter {
             crashReporter.onNewReport = { [weak crashReporter, weak storage, weak upload] report in
+                var processId: EmbraceIdentifier? = nil
+                if let reportProcessId = crashReporter?.processId {
+                    processId = EmbraceIdentifier(stringValue: reportProcessId)
+                }
+
                 UnsentDataHandler.sendCrashLog(
                     report: report,
                     reporter: crashReporter,
                     session: nil,
                     storage: storage,
                     upload: upload,
-                    otel: Embrace.client
+                    otel: Embrace.client,
+                    processId: processId
                 )
             }
         }
@@ -74,11 +80,13 @@ final class CaptureServices {
         }
 
         // Ensure the hang service has the right config
-        if let limits = config?.hangLimits {
-            services
-                .compactMap { $0 as? HangCaptureService }
-                .forEach { $0.limits = limits }
-        }
+        #if !os(watchOS) && !os(macOS)
+            if let limits = config?.hangLimits {
+                services
+                    .compactMap { $0 as? HangCaptureService }
+                    .forEach { $0.limits = limits }
+            }
+        #endif
 
         if let config {
             services.forEach { $0.onConfigUpdated(config) }

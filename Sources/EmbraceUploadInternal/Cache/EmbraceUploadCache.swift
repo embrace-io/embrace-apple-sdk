@@ -78,6 +78,38 @@ class EmbraceUploadCache {
         return result
     }
 
+    /// Fetches cached records for the given type, excluding specific IDs, sorted by date ascending.
+    /// - Parameters:
+    ///   - type: Type of records to fetch
+    ///   - excludingIDs: Set of record IDs to exclude (typically in-flight operations)
+    ///   - limit: Maximum number of records to return
+    /// - Returns: An array of immutable records sorted by creation date
+    func fetchUploadData(
+        type: EmbraceUploadType,
+        excludingIDs: Set<String>,
+        limit: Int
+    ) -> [ImmutableUploadDataRecord] {
+        let request = NSFetchRequest<UploadDataRecord>(entityName: UploadDataRecord.entityName)
+        request.sortDescriptors = [NSSortDescriptor(key: "date", ascending: true)]
+        request.fetchLimit = limit
+
+        if excludingIDs.isEmpty {
+            request.predicate = NSPredicate(format: "type == %i", type.rawValue)
+        } else {
+            request.predicate = NSPredicate(
+                format: "type == %i AND NOT (id IN %@)",
+                type.rawValue,
+                excludingIDs as NSSet
+            )
+        }
+
+        var result: [ImmutableUploadDataRecord] = []
+        coreData.fetchAndPerform(withRequest: request) { records in
+            result = records.map { $0.toImmutable() }
+        }
+        return result
+    }
+
     /// Removes stale data based on size or date, if they're limited in options.
     @discardableResult public func clearStaleDataIfNeeded() -> UInt {
         guard options.cacheDaysLimit > 0 else {
@@ -125,8 +157,7 @@ class EmbraceUploadCache {
                 if let uploadData = try context.fetch(request).first {
                     uploadData.data = data
                     uploadData.payloadTypes = payloadTypes
-                    coreData.save()
-                    return true
+                    return coreData.saveIfNeeded()
                 }
             } catch {
                 logger.warning("Error upading upload data:\n\(error.localizedDescription)")
@@ -142,15 +173,12 @@ class EmbraceUploadCache {
                 type: type.rawValue,
                 data: data,
                 payloadTypes: payloadTypes,
-                attemptCount: 0,
                 date: Date()
             ) {
-                coreData.performOperation { _ in
-                    if !coreData.saveIfNeeded() {
-                        context.delete(record)
-                    }
+                if coreData.saveIfNeeded() {
+                    return true
                 }
-                return true
+                context.delete(record)
             }
             return false
         }
@@ -190,31 +218,6 @@ class EmbraceUploadCache {
     func deleteUploadData(id: String, type: EmbraceUploadType) {
         let request = fetchUploadDataRequest(id: id, type: type)
         coreData.deleteRecords(withRequest: request)
-    }
-
-    /// Updates the attempt count of the upload data for the given identifier.
-    /// - Parameters:
-    ///   - id: Identifier of the data
-    ///   - type: Type of the data
-    ///   - attemptCount: New attempt count
-    /// - Returns: Returns the updated `UploadDataRecord`, if any
-    func updateAttemptCount(
-        id: String,
-        type: EmbraceUploadType,
-        attemptCount: Int
-    ) {
-
-        let request = fetchUploadDataRequest(id: id, type: type)
-        coreData.fetchFirstAndPerform(withRequest: request) { [weak self] record in
-
-            guard let uploadData = record else {
-                return
-            }
-
-            uploadData.attemptCount = attemptCount
-
-            self?.coreData.save()
-        }
     }
 
     /// Fetches all records that should be deleted based on them being older than the passed date

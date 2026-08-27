@@ -23,3 +23,16 @@ public enum SessionState: String {
         }
     }
 #endif
+
+#if os(watchOS)
+    import WatchKit
+    extension SessionState {
+        public init?(appState: WKApplicationState) {
+            if appState == .background {
+                self = .background
+            } else {
+                self = .foreground
+            }
+        }
+    }
+#endif

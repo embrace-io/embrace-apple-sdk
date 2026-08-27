@@ -36,7 +36,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         storage.coreData.destroy()
     }
 
-    func testSpan(startTime: Date, endTime: Date?, name: String?) -> SpanData {
+    func testSpan(startTime: Date, endTime: Date?, name: String?, type: SpanType = .performance) -> SpanData {
         return SpanData(
             traceId: TraceId.random(),
             spanId: SpanId.random(),
@@ -44,12 +44,14 @@ final class SpansPayloadBuilderTests: XCTestCase {
             name: name ?? "test-span",
             kind: .internal,
             startTime: startTime,
+            attributes: ["emb.type": .string(type.rawValue)],
             status: endTime == nil ? .unset : .ok,
             endTime: endTime ?? Date(),
-            hasEnded: endTime != nil
+            hasEnded: endTime != nil,
         )
     }
 
+    @discardableResult
     func addSpan(
         startTime: Date,
         endTime: Date?,
@@ -58,7 +60,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
         name: String? = nil,
         type: SpanType = .performance
     ) throws -> SpanData {
-        let spanData = testSpan(startTime: startTime, endTime: endTime, name: name)
+        let spanData = testSpan(startTime: startTime, endTime: endTime, name: name, type: type)
         let data = try spanData.toJSON()
 
         storage.upsertSpan(
@@ -753,5 +755,77 @@ final class SpansPayloadBuilderTests: XCTestCase {
 
         let attrs = closed[0].events[0].attributes
         XCTAssertTrue(attrs.contains { $0.key == "type" && $0.value == "session_info" })
+    }
+
+    func test_startupSpans_notDropped() throws {
+
+        // given a startup root span that is not too long
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 60),
+            name: "emb-app-startup",
+            type: .startup
+        )
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 60),
+            type: .startup
+        )
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are not dropped correctly
+        XCTAssertEqual(closed.count, 3)
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
+        XCTAssertEqual(open.count, 0)
+    }
+
+    func test_startupSpans_noEndTime() throws {
+
+        // given a startup root span without end time
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: nil,
+            name: "emb-app-startup",
+            type: .startup
+        )
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: nil,
+            type: .startup
+        )
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are dropped correctly
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
+        XCTAssertEqual(open.count, 0)
+    }
+
+    func test_startupSpans_tooLong() throws {
+
+        // given a startup root span that is too long
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 75),
+            name: "emb-app-startup",
+            type: .startup
+        )
+        try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 56),
+            type: .startup
+        )
+
+        // when building the spans payload
+        let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the spans are dropped correctly
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
+        XCTAssertEqual(open.count, 0)
     }
 }

@@ -10,6 +10,7 @@ import OpenTelemetrySdk
     import EmbraceStorageInternal
     import EmbraceObjCUtilsInternal
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 struct ResourcePayload: Codable {
@@ -39,11 +40,25 @@ struct ResourcePayload: Codable {
     var processPreWarm: Bool?
     var additionalResources: [String: String] = [:]
 
+    /// Indicates whether the payload carries the metadata required for the backend to accept it.
+    ///
+    /// Most of the fields in this payload come from resources persisted in storage. Those resources
+    /// can be missing by the time a payload is built, for instance when logs outlive the session
+    /// they belong to and their resources are already gone. Payloads built from missing resources
+    /// are rejected by the backend, so there's no point in uploading them.
+    var hasRequiredMetadata: Bool {
+        return
+            appVersion?.isEmpty == false && sdkVersion?.isEmpty == false && sdkPlatform?.isEmpty == false
+    }
+
     private let excludedKeys: Set<String> = [
         DeviceResourceKey.locale.rawValue,
         DeviceResourceKey.timezone.rawValue,
         DeviceResourceKey.osDescription.rawValue,
-        SessionPayloadBuilder.resourceName
+        SessionController.sessionNumberKey,
+        // Stored as a required resource so a later process can read back the value of the process
+        // that produced it, but reported as an attribute of the session span and of each log.
+        SpanSemantics.keyExperiments
     ]
 
     enum CodingKeys: String, CodingKey, CaseIterable {

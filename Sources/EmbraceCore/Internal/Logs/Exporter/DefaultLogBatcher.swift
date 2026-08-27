@@ -13,14 +13,14 @@ import OpenTelemetrySdk
 #endif
 
 protocol LogBatcherDelegate: AnyObject {
-    func batchFinished(withLogs logs: [EmbraceLog])
+    func batchFinished(withLogs logs: [EmbraceLog], sessionId: EmbraceIdentifier?)
     var limits: LogsLimits { get set }
 }
 
 protocol LogBatcher: AnyObject {
     func addLogRecord(logRecord: ReadableLogRecord)
     func renewBatch(withLogs logRecords: [EmbraceLog])
-    func forceEndCurrentBatch(waitUntilFinished: Bool)
+    func forceEndCurrentBatch(waitUntilFinished: Bool, sessionId: EmbraceIdentifier?)
     var limits: LogsLimits { get }
 }
 
@@ -73,7 +73,7 @@ extension DefaultLogBatcher {
     ///
     /// - Parameters:
     ///   - waitUntilFinished: indicates whether the method should block until the batch operation finishes. Default is `true`.
-    func forceEndCurrentBatch(waitUntilFinished: Bool = true) {
+    func forceEndCurrentBatch(waitUntilFinished: Bool = true, sessionId: EmbraceIdentifier? = nil) {
         let group = DispatchGroup()
 
         if waitUntilFinished {
@@ -81,7 +81,7 @@ extension DefaultLogBatcher {
         }
 
         processorQueue.async {
-            self.renewBatch()
+            self.renewBatchInternal(sessionId: sessionId)
             if waitUntilFinished {
                 group.leave()
             }
@@ -93,11 +93,15 @@ extension DefaultLogBatcher {
     }
 
     func renewBatch(withLogs logs: [EmbraceLog] = []) {
+        renewBatchInternal(withLogs: logs, sessionId: nil)
+    }
+
+    private func renewBatchInternal(withLogs logs: [EmbraceLog] = [], sessionId: EmbraceIdentifier?) {
         guard let batch = self.batch else {
             return
         }
         self.cancelBatchDeadline()
-        self.delegate?.batchFinished(withLogs: batch.logs)
+        self.delegate?.batchFinished(withLogs: batch.logs, sessionId: sessionId)
         self.batch = .init(limits: self.logLimits, logs: logs)
 
         if logs.isEmpty == false {

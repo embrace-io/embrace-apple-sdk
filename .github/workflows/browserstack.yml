@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ github.actor != 'dependabot[bot]' && 'macos-latest-xlarge' || 'macos-latest' }}
+    runs-on: ${{ github.actor != 'dependabot[bot]' && 'macos-26-xlarge' || 'macos-26' }}
     timeout-minutes: 30
     outputs:
       app_url: ${{ steps.upload_app.outputs.app_url }}
@@ -38,16 +38,22 @@ jobs:
     steps:
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.0.app
+          sudo xcode-select -s /Applications/Xcode_26.5.app
           xcodebuild -version
 
+      - name: Install iOS platform
+        # Xcode 26 ships platforms as on-demand downloads; the hosted runner image
+        # does not include the iOS device platform, so `archive -sdk iphoneos` finds
+        # no destinations. Idempotent: a no-op once the platform is present.
+        run: xcodebuild -downloadPlatform iOS
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         timeout-minutes: 5
         with:
           ref: ${{ inputs.ref || github.ref }}
           persist-credentials: false
-      
+
       - name: Install dependencies
         run: |
           brew install xcbeautify
@@ -251,7 +257,7 @@ jobs:
 
       - name: Upload Result Bundle as Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: browserstack-result-bundle-${{ steps.execute_tests.outputs.build_id }}-${{ steps.wait_tests.outputs.session_id }}
           path: result_bundle.xcresult.zip
@@ -259,7 +265,7 @@ jobs:
           retention-days: 2
 
   extract-results:
-    runs-on: ${{ github.actor != 'dependabot[bot]' && 'macos-latest-xlarge' || 'macos-latest' }}
+    runs-on: ${{ github.actor != 'dependabot[bot]' && 'macos-26-xlarge' || 'macos-26' }}
     needs: test
     if: success()
     timeout-minutes: 10
@@ -268,7 +274,7 @@ jobs:
 
     steps:
       - name: Download Result Bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: browserstack-result-bundle-${{ needs.test.outputs.build_id }}-${{ needs.test.outputs.session_id }}
 
