@@ -15,7 +15,18 @@ import Foundation
     @_exported import KSCrashDemangleFilter
 #endif
 
-public class KSCrashBacktracing: Backtracer, Symbolicator {
+package struct SymbolicatedFrame {
+    package let returnAddress: UInt
+    package let callInstruction: UInt
+    package let symbolAddress: UInt
+    package let symbolName: String?
+    package let imageName: String?
+    package let imageUUID: String?
+    package let imageAddress: UInt
+    package let imageSize: UInt64
+}
+
+public class KSCrashBacktracing {
 
     public init() {}
 
@@ -31,42 +42,68 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
         if thread == pthread_self() {
             addresses = Thread.callStackReturnAddresses.compactMap { $0 as? UInt }
         } else {
-            let count = captureBacktrace(thread: thread, addresses: &addresses, count: Int32(entries))
+            // `captureBacktrace` reaches KSCrash's binary-image cache; serialize against the
+            // crash-reporter install and symbolication paths. See `KSCrashGlobalsLock`.
+            let count = KSCrashGlobalsLock.withLock {
+                captureBacktrace(thread: thread, addresses: &addresses, count: Int32(entries))
+            }
             addresses = Array(addresses[0..<Int(count)])
         }
         return addresses
     }
 
-    public func backtrace(
+    /// Fills `buffer` (which has room for `capacity` addresses) with the frame addresses of `thread`,
+    /// returning the number of addresses written. Ordered from the top frame to the bottom.
+    ///
+    /// Unlike ``backtrace(of:)``, this returns nothing heap-allocated: the caller owns `buffer`. It
+    /// exists so the walk can run while `thread` is **suspended** without the walker touching the
+    /// heap — a `malloc` here can deadlock the whole process if the suspended thread holds the
+    /// allocator lock.
+    ///
+    /// - Important: This implementation MUST remain allocation-free and async-signal-safe: no
+    ///   `malloc`, no Obj-C/Swift runtime work, no lock acquisition. It is called between
+    ///   `thread_suspend` and `thread_resume` of a thread that is not the caller. In particular it
+    ///   must NOT take `KSCrashGlobalsLock` — doing so in-window would deadlock. That is safe here
+    ///   because `ksbt_captureBacktrace` never reaches the binary-image cache (`ksbic_init` is only
+    ///   reached via `ksbt_symbolicateAddress`), unlike ``backtrace(of:)`` and ``resolve(address:)``.
+    /// - Parameters:
+    ///   - thread: The target `pthread_t`. Must not be the calling thread (it is expected to be
+    ///     suspended by the caller for the duration of the call). The `pthread_self()` workaround in
+    ///     ``backtrace(of:)`` is intentionally NOT replicated here.
+    ///   - buffer: Caller-owned storage for at least `capacity` addresses.
+    ///   - capacity: The capacity of `buffer`, in elements.
+    /// - Returns: The number of frame addresses written to `buffer` (`0...capacity`).
+    package func backtrace(
         of thread: pthread_t,
-        into buffer: UnsafeMutablePointer<FrameAddress>,
+        into buffer: UnsafeMutablePointer<UInt>,
         capacity: Int
     ) -> Int {
-        // Alloc-free / async-signal-safe: `ksbt_captureBacktrace` fills the caller's buffer in place
-        // using stack-allocated machine context + stack cursor (no malloc, no runtime calls), so it
-        // is safe to run while `thread` is suspended. The `pthread_self()` workaround in
-        // `backtrace(of:)` is intentionally NOT replicated here: this entry point is only used to walk
-        // a *suspended* thread, which is never the caller.
+        // Alloc-free: `ksbt_captureBacktrace` fills the caller's buffer in place using a
+        // stack-allocated machine context + stack cursor (no malloc, no runtime calls).
         return Int(captureBacktrace(thread: thread, addresses: buffer, count: Int32(capacity)))
     }
 
-    public func resolve(address: UInt) -> SymbolicatedFrame? {
+    package func resolve(address: UInt) -> SymbolicatedFrame? {
 
-        var result = SymbolInformation()
-        guard symbolicate(address: UInt(address), result: &result) else {
-            return nil
+        // `symbolicate` (-> `ksbt_symbolicateAddress` -> `ksbic_init`) and the Swift demangler both
+        // touch unsynchronized KSCrash globals; serialize against install/capture. See `KSCrashGlobalsLock`.
+        KSCrashGlobalsLock.withLock {
+            var result = SymbolInformation()
+            guard symbolicate(address: UInt(address), result: &result) else {
+                return nil
+            }
+
+            return SymbolicatedFrame(
+                returnAddress: result.returnAddress,
+                callInstruction: result.callInstruction,
+                symbolAddress: result.symbolAddress,
+                symbolName: result.symbolName.flatMap { backtraceDemangle(String(cString: $0)) },
+                imageName: result.imageName.flatMap { String(cString: $0) },
+                imageUUID: NSUUID(uuidBytes: result.imageUUID).uuidString,
+                imageAddress: result.imageAddress,
+                imageSize: result.imageSize
+            )
         }
-
-        return SymbolicatedFrame(
-            returnAddress: result.returnAddress,
-            callInstruction: result.callInstruction,
-            symbolAddress: result.symbolAddress,
-            symbolName: result.symbolName.flatMap { backtraceDemangle(String(cString: $0)) },
-            imageName: result.imageName.flatMap { String(cString: $0) },
-            imageUUID: NSUUID(uuidBytes: result.imageUUID).uuidString,
-            imageAddress: result.imageAddress,
-            imageSize: result.imageSize
-        )
     }
 
     private func backtraceDemangle(_ symbol: String?) -> String {

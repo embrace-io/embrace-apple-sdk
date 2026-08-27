@@ -32,13 +32,9 @@ final class MetadataHandler_UserTests: XCTestCase {
             syncronizationQueue: MockQueue()
         )
 
-        handler.userName = "example"
         handler.userIdentifier = "my-example-identifier"
-        handler.userEmail = "example@example.com"
 
-        XCTAssertEqual(handler.userName, "example")
         XCTAssertEqual(handler.userIdentifier, "my-example-identifier")
-        XCTAssertEqual(handler.userEmail, "example@example.com")
     }
 
     func test_setProperties_canByUpdated() throws {
@@ -48,17 +44,11 @@ final class MetadataHandler_UserTests: XCTestCase {
             syncronizationQueue: MockQueue()
         )
 
-        handler.userName = "example"
         handler.userIdentifier = "my-example-identifier"
-        handler.userEmail = "example@example.com"
 
-        handler.userName = "updated_example"
         handler.userIdentifier = "my-updated-identifier"
-        handler.userEmail = "updated@example.com"
 
-        XCTAssertEqual(handler.userName, "updated_example")
         XCTAssertEqual(handler.userIdentifier, "my-updated-identifier")
-        XCTAssertEqual(handler.userEmail, "updated@example.com")
     }
 
     func test_setProperties_canBeCleared_Individually() throws {
@@ -68,36 +58,8 @@ final class MetadataHandler_UserTests: XCTestCase {
             syncronizationQueue: MockQueue()
         )
 
-        handler.userName = "example"
         handler.userIdentifier = "my-example-identifier"
-        handler.userEmail = "example@example.com"
-
-        handler.userName = nil
-        XCTAssertNil(handler.userName)
-
         handler.userIdentifier = nil
         XCTAssertNil(handler.userIdentifier)
-
-        handler.userEmail = nil
-        XCTAssertNil(handler.userEmail)
     }
-
-    func test_setProperties_canBeCleared_AllTogether() throws {
-        let handler = MetadataHandler(
-            storage: storage,
-            sessionController: sessionController,
-            syncronizationQueue: MockQueue()
-        )
-
-        handler.userName = "example"
-        handler.userIdentifier = "my-example-identifier"
-        handler.userEmail = "example@example.com"
-
-        handler.clearUserProperties()
-
-        XCTAssertNil(handler.userName)
-        XCTAssertNil(handler.userIdentifier)
-        XCTAssertNil(handler.userEmail)
-    }
-
 }

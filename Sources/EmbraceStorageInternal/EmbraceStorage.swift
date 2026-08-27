@@ -33,10 +33,12 @@ public class EmbraceStorage: Storage {
         }
 
         // create core data stack
-        var entities: [NSEntityDescription] =
-            [SessionRecord.entityDescription] + SpanRecord.entityDescriptions + [MetadataRecord.entityDescription]
-
-        entities.append(contentsOf: LogRecord.entityDescriptions)
+        var entities: [NSEntityDescription] = [
+            SessionRecord.entityDescription,
+            MetadataRecord.entityDescription,
+            LogRecord.entityDescription
+        ]
+        entities.append(contentsOf: SpanRecord.entityDescriptions)
 
         let coreDataOptions = CoreDataWrapper.Options(
             storageMechanism: options.storageMechanism,

@@ -3,8 +3,7 @@
 //
 
 import Darwin
-@_spi(Private) import EmbraceCore
-import EmbraceIO
+@_spi(Private) import EmbraceIO
 import SwiftUI
 
 struct ContentView: View {
@@ -31,12 +30,12 @@ struct ContentView: View {
                             \(randomDoubleFullRange()),
                             \(randomDoubleFullRange()) #raw #record
                         """
-                    Embrace.client?.add(event: .breadcrumb(value))
-                    Embrace.client?.waitForAllWork()
+                    EmbraceIO.shared.addBreadcrumb(value)
+                    EmbraceIO.shared.waitForAllWork()
                 }
 
                 // This will cause priority inversion but its for the greater good.
-                Embrace.client?.waitForAllWork()
+                EmbraceIO.shared.waitForAllWork()
             }
             .accessibilityIdentifier("logical-writes-test-button")
 
@@ -59,8 +58,8 @@ struct ContentView: View {
                             \(randomDoubleFullRange()),
                             \(randomDoubleFullRange()) #raw #record
                         """
-                    Embrace.client?.add(event: .breadcrumb(value))
-                    Embrace.client?.waitForAllWork()
+                    EmbraceIO.shared.addBreadcrumb(value)
+                    EmbraceIO.shared.waitForAllWork()
                     #if DEBUG
                         let postWork = EnergyMeasurement.shared.logicalWrites()
                         let countLW = postWork.logicalWrites &- preWork.logicalWrites
@@ -74,7 +73,7 @@ struct ContentView: View {
                 }
 
                 // This will cause priority inversion but its for the greater good.
-                Embrace.client?.waitForAllWork()
+                EmbraceIO.shared.waitForAllWork()
 
                 #if DEBUG
                     let post = EnergyMeasurement.shared.logicalWrites()

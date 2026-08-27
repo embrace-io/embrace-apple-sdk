@@ -13,7 +13,7 @@ class URLSessionInitWithDelegateSwizzlerTests: SwizzlerTestCase {
     private var sut: URLSessionInitWithDelegateSwizzler!
     private var session: URLSession!
     private var originalDelegate: URLSessionDelegate!
-    private var previouslySwizzledProxy: EMBURLSessionDelegateProxy!
+    private var previouslySwizzledProxy: EMBURLSessionDelegateProxyType!
 
     override func tearDownWithError() throws {
         try? sut.unswizzleInstanceMethod()
@@ -89,11 +89,11 @@ extension URLSessionInitWithDelegateSwizzlerTests {
     }
 
     fileprivate func thenSessionsDelegateShouldBeAnEmbracesProxy() {
-        XCTAssertTrue(session.delegate.self is EMBURLSessionDelegateProxy)
+        XCTAssertTrue(session.delegate.self is EMBURLSessionDelegateProxyType)
     }
 
     fileprivate func thenSessionsDelegateShouldntBeEmbracesProxy() {
-        XCTAssertFalse(session.delegate.self is EMBURLSessionDelegateProxy)
+        XCTAssertFalse(session.delegate.self is EMBURLSessionDelegateProxyType)
     }
 
     fileprivate func thenSessionDelegateShouldBePreviouslySwizzledProxy() {

@@ -13,27 +13,27 @@ import struct Foundation.Data
 enum Gzip {
 
     /// Maximum value for windowBits (`MAX_WBITS`)
-    public static let maxWindowBits = MAX_WBITS
+    static let maxWindowBits = MAX_WBITS
 }
 
 /// Compression level whose rawValue is based on the zlib's constants.
 struct CompressionLevel: RawRepresentable, Sendable {
 
     /// Compression level in the range of `0` (no compression) to `9` (maximum compression).
-    public let rawValue: Int32
+    let rawValue: Int32
 
-    public static let noCompression = Self(Z_NO_COMPRESSION)
-    public static let bestSpeed = Self(Z_BEST_SPEED)
-    public static let bestCompression = Self(Z_BEST_COMPRESSION)
+    static let noCompression = Self(Z_NO_COMPRESSION)
+    static let bestSpeed = Self(Z_BEST_SPEED)
+    static let bestCompression = Self(Z_BEST_COMPRESSION)
 
-    public static let defaultCompression = Self(Z_DEFAULT_COMPRESSION)
+    static let defaultCompression = Self(Z_DEFAULT_COMPRESSION)
 
-    public init(rawValue: Int32) {
+    init(rawValue: Int32) {
 
         self.rawValue = rawValue
     }
 
-    public init(_ rawValue: Int32) {
+    init(_ rawValue: Int32) {
 
         self.rawValue = rawValue
     }
@@ -43,7 +43,7 @@ struct CompressionLevel: RawRepresentable, Sendable {
 struct GzipError: Swift.Error, Sendable {
     // cf. http://www.zlib.net/manual.html
 
-    public enum Kind: Equatable, Sendable {
+    enum Kind: Equatable, Sendable {
         /// The stream structure was inconsistent.
         ///
         /// - underlying zlib error: `Z_STREAM_ERROR` (-2)
@@ -77,10 +77,10 @@ struct GzipError: Swift.Error, Sendable {
     }
 
     /// Error kind.
-    public let kind: Kind
+    let kind: Kind
 
     /// Returned message by zlib.
-    public let message: String
+    let message: String
 
     internal init(code: Int32, msg: UnsafePointer<CChar>?) {
 
@@ -88,7 +88,7 @@ struct GzipError: Swift.Error, Sendable {
         self.kind = Kind(code: code)
     }
 
-    public var localizedDescription: String {
+    var localizedDescription: String {
 
         return self.message
     }

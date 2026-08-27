@@ -13,7 +13,6 @@ import Foundation
         /// This allows configuring whether the tap is captured at the beginning (`.onStart`)
         /// or when the user lifts their finger (`.onEnd`), ensuring more control over what
         /// is considered a valid tap.
-        @objc(EMBTapCaptureServiceTapPhase)
         public enum TapPhase: Int {
             /// Captures the tap when the user first touches the screen.
             case onStart
@@ -35,21 +34,26 @@ import Foundation
         }
 
         /// Class used to setup a TapCaptureService.
-        @objc(EMBTapCaptureServiceOptions)
-        public final class Options: NSObject {
+        public final class Options {
             /// Defines a list of UIView types to be ignored by this service. Any taps done on views of these types will not be recorded.
-            @objc public let ignoredViewTypes: [AnyClass]
+            public let ignoredViewTypes: [AnyClass]
 
-            /// Defines wether the service should capture the coordinates of the taps.
-            @objc public let captureTapCoordinates: Bool
+            /// Defines whether the service should capture the coordinates of the taps.
+            public let captureTapCoordinates: Bool
 
             /// Delegate used to decide if each individual tap should be recorded or not.
-            @objc public let delegate: TapCaptureServiceDelegate?
+            public let delegate: TapCaptureServiceDelegate?
 
             /// Specifies when a tap should be recorded.
-            @objc public let tapPhase: TapPhase
+            public let tapPhase: TapPhase
 
-            @objc public init(
+            /// Creates a new `Options` with the given values.
+            /// - Parameters:
+            ///   - ignoredViewTypes: `UIView` types whose taps are ignored.
+            ///   - captureTapCoordinates: Whether the coordinates of the taps are captured.
+            ///   - tapPhase: When a tap should be recorded.
+            ///   - delegate: Delegate used to decide if each individual tap is captured.
+            public init(
                 ignoredViewTypes: [AnyClass] = [],
                 captureTapCoordinates: Bool = true,
                 tapPhase: TapPhase = .onStart,
@@ -59,14 +63,6 @@ import Foundation
                 self.captureTapCoordinates = captureTapCoordinates
                 self.delegate = delegate
                 self.tapPhase = tapPhase
-            }
-
-            @objc public convenience override init() {
-                self.init(
-                    ignoredViewTypes: [],
-                    captureTapCoordinates: true,
-                    delegate: nil
-                )
             }
         }
     }

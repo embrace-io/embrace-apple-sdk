@@ -5,7 +5,6 @@
 import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceStorageInternal
-import OpenTelemetryApi
 import TestSupport
 import XCTest
 
@@ -13,13 +12,9 @@ import XCTest
 
 class LogPayloadBuilderTests: XCTestCase {
     func test_build_addsLogIdAttribute() throws {
-        let logId = EmbraceIdentifier(value: try XCTUnwrap(UUID(uuidString: "53B55EDD-889A-4876-86BA-6798288B609C")))
+        let logId = EmbraceIdentifier.random
         let record = MockLog(
-            id: logId,
-            processId: .random,
-            severity: .info,
-            body: "Hello World",
-            attributes: .empty()
+            id: logId.stringValue
         )
 
         let payload = LogPayloadBuilder.build(log: record)
@@ -30,17 +25,13 @@ class LogPayloadBuilderTests: XCTestCase {
     }
 
     func test_buildLogRecordWithAttributes_mapsKeyValuesAsAttributeStruct() {
-        let originalAttributes: [String: AttributeValue] = [
-            "string_attribute": .string("string"),
-            "integer_attribute": .int(1),
-            "boolean_attribute": .bool(false),
-            "double_attribute": .double(5.0)
+        let originalAttributes: [String: String] = [
+            "string_attribute": "string",
+            "integer_attribute": "1",
+            "boolean_attribute": "false",
+            "double_attribute": "5.0"
         ]
         let record = MockLog(
-            id: .random,
-            processId: .random,
-            severity: .info,
-            body: .random(),
             attributes: originalAttributes
         )
 
@@ -64,10 +55,11 @@ class LogPayloadBuilderTests: XCTestCase {
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 0),
-            endTime: Date(timeIntervalSince1970: 60)
+            endTime: Date(timeIntervalSince1970: 60),
+            userSessionId: TestConstants.userSessionId
         )
 
-        // given metadata in storage of that session
+        // given metadata in storage of that user session
         storage.addMetadata(
             key: AppResourceKey.appVersion.rawValue,
             value: "1.0.0",
@@ -75,11 +67,11 @@ class LogPayloadBuilderTests: XCTestCase {
             lifespan: .permanent
         )
         storage.addMetadata(
-            key: UserResourceKey.name.rawValue,
+            key: UserResourceKey.identifier.rawValue,
             value: "test",
             type: .customProperty,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
         storage.addMetadata(
             key: "tag1",
@@ -91,8 +83,8 @@ class LogPayloadBuilderTests: XCTestCase {
             key: "tag2",
             value: "tag2",
             type: .personaTag,
-            lifespan: .session,
-            lifespanId: TestConstants.sessionId.stringValue
+            lifespan: .userSession,
+            lifespanId: TestConstants.userSessionId.stringValue
         )
 
         // when manually building a log payload
@@ -106,20 +98,21 @@ class LogPayloadBuilderTests: XCTestCase {
                 "key2": "value2"
             ],
             storage: storage,
-            sessionId: TestConstants.sessionId
+            userSessionId: TestConstants.userSessionId,
+            processId: TestConstants.processId
         )
 
         // then the payload is correct
         XCTAssertEqual(payload.resource.appVersion, "1.0.0")
-        XCTAssertEqual(payload.metadata.username, "test")
+        XCTAssertEqual(payload.metadata.userId, "test")
         XCTAssertEqual(payload.metadata.personas, ["tag1", "tag2"])
 
         let logs = try XCTUnwrap(payload.data["logs"])
         XCTAssertEqual(logs.count, 1)
         XCTAssertEqual(logs[0].body, "test")
         XCTAssertEqual(logs[0].timeUnixNano, String(timestamp.nanosecondsSince1970Truncated))
-        XCTAssertEqual(logs[0].severityNumber, LogSeverity.fatal.number)
-        XCTAssertEqual(logs[0].severityText, LogSeverity.fatal.text)
+        XCTAssertEqual(logs[0].severityNumber, EmbraceLogSeverity.fatal.rawValue)
+        XCTAssertEqual(logs[0].severityText, EmbraceLogSeverity.fatal.name)
 
         let attribute1 = logs[0].attributes.first { $0.key == "key1" }
         XCTAssertEqual(attribute1!.value, "value1")
@@ -149,7 +142,8 @@ class LogPayloadBuilderTests: XCTestCase {
             body: "test",
             attributes: [:],
             storage: storage,
-            sessionId: nil
+            userSessionId: nil,
+            processId: ProcessIdentifier.current
         )
 
         // then the experiments are absent from the resource, in the struct and in the encoded json
@@ -162,11 +156,12 @@ class LogPayloadBuilderTests: XCTestCase {
     }
 
     func test_manualBuild_sessionFromAnotherProcess() throws {
-        // given a session in storage that belongs to a previous process
+        // given a session part in storage that belongs to a previous process
         let storage = try EmbraceStorage.createInMemoryDb()
         defer { storage.coreData.destroy() }
 
         let previousProcessId = EmbraceIdentifier.random
+        let userSessionId = EmbraceIdentifier.random
 
         storage.addSession(
             id: TestConstants.sessionId,
@@ -175,7 +170,8 @@ class LogPayloadBuilderTests: XCTestCase {
             traceId: TestConstants.traceId,
             spanId: TestConstants.spanId,
             startTime: Date(timeIntervalSince1970: 0),
-            endTime: Date(timeIntervalSince1970: 60)
+            endTime: Date(timeIntervalSince1970: 60),
+            userSessionId: userSessionId
         )
 
         // given a process scoped resource stored for that process and for the current one
@@ -194,18 +190,49 @@ class LogPayloadBuilderTests: XCTestCase {
             lifespanId: ProcessIdentifier.current.stringValue
         )
 
-        // when manually building a log payload for that session
+        // when manually building a log payload for that user session and its process
         let payload = LogPayloadBuilder.build(
             timestamp: Date(timeIntervalSince1970: 30),
             severity: .fatal,
             body: "test",
             attributes: [:],
             storage: storage,
-            sessionId: TestConstants.sessionId
+            userSessionId: userSessionId,
+            processId: previousProcessId
         )
 
         // then the payload describes the session's process, not the one building it
         XCTAssertEqual(payload.resource.appVersion, "1.0.0")
+    }
+
+    /// A log whose process can't be determined goes without process-scoped resources. Falling back
+    /// to the current process would report this launch's resources as if they belonged to another.
+    func test_manualBuild_withoutProcessId_reportsNoProcessResources() throws {
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        // given a process scoped resource stored for the current process
+        storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "1.0.0",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: ProcessIdentifier.current.stringValue
+        )
+
+        // when manually building a log payload with no session and no process
+        let payload = LogPayloadBuilder.build(
+            timestamp: Date(timeIntervalSince1970: 30),
+            severity: .fatal,
+            body: "test",
+            attributes: [:],
+            storage: storage,
+            userSessionId: nil,
+            processId: nil
+        )
+
+        // then the current process's resources are not borrowed
+        XCTAssertNil(payload.resource.appVersion)
     }
 
     func test_manualBuild_withProcessId() throws {
@@ -237,7 +264,7 @@ class LogPayloadBuilderTests: XCTestCase {
             body: "test",
             attributes: [:],
             storage: storage,
-            sessionId: nil,
+            userSessionId: nil,
             processId: previousProcessId
         )
 

@@ -17,7 +17,7 @@ import XCTest
 /// Therefore, the goal is to confirm that the redirection mechanism functions properly even under the worst-case conditions
 class URLSessionDelegateProxyToNonConformantTests: XCTestCase {
     private var originalDelegate: URLSessionDelegateImplementerButWithoutConforming?
-    private var sut: EMBURLSessionDelegateProxy!
+    private var sut: EMBURLSessionDelegateProxyType!
     private var handler: MockURLSessionTaskHandler!
     private var dataTask: URLSessionDataTask!
     private var urlSession: URLSession!

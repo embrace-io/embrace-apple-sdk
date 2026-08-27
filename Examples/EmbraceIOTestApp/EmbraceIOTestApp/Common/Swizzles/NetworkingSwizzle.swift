@@ -7,7 +7,7 @@
 import EmbraceCommonInternal
 import EmbraceConfigInternal
 import EmbraceCore
-import EmbraceOTelInternal
+import EmbraceIO
 import Foundation
 import OpenTelemetryApi
 import OpenTelemetrySdk
@@ -22,21 +22,33 @@ class NetworkingSwizzle: NSObject {
 
     static private var initialized = false
 
-    /// Contains all Jsons posted, separated by Session Id
-    private(set) var postedJsons: [String: [JsonDictionary]] = [:]
+    /// Posted payloads grouped by the `emb.session_part_id` of their `emb-session` span. In v7 each
+    /// session part is uploaded as its own payload, so this keys on the part — the natural unit for
+    /// verifying "was every expected field present in the payload we sent?".
+    private(set) var postedJsonsByPart: [String: [JsonDictionary]] = [:]
 
-    /// Contains all the session ids posted in order from first posted to last.
-    private(set) var postedJsonsSessionIds: [String] = []
+    /// Part ids in the order their payloads were first captured.
+    private(set) var postedPartIds: [String] = []
 
-    /// Contains all exported spans grouped by the Session they were exported on. Including the session span. The Key is the Session Id.
-    private(set) var exportedSpansBySession: [String: [SpanData]] = [:]
+    /// User-session ids (`session.id` on the payload's `emb-session` span) in the order they were
+    /// first seen in a posted payload. The public part id is no longer exposed by the SDK, so this is
+    /// how the UI surfaces "the last session we sent" without reaching into live SDK state.
+    private(set) var postedUserSessionIds: [String] = []
 
-    /// Contains all exported spans that were produced before a new session was created
-    private(set) var exportedOrphanedSpans: [SpanData] = []
-    private let exportedOrphanedSpansLock = NSLock()
+    /// The user-session id of the most recently posted payload, or `nil` if nothing has been sent yet.
+    var lastPostedUserSessionId: String? { postedUserSessionIds.last }
 
-    /// Contains all the logs exported, grouped by Session Id.
-    private(set) var exportedLogsBySessions: [String: [ReadableLogRecord]] = [:]
+    /// All exported spans grouped by their `emb.session_part_id`. Every exported span — including
+    /// the `emb-session` span itself — carries this attribute, so spans are correlated to the part
+    /// they belong to deterministically, without any time-based guessing.
+    private(set) var exportedSpansByPart: [String: [SpanData]] = [:]
+
+    private let dataLock = NSLock()
+
+    /// All exported logs grouped by their own `emb.session_part_id` attribute. Logs carry the full
+    /// identity trio, so we group by the part id stamped on each record — mirroring the part-based
+    /// `exportedSpansByPart` model — rather than reaching into live SDK state.
+    private(set) var exportedLogsByPart: [String: [ReadableLogRecord]] = [:]
 
     /// For whatever reason, some tasks get lost in the ether so their completion handlers are never called.
     /// A quick fix is to just keep a reference to them here... Not ideal but this is a test app not intended to run for too long.
@@ -146,104 +158,49 @@ class NetworkingSwizzle: NSObject {
         let data = json["data"] as? [String: Any] ?? [:]
         let spans = data["spans"] as? [[String: Any]] ?? []
         let spans_snapshots = data["span_snapshots"] as? [[String: Any]] ?? []
-        let sessionSpan = spans.first { $0["name"] as? String == "emb-session" }
+        let sessionSpan = (spans + spans_snapshots).first { $0["name"] as? String == "emb-session" }
         let attributes = sessionSpan?["attributes"] as? [[String: String]]
-        let sessionIdAttribute = attributes?.first { $0["key"] == "session.id" }
-        let sessionId = sessionIdAttribute?["value"] as? String
+        let partId = attributes?.first { $0["key"] == "emb.session_part_id" }?["value"]
+        let userSessionId = attributes?.first { $0["key"] == "session.id" }?["value"]
 
         guard
-            let sessionId = sessionId
+            let partId = partId
         else {
             return
         }
 
-        self.postedJsons[sessionId, default: []].append(json)
-
-        if !postedJsonsSessionIds.contains(sessionId) {
-            postedJsonsSessionIds.append(sessionId)
+        dataLock.lock()
+        postedJsonsByPart[partId, default: []].append(json)
+        if !postedPartIds.contains(partId) {
+            postedPartIds.append(partId)
         }
-
-        ///assign orphaned exported spans into correct session
-        exportedOrphanedSpansLock.lock()
-        (spans + spans_snapshots).forEach { span in
-            guard span["name"] as? String != "emb-session" else { return }
-            if let attributes = span["attributes"] as? [[String: String]],
-                let sessionIdAttribute = attributes.first(where: { $0["key"] == "session.id" }),
-                let sessionIdFromSpan = sessionIdAttribute["value"]
-            {
-                if let orphanedSpan = exportedOrphanedSpans.first(where: { $0.spanId.hexString == span["span_id"] as? String }) {
-                    exportedSpansBySession[sessionIdFromSpan, default: []].append(orphanedSpan)
-
-                    if let idx = exportedOrphanedSpans.firstIndex(of: orphanedSpan) {
-                        exportedOrphanedSpans.remove(at: idx)
-                    }
-                }
-            }
+        if let userSessionId = userSessionId, !postedUserSessionIds.contains(userSessionId) {
+            postedUserSessionIds.append(userSessionId)
         }
-        exportedOrphanedSpansLock.unlock()
-
-        attemptToMatchSpansByStartTime()
+        dataLock.unlock()
 
         NotificationCenter.default.post(name: NSNotification.Name("NetworkingSwizzle.CapturedNewPayload"), object: nil)
     }
 
     private func capturedExportedSpan(_ spanExporter: TestSpanExporter) {
-        exportedOrphanedSpansLock.lock()
+        dataLock.lock()
         for span in spanExporter.latestExportedSpans {
-            if span.name == "emb-session" {
-                if let currentSessionId = span.attributes["session.id"]?.description {
-                    exportedSpansBySession[currentSessionId, default: []].append(span)
-                } else {
-                    exportedOrphanedSpans.append(span)
-                }
-            } else {
-                exportedOrphanedSpans.append(span)
-            }
+            let partId = span.attributes["emb.session_part_id"]?.description ?? ""
+            var spans = exportedSpansByPart[partId] ?? []
+            // A span can be exported more than once (snapshot, then final); keep only the latest.
+            spans.removeAll { $0.spanId == span.spanId }
+            spans.append(span)
+            exportedSpansByPart[partId] = spans
         }
-        exportedOrphanedSpansLock.unlock()
-        attemptToMatchSpansByStartTime()
-    }
-
-    private func attemptToMatchSpansByStartTime() {
-        // Attempt to match orphaned spans by start time.
-        postedJsonsSessionIds.forEach { sessionId in
-            postedJsons[sessionId]?.forEach { json in
-                let data = json["data"] as? [String: Any] ?? [:]
-                let spans = data["spans"] as? [[String: Any]] ?? []
-                let sessionSpan = spans.first { $0["name"] as? String == "emb-session" }
-                let attributes = sessionSpan?["attributes"] as? [[String: String]]
-                let sessionIdAttribute = attributes?.first { $0["key"] == "session.id" }
-                let sessionId = sessionIdAttribute?["value"] as? String
-                guard
-                    let sessionSpan = sessionSpan,
-                    let sessionId = sessionId
-                else {
-                    return
-                }
-
-                let sessionStartTime = Date(timeIntervalSince1970: (sessionSpan["start_time_unix_nano"] as? Double ?? 0) / 1_000_000_000)
-                let sessionEndTime = Date(timeIntervalSince1970: (sessionSpan["end_time_unix_nano"] as? Double ?? 0) / 1_000_000_000)
-                exportedOrphanedSpansLock.lock()
-                for orphanedSpan in exportedOrphanedSpans {
-                    if orphanedSpan.startTime >= sessionStartTime && orphanedSpan.startTime <= sessionEndTime {
-                        exportedSpansBySession[sessionId, default: []].append(orphanedSpan)
-                    } else if orphanedSpan.startTime < sessionStartTime && (!orphanedSpan.hasEnded || orphanedSpan.endTime >= sessionStartTime) {
-                        exportedSpansBySession[sessionId, default: []].append(orphanedSpan)
-                    }
-
-                }
-
-                exportedOrphanedSpans.removeAll { exportedSpansBySession[sessionId]?.firstIndex(of: $0) != nil }
-                exportedOrphanedSpansLock.unlock()
-            }
-        }
+        dataLock.unlock()
     }
 
     private func capturedExportedLog(_ logExporter: TestLogRecordExporter) {
-        guard let currentSessionId = Embrace.client?.currentSessionId() else {
-            return
+        dataLock.lock()
+        for log in logExporter.latestExportedLogs {
+            let partId = log.attributes["emb.session_part_id"]?.description ?? ""
+            exportedLogsByPart[partId, default: []].append(log)
         }
-
-        exportedLogsBySessions[currentSessionId, default: []].append(contentsOf: logExporter.latestExportedLogs)
+        dataLock.unlock()
     }
 }

@@ -66,18 +66,4 @@ final class InternalLogLimitsTests: XCTestCase {
         )
         XCTAssertNotEqual(limits1, limits2)
     }
-
-    func test_isEqual_isFalseWhenDifferentTypes() {
-        let limits = InternalLogLimits(
-            trace: 1,
-            debug: 2,
-            info: 3,
-            warning: 4,
-            error: 5
-        )
-
-        let result = limits.isEqual("InternalLogLimits")
-        XCTAssertFalse(result)
-    }
-
 }

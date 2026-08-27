@@ -5,6 +5,7 @@
 //
 
 import EmbraceIO
+import EmbraceSemantics
 import OpenTelemetryApi
 import OpenTelemetrySdk
 import SwiftUI
@@ -17,7 +18,7 @@ class PerformanceSpanTest: PayloadTest {
     var maxNumberOfSpans: Int = 0
 
     func runTestPreparations() {
-        Embrace.client?.buildSpan(name: "HashingTestStart").startSpan().end()
+        EmbraceIO.shared.createSpan(name: "HashingTestStart")?.end()
     }
 
     func test(spans: [SpanData]) -> TestReport {
@@ -64,10 +65,10 @@ class PerformanceSpanTest: PayloadTest {
                 let numberOfCalculations = self?.calculationsPerLoop ?? 0
                 let limitNumberOfSpansPerLoop = self?.maxNumberOfSpans ?? 0
                 for _ in 0..<numberOfCalculations {
-                    var span: (any Span)?
+                    var span: EmbraceSpan?
                     lock.lock()
                     if totalSpans < limitNumberOfSpansPerLoop {
-                        span = Embrace.client?.buildSpan(name: "HashingSpan").startSpan()
+                        span = EmbraceIO.shared.createSpan(name: "HashingSpan")
                         totalSpans += 1
                     }
                     lock.unlock()

@@ -3,7 +3,7 @@
 //
 
 import EmbraceCommonInternal
-import OpenTelemetryApi
+import EmbraceSemantics
 import TestSupport
 import XCTest
 

@@ -70,12 +70,13 @@ final class EmbraceTraceViewState<Value: Equatable> {
 
     // MARK: - Debugging
 
+    // periphery:ignore
     /// Returns a formatted string representation of the current state.
     ///
     /// Useful for debugging and logging purposes.
     ///
     /// - Returns: A multi-line string containing all tracked metrics
-    public func debugDescription() -> String {
+    func debugDescription() -> String {
         return """
             EmbraceTraceViewState Debug Info:
             ├─ Initialize: \(initialize) times, first at \(initializeTime?.description ?? "never")
@@ -84,4 +85,5 @@ final class EmbraceTraceViewState<Value: Equatable> {
             └─ Disappear: \(disappear) times, last at \(disappearTime?.description ?? "never")
             """
     }
+
 }

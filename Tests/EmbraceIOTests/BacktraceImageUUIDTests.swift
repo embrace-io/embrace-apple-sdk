@@ -3,82 +3,78 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceKSCrashBacktraceSupport
 import Foundation
+import TestSupport
 import XCTest
 
 @testable import EmbraceCore
 @testable import EmbraceIO
 
-/// A `Symbolicator` that resolves every address to a frame carrying a known, full-length Mach-O UUID.
-///
-/// The UUID is the value the *real* symbolicator would already have produced (via
-/// `NSUUID(uuidBytes:).uuidString` from KSCrash's raw `uuid_t`). It is deliberately a full 36-char
-/// UUID string so the test can prove it survives `EmbraceBacktrace.symbolicated()` unchanged.
-private final class FixedUUIDSymbolicator: NSObject, Symbolicator {
-    static let fullUUID = "F70C76E3-1352-3A80-A123-456789ABCDEF"  // 36 chars
-
-    func resolve(address: FrameAddress) -> SymbolicatedFrame? {
-        SymbolicatedFrame(
-            returnAddress: address,
-            callInstruction: address,
-            symbolAddress: 0x1000,
-            symbolName: "emb_test_symbol",
-            imageName: "TestImage",
-            imageUUID: Self.fullUUID,
-            imageAddress: 0x1000,
-            imageSize: 0x2000
-        )
-    }
-}
-
 /// Regression guard for a UUID-truncation bug in `EmbraceBacktrace.symbolicated()`.
 ///
-/// The `SymbolicatedFrame.imageUUID` handed back by the symbolicator is *already* the full Mach-O
-/// UUID **string**. A previous version re-ran it through `NSUUID(uuidBytes:)`, which reinterprets the
-/// string's first 16 UTF-8 bytes as a raw `uuid_t` — silently truncating the UUID to its first 16
-/// characters (e.g. `F70C76E3-1352-3A80-…` collapsed to the `uuidString` of "F70C76E3-1352-3A"). That
-/// broke server-side symbolication of system frames in hang/backtrace payloads, where the full image
-/// UUID is what matches the symbol file. These tests fail loudly if that reinterpretation returns.
+/// The `SymbolicatedFrame.imageUUID` produced by `KSCrashBacktracing.resolve(address:)` is *already*
+/// the full Mach-O UUID **string** (it converts KSCrash's raw `uuid_t` via `NSUUID(uuidBytes:)`
+/// internally). A previous version of `symbolicated()` re-ran that string through
+/// `NSUUID(uuidBytes:)`, which reinterprets the string's first 16 UTF-8 bytes as a raw `uuid_t` —
+/// silently replacing the real UUID with one derived from its own ASCII characters. That broke
+/// server-side symbolication of system frames in hang/backtrace payloads, where the full image UUID
+/// is what matches the symbol file. These tests fail loudly if that reinterpretation returns.
+///
+/// There is no symbolicator injection point in this SDK version — `symbolicated()` always uses
+/// `KSCrashBacktracing` — so the resolver itself is the oracle: whatever UUID it reports for an
+/// address must arrive in the frame, and in the payload, byte-for-byte unchanged.
 final class BacktraceImageUUIDTests: XCTestCase {
 
-    override func setUp() {
-        super.setUp()
-        // The EmbraceCore designated initializer is the documented way to inject a custom symbolicator.
-        // `symbolicated()` reads `Embrace.client?.options.symbolicator`, so it must be set on the client.
-        let options = Embrace.Options(
-            appId: "myApp",
-            captureServices: [],
-            crashReporter: nil,
-            symbolicator: FixedUUIDSymbolicator()
-        )
-        _ = try? Embrace.setup(options: options).start()
+    /// A real return address from this process, together with the UUID the resolver reports for it.
+    /// Real addresses (rather than a synthetic one) are required here: only an address inside a
+    /// loaded image resolves to an image at all.
+    private func addressWithResolvedUUID() throws -> (address: UInt, uuid: String) {
+        let backtracer = KSCrashBacktracing()
+        let candidates = Thread.callStackReturnAddresses.compactMap { $0 as? UInt }
+        XCTAssertFalse(candidates.isEmpty, "the current call stack produced no return addresses")
+
+        // `resolve(address:)` is handed the same address `symbolicated()` passes it, so the UUID
+        // compared below is exactly what the pipeline had to work with.
+        let resolved: (address: UInt, uuid: String)? =
+            candidates.lazy.compactMap { address in
+                guard let frame = backtracer.resolve(address: address),
+                    let uuid = frame.imageUUID,
+                    !uuid.isEmpty
+                else { return nil }
+                return (address, uuid)
+            }.first
+
+        // A test process always has resolvable frames on its own stack, so an empty result means
+        // symbolication itself is broken. That's a failure, not something to skip past — skipping here
+        // would let a process-wide symbolication regression land as a green build.
+        return try XCTUnwrap(
+            resolved,
+            "no address in the current call stack resolved to a Mach-O image — symbolication is broken")
     }
 
-    override func tearDown() {
-        _ = try? Embrace.client?.stop()
-        Embrace.client = nil
-        super.tearDown()
-    }
-
-    /// The exact output the truncation bug produced: the `uuidString` of the first 16 UTF-8 bytes of
-    /// the UUID string. Kept as an explicit fixture so a reintroduced bug is matched precisely.
-    private var knownTruncation: String {
-        NSUUID(uuidBytes: Array(FixedUUIDSymbolicator.fullUUID.utf8)).uuidString
+    /// The output the truncation bug produced for a given real UUID: the `uuidString` of the first 16
+    /// UTF-8 bytes of the UUID string itself. Derived from the real value so a reintroduced bug is
+    /// matched precisely rather than approximately.
+    private func knownTruncation(of uuid: String) -> String {
+        NSUUID(uuidBytes: Array(uuid.utf8)).uuidString
     }
 
     func test_symbolicatedFrame_preservesFullImageUUID() throws {
-        let thread = EmbraceBacktraceThread(
-            index: 0,
-            callstack: .init(addresses: [0xABCD_EF00], count: 1)
-        )
+        // ksbic_init (KSCrash binary-image cache) is not safe under sanitizer instrumentation:
+        // TSan aborts; ASan deadlocks until the job cap fires. Symbolication is required here.
+        try XCTSkipIfSanitizing("KSCrash symbolication is incompatible with sanitizer instrumentation")
+
+        let (address, expectedUUID) = try addressWithResolvedUUID()
+        let thread = EmbraceBacktraceThread(index: 0, callstack: .init(addresses: [address], count: 1))
 
         let image = try XCTUnwrap(
             thread.frames(symbolicated: true).first?.image,
-            "frame was not symbolicated (no image); check that the mock symbolicator is wired up"
+            "frame was not symbolicated (no image)"
         )
 
         XCTAssertEqual(
-            image.uuid, FixedUUIDSymbolicator.fullUUID,
+            image.uuid, expectedUUID,
             "image UUID was corrupted during symbolication"
         )
         XCTAssertEqual(
@@ -86,7 +82,7 @@ final class BacktraceImageUUIDTests: XCTestCase {
             "expected a full 36-char Mach-O UUID, got \(image.uuid.count) chars: \(image.uuid)"
         )
         XCTAssertNotEqual(
-            image.uuid, knownTruncation,
+            image.uuid, knownTruncation(of: expectedUUID),
             "image UUID matches the known truncation-bug output — the UUID string is being "
                 + "reinterpreted as raw uuid_t bytes again in EmbraceBacktrace.symbolicated()"
         )
@@ -95,10 +91,10 @@ final class BacktraceImageUUIDTests: XCTestCase {
     /// The value must also survive into the processed-frame dictionary (`u` key) that is serialized
     /// into the hang/crash payload — the layer where the corruption was originally observed.
     func test_processedFrame_carriesFullImageUUID() throws {
-        let thread = EmbraceBacktraceThread(
-            index: 0,
-            callstack: .init(addresses: [0xABCD_EF10], count: 1)
-        )
+        try XCTSkipIfSanitizing("KSCrash symbolication is incompatible with sanitizer instrumentation")
+
+        let (address, expectedUUID) = try addressWithResolvedUUID()
+        let thread = EmbraceBacktraceThread(index: 0, callstack: .init(addresses: [address], count: 1))
 
         let frame = try XCTUnwrap(thread.frames(symbolicated: true).first)
         let processed = try XCTUnwrap(
@@ -110,7 +106,8 @@ final class BacktraceImageUUIDTests: XCTestCase {
             "processed frame is missing the UUID (`u`) key"
         )
 
-        XCTAssertEqual(uuid, FixedUUIDSymbolicator.fullUUID)
+        XCTAssertEqual(uuid, expectedUUID)
         XCTAssertEqual(uuid.count, 36, "payload `u` was truncated: \(uuid)")
+        XCTAssertNotEqual(uuid, knownTruncation(of: expectedUUID))
     }
 }

@@ -5,7 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceOTelInternal
+    import EmbraceSemantics
     import EmbraceCommonInternal
 #endif
 
@@ -20,16 +20,13 @@ struct SpanEventPayload: Encodable {
         case attributes
     }
 
-    init(from event: SpanEvent) {
-        self.name = event.name
-        self.timestamp = event.timestamp.nanosecondsSince1970Truncated
-        self.attributes = PayloadUtils.convertSpanAttributes(event.attributes)
-    }
-
     init(from event: EmbraceSpanEvent) {
         self.name = event.name
         self.timestamp = event.timestamp.nanosecondsSince1970Truncated
-        self.attributes = PayloadUtils.convertSpanAttributes(event.attributes)
+
+        self.attributes = event.attributes.map { entry in
+            Attribute(key: entry.key, value: String(describing: entry.value))
+        }
     }
 
     func encode(to encoder: Encoder) throws {
@@ -41,7 +38,7 @@ struct SpanEventPayload: Encodable {
 }
 
 extension SpanEventPayload: Equatable {
-    public static func == (lhs: SpanEventPayload, rhs: SpanEventPayload) -> Bool {
+    static func == (lhs: SpanEventPayload, rhs: SpanEventPayload) -> Bool {
         return
             lhs.name == rhs.name && lhs.timestamp == rhs.timestamp
     }
