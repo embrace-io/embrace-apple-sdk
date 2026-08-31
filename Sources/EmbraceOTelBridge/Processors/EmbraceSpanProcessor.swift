@@ -36,9 +36,13 @@ class EmbraceSpanProcessor: SpanProcessor {
     /// after `Embrace.setup()` completes. Child forwarding waits on this group before proceeding.
     var criticalResourceGroup: DispatchGroup?
 
+    /// Upper bound on how long child forwarding waits for `criticalResourceGroup`.
+    var criticalResourceTimeout: DispatchTimeInterval = .seconds(10)
+
     private let childProcessors: [SpanProcessor]
     private let childExporters: [SpanExporter]
     private let processorQueue = DispatchQueue(label: "io.embrace.otelbridge.spanprocessor", qos: .utility)
+    private let criticalResourcesReady = EmbraceMutex(false)
 
     init(
         delegate: EmbraceSpanProcessorDelegate? = nil,
@@ -58,7 +62,7 @@ class EmbraceSpanProcessor: SpanProcessor {
 
         let mkSpan = EmbraceMetricKitSpan.begin(name: "span-processor-onstart")
         processorQueue.async { [self] in
-            criticalResourceGroup?.wait()
+            waitForCriticalResources()
             for processor in childProcessors {
                 processor.onStart(parentContext: parentContext, span: span)
             }
@@ -73,7 +77,7 @@ class EmbraceSpanProcessor: SpanProcessor {
 
         let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "span-processor-onend")
         processorQueue.async { [self] in
-            criticalResourceGroup?.wait()
+            waitForCriticalResources()
             for var processor in childProcessors {
                 processor.onEnd(span: span)
             }
@@ -90,7 +94,7 @@ class EmbraceSpanProcessor: SpanProcessor {
 
     func forceFlush(timeout: TimeInterval?) {
         let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "span-processor-forceflush")
-        processorQueue.sync {
+        runOnQueue(timeout: timeout) { [self] in
             for processor in childProcessors {
                 processor.forceFlush(timeout: timeout)
             }
@@ -114,7 +118,7 @@ class EmbraceSpanProcessor: SpanProcessor {
     }
 
     func shutdown(explicitTimeout: TimeInterval?) {
-        processorQueue.sync {
+        runOnQueue(timeout: explicitTimeout) { [self] in
             for var processor in childProcessors {
                 processor.shutdown(explicitTimeout: explicitTimeout)
             }
@@ -125,6 +129,42 @@ class EmbraceSpanProcessor: SpanProcessor {
     }
 
     // MARK: - Private
+
+    /// Waits for critical SDK resources, bounded by `criticalResourceTimeout`.
+    ///
+    /// The bound matters because `captureServicesGroup` is `leave()`d only on the success path
+    /// of `Embrace.start()`. Every early exit, and a host that calls `setup()` without
+    /// `start()`, leaves it pending forever. An unbounded wait there silently starves the
+    /// user-supplied exporters behind this gate rather than merely delaying them.
+    private func waitForCriticalResources() {
+        guard let criticalResourceGroup else { return }
+        guard !criticalResourcesReady.withLock({ $0 }) else { return }
+
+        // Pay the gate at most once. A group that is never left times out on *every* wait, so
+        // re-waiting would charge each span a fresh full timeout and stall the pipeline
+        // permanently rather than merely delaying its first span.
+        _ = criticalResourceGroup.wait(timeout: .now() + criticalResourceTimeout)
+        criticalResourcesReady.withLock { $0 = true }
+    }
+
+    /// Runs `work` on `processorQueue`, returning once it completes or `timeout` elapses,
+    /// whichever is first.
+    ///
+    /// `processorQueue` is serial and may already be occupied by forwarding parked on the
+    /// critical resource gate, so a plain `sync` would make the caller wait for that work
+    /// regardless of the timeout it passed in.
+    private func runOnQueue(timeout: TimeInterval?, _ work: @escaping () -> Void) {
+        let finished = DispatchSemaphore(value: 0)
+        processorQueue.async {
+            work()
+            finished.signal()
+        }
+        if let timeout {
+            _ = finished.wait(timeout: .now() + timeout)
+        } else {
+            finished.wait()
+        }
+    }
 
     /// Stamps external spans with required Embrace attributes before they reach child processors
     /// or the `EmbraceCore` delegate.

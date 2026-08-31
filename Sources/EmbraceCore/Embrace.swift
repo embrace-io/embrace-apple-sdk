@@ -69,6 +69,10 @@ package class Embrace {
     let captureServices: CaptureServices
     package let captureServicesGroup: DispatchGroup
 
+    /// Releases `captureServicesGroup` exactly once. `start()` returns through several
+    /// paths and can be retried, and an unbalanced `leave()` would trap the process.
+    private let captureServicesRelease: OneShotGroupRelease
+
     let logController: LogController
 
     let sessionController: SessionController
@@ -215,6 +219,7 @@ package class Embrace {
         // Create a group for the services, this group leaves once the services are started.
         self.captureServicesGroup = DispatchGroup()
         self.captureServicesGroup.enter()
+        self.captureServicesRelease = OneShotGroupRelease(self.captureServicesGroup)
 
         // initialize capture services
         self.captureServices = try CaptureServices(
@@ -307,6 +312,12 @@ package class Embrace {
 
             guard config.isSDKEnabled else {
                 Embrace.logger.warning("Embrace can't start when disabled!")
+
+                // The SDK will not start this launch, so nothing will ever satisfy the capture
+                // services gate. Release it: the child processors and exporters behind it are
+                // user-supplied, and a remote kill-switch for Embrace must not silently starve
+                // a customer's own OpenTelemetry pipeline.
+                self.captureServicesRelease.release()
                 return self
             }
 
@@ -340,7 +351,7 @@ package class Embrace {
 
             // now that services are started, and critical pieces are in place,
             // notify anyone who cares.
-            self.captureServicesGroup.leave()
+            self.captureServicesRelease.release()
 
             self.processingQueue.async { [weak self] in
                 // fetch crash reports and link them to sessions

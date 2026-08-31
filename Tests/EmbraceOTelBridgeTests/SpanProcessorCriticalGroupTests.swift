@@ -12,20 +12,37 @@ import XCTest
 @testable import EmbraceSemantics
 
 /// `EmbraceSpanProcessor` gates all child processor/exporter forwarding behind
-/// `criticalResourceGroup?.wait()` — an *unbounded* wait executed on its serial
-/// `processorQueue`.
+/// `criticalResourceGroup`, so children never receive spans before critical SDK resources
+/// are ready.
 ///
 /// In `EmbraceIO.start(options:)` that group is `Embrace.client.captureServicesGroup`, which is
 /// `enter()`ed in `Embrace.init` and `leave()`d at exactly one place: the success path of
-/// `Embrace.start()`. Every early exit from `start()` — the SDK-already-started guard, the
+/// `Embrace.start()`. Every early exit from `start()` (the SDK-already-started guard, the
 /// `config.isSDKEnabled == false` remote kill-switch, the non-main-thread `throw`, or a host that
-/// calls `setup()` and never `start()` — skips that `leave()`, leaving the group permanently
+/// calls `setup()` and never `start()`) skips that `leave()`, leaving the group permanently
 /// pending.
 ///
-/// These tests pin the resulting behavior: the serial queue blocks forever on the first span, so
-/// custom exporters silently receive nothing, and `forceFlush`/`shutdown` (which use
-/// `processorQueue.sync`) block their caller forever, ignoring the timeout they were handed.
-final class EmbraceSpanProcessorCriticalResourceGroupTests: XCTestCase {
+/// The child processors and exporters behind this gate are exclusively user-supplied
+/// (`OTelOptions.spanProcessor`/`.spanExporter`); Embrace's own storage path runs through the
+/// delegate, which is synchronous and ungated. So a group that is never left silently starves a
+/// customer's own OpenTelemetry pipeline forever, and blocks `forceFlush`/`shutdown` past the
+/// timeouts they were handed.
+///
+/// These tests pin both halves of the contract: the gate must still defer forwarding while
+/// resources are genuinely pending, and it must never block indefinitely.
+final class SpanProcessorCriticalGroupTests: XCTestCase {
+
+    /// Every wait here is deliberately far from the value it discriminates against, so load on
+    /// the machine cannot flip a verdict.
+    ///
+    /// - `gate`: what a span pays if the gate is (incorrectly) re-waited.
+    /// - `unpaidWait`: budget for a span that should pay nothing. Well under `gate`, well over
+    ///   the dispatch hop it actually costs.
+    /// - `generousWait`: upper bound for things that should happen, sized to outlast `gate`
+    ///   several times over rather than to measure anything.
+    private static let gate: DispatchTimeInterval = .seconds(2)
+    private static let unpaidWait: TimeInterval = 0.75
+    private static let generousWait: TimeInterval = 15.0
 
     private var mockDelegate: MockSpanProcessorDelegate!
     private var pendingGroup: DispatchGroup!
@@ -52,52 +69,85 @@ final class EmbraceSpanProcessorCriticalResourceGroupTests: XCTestCase {
     }
 
     private func makeProcessor(
-        exporter: SpanExporter
+        exporter: SpanExporter,
+        gateTimeout: DispatchTimeInterval
     ) -> (EmbraceSpanProcessor, Tracer) {
         let processor = EmbraceSpanProcessor(delegate: mockDelegate, childExporters: [exporter])
+        processor.criticalResourceTimeout = gateTimeout
         processor.criticalResourceGroup = pendingGroup
         let provider = TracerProviderSdk(spanProcessors: [processor])
         return (processor, provider.get(instrumentationName: "test", instrumentationVersion: nil))
     }
 
-    // MARK: -
+    // MARK: - The gate still defers while resources are genuinely pending
 
-    /// A `criticalResourceGroup` that is never left starves child exporters indefinitely.
-    func test_pendingCriticalResourceGroup_starvesChildExporters() {
+    /// The guarantee the group exists for must survive the fix: while critical resources are
+    /// still pending and the timeout has not elapsed, children receive nothing.
+    func test_pendingGroup_defersForwardingUntilReleased() {
         let exporter = GatedCapturingSpanExporter()
-        let (_, tracer) = makeProcessor(exporter: exporter)
+        let (_, tracer) = makeProcessor(exporter: exporter, gateTimeout: .seconds(30))
 
-        tracer.spanBuilder(spanName: "starved-span").startSpan().end()
+        tracer.spanBuilder(spanName: "deferred-span").startSpan().end()
 
-        let exported = XCTestExpectation(description: "child exporter receives span data")
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-            if exporter.exportedSpans.contains(where: { $0.name == "starved-span" }) {
-                exported.fulfill()
-            }
-        }
-        XCTAssertEqual(
-            XCTWaiter().wait(for: [exported], timeout: 1.5),
-            .timedOut,
-            "Span reached the child exporter while the critical resource group was still pending."
+        // Assert absence only after giving forwarding a real chance to happen.
+        wait(delay: 0.5)
+        XCTAssertTrue(
+            exporter.exportedSpans.isEmpty,
+            "span reached the child exporter while critical resources were still pending"
         )
 
-        // Positive control: the very same span flows once the group is released, proving the
-        // starvation above is the gate and not a wiring mistake in this test.
         leaveGroup()
 
-        let flushed = XCTestExpectation(description: "child exporter drains after group is left")
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-            if exporter.exportedSpans.contains(where: { $0.name == "starved-span" }) {
-                flushed.fulfill()
-            }
-        }
-        XCTAssertEqual(XCTWaiter().wait(for: [flushed], timeout: .defaultTimeout), .completed)
+        wait(timeout: Self.generousWait) { exporter.exportedSpans.contains { $0.name == "deferred-span" } }
     }
 
-    /// `forceFlush(timeout:)` blocks its caller forever, ignoring the timeout it was given.
-    func test_pendingCriticalResourceGroup_blocksForceFlushPastItsTimeout() {
+    // MARK: - The gate must never block indefinitely
+
+    /// A group that is never left must not starve child exporters forever.
+    func test_neverReleasedGroup_forwardsAfterTimeout() {
         let exporter = GatedCapturingSpanExporter()
-        let (processor, tracer) = makeProcessor(exporter: exporter)
+        let (_, tracer) = makeProcessor(exporter: exporter, gateTimeout: .milliseconds(100))
+
+        tracer.spanBuilder(spanName: "gated-span").startSpan().end()
+
+        // The group is deliberately never left. Polls rather than sampling once, so a loaded
+        // machine that exports late does not turn this into a flake.
+        wait(timeout: Self.generousWait) { exporter.exportedSpans.contains { $0.name == "gated-span" } }
+        XCTAssertTrue(
+            exporter.exportedSpans.contains { $0.name == "gated-span" },
+            "child exporter never received the span; the critical resource gate blocks indefinitely"
+        )
+    }
+
+    /// The gate must be paid at most once. A group that is never left times out on *every*
+    /// `wait`, so re-waiting would serialize every span behind a fresh full timeout, turning a
+    /// permanent hang into a permanent stall.
+    func test_neverReleasedGroup_waitsAtMostOnce() {
+        let exporter = GatedCapturingSpanExporter()
+        let (_, tracer) = makeProcessor(exporter: exporter, gateTimeout: Self.gate)
+
+        tracer.spanBuilder(spanName: "first-span").startSpan().end()
+        // Generous: the first span legitimately pays the gate once (Self.gate), and this only
+        // needs to outlast that, not to measure it.
+        wait(timeout: Self.generousWait) { exporter.exportedSpans.contains { $0.name == "first-span" } }
+
+        // The gate has now timed out once. This is a binary discriminator, not a stopwatch:
+        // paying the gate again would cost Self.gate (2s), while not paying it costs a dispatch
+        // hop (single-digit ms). Self.unpaidWait (0.75s) sits between the two with room on both
+        // sides, so neither a slow machine nor a fast one changes the verdict.
+        tracer.spanBuilder(spanName: "second-span").startSpan().end()
+        wait(timeout: Self.unpaidWait) { exporter.exportedSpans.contains { $0.name == "second-span" } }
+
+        XCTAssertTrue(
+            exporter.exportedSpans.contains { $0.name == "second-span" },
+            "second span paid the critical resource timeout again; the gate is re-waited per span"
+        )
+    }
+
+    /// `forceFlush(timeout:)` must honor the timeout it was handed.
+    func test_neverReleasedGroup_forceFlushReturnsWithinItsTimeout() {
+        let exporter = GatedCapturingSpanExporter()
+        let (processor, tracer) = makeProcessor(exporter: exporter, gateTimeout: .seconds(30))
 
         // Occupy the serial queue with work parked on the pending group.
         tracer.spanBuilder(spanName: "parked-span").startSpan().end()
@@ -109,24 +159,17 @@ final class EmbraceSpanProcessorCriticalResourceGroupTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            returned.wait(timeout: .now() + 1.5),
-            .timedOut,
-            "forceFlush(timeout: 0.1) should still be blocked — the timeout is not honored."
-        )
-
-        leaveGroup()
-        XCTAssertEqual(
-            returned.wait(timeout: .now() + .defaultTimeout),
+            returned.wait(timeout: .now() + Self.generousWait),
             .success,
-            "forceFlush never returned even after the group was released."
+            "forceFlush(timeout: 0.1) did not return; the timeout is not honored"
         )
     }
 
     /// `shutdown(explicitTimeout:)` has the same `processorQueue.sync` exposure, so a pending
-    /// group blocks SDK teardown too.
-    func test_pendingCriticalResourceGroup_blocksShutdownPastItsTimeout() {
+    /// group must not block SDK teardown either.
+    func test_neverReleasedGroup_shutdownReturnsWithinItsTimeout() {
         let exporter = GatedCapturingSpanExporter()
-        let (processor, tracer) = makeProcessor(exporter: exporter)
+        let (processor, tracer) = makeProcessor(exporter: exporter, gateTimeout: .seconds(30))
 
         tracer.spanBuilder(spanName: "parked-span").startSpan().end()
 
@@ -137,16 +180,9 @@ final class EmbraceSpanProcessorCriticalResourceGroupTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            returned.wait(timeout: .now() + 1.5),
-            .timedOut,
-            "shutdown(explicitTimeout: 0.1) should still be blocked — the timeout is not honored."
-        )
-
-        leaveGroup()
-        XCTAssertEqual(
-            returned.wait(timeout: .now() + .defaultTimeout),
+            returned.wait(timeout: .now() + Self.generousWait),
             .success,
-            "shutdown never returned even after the group was released."
+            "shutdown(explicitTimeout: 0.1) did not return; the timeout is not honored"
         )
     }
 }
