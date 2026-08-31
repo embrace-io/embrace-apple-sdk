@@ -28,9 +28,9 @@ import OpenTelemetrySdk
 ///
 /// That wait is best effort rather than a guarantee: it is bounded by `criticalResourceTimeout`
 /// and paid at most once. Only the success path of `Embrace.start()` and its remote kill-switch
-/// guard ever satisfy the group, so a host that calls `setup()` without `start()`, or whose
-/// `start()` throws, would otherwise park the pipeline forever. Once the wait ends, whether by
-/// release or by timeout, every later span forwards without gating.
+/// guard ever satisfy the group, so a `start()` call that throws before entering those paths
+/// would otherwise park the pipeline forever. Once the wait ends, whether by release or by
+/// timeout, every later span forwards without gating.
 class EmbraceSpanProcessor: SpanProcessor {
 
     var isStartRequired: Bool { true }
@@ -138,10 +138,11 @@ class EmbraceSpanProcessor: SpanProcessor {
 
     /// Waits for critical SDK resources, bounded by `criticalResourceTimeout`.
     ///
-    /// The bound matters because `captureServicesGroup` is `leave()`d only on the success path
-    /// of `Embrace.start()`. Every early exit, and a host that calls `setup()` without
-    /// `start()`, leaves it pending forever. An unbounded wait there silently starves the
-    /// user-supplied exporters behind this gate rather than merely delaying them.
+    /// The bound matters because `captureServicesGroup` is satisfied only when `Embrace.start()`
+    /// reaches either the success path or the startup-disabled guard. A `start()` call that
+    /// throws before entering those paths still leaves the group pending forever. An unbounded
+    /// wait there silently starves the user-supplied exporters behind this gate rather than
+    /// merely delaying them.
     private func waitForCriticalResources() {
         guard let criticalResourceGroup else { return }
 

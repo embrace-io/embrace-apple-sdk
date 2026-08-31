@@ -67,11 +67,12 @@ package class Embrace {
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
-    package let captureServicesGroup: DispatchGroup
 
-    /// Releases `captureServicesGroup` exactly once. `start()` returns through several
-    /// paths, and an unbalanced `leave()` would trap the process.
-    private let captureServicesRelease: OneShotGroupRelease
+    /// Entered in `init` and left exactly once: from the startup-disabled guard, or from the
+    /// success path of `start()`. Both move `state` off `.initialized` before releasing, so the
+    /// guard at the top of `start()` rejects any later call and a second `leave()` cannot happen.
+    /// Keep it that way: `DispatchGroup` traps on an unbalanced `leave()`.
+    package let captureServicesGroup: DispatchGroup
 
     let logController: LogController
 
@@ -220,7 +221,6 @@ package class Embrace {
         // either after services start or when startup is disabled for this process.
         self.captureServicesGroup = DispatchGroup()
         self.captureServicesGroup.enter()
-        self.captureServicesRelease = OneShotGroupRelease(self.captureServicesGroup)
 
         // initialize capture services
         self.captureServices = try CaptureServices(
@@ -323,7 +323,7 @@ package class Embrace {
                 // services gate. Release it: the child processors and exporters behind it are
                 // user-supplied, and a remote kill-switch for Embrace must not silently starve
                 // a customer's own OpenTelemetry pipeline.
-                self.captureServicesRelease.release()
+                self.captureServicesGroup.leave()
                 return self
             }
 
@@ -357,7 +357,7 @@ package class Embrace {
 
             // now that services are started, and critical pieces are in place,
             // notify anyone who cares.
-            self.captureServicesRelease.release()
+            self.captureServicesGroup.leave()
 
             self.processingQueue.async { [weak self] in
                 // fetch crash reports and link them to sessions
