@@ -15,11 +15,6 @@ package final class OneShotGroupRelease {
     private let group: DispatchGroup
     private let released = EmbraceMutex(false)
 
-    /// Whether the group has already been released.
-    package var hasReleased: Bool {
-        released.withLock { $0 }
-    }
-
     package init(_ group: DispatchGroup) {
         self.group = group
     }

@@ -57,14 +57,4 @@ final class OneShotGroupReleaseTests: XCTestCase {
         wait(for: [done], timeout: .defaultTimeout)
         XCTAssertEqual(group.wait(timeout: .now()), .success)
     }
-
-    func test_hasReleased_reportsState() {
-        let group = DispatchGroup()
-        group.enter()
-        let release = OneShotGroupRelease(group)
-
-        XCTAssertFalse(release.hasReleased)
-        release.release()
-        XCTAssertTrue(release.hasReleased)
-    }
 }
