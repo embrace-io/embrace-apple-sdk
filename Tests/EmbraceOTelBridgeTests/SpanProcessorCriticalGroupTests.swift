@@ -7,9 +7,7 @@ import OpenTelemetrySdk
 import TestSupport
 import XCTest
 
-@testable import EmbraceCommonInternal
 @testable import EmbraceOTelBridge
-@testable import EmbraceSemantics
 
 /// `EmbraceSpanProcessor` gates all child processor/exporter forwarding behind
 /// `criticalResourceGroup`, so children never receive spans before critical SDK resources
@@ -84,7 +82,7 @@ final class SpanProcessorCriticalGroupTests: XCTestCase {
     /// The guarantee the group exists for must survive the fix: while critical resources are
     /// still pending and the timeout has not elapsed, children receive nothing.
     func test_pendingGroup_defersForwardingUntilReleased() {
-        let exporter = GatedCapturingSpanExporter()
+        let exporter = CapturingSpanExporter()
         let (_, tracer) = makeProcessor(exporter: exporter, gateTimeout: .seconds(30))
 
         tracer.spanBuilder(spanName: "deferred-span").startSpan().end()
@@ -105,7 +103,7 @@ final class SpanProcessorCriticalGroupTests: XCTestCase {
 
     /// A group that is never left must not starve child exporters forever.
     func test_neverReleasedGroup_forwardsAfterTimeout() {
-        let exporter = GatedCapturingSpanExporter()
+        let exporter = CapturingSpanExporter()
         let (_, tracer) = makeProcessor(exporter: exporter, gateTimeout: .milliseconds(100))
 
         tracer.spanBuilder(spanName: "gated-span").startSpan().end()
@@ -123,7 +121,7 @@ final class SpanProcessorCriticalGroupTests: XCTestCase {
     /// `wait`, so re-waiting would serialize every span behind a fresh full timeout, turning a
     /// permanent hang into a permanent stall.
     func test_neverReleasedGroup_waitsAtMostOnce() {
-        let exporter = GatedCapturingSpanExporter()
+        let exporter = CapturingSpanExporter()
         let (_, tracer) = makeProcessor(exporter: exporter, gateTimeout: Self.gate)
 
         tracer.spanBuilder(spanName: "first-span").startSpan().end()
@@ -146,7 +144,7 @@ final class SpanProcessorCriticalGroupTests: XCTestCase {
 
     /// `forceFlush(timeout:)` must honor the timeout it was handed.
     func test_neverReleasedGroup_forceFlushReturnsWithinItsTimeout() {
-        let exporter = GatedCapturingSpanExporter()
+        let exporter = CapturingSpanExporter()
         let (processor, tracer) = makeProcessor(exporter: exporter, gateTimeout: .seconds(30))
 
         // Occupy the serial queue with work parked on the pending group.
@@ -174,7 +172,7 @@ final class SpanProcessorCriticalGroupTests: XCTestCase {
     /// `shutdown(explicitTimeout:)` has the same `processorQueue.sync` exposure, so a pending
     /// group must not block SDK teardown either.
     func test_neverReleasedGroup_shutdownReturnsWithinItsTimeout() {
-        let exporter = GatedCapturingSpanExporter()
+        let exporter = CapturingSpanExporter()
         let (processor, tracer) = makeProcessor(exporter: exporter, gateTimeout: .seconds(30))
 
         tracer.spanBuilder(spanName: "parked-span").startSpan().end()
@@ -194,26 +192,5 @@ final class SpanProcessorCriticalGroupTests: XCTestCase {
         // As with forceFlush, the abandoned work must still run once the gate clears.
         leaveGroup()
         wait(timeout: Self.generousWait) { exporter.didShutdown }
-    }
-}
-
-/// Local to this file so it stays independent of the mocks in `EmbraceSpanProcessorTests`.
-private class GatedCapturingSpanExporter: SpanExporter {
-    @TestLocked var exportedSpans: [SpanData] = []
-    @TestLocked var didFlush = false
-    @TestLocked var didShutdown = false
-
-    func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
-        exportedSpans.append(contentsOf: spans)
-        return .success
-    }
-
-    func flush(explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
-        didFlush = true
-        return .success
-    }
-
-    func shutdown(explicitTimeout: TimeInterval?) {
-        didShutdown = true
     }
 }
