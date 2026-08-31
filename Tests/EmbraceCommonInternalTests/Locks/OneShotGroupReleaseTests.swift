@@ -43,18 +43,11 @@ final class OneShotGroupReleaseTests: XCTestCase {
         group.enter()
         let release = OneShotGroupRelease(group)
 
-        let iterations = 100
-        let done = expectation(description: "all concurrent releases returned")
-        done.expectedFulfillmentCount = iterations
+        // `concurrentPerform` fires these across the pool's full width at once and returns when
+        // all of them are done, so the releases genuinely contend rather than being drip-fed
+        // from the calling thread.
+        DispatchQueue.concurrentPerform(iterations: 100) { _ in release.release() }
 
-        for _ in 0..<iterations {
-            DispatchQueue.global().async {
-                release.release()
-                done.fulfill()
-            }
-        }
-
-        wait(for: [done], timeout: .defaultTimeout)
         XCTAssertEqual(group.wait(timeout: .now()), .success)
     }
 }

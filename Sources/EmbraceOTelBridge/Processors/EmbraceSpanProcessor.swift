@@ -22,9 +22,15 @@ import OpenTelemetrySdk
 ///
 /// Attribute injection and delegate notifications happen synchronously on the calling thread;
 /// child processor/exporter forwarding is dispatched to a dedicated utility queue so the
-/// OTel calling thread is not blocked. `criticalResourceGroup` (set by the bridge after
-/// `Embrace.setup` completes) is waited on before any child forwarding begins, ensuring
-/// children never receive spans before critical SDK resources are ready.
+/// OTel calling thread is not blocked. Before the first forwarding runs, that queue waits on
+/// `criticalResourceGroup` (set by the bridge after `Embrace.setup` completes) so children do
+/// not receive spans while critical SDK resources are still coming up.
+///
+/// That wait is best effort rather than a guarantee: it is bounded by `criticalResourceTimeout`
+/// and paid at most once. Only the success path of `Embrace.start()` and its remote kill-switch
+/// guard ever satisfy the group, so a host that calls `setup()` without `start()`, or whose
+/// `start()` throws, would otherwise park the pipeline forever. Once the wait ends, whether by
+/// release or by timeout, every later span forwards without gating.
 class EmbraceSpanProcessor: SpanProcessor {
 
     var isStartRequired: Bool { true }
@@ -42,7 +48,7 @@ class EmbraceSpanProcessor: SpanProcessor {
     private let childProcessors: [SpanProcessor]
     private let childExporters: [SpanExporter]
     private let processorQueue = DispatchQueue(label: "io.embrace.otelbridge.spanprocessor", qos: .utility)
-    private let criticalResourcesReady = EmbraceMutex(false)
+    private let didWaitForCriticalResources = EmbraceMutex(false)
 
     init(
         delegate: EmbraceSpanProcessorDelegate? = nil,
@@ -138,13 +144,20 @@ class EmbraceSpanProcessor: SpanProcessor {
     /// user-supplied exporters behind this gate rather than merely delaying them.
     private func waitForCriticalResources() {
         guard let criticalResourceGroup else { return }
-        guard !criticalResourcesReady.withLock({ $0 }) else { return }
 
         // Pay the gate at most once. A group that is never left times out on *every* wait, so
         // re-waiting would charge each span a fresh full timeout and stall the pipeline
-        // permanently rather than merely delaying its first span.
+        // permanently rather than merely delaying its first span. Claiming the wait in a single
+        // locked step makes that "at most once" a property of this flag rather than of the
+        // serial queue the callers happen to share.
+        let shouldWait = didWaitForCriticalResources.withLock { didWait -> Bool in
+            guard !didWait else { return false }
+            didWait = true
+            return true
+        }
+        guard shouldWait else { return }
+
         _ = criticalResourceGroup.wait(timeout: .now() + criticalResourceTimeout)
-        criticalResourcesReady.withLock { $0 = true }
     }
 
     /// Runs `work` on `processorQueue`, returning once it completes or `timeout` elapses,
@@ -153,6 +166,11 @@ class EmbraceSpanProcessor: SpanProcessor {
     /// `processorQueue` is serial and may already be occupied by forwarding parked on the
     /// critical resource gate, so a plain `sync` would make the caller wait for that work
     /// regardless of the timeout it passed in.
+    ///
+    /// A timeout abandons the wait, not the work: `work` stays queued and runs to completion
+    /// afterwards. Returning is therefore not proof the work is done. For `shutdown` that means
+    /// children can be shut down after the SDK considers teardown finished, which is the
+    /// deliberate trade for not hanging teardown behind a gate that was never released.
     private func runOnQueue(timeout: TimeInterval?, _ work: @escaping () -> Void) {
         let finished = DispatchSemaphore(value: 0)
         processorQueue.async {

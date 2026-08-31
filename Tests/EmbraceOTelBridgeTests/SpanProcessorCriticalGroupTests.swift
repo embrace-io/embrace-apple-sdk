@@ -163,6 +163,12 @@ final class SpanProcessorCriticalGroupTests: XCTestCase {
             .success,
             "forceFlush(timeout: 0.1) did not return; the timeout is not honored"
         )
+
+        // Returning early abandons the wait, not the work. Once the gate clears, the flush must
+        // still reach the child exporter: a "fix" that dropped the queued work would satisfy the
+        // assertion above while silently losing flushes.
+        leaveGroup()
+        wait(timeout: Self.generousWait) { exporter.didFlush }
     }
 
     /// `shutdown(explicitTimeout:)` has the same `processorQueue.sync` exposure, so a pending
@@ -184,6 +190,10 @@ final class SpanProcessorCriticalGroupTests: XCTestCase {
             .success,
             "shutdown(explicitTimeout: 0.1) did not return; the timeout is not honored"
         )
+
+        // As with forceFlush, the abandoned work must still run once the gate clears.
+        leaveGroup()
+        wait(timeout: Self.generousWait) { exporter.didShutdown }
     }
 }
 
