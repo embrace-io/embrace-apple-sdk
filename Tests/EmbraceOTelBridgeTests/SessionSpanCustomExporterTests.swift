@@ -94,18 +94,26 @@ final class SessionSpanCustomExporterTests: XCTestCase {
         )
 
         // Drain the processor queue before asserting absence: exports are dispatched
-        // asynchronously, so an unsynchronized nil check here could never fail.
+        // asynchronously, so an unsynchronized check here could never fail.
         bridge.waitForAllWork()
-        XCTAssertTrue(
-            customExporter.exportedSpans.isEmpty,
-            "a heartbeat attribute update must not export — the processor only runs on onStart/onEnd"
+        XCTAssertEqual(
+            customExporter.exportCallCount,
+            0,
+            "a heartbeat attribute update must not trigger exporter calls"
         )
+        XCTAssertTrue(customExporter.exportedSpans.isEmpty)
 
         // Mirrors SessionController.endSessionNoLock's `inProgressSessionSpan.end(endTime: now)`,
         // which routes through DefaultOTelSignalsHandler.onSpanEnded -> bridge.endSpan.
         bridge.endSpan(sessionSpan, endTime: end)
 
-        wait(timeout: .defaultTimeout) { self.customExporter.exportedSpans.count == 1 }
+        wait(timeout: .defaultTimeout) { self.customExporter.exportCallCount == 1 }
+
+        XCTAssertEqual(
+            customExporter.exportCallCount,
+            1,
+            "session span should be exported exactly once, on end"
+        )
 
         let exported = try XCTUnwrap(customExporter.exportedSpans[spanId])
 
