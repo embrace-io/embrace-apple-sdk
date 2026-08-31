@@ -14,11 +14,9 @@ import XCTest
 /// are ready.
 ///
 /// In `EmbraceIO.start(options:)` that group is `Embrace.client.captureServicesGroup`, which is
-/// `enter()`ed in `Embrace.init` and `leave()`d at exactly one place: the success path of
-/// `Embrace.start()`. Every early exit from `start()` (the SDK-already-started guard, the
-/// `config.isSDKEnabled == false` remote kill-switch, the non-main-thread `throw`, or a host that
-/// calls `setup()` and never `start()`) skips that `leave()`, leaving the group permanently
-/// pending.
+/// `enter()`ed in `Embrace.init` and `leave()`d only when `Embrace.start()` reaches either the
+/// success path or the startup-disabled guard. A `start()` call that throws before those paths
+/// leaves the group permanently pending.
 ///
 /// The child processors and exporters behind this gate are exclusively user-supplied
 /// (`OTelOptions.spanProcessor`/`.spanExporter`); Embrace's own storage path runs through the

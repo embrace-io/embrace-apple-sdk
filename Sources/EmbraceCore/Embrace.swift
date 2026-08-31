@@ -68,10 +68,10 @@ package class Embrace {
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
 
-    /// Entered in `init` and left exactly once: from the startup-disabled guard, or from the
-    /// success path of `start()`. Both move `state` off `.initialized` before releasing, so the
-    /// guard at the top of `start()` rejects any later call and a second `leave()` cannot happen.
-    /// Keep it that way: `DispatchGroup` traps on an unbalanced `leave()`.
+    /// Entered in `init` and left exactly once: from the startup-disabled guard or the success
+    /// path of `start()`. Both paths move `state` off `.initialized` before releasing, so later
+    /// `start()` calls fail the state guard and cannot `leave()` again.
+    /// Keep this invariant: `DispatchGroup` traps on an unbalanced `leave()`.
     package let captureServicesGroup: DispatchGroup
 
     let logController: LogController
