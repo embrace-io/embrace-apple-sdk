@@ -70,7 +70,7 @@ package class Embrace {
     package let captureServicesGroup: DispatchGroup
 
     /// Releases `captureServicesGroup` exactly once. `start()` returns through several
-    /// paths and can be retried, and an unbalanced `leave()` would trap the process.
+    /// paths, and an unbalanced `leave()` would trap the process.
     private let captureServicesRelease: OneShotGroupRelease
 
     let logController: LogController
@@ -216,7 +216,8 @@ package class Embrace {
             bridge: options.bridge ?? DefaultOTelSignalBridge()
         )
 
-        // Create a group for the services, this group leaves once the services are started.
+        // Create a group for the services. It leaves once the SDK startup gate is satisfied,
+        // either after services start or when startup is disabled for this process.
         self.captureServicesGroup = DispatchGroup()
         self.captureServicesGroup.enter()
         self.captureServicesRelease = OneShotGroupRelease(self.captureServicesGroup)
@@ -312,6 +313,11 @@ package class Embrace {
 
             guard config.isSDKEnabled else {
                 Embrace.logger.warning("Embrace can't start when disabled!")
+
+                // Disabled at startup is terminal for this process. Keep lifecycle listeners
+                // inactive and make repeated `start()` calls a no-op.
+                state = .stopped
+                sessionLifecycle.stop()
 
                 // The SDK will not start this launch, so nothing will ever satisfy the capture
                 // services gate. Release it: the child processors and exporters behind it are
