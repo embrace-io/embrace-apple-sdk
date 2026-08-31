@@ -101,13 +101,17 @@ final class SessionSpanCustomExporterTests: XCTestCase {
             0,
             "a heartbeat attribute update must not trigger exporter calls"
         )
-        XCTAssertTrue(customExporter.exportedSpans.isEmpty)
+        XCTAssertTrue(
+            customExporter.exportedSpans.isEmpty,
+            "no partial snapshot may reach the exporter mid-session"
+        )
 
         // Mirrors SessionController.endSessionNoLock's `inProgressSessionSpan.end(endTime: now)`,
         // which routes through DefaultOTelSignalsHandler.onSpanEnded -> bridge.endSpan.
         bridge.endSpan(sessionSpan, endTime: end)
 
-        wait(timeout: .defaultTimeout) { self.customExporter.exportCallCount == 1 }
+        // endSpan queues exporter work onto the processor queue; drain deterministically before asserts.
+        bridge.waitForAllWork()
 
         XCTAssertEqual(
             customExporter.exportCallCount,
