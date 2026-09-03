@@ -161,7 +161,7 @@ class EmbraceLogAttributesBuilder {
             return self
         }
 
-        for (key, value) in coordinator.logAttributes where attributes[key] == nil {
+        for (key, value) in coordinator.logAttributes {
             attributes[key] = value
         }
         return self

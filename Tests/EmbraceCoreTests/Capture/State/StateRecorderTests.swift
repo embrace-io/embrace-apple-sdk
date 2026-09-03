@@ -711,6 +711,26 @@ final class StateRecorderTests: XCTestCase {
         )
     }
 
+    func testACallerCannotOverrideAStateStamp() throws {
+        let coordinator = StateCaptureCoordinator()
+        let screen = StateRecorder<String>(
+            stateName: "screen-automatic",
+            defaultValue: "Initializing",
+            otel: mockOTel
+        )
+        coordinator.register(screen, sessionSpan: sessionSpan, at: partStart)
+        screen.onStateChange(to: "HomeViewController", at: time(1))
+
+        // A log emitted with a forged value for a state the SDK owns.
+        let builder = EmbraceLogAttributesBuilder(
+            session: nil,
+            initialAttributes: ["emb.state.screen-automatic": "CheckoutViewController"]
+        )
+        let attributes = builder.addCurrentStates(coordinator).build()
+
+        XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "HomeViewController")
+    }
+
     func testLogStampingIsANoOpWithoutACoordinator() {
         let builder = EmbraceLogAttributesBuilder(session: nil, initialAttributes: [:])
         XCTAssertTrue(builder.addCurrentStates(nil).build().isEmpty)
