@@ -12,7 +12,7 @@
         /// the server, so it is commonly used to carry values that are not meant to leave the browser, such as
         /// the access tokens returned by the OAuth 2.0 implicit grant. It is also used to carry information that
         /// is useful when debugging, such as the hash routes of a single page application.
-        public enum FragmentHandling: Int {
+        public enum FragmentHandling {
             /// The fragment is captured exactly as it appears in the URL.
             case keep
 
