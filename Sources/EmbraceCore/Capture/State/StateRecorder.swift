@@ -45,7 +45,6 @@ protocol StateRecording: AnyObject {
 /// lock is released.
 private struct PendingTransition {
     let token: StateSpanToken
-    let count: Int
     let flushed: UnrecordedTransitions
 }
 
@@ -199,7 +198,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
             let flushed = storage.unrecorded
             storage.unrecorded = .none
 
-            return PendingTransition(token: token, count: storage.transitionsRecorded, flushed: flushed)
+            return PendingTransition(token: token, flushed: flushed)
         }
 
         guard let pending else {
@@ -209,7 +208,6 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         let outcome = pending.token.recordTransition(
             value: newValue.stateDescription,
             at: time,
-            count: pending.count,
             attributes: attributes,
             flushing: pending.flushed
         )
@@ -255,10 +253,11 @@ final class StateRecorder<Value: StateValue>: StateRecording {
             return
         }
 
-        let stale: (token: StateSpanToken, part: EmbraceSpan)? = storage.withLock { storage in
-            var stale: (StateSpanToken, EmbraceSpan)?
+        let stale: (token: StateSpanToken, part: EmbraceSpan, count: Int)? = storage.withLock { storage in
+            var stale: (StateSpanToken, EmbraceSpan, Int)?
             if case .recording(let part, let token) = storage.recording {
-                stale = (token, part)
+                // Captured before the reset below, which would otherwise take the count with it.
+                stale = (token, part, storage.transitionsRecorded)
             }
             storage.recording = .part(sessionSpan)
             storage.transitionsRecorded = 0
@@ -270,14 +269,14 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         if let stale {
             Embrace.logger.error(
                 "State '\(stateName)': a span was still open at part start; the previous part was not closed.")
-            close(token: stale.token, linkingFrom: stale.part, at: time, flushing: .none)
+            close(token: stale.token, linkingFrom: stale.part, at: time, flushing: .none, count: stale.count)
         }
 
         openSpanIfNeeded(activating: false, at: time)
     }
 
     func onSessionPartWillEnd(at time: Date) {
-        let pending: (token: StateSpanToken, part: EmbraceSpan, flushed: UnrecordedTransitions)? =
+        let pending: (token: StateSpanToken, part: EmbraceSpan, flushed: UnrecordedTransitions, count: Int)? =
             storage.withLock { storage in
                 defer { storage.recording = .noPart }
 
@@ -286,17 +285,25 @@ final class StateRecorder<Value: StateValue>: StateRecording {
                 }
                 let flushed = storage.unrecorded
                 storage.unrecorded = .none
-                return (token, part, flushed)
+                // Read in the same critical section as `flushed`, so the count written to the span
+                // can never disagree with the counters written alongside it.
+                return (token, part, flushed, storage.transitionsRecorded)
             }
 
         guard let pending else {
             return
         }
-        close(token: pending.token, linkingFrom: pending.part, at: time, flushing: pending.flushed)
+        close(
+            token: pending.token,
+            linkingFrom: pending.part,
+            at: time,
+            flushing: pending.flushed,
+            count: pending.count
+        )
     }
 
     func onSessionPartDiscarded(at time: Date) {
-        let token: StateSpanToken? = storage.withLock { storage in
+        let pending: (token: StateSpanToken, count: Int)? = storage.withLock { storage in
             defer { storage.recording = .noPart }
 
             guard case .recording(_, let token) = storage.recording else {
@@ -304,10 +311,12 @@ final class StateRecorder<Value: StateValue>: StateRecording {
             }
             // The counters are deliberately NOT flushed: this span is being thrown away with its
             // part, so they have to survive into the next part instead.
-            return token
+            return (token, storage.transitionsRecorded)
         }
 
-        token?.end(at: time, flushing: .none)
+        // The count is still written: the span outlives the deleted part in storage, so if it ever
+        // does surface it should describe itself accurately.
+        pending?.token.end(at: time, flushing: .none, count: pending?.count ?? 0)
     }
 
     // MARK: - Private
@@ -375,9 +384,10 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         token: StateSpanToken,
         linkingFrom part: EmbraceSpan,
         at time: Date,
-        flushing flushed: UnrecordedTransitions
+        flushing flushed: UnrecordedTransitions,
+        count: Int
     ) {
-        if !token.end(at: time, flushing: flushed) && !flushed.isEmpty {
+        if !token.end(at: time, flushing: flushed, count: count) && !flushed.isEmpty {
             // The span had already ended, so the residual counts were not written. Retain them for
             // the next part instead of losing them.
             storage.withLock { $0.unrecorded = $0.unrecorded + flushed }

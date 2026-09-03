@@ -30,7 +30,8 @@ extension SpanSemantics {
         /// Written at span start.
         public static let keyInitialValue = "emb.state.initial_value"
 
-        /// Running count of *recorded* transition events. Re-set on the span after each transition.
+        /// Total number of *recorded* transition events, written once when the span closes. Always
+        /// present — a part in which the state never changed reports `0` rather than omitting it.
         public static let keyTransitionCount = "emb.state.transition_count"
 
         /// The state's new value. Always present on a `transition` event.

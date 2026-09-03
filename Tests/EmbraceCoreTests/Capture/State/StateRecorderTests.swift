@@ -114,7 +114,7 @@ final class StateRecorderTests: XCTestCase {
 
     // MARK: - Transitions
 
-    func testTransitionRecordsAnEventAndBumpsTheCount() throws {
+    func testTransitionRecordsAnEventAndTheCountIsWrittenAtClose() throws {
         let recorder = startedRecorder()
 
         recorder.onStateChange(to: "second", at: time(1))
@@ -125,11 +125,28 @@ final class StateRecorderTests: XCTestCase {
         let event = try XCTUnwrap(span.events.first)
         XCTAssertEqual(event.name, "transition")
         XCTAssertEqual(event.attributes[SpanSemantics.State.keyNewValue]?.description, "second")
-        XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, "1")
 
         recorder.onStateChange(to: "third", at: time(2))
         XCTAssertEqual(span.events.count, 2)
+
+        // The count is authored once, at close, from a value read under the recorder's lock — not
+        // re-written per transition, which is what the contract specifies.
+        XCTAssertNil(span.attributes[SpanSemantics.State.keyTransitionCount])
+        recorder.onSessionPartWillEnd(at: time(60))
         XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, "2")
+    }
+
+    func testAPartWithNoTransitionsStillReportsACountOfZero() throws {
+        let recorder = startedRecorder()
+
+        recorder.onSessionPartWillEnd(at: time(60))
+
+        // `emb.state.transition_count` is a required span attribute, so a changeless part must
+        // report zero rather than omit it — otherwise "no changes" is indistinguishable from
+        // "this SDK doesn't report the count".
+        let span = try XCTUnwrap(stateSpans.first)
+        XCTAssertTrue(span.events.isEmpty)
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, "0")
     }
 
     func testEventUsesTheObservedTimeNotTheProcessingTime() throws {
@@ -190,9 +207,9 @@ final class StateRecorderTests: XCTestCase {
 
         let span = try XCTUnwrap(stateSpans.first)
         XCTAssertEqual(span.events.count, 2, "Recorded transitions must stop at the cap")
-        XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, "2")
 
         recorder.onSessionPartWillEnd(at: time(60))
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, "2")
         XCTAssertEqual(span.attributes[SpanSemantics.State.keyDroppedByInstrumentation]?.description, "2")
         // There is deliberately no `emb.state.max_enforced` key; overflow is counted, not announced.
         XCTAssertNil(span.attributes["emb.state.max_enforced"])
@@ -546,6 +563,10 @@ final class StateRecorderTests: XCTestCase {
             + counted(SpanSemantics.State.keyNotInSession)
 
         XCTAssertEqual(accounted, threads * perThread)
+
+        // Sound because the count is written once at close from a value read under the lock. While
+        // it was re-written per transition this held only by scheduling luck: two racers could take
+        // counts N and N+1 and land them in either order, leaving the lower value on the span.
         XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, String(events))
     }
 

@@ -184,8 +184,9 @@ final class StateRecorderLimitsTests: XCTestCase {
             target,
             "state transitions must bypass the \(customEventLimit)-event customer limit")
 
-        // ...and the reported count agrees with the events actually present, which is the
+        // ...and the count written at close agrees with the events actually present, which is the
         // wire-contract invariant that would break if transitions were silently dropped.
+        recorder.onSessionPartWillEnd(at: Date())
         XCTAssertEqual(
             span.attributes[SpanSemantics.State.keyTransitionCount]?.description,
             String(target))
@@ -209,12 +210,12 @@ final class StateRecorderLimitsTests: XCTestCase {
         XCTAssertEqual(
             span.events.filter { $0.name == SpanSemantics.State.transitionEventName }.count,
             cap)
-        XCTAssertEqual(
-            span.attributes[SpanSemantics.State.keyTransitionCount]?.description,
-            String(cap))
 
         // ...and the overflow was counted rather than lost.
         recorder.onSessionPartWillEnd(at: Date())
+        XCTAssertEqual(
+            span.attributes[SpanSemantics.State.keyTransitionCount]?.description,
+            String(cap))
         XCTAssertEqual(
             span.attributes[SpanSemantics.State.keyDroppedByInstrumentation]?.description,
             "10")

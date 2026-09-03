@@ -45,18 +45,16 @@ final class StateSpanToken {
         span.endTime == nil
     }
 
-    /// Records a transition event and writes the running transition count.
+    /// Records a transition event.
     ///
     /// - Parameters:
     ///   - value: Serialized new value of the state.
     ///   - time: When the change was *observed*, never when it was processed.
-    ///   - count: Running number of recorded transitions, decided by the recorder under its lock.
     ///   - attributes: Optional caller-supplied attributes for this transition.
     ///   - flushed: Unrecorded-transition counts to attach to this event.
     func recordTransition(
         value: String,
         at time: Date,
-        count: Int,
         attributes: EmbraceAttributes,
         flushing flushed: UnrecordedTransitions
     ) -> StateTransitionOutcome {
@@ -85,23 +83,27 @@ final class StateSpanToken {
             return .eventDropped
         }
 
+        return .recorded
+    }
+
+    /// Writes the transition count and any residual counts onto the span, then closes it.
+    ///
+    /// - Parameters:
+    ///   - time: When the part ended.
+    ///   - flushed: Unrecorded-transition counts that never made it onto an event.
+    ///   - count: Total recorded transitions, read by the recorder under its lock.
+    /// - Returns: `false` if the span had already ended, in which case nothing was written and the
+    ///   caller must retain those counts rather than discarding them.
+    @discardableResult
+    func end(at time: Date, flushing flushed: UnrecordedTransitions, count: Int) -> Bool {
+        guard isRecording else {
+            return false
+        }
+
         span.setAttribute(
             key: SpanSemantics.State.keyTransitionCount,
             value: String(count)
         )
-
-        return .recorded
-    }
-
-    /// Writes any residual counts onto the span and closes it.
-    ///
-    /// - Returns: `false` if the span had already ended, in which case `flushed` was **not** written
-    ///   and the caller must retain those counts rather than discarding them.
-    @discardableResult
-    func end(at time: Date, flushing flushed: UnrecordedTransitions) -> Bool {
-        guard isRecording else {
-            return false
-        }
 
         for (key, value) in flushed.attributes {
             span.setAttribute(key: key, value: value)
