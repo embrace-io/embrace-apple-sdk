@@ -9,10 +9,10 @@ extension SpanSemantics {
     /// power mode) whose history is recorded as one span per session part, carrying one `transition`
     /// event per recorded change.
     ///
-    /// These keys are the cross-platform wire contract and are shared with the Android SDK — they
-    /// must not be renamed or extended without a corresponding change there. In particular there is
-    /// deliberately **no** `emb.state.max_enforced` key and state spans are **not** private: when a
-    /// transition is dropped because the per-part cap was reached, it is counted silently in
+    /// These keys are the wire contract the backend reads — they must not be renamed or extended
+    /// without a corresponding change there. In particular there is deliberately **no**
+    /// `emb.state.max_enforced` key and state spans are **not** private: when a transition is
+    /// dropped because the per-part cap was reached, it is counted silently in
     /// ``keyDroppedByInstrumentation``.
     public struct State {
         /// Name of the span recording one state's history, e.g. `emb-state-screen-automatic`.
@@ -48,7 +48,7 @@ extension SpanSemantics {
         /// Name of the span event recording a single state transition.
         ///
         /// Deliberately un-prefixed: the event lives on an `emb-`-prefixed internal span, and this
-        /// literal is the cross-platform contract.
+        /// literal is what the backend matches on.
         public static let transitionEventName = "transition"
 
         /// `emb.link_type` value used on the session part span's link to a state span. This is how

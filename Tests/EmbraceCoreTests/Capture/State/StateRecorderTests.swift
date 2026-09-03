@@ -8,8 +8,8 @@ import XCTest
 
 @testable import EmbraceCore
 
-/// Mirrors the Android SDK's `StateFeatureTest`: these assertions are the cross-platform spec for
-/// the state primitive, so a change that breaks one is a wire-contract change.
+/// These assertions are the specification for the state primitive: they pin the payload the backend
+/// reads, so a change that breaks one is a wire-contract change and needs to be deliberate.
 final class StateRecorderTests: XCTestCase {
 
     private var mockOTel: MockOTelSignalsHandler!
@@ -84,8 +84,8 @@ final class StateRecorderTests: XCTestCase {
     func testStateSpanIsNotPrivate() throws {
         _ = startedRecorder()
 
-        // Android creates the state span with `private = false`; emitting `emb.private` here would
-        // be a payload divergence.
+        // The state span is deliberately not private; emitting `emb.private` here would change the
+        // payload the backend sees.
         let span = try XCTUnwrap(stateSpans.first)
         XCTAssertNil(span.attributes[SpanSemantics.keyIsPrivateSpan])
     }
@@ -194,7 +194,7 @@ final class StateRecorderTests: XCTestCase {
 
         recorder.onSessionPartWillEnd(at: time(60))
         XCTAssertEqual(span.attributes[SpanSemantics.State.keyDroppedByInstrumentation]?.description, "2")
-        // There is deliberately no `emb.state.max_enforced` key on Android; overflow is silent.
+        // There is deliberately no `emb.state.max_enforced` key; overflow is counted, not announced.
         XCTAssertNil(span.attributes["emb.state.max_enforced"])
     }
 
@@ -391,7 +391,7 @@ final class StateRecorderTests: XCTestCase {
 
         span.end(endTime: time(10))
 
-        // The write fails; per §1.4 the change is recycled rather than lost.
+        // The write fails, so the change is recycled onto the next part rather than lost.
         recorder.onStateChange(to: "a", at: time(11))
 
         let nextPart = try mockOTel.createInternalSpan(
