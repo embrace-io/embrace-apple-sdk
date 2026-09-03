@@ -107,17 +107,11 @@
         }
 
         private func getUrlString(url: URL) -> String {
-            guard options.stripQueryParams else {
-                return url.absoluteString
-            }
-
-            guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-                return url.absoluteString
-            }
-
-            components.query = nil
-
-            return components.string ?? url.absoluteString
+            WebViewURLSanitizer.sanitize(
+                url.absoluteString,
+                stripQueryParams: options.stripQueryParams,
+                fragmentHandling: options.fragmentHandling
+            )
         }
     }
 

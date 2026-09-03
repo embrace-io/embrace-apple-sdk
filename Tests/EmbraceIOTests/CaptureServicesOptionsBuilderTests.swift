@@ -159,13 +159,14 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
             // when adding custom webview options
             builder.addWebViewCaptureService(
                 withOptions:
-                    .init(stripQueryParams: true)
+                    .init(stripQueryParams: true, fragmentHandling: .redact)
             )
 
             // then the result contains the correct options
             let options = builder.build()
 
             XCTAssertTrue(options.webView!.stripQueryParams)
+            XCTAssertEqual(options.webView!.fragmentHandling, .redact)
         }
 
         func test_webView_remove() throws {
