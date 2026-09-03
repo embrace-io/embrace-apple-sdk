@@ -314,7 +314,7 @@ extension EmbraceStorage {
     package func fetchSpans(
         for session: EmbraceSession,
         fetchOnly onlyType: EmbraceType? = nil,
-        excluding excludedTypes: [EmbraceType] = [],
+        excluding excludedTypes: [EmbraceType] = []
     ) -> [EmbraceSpan] {
 
         let request = SpanRecord.createFetchRequest()
