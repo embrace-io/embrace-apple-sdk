@@ -166,6 +166,50 @@
             XCTAssertEqual(redactFragment("/search?q=shoes;page=2"), "/search?q=;page=")
         }
 
+        func test_redact_recursesUpToTheNestingLimit() {
+            let limit = WebViewURLSanitizer.maxRecursionDepth
+
+            // a chain of routes that bottoms out exactly at the limit still has its pair redacted
+            let routes = (0..<limit).map { "/r\($0)?" }.joined()
+
+            XCTAssertEqual(redactFragment(routes + "token=secret"), routes + "token=")
+        }
+
+        func test_redact_stopsRecursingPastTheNestingLimit() {
+            let limit = WebViewURLSanitizer.maxRecursionDepth
+
+            // a chain nested one level deeper than the limit allows, carrying a value at the bottom
+            let fragment = (0...limit + 1).map { "/r\($0)?" }.joined() + "token=secret"
+
+            // the levels up to and including the limit are kept, and everything below it is dropped rather
+            // than emitted verbatim — the limit must not let an unredacted value through
+            let result = redactFragment(fragment)
+
+            XCTAssertEqual(result, (0...limit).map { "/r\($0)?" }.joined())
+            XCTAssertFalse(result.contains("secret"))
+        }
+
+        func test_redact_pathologicalNestingTerminatesWithoutLeaking() {
+            let fragment = String(repeating: "/x?", count: 5000) + "token=secret"
+
+            let result = redactFragment(fragment)
+
+            XCTAssertEqual(result, String(repeating: "/x?", count: WebViewURLSanitizer.maxRecursionDepth + 1))
+            XCTAssertFalse(result.contains("secret"))
+        }
+
+        func test_redact_theNestingLimitAppliesPerBranch() {
+            // each sibling segment starts at the top of the budget, so a deeply nested branch cannot consume
+            // the allowance of the ones next to it
+            let deep = (0...WebViewURLSanitizer.maxRecursionDepth + 1).map { "/r\($0)?" }.joined() + "token=secret"
+
+            let result = redactFragment(deep + "&/orders/123?q=shoes")
+
+            XCTAssertTrue(result.hasSuffix("&/orders/123?q="))
+            XCTAssertFalse(result.contains("secret"))
+            XCTAssertFalse(result.contains("shoes"))
+        }
+
         func test_redact_keepsALongRouteThatWouldBeDroppedAsAPayload() {
             let route = "/" + String(repeating: "a", count: WebViewURLSanitizer.opaqueSegmentThreshold + 10)
             XCTAssertEqual(redactFragment(route), route)

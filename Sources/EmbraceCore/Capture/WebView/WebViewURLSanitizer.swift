@@ -134,12 +134,20 @@
             // A hash route, which carries the screen the user was on rather than sensitive data: keep it, and take
             // anything after a `?` within it through the same rules. Excluding `/` and `?` from parameter names
             // above is what lets a route like `/search?q=shoes` reach this rule.
-            if let first = segment.first, first == slash || first == exclamationMark, depth < maxRecursionDepth {
+            if let first = segment.first, first == slash || first == exclamationMark {
                 guard let queryIndex = segment.firstIndex(of: questionMark) else {
                     return string(segment)
                 }
 
                 let route = segment[segment.startIndex...queryIndex]
+
+                // Past the nesting limit the route is kept but its query is dropped rather than emitted as-is.
+                // Text this deep in a fragment has stopped being something we can claim to have parsed, and
+                // keeping it would keep whatever values it holds.
+                guard depth < maxRecursionDepth else {
+                    return string(route)
+                }
+
                 let query = segment[segment.index(after: queryIndex)..<segment.endIndex]
 
                 return string(route) + redact(query, depth: depth + 1)
