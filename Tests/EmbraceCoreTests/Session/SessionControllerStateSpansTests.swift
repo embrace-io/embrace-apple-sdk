@@ -97,12 +97,15 @@ final class SessionControllerStateSpansTests: XCTestCase {
 
         controller.endSession()
 
-        let stateEnd = try XCTUnwrap(stateSpan.endTime)
-        let sessionEnd = try XCTUnwrap(sessionSpan.endTime)
+        // Asserted on the order the spans were *closed*, not on their end times: `endSessionNoLock`
+        // stamps both from one `now`, so comparing timestamps is `now <= now` and holds however the
+        // calls are ordered. Order is the actual invariant — a state span closed after its part
+        // misses the part's payload entirely and links from an already-flushed span.
+        let ended = otel.endedSpans.map { $0.context.spanId }
+        let stateIndex = try XCTUnwrap(ended.firstIndex(of: stateSpan.context.spanId))
+        let sessionIndex = try XCTUnwrap(ended.firstIndex(of: sessionSpan.context.spanId))
 
-        // The state span must not outlive its part, otherwise it misses the part's payload. This is
-        // the ordering the `stateCoordinator` call site in `endSessionNoLock` exists to guarantee.
-        XCTAssertLessThanOrEqual(stateEnd, sessionEnd)
+        XCTAssertLessThan(stateIndex, sessionIndex)
     }
 
     func test_endSession_linksTheStateSpanFromThePartSpan() throws {
