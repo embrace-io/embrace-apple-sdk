@@ -8,6 +8,60 @@ import XCTest
 
 @testable import EmbraceCore
 
+/// A handler that can interfere *during* span creation.
+///
+/// Span creation is the one window where the recorder is holding no lock, so it is where the
+/// interesting races live. Re-entering from here reproduces them deterministically instead of
+/// hoping a threaded test lands on the right interleaving.
+private final class InterferingOTelHandler: MockOTelSignalsHandler {
+
+    /// Runs once, inside the next `createInternalSpan`, before the span is returned.
+    var duringNextCreate: (() -> Void)?
+
+    /// When > 0, the next create throws instead of returning a span.
+    var failuresRemaining = 0
+
+    struct CreateFailure: Error {}
+
+    override func _createSpan(
+        name: String,
+        parentSpan: EmbraceSpan? = nil,
+        type: EmbraceType,
+        status: EmbraceSpanStatus = .unset,
+        startTime: Date,
+        endTime: Date? = nil,
+        events: [EmbraceSpanEvent] = [],
+        links: [EmbraceSpanLink] = [],
+        attributes: EmbraceAttributes = [:],
+        autoTerminationCode: EmbraceSpanErrorCode? = nil,
+        isInternal: Bool = true
+    ) throws -> EmbraceSpan {
+
+        if failuresRemaining > 0 {
+            failuresRemaining -= 1
+            throw CreateFailure()
+        }
+
+        let hook = duringNextCreate
+        duringNextCreate = nil
+        hook?()
+
+        return try super._createSpan(
+            name: name,
+            parentSpan: parentSpan,
+            type: type,
+            status: status,
+            startTime: startTime,
+            endTime: endTime,
+            events: events,
+            links: links,
+            attributes: attributes,
+            autoTerminationCode: autoTerminationCode,
+            isInternal: isInternal
+        )
+    }
+}
+
 /// These assertions are the specification for the state primitive: they pin the payload the backend
 /// reads, so a change that breaks one is a wire-contract change and needs to be deliberate.
 final class StateRecorderTests: XCTestCase {
@@ -568,6 +622,68 @@ final class StateRecorderTests: XCTestCase {
         // it was re-written per transition this held only by scheduling luck: two racers could take
         // counts N and N+1 and land them in either order, leaving the lower value on the span.
         XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, String(events))
+    }
+
+    // MARK: - Concurrent open
+
+    /// Helper: a recorder wired to a handler that can interfere during span creation.
+    private func interferingRecorder(
+        _ handler: InterferingOTelHandler
+    ) throws -> (StateRecorder<String>, EmbraceSpan) {
+        let part = try handler.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: partStart
+        )
+        let recorder = StateRecorder<String>(
+            stateName: stateName,
+            defaultValue: "initial",
+            otel: handler,
+            maxTransitions: 100,
+            capturesOnCreation: true
+        )
+        recorder.onSessionPartStart(sessionSpan: part, at: partStart)
+        return (recorder, part)
+    }
+
+    private func stateSpans(in handler: InterferingOTelHandler) -> [EmbraceSpan] {
+        handler.startedSpans.filter { $0.name == SpanSemantics.State.spanName(for: stateName) }
+    }
+
+    func testASecondOpenDuringSpanCreationDoesNotPublishAGhostSpan() throws {
+        let handler = InterferingOTelHandler()
+        let (recorder, _) = try interferingRecorder(handler)
+
+        // A change arrives while the first span is still being created — the window in which the
+        // recorder holds no lock. Both callers previously saw `.part` and both created a span;
+        // the loser was ended, but creation had already persisted it, so it still shipped.
+        handler.duringNextCreate = { [weak recorder] in
+            recorder?.onStateChange(to: "second", at: self.time(1))
+        }
+        recorder.activate(at: partStart)
+
+        XCTAssertEqual(stateSpans(in: handler).count, 1, "a losing racer must not create a span at all")
+    }
+
+    func testAFailedOpenLeavesTheRecorderAbleToRetry() throws {
+        let handler = InterferingOTelHandler()
+        let (recorder, _) = try interferingRecorder(handler)
+
+        handler.failuresRemaining = 1
+        recorder.activate(at: partStart)
+        XCTAssertTrue(stateSpans(in: handler).isEmpty)
+
+        // The failed attempt must hand the part back. If it left the recorder mid-open, this
+        // change — and every later one in this part — would silently never open a span.
+        recorder.onStateChange(to: "second", at: time(1))
+
+        // Fully recovered: the span opened (seeded with the value at open time, not the new one)
+        // and the change that triggered the retry was recorded on it.
+        let span = try XCTUnwrap(stateSpans(in: handler).first)
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyInitialValue]?.description, "initial")
+
+        let event = try XCTUnwrap(span.events.first)
+        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNewValue]?.description, "second")
     }
 
     // MARK: - Coordinator

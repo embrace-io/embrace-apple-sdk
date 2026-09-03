@@ -97,6 +97,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
     private enum PartRecording {
         case noPart
         case part(EmbraceSpan)
+        case opening(EmbraceSpan)
         case recording(part: EmbraceSpan, token: StateSpanToken)
     }
 
@@ -332,14 +333,31 @@ final class StateRecorder<Value: StateValue>: StateRecording {
             if activating {
                 storage.isActive = true
             }
-            guard storage.isActive, case .part = storage.recording else {
+            // Claiming the part is what makes this exclusive: a caller arriving at `.opening` or
+            // `.recording` creates nothing, because someone else already owns the open.
+            guard storage.isActive, case .part(let part) = storage.recording else {
                 return nil
             }
+            storage.recording = .opening(part)
             return storage.currentValue.stateDescription
         }
 
         guard let initialValue else {
             return
+        }
+
+        // The slot is now claimed, so every exit below must either install a token or hand it back.
+        // An abandoned `.opening` would block every later open attempt and leave this recorder
+        // inert for the rest of the part — a worse failure than the duplicate span it prevents.
+        var installed = false
+        defer {
+            if !installed {
+                storage.withLock { storage in
+                    if case .opening(let part) = storage.recording {
+                        storage.recording = .part(part)
+                    }
+                }
+            }
         }
 
         guard let otel else {
@@ -365,11 +383,14 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         }
 
         let orphaned: Bool = storage.withLock { storage in
-            guard case .part(let part) = storage.recording, part.endTime == nil else {
+            // Anything other than the claim we made means the part moved on underneath us — it
+            // ended, was discarded, or a new part started. Either way this span is not wanted.
+            guard case .opening(let part) = storage.recording, part.endTime == nil else {
                 return true
             }
             storage.recording = .recording(part: part, token: StateSpanToken(span: span))
             storage.transitionsRecorded = 0
+            installed = true
             return false
         }
 
