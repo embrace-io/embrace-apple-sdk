@@ -85,11 +85,6 @@ final class StateSpanToken {
             return .eventDropped
         }
 
-        // Kept up to date per transition, even though ``end(at:flushing:count:)`` writes the
-        // authoritative value at close. Events and attributes are both persisted incrementally
-        // (`onSpanEventAdded` / `onSpanAttributesUpdated` write straight to storage), so a span
-        // recovered after a crash — which never reaches close — still carries a count consistent
-        // with the events stored alongside it.
         span.setAttribute(
             key: SpanSemantics.State.keyTransitionCount,
             value: String(count)
