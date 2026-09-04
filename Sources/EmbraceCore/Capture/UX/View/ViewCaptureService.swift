@@ -162,12 +162,28 @@
         /// times — a timeline that looks complete but is systematically late. Requiring the option
         /// also means every callback the timeline needs is present regardless of
         /// ``instrumentFirstRender`` or the remote UI-load flag it depends on.
+        /// The gate itself, split out from the wiring so the combination can be tested without
+        /// standing up an SDK instance.
+        static func shouldTrackScreenNavigation(
+            instrumentVisibility: Bool,
+            config: EmbraceConfigurable?
+        ) -> Bool {
+            guard let config else {
+                return false
+            }
+
+            return instrumentVisibility
+                && config.isStateCaptureEnabled
+                && config.isScreenTrackingEnabled
+        }
+
         private func startScreenNavigationTrackingIfEnabled() {
             guard navigationTracker == nil,
-                instrumentVisibility,
                 let client = Embrace.client,
-                client.config.configurable.isStateCaptureEnabled,
-                client.config.configurable.isScreenTrackingEnabled
+                Self.shouldTrackScreenNavigation(
+                    instrumentVisibility: instrumentVisibility,
+                    config: client.config.configurable
+                )
             else {
                 return
             }
