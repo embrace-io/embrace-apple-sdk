@@ -21,6 +21,11 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertTrue(config.isMetricKitCrashCaptureEnabled)
         XCTAssertEqual(config.metricKitCrashSignals, ["SIGKILL"])
         XCTAssertFalse(config.isMetricKitHangCaptureEnabled)
+
+        // Both state-capture gates deliberately default OFF so the feature stays dark until it is
+        // rolled out. This is the only place that default is pinned.
+        XCTAssertFalse(config.isStateCaptureEnabled)
+        XCTAssertFalse(config.isScreenTrackingEnabled)
         XCTAssertEqual(config.spanEventTypeLimits, SpanEventTypeLimits())
         XCTAssertEqual(config.logSeverityLimits, LogSeverityLimits())
         XCTAssertEqual(config.internalLogLimits, InternalLogLimits())

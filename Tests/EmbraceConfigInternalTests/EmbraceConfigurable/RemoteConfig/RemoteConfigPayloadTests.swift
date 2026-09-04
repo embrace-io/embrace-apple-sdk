@@ -242,6 +242,34 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
     }
 
+    // MARK: - State capture
+
+    func test_stateCapture_keysAbsent_areNil() throws {
+        // absent keys must stay nil so the `?? 0` at the read site resolves to "off"
+        let payload = try decodePayload("{}")
+        XCTAssertNil(payload.stateCaptureThreshold)
+        XCTAssertNil(payload.screenTrackingThreshold)
+    }
+
+    func test_stateCapture_keysPresent_areDecoded() throws {
+        let payload = try decodePayload(
+            #"""
+            { "pct_state_enabled_v2": 100, "pct_screen_tracking_enabled": 50 }
+            """#)
+        XCTAssertEqual(payload.stateCaptureThreshold, 100)
+        XCTAssertEqual(payload.screenTrackingThreshold, 50)
+    }
+
+    func test_stateCapture_malformedValues_fallBackToNil() throws {
+        // a bad backend value must fail closed (nil -> off), not throw and take the whole payload down
+        let payload = try decodePayload(
+            #"""
+            { "pct_state_enabled_v2": "not a number", "pct_screen_tracking_enabled": true }
+            """#)
+        XCTAssertNil(payload.stateCaptureThreshold)
+        XCTAssertNil(payload.screenTrackingThreshold)
+    }
+
     func getRemoteConfigData(forResource resource: String) throws -> Data {
         let path = try XCTUnwrap(Bundle.module.path(forResource: resource, ofType: "json", inDirectory: "Fixtures"))
         return try XCTUnwrap(Data(contentsOf: URL(fileURLWithPath: path)))
