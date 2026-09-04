@@ -174,16 +174,20 @@
 
             let reporter = ScreenStateReporter(otel: otel)
 
-            navigationTracker = ScreenNavigationTracker(reporter: reporter) { [weak self] vc in
+            let tracker = ScreenNavigationTracker(reporter: reporter) { [weak self] vc in
                 // No service means no block list to consult; treat that as blocked rather than
                 // capturing screens this service would have excluded.
                 self?.isViewControllerBlocked(vc) ?? true
             }
+            navigationTracker = tracker
 
             client.stateCoordinator.register(
                 reporter.recorder,
                 sessionSpan: client.sessionController.currentSessionSpan
             )
+
+            // Held weakly by the lifecycle; this service owns the tracker's lifetime.
+            client.sessionLifecycle.setAppStateObserver(tracker)
         }
     }
 

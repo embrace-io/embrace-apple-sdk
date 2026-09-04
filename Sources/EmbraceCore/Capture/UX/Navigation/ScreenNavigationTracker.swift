@@ -76,13 +76,11 @@
             }
         }
 
-        func onForeground(at time: Date) {
-            broker.handle(.foregrounded(at: time))
-        }
+        // MARK: - App state
 
-        func onBackground(at time: Date) {
-            broker.handle(.backgrounded(at: time))
-        }
+        /// - Note: `UIApplication`'s state notifications are delivered on the main thread, which is
+        ///   what the broker's serialization contract requires — the same thread the appearance
+        ///   callbacks arrive on.
 
         // MARK: - Filtering
 
@@ -96,6 +94,17 @@
             // `isKind(of:)` rather than `isMember(of:)`: custom container subclasses are common,
             // and a `MyNavigationController: UINavigationController` is just as much a container.
             return !Self.containerClasses.contains { vc.isKind(of: $0) }
+        }
+    }
+
+    extension ScreenNavigationTracker: AppStateObserver {
+
+        func appWillBackground(at time: Date) {
+            broker.handle(.backgrounded(at: time))
+        }
+
+        func appDidForeground(at time: Date) {
+            broker.handle(.foregrounded(at: time))
         }
     }
 #endif

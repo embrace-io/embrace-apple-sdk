@@ -59,7 +59,7 @@
         }
 
         var onViewDidDisappearCalled = false
-        override func onViewDidDisappear(_ vc: UIViewController) {
+        override func onViewDidDisappear(_ vc: UIViewController, now: Date = Date()) {
             onViewDidDisappearCalled = true
         }
 

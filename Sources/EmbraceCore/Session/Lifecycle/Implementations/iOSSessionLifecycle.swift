@@ -21,6 +21,12 @@
         var active: Bool = false
         weak var controller: SessionControllable?
         var currentState: SessionState = .background
+
+        private weak var appStateObserver: AppStateObserver?
+
+        func setAppStateObserver(_ observer: AppStateObserver?) {
+            appStateObserver = observer
+        }
         let launchGracePeriod: TimeInterval
 
         init(controller: SessionControllable, launchGracePeriod: TimeInterval = 5.0) {
@@ -126,7 +132,16 @@
 
         /// Application state is now in foreground
         @objc func appDidBecomeActive() {
+            let now = Date()
             currentState = .foreground
+
+            // Deferred so it lands *after* the session work below: foregrounding starts a new part,
+            // and anything recorded here belongs to that new part rather than the one being closed.
+            // `defer` rather than a trailing call because every early return below is also a
+            // foreground the observer needs to hear about.
+            defer {
+                appStateObserver?.appDidForeground(at: now)
+            }
 
             guard let controller = controller,
                 active
@@ -163,7 +178,14 @@
 
         /// Application state is now in the background
         @objc func appDidEnterBackground() {
+            let now = Date()
             currentState = .background
+
+            // Called *before* the session work below, which is the whole point of this seam: the
+            // outgoing part is still open here, so an observer can still record into it. Anything
+            // downstream — the notifications `SessionController` posts, `onSessionWillEnd` — runs
+            // after the part's spans have already been closed.
+            appStateObserver?.appWillBackground(at: now)
 
             guard let controller = controller,
                 active
