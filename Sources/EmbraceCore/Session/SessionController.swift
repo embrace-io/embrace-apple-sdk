@@ -618,9 +618,11 @@ extension SessionController {
             return
         }
 
-        // Close the state spans even though this part is being discarded. Leaving a token behind
-        // would make the *next* part reuse this discarded part's span instead of opening its own,
-        // so its transitions would be recorded onto a span belonging to a deleted session.
+        // Close the state spans even though this part is being discarded. Without this, changes
+        // arriving between here and the next part start are written onto the dead part's span and
+        // lost with it, and the eventual close would write a STATE link onto a deleted part span.
+        // (The next part opens its own span either way — `onSessionPartStart` detects a live token
+        // and closes it — but it reports that as an error, which this avoids provoking.)
         // Discarding rather than ending: the accumulated counters must survive into the next part,
         // because a span that is about to be thrown away cannot carry them.
         stateCoordinator?.onSessionPartDiscarded(at: time)

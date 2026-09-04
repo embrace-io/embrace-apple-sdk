@@ -163,8 +163,9 @@ final class SessionControllerStateSpansTests: XCTestCase {
         sdkStateProvider.isEnabled = false
         controller.endSession()
 
-        // Regression guard: a token left behind by the discarded part used to make the next part
-        // reuse the discarded span instead of opening its own.
+        // Note this passes with or without the discard call — `onSessionPartStart` closes a stale
+        // token on its own. What the discard call actually buys is covered by
+        // `testDiscardingAPartDoesNotLinkItFromThePartSpan`; this only pins that capture resumes.
         sdkStateProvider.isEnabled = true
         controller.startSession(state: .foreground)
 

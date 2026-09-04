@@ -396,9 +396,10 @@ extension EmbraceStorage {
             .ux:
             return options.spanLimitDefault
         case .state:
-            // In practical terms, there should only be a couple of state spans
-            // But since they're for internal use and we control how many we're adding to a session,
-            // We won't apply a limit.
+            // 0 means *no limit*, not a cap of zero — see the guard in `removeOldSpanIfNeeded`.
+            // State spans are internal and the per-part transition cap already bounds how many a
+            // session produces, so pruning them by age would only ever discard a timeline the
+            // backend still needs.
             return 0
         }
     }
@@ -412,8 +413,8 @@ extension EmbraceStorage {
     }
 
     fileprivate func removeOldSpanIfNeeded(forType type: EmbraceType) {
-        // check limit and delete if necessary
-        // default to 1500 if limit is not set
+        // check limit and delete if necessary; the per-type default applies when the customer has
+        // not configured one. A limit of 0 means unlimited, so the guard below skips pruning.
         let limit = options.spanLimits[type, default: limitByType(type)]
 
         let request = SpanRecord.createFetchRequest()

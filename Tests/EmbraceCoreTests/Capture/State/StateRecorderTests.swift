@@ -426,8 +426,8 @@ final class StateRecorderTests: XCTestCase {
     // MARK: - Write failures (the paths the defensive code exists for)
 
     func testCountsSurviveAPartCloseWhoseSpanAlreadyEnded() throws {
-        // Regression: `closeSpan` used to zero the counters before handing them to `end`, which
-        // dropped them when the span had already been closed — losing them permanently.
+        // Regression: `close(token:linkingFrom:at:flushing:count:)` used to zero the counters
+        // before handing them to `end`, dropping them when the span had already been closed.
         let recorder = startedRecorder()
         let span = try XCTUnwrap(stateSpans.first)
 
@@ -475,6 +475,31 @@ final class StateRecorderTests: XCTestCase {
         recorder.onStateChange(to: "b", at: time(71))
 
         let event = try XCTUnwrap(stateSpans.last?.events.first)
+        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "1")
+    }
+
+    func testAnEndedSpanIsReopenedWithinTheSamePart() throws {
+        let recorder = startedRecorder()
+        let first = try XCTUnwrap(stateSpans.first)
+
+        // Something outside the recorder ends the span mid-part.
+        first.end(endTime: time(10))
+
+        // This change can't be written and is recycled...
+        recorder.onStateChange(to: "a", at: time(11))
+        // ...but the part is still live, so the next one must get a new span rather than being
+        // recycled too. Without the demotion the recorder stays on the dead token and every
+        // remaining change in this part is silently counted as happening outside a session.
+        recorder.onStateChange(to: "b", at: time(12))
+
+        XCTAssertEqual(stateSpans.count, 2)
+        let reopened = try XCTUnwrap(stateSpans.last)
+        XCTAssertNotEqual(reopened.context.spanId, first.context.spanId)
+
+        let event = try XCTUnwrap(reopened.events.first)
+        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNewValue]?.description, "b")
+
+        // The recycled change is still accounted for, carried onto the reopened span's first event.
         XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "1")
     }
 
@@ -536,7 +561,9 @@ final class StateRecorderTests: XCTestCase {
     }
 
     func testANewPartAfterADiscardOpensItsOwnSpan() throws {
-        // The bug the discard path exists to prevent: a stale token blocking the next part.
+        // Passes with or without `onSessionPartDiscarded` — `onSessionPartStart` closes a stale
+        // token on its own. This pins that capture resumes; what the discard call actually buys
+        // is covered by `testDiscardingAPartDoesNotLinkItFromThePartSpan`.
         let recorder = startedRecorder()
         recorder.onSessionPartDiscarded(at: time(60))
 

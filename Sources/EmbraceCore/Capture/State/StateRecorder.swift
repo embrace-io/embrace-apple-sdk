@@ -63,12 +63,18 @@ private struct PendingTransition {
 ///
 /// ## Threading
 /// All accounting happens under a single lock, so concurrent calls can neither lose counts nor open
-/// two spans. Span I/O is deliberately performed **outside** that lock: `span.end()` drives the OTel
-/// processor/exporter chain synchronously, and those exporters can be customer-supplied code that
-/// calls back into the SDK. Holding a non-reentrant lock across them would let
+/// two spans. No call that can **re-enter the SDK** is made under that lock — span creation,
+/// `addEvent`, `setAttribute`, `end` and link writes all happen after it is released. `span.end()`
+/// drives the OTel processor/exporter chain synchronously, and those exporters can be
+/// customer-supplied code; holding a non-reentrant lock across them would let
 /// `LogController.createLog` → ``currentStateDescription`` re-enter this lock on the same thread and
-/// trap. Every method therefore decides under the lock, performs I/O after releasing it, and
-/// re-acquires only to reconcile a failure.
+/// trap. Each method therefore decides under the lock, performs its writes after releasing it, and
+/// re-acquires to install a token or reconcile a failure.
+///
+/// The one exception is the `part.endTime` read in the install step, which touches the span while
+/// this lock is held. It is a plain property read that takes only the span's own mutex and invokes
+/// no callbacks — but it is the line to be careful around, because a genuine span call added beside
+/// it would reintroduce exactly the hazard above.
 ///
 /// A consequence worth naming: because the writes happen outside this lock, concurrent transitions
 /// can write to the same span at once, so this relies on `EmbraceSpan` conformances being
@@ -225,6 +231,9 @@ final class StateRecorder<Value: StateValue>: StateRecording {
 
             switch outcome {
             case .spanEnded:
+                if case .recording(let part, let token) = storage.recording, token === pending.token {
+                    storage.recording = .part(part)
+                }
                 // The part was torn down underneath us: recycle as a change outside a session part.
                 storage.unrecorded = storage.unrecorded + pending.flushed + UnrecordedTransitions(notInSession: 1)
             case .eventDropped, .recorded:
@@ -236,6 +245,12 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         if outcome == .eventDropped {
             Embrace.logger.warning(
                 "State '\(stateName)': a transition event was dropped by the span; counted as dropped instead.")
+        }
+
+        if outcome == .spanEnded {
+            Embrace.logger.error(
+                "State '\(stateName)': the state span was ended by something other than this recorder; "
+                    + "a new span will be opened on the next change.")
         }
     }
 

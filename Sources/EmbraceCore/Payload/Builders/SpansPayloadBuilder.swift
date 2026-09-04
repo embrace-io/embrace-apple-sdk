@@ -23,15 +23,17 @@ class SpansPayloadBuilder {
         let endTime = session.endTime ?? session.lastHeartbeatTime
 
         // fetch spans that started during the session, minus the two types this builder fetches
-        // for itself: the session span (added below) and state spans (fetched uncapped, next).
+        // for itself: the session span (added below) and state spans (fetched separately, next).
         let cappedRecords = storage.fetchSpans(for: session, excluding: [.session, .state])
 
-        // State spans are fetched on their own so a session busy enough to exhaust the capped
-        // budget above can't crowd them out. There are only a handful per part, and losing one
-        // loses the whole state timeline for that part plus the session span's link target.
+        // State spans get their own fetch — and so their own budget — so a session busy enough to
+        // exhaust the one above can't crowd them out. Note this is a separate budget, not an
+        // unlimited one: the same row cap applies to each fetch. There are only a handful per
+        // part, and losing one loses that part's whole state timeline plus the session span's
+        // link target.
         let stateRecords = storage.fetchSpans(for: session, fetchOnly: .state)
 
-        // processed identically from here on — being uncapped is their only difference
+        // processed identically from here on — the separate fetch is their only difference
         let records = cappedRecords + stateRecords
 
         // decode spans and separate them by closed/open

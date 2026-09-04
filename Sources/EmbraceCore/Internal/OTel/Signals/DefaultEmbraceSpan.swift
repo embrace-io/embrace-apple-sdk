@@ -215,6 +215,12 @@ class DefaultEmbraceSpan: EmbraceSpan {
         isInternal: Bool
     ) throws -> EmbraceSpanLink? {
 
+        // No handler means the span was constructed without one (e.g. read-only adapter / record),
+        // so nothing would persist the link. Reported as a failure for internal callers too: they
+        // rely on a nil return to detect a link that did not land, and appending to the in-memory
+        // array while returning non-nil would tell them it succeeded.
+        guard let handler else { return nil }
+
         let link: EmbraceSpanLink
 
         if isInternal {
@@ -222,9 +228,6 @@ class DefaultEmbraceSpan: EmbraceSpan {
             link = EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes)
 
         } else {
-            // No handler means the span was constructed without one (e.g. read-only adapter / record).
-            guard let handler else { return nil }
-
             // Counted against the links already on this span, excluding the SDK's own.
             let currentCount = state.withLock {
                 $0.links.count - $0.internalLinkCount
@@ -246,7 +249,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
                 $0.internalLinkCount += 1
             }
         }
-        handler?.onSpanLinkAdded(self, link: link)
+        handler.onSpanLinkAdded(self, link: link)
         return link
     }
 
