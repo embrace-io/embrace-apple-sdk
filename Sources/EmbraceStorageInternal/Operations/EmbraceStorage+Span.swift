@@ -389,39 +389,45 @@ extension EmbraceStorage {
 
 // MARK: - Database operations
 extension EmbraceStorage {
-    func limitByType(_ type: EmbraceType) -> Int {
+    /// Per-type storage cap, or `nil` for types that are never pruned by age.
+    ///
+    /// Deliberately optional rather than using a sentinel number: `spanLimits` is caller-supplied,
+    /// so any in-band value for "no limit" would also be a value a caller could configure, and the
+    /// same number would mean opposite things depending on where it came from.
+    func limitByType(_ type: EmbraceType) -> Int? {
         switch type.primary {
         case .performance,
             .system,
             .ux:
             return options.spanLimitDefault
         case .state:
-            // 0 means *no limit*, not a cap of zero — see the guard in `removeOldSpanIfNeeded`.
             // State spans are internal and the per-part transition cap already bounds how many a
             // session produces, so pruning them by age would only ever discard a timeline the
             // backend still needs.
-            return 0
+            return nil
         }
     }
 
     var jsonSpansLimit: Int {
-        var total = 0
-        PrimaryType.allCases.forEach {
-            total += limitByType(EmbraceType(primary: $0))
-        }
-        return total
+        // `compactMap` rather than treating unlimited as zero: types with no cap are outside this
+        // budget, they do not contribute nothing to it.
+        PrimaryType.allCases
+            .compactMap { limitByType(EmbraceType(primary: $0)) }
+            .reduce(0, +)
     }
 
     fileprivate func removeOldSpanIfNeeded(forType type: EmbraceType) {
-        // check limit and delete if necessary; the per-type default applies when the customer has
-        // not configured one. A limit of 0 means unlimited, so the guard below skips pruning.
-        let limit = options.spanLimits[type, default: limitByType(type)]
+        // A caller-configured limit wins; otherwise the per-type default applies. Types with no
+        // limit are skipped entirely.
+        guard let limit = options.spanLimits[type] ?? limitByType(type) else {
+            return
+        }
 
         let request = SpanRecord.createFetchRequest()
         request.predicate = NSPredicate(format: "typeRaw == %@", type.rawValue)
         let count = coreData.count(withRequest: request)
 
-        if limit > 0 && count >= limit {
+        if count >= limit {
             request.fetchLimit = count - limit + 1
             request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
 
