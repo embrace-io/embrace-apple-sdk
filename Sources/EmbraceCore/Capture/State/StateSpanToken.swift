@@ -45,16 +45,18 @@ final class StateSpanToken {
         span.endTime == nil
     }
 
-    /// Records a transition event.
+    /// Records a transition event and updates the running transition count.
     ///
     /// - Parameters:
     ///   - value: Serialized new value of the state.
     ///   - time: When the change was *observed*, never when it was processed.
+    ///   - count: Running number of recorded transitions, decided by the recorder under its lock.
     ///   - attributes: Optional caller-supplied attributes for this transition.
     ///   - flushed: Unrecorded-transition counts to attach to this event.
     func recordTransition(
         value: String,
         at time: Date,
+        count: Int,
         attributes: EmbraceAttributes,
         flushing flushed: UnrecordedTransitions
     ) -> StateTransitionOutcome {
@@ -82,6 +84,16 @@ final class StateSpanToken {
         else {
             return .eventDropped
         }
+
+        // Kept up to date per transition, even though ``end(at:flushing:count:)`` writes the
+        // authoritative value at close. Events and attributes are both persisted incrementally
+        // (`onSpanEventAdded` / `onSpanAttributesUpdated` write straight to storage), so a span
+        // recovered after a crash — which never reaches close — still carries a count consistent
+        // with the events stored alongside it.
+        span.setAttribute(
+            key: SpanSemantics.State.keyTransitionCount,
+            value: String(count)
+        )
 
         return .recorded
     }

@@ -180,12 +180,15 @@ final class StateRecorderTests: XCTestCase {
         XCTAssertEqual(event.name, "transition")
         XCTAssertEqual(event.attributes[SpanSemantics.State.keyNewValue]?.description, "second")
 
+        // Kept current per transition so a span recovered after a crash — which never reaches
+        // close — still reports a count matching its persisted events.
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, "1")
+
         recorder.onStateChange(to: "third", at: time(2))
         XCTAssertEqual(span.events.count, 2)
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, "2")
 
-        // The count is authored once, at close, from a value read under the recorder's lock — not
-        // re-written per transition, which is what the contract specifies.
-        XCTAssertNil(span.attributes[SpanSemantics.State.keyTransitionCount])
+        // Rewritten authoritatively at close, from a value read under the recorder's lock.
         recorder.onSessionPartWillEnd(at: time(60))
         XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, "2")
     }

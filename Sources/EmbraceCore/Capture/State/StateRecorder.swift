@@ -45,6 +45,7 @@ protocol StateRecording: AnyObject {
 /// lock is released.
 private struct PendingTransition {
     let token: StateSpanToken
+    let count: Int
     let flushed: UnrecordedTransitions
 }
 
@@ -214,7 +215,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
             let flushed = storage.unrecorded
             storage.unrecorded = .none
 
-            return PendingTransition(token: token, flushed: flushed)
+            return PendingTransition(token: token, count: storage.transitionsRecorded, flushed: flushed)
         }
 
         guard let pending else {
@@ -224,6 +225,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         let outcome = pending.token.recordTransition(
             value: newValue.stateDescription,
             at: time,
+            count: pending.count,
             attributes: attributes,
             flushing: pending.flushed
         )
