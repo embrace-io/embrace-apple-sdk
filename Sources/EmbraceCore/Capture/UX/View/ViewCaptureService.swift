@@ -90,6 +90,18 @@
             return blockList.safeValue.isBlocked(viewController: vc)
         }
 
+        /// Owns the screen-navigation timeline when it is enabled, and is `nil` when it is not.
+        ///
+        /// This service is the entry point because it already owns the appearance instrumentation
+        /// the timeline is built from; hanging the tracker here avoids a second swizzler and a
+        /// second block list. A `nil` tracker means nothing is observed at all — navigation events
+        /// are never constructed, rather than being built and discarded.
+        private var navigationTracker: ScreenNavigationTracker?
+
+        func onViewControllerAppearance(_ vc: UIViewController, phase: ScreenAppearancePhase, at time: Date) {
+            navigationTracker?.onAppearance(vc, phase: phase, at: time)
+        }
+
         func onViewBecameInteractive(_ vc: UIViewController) {
             handler.onViewBecameInteractive(vc)
         }
@@ -122,6 +134,56 @@
             if instrumentVisibility {
                 instrumentViewDidDisappear(of: UIViewController.self)
             }
+        }
+
+        override public func onStart() {
+            lock.lock()
+            defer {
+                lock.unlock()
+            }
+
+            startScreenNavigationTrackingIfEnabled()
+        }
+
+        /// Evaluates the screen-tracking gates once, here, and never again.
+        ///
+        /// Both remote gates must pass. They are read at start rather than on every config refresh
+        /// because ``StateCaptureCoordinator`` has no `unregister`: a recorder registered later
+        /// would begin its timeline partway through a session part, reporting an `initial_value`
+        /// for a screen the user had already left, and a gate turning *off* could not be honoured
+        /// until the next launch either way. Config is loaded from cache during setup, so this only
+        /// costs the very first launch after install, where the timeline is absent rather than
+        /// wrong.
+        ///
+        /// ``instrumentVisibility`` is required too, and the reason is mechanical rather than
+        /// philosophical: it is the only thing that installs the `viewDidDisappear` swizzle. Without
+        /// those pause events a screen is never removed from the visible set, so from the second
+        /// screen onwards the broker always sees more than one visible and stops backdating load
+        /// times — a timeline that looks complete but is systematically late. Requiring the option
+        /// also means every callback the timeline needs is present regardless of
+        /// ``instrumentFirstRender`` or the remote UI-load flag it depends on.
+        private func startScreenNavigationTrackingIfEnabled() {
+            guard navigationTracker == nil,
+                instrumentVisibility,
+                let client = Embrace.client,
+                client.config.configurable.isStateCaptureEnabled,
+                client.config.configurable.isScreenTrackingEnabled
+            else {
+                return
+            }
+
+            let reporter = ScreenStateReporter(otel: otel)
+
+            navigationTracker = ScreenNavigationTracker(reporter: reporter) { [weak self] vc in
+                // No service means no block list to consult; treat that as blocked rather than
+                // capturing screens this service would have excluded.
+                self?.isViewControllerBlocked(vc) ?? true
+            }
+
+            client.stateCoordinator.register(
+                reporter.recorder,
+                sessionSpan: client.sessionController.currentSessionSpan
+            )
         }
     }
 
