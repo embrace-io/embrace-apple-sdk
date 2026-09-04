@@ -20,9 +20,10 @@ import Foundation
 /// that is ending the part, before it ends the part span.
 ///
 /// The registered recorders are snapshotted under the lock and then driven **outside** it. That is
-/// deliberate: driving them under the lock would run span exporters (and any customer code they
-/// call) while this lock is held, and ``logAttributes`` takes the same lock from the logging path —
-/// which would make a re-entrant, same-thread acquisition possible.
+/// deliberate: a recorder can log while closing its span, and the SDK's own logging path runs
+/// `LogController.createLog` → `addCurrentStates` → ``logAttributes``, which takes this same lock on
+/// the same thread. Since it is non-reentrant, driving recorders under it would trap. See
+/// ``StateRecorder``'s threading notes for the full chain.
 final class StateCaptureCoordinator {
 
     private let recorders: EmbraceMutex<[StateRecording]> = EmbraceMutex([])

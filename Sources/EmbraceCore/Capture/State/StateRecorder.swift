@@ -63,18 +63,27 @@ private struct PendingTransition {
 ///
 /// ## Threading
 /// All accounting happens under a single lock, so concurrent calls can neither lose counts nor open
-/// two spans. No call that can **re-enter the SDK** is made under that lock — span creation,
-/// `addEvent`, `setAttribute`, `end` and link writes all happen after it is released. `span.end()`
-/// drives the OTel processor/exporter chain synchronously, and those exporters can be
-/// customer-supplied code; holding a non-reentrant lock across them would let
-/// `LogController.createLog` → ``currentStateDescription`` re-enter this lock on the same thread and
-/// trap. Each method therefore decides under the lock, performs its writes after releasing it, and
+/// two spans. Nothing that can **re-enter this type** is called while that lock is held — span
+/// creation, `addEvent`, `setAttribute`, `end`, link writes and every log call happen after it is
+/// released. Each method decides under the lock, performs its writes after releasing it, and
 /// re-acquires to install a token or reconcile a failure.
+///
+/// The re-entrancy that forces this is not the exporter chain — customer exporters are dispatched
+/// to a queue by `EmbraceSpanProcessor` and never run on the calling thread. It is the SDK's own
+/// logging:
+///
+///     Embrace.logger.error(…) → BaseInternalLogger.sendOTelLog → internalLog
+///       → LogController.createLog → EmbraceLogAttributesBuilder.addCurrentStates
+///       → StateCaptureCoordinator.logAttributes → currentStateDescription → this lock
+///
+/// `EmbraceMutex` wraps a non-reentrant `os_unfair_lock`, so that path **traps** rather than
+/// deadlocking. This type logs from several failure branches, which is why each one sits outside
+/// the lock rather than inside the `withLock` closure that detected the failure.
 ///
 /// The one exception is the `part.endTime` read in the install step, which touches the span while
 /// this lock is held. It is a plain property read that takes only the span's own mutex and invokes
-/// no callbacks — but it is the line to be careful around, because a genuine span call added beside
-/// it would reintroduce exactly the hazard above.
+/// no callbacks — but it is the line to be careful around, because a span call or a log added
+/// beside it would reintroduce exactly the hazard above.
 ///
 /// A consequence worth naming: because the writes happen outside this lock, concurrent transitions
 /// can write to the same span at once, so this relies on `EmbraceSpan` conformances being
