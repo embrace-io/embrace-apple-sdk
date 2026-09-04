@@ -150,6 +150,23 @@ class EmbraceLogAttributesBuilder {
         return self
     }
 
+    /// Stamps `emb.state.<name>` for every currently active state, so a log can be read against
+    /// the screen (or other state) the user was on when it happened.
+    ///
+    /// Only meaningful for logs emitted during the live session — recovered logs from a previous
+    /// process must not be stamped with this process's in-memory values.
+    @discardableResult
+    func addCurrentStates(_ coordinator: StateCaptureCoordinator?) -> Self {
+        guard let coordinator else {
+            return self
+        }
+
+        for (key, value) in coordinator.logAttributes {
+            attributes[key] = value
+        }
+        return self
+    }
+
     @discardableResult
     func addCrashReportProperties() -> Self {
         return addCrashReportProperties(

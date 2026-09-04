@@ -142,8 +142,9 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(sanitizer.sanitizeSpanAttributesCallCount, 0)
         XCTAssertEqual(bridge.startSpanCallCount, 0)
 
-        // and no span is added to the storage
-        let spans = storage.fetchSpans(for: sessionController.currentSession!)
+        // and no span is added to the storage, ignoring the session's own span which the running
+        // session part put there before this test began
+        let spans = storage.fetchSpans(for: sessionController.currentSession!, excluding: [.session])
         XCTAssertEqual(spans.count, 0)
     }
 

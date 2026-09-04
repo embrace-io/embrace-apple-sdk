@@ -48,6 +48,7 @@ class SessionController: SessionControllable {
     weak var sdkStateProvider: EmbraceSDKStateProvider?
     weak var otel: InternalOTelSignalsHandler?
     weak var userSessionController: UserSessionController?
+    weak var stateCoordinator: StateCaptureCoordinator?
 
     private struct SessionInfo {
         var session: EmbraceSession? = nil
@@ -372,6 +373,12 @@ class SessionController: SessionControllable {
             $0.sessionSpan = sessionInfo.span
         }
 
+        // open a state span per active state, seeded with the value carried over from the
+        // previous part. Synchronous so the spans exist for the whole part.
+        if let sessionSpan = sessionInfo.span {
+            stateCoordinator?.onSessionPartStart(sessionSpan: sessionSpan, at: sessionSpan.startTime)
+        }
+
         // post notification
         if let session = sessionInfo.session {
             DispatchQueue.main.async {
@@ -399,7 +406,7 @@ class SessionController: SessionControllable {
         let now = endTime ?? Date()
 
         guard sdkStateProvider?.isEnabled == true else {
-            deleteNoLock(inProgressSession)
+            deleteNoLock(inProgressSession, at: now)
             return now
         }
 
@@ -407,7 +414,7 @@ class SessionController: SessionControllable {
         // are disabled in the config, we drop the session!
         // +
         if inProgressSession.coldStart == true && inProgressSession.state == SessionState.background && backgroundSessionsEnabled == false {
-            deleteNoLock(inProgressSession)
+            deleteNoLock(inProgressSession, at: now)
             return now
         }
         // -
@@ -420,6 +427,10 @@ class SessionController: SessionControllable {
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .embraceSessionPartWillEnd, object: mainQueueSession)
         }
+
+        // close the state spans and link them from the part span. Must happen before the session
+        // span ends below, so they land inside this part's payload.
+        stateCoordinator?.onSessionPartWillEnd(at: now)
 
         // end span
         if let inProgressSessionSpan {
@@ -602,10 +613,19 @@ extension SessionController {
         lock.locked { deleteNoLock(info.session) }
     }
 
-    private func deleteNoLock(_ session: EmbraceSession?) {
+    private func deleteNoLock(_ session: EmbraceSession?, at time: Date = Date()) {
         guard let session else {
             return
         }
+
+        // Close the state spans even though this part is being discarded. Without this, changes
+        // arriving between here and the next part start are written onto the dead part's span and
+        // lost with it, and the eventual close would write a STATE link onto a deleted part span.
+        // (The next part opens its own span either way — `onSessionPartStart` detects a live token
+        // and closes it — but it reports that as an error, which this avoids provoking.)
+        // Discarding rather than ending: the accumulated counters must survive into the next part,
+        // because a span that is about to be thrown away cannot carry them.
+        stateCoordinator?.onSessionPartDiscarded(at: time)
 
         storage?.deleteSession(id: session.id)
 

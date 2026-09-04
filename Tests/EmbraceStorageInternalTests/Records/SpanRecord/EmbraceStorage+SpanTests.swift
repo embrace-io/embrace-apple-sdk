@@ -2,6 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import TestSupport
 import XCTest
 
@@ -143,5 +144,85 @@ final class EmbraceStorage_SpanTests: XCTestCase {
             Set(allRecords.map(\.name)),
             ["network 0", "network 1", "network 2", "performance"]
         )
+    }
+
+    // MARK: - Payload fetch budget
+
+    /// `jsonSpansLimit` is the per-payload span fetch budget, summed from `limitByType` over every
+    /// capped `PrimaryType`. Uncapped categories are outside the budget rather than contributing
+    /// zero to it, which is what keeps the number where it was before state spans existed.
+    ///
+    /// The expected values are hard-coded on purpose: this number should not move because someone
+    /// added a span category, so a change here should fail and force a human to look.
+    func test_jsonSpansLimit_excludesTheUncappedStateCategory() throws {
+        // three capped categories at the shipped default; state has no cap and is excluded
+        XCTAssertEqual(storage.jsonSpansLimit, 4500)
+
+        storage.options.spanLimitDefault = 100
+        XCTAssertEqual(storage.jsonSpansLimit, 300)
+
+        XCTAssertNotEqual(
+            storage.jsonSpansLimit,
+            PrimaryType.allCases.count * 100,
+            "an uncapped category must not add to the payload fetch budget")
+    }
+
+    /// `limitByType` returns `nil` for state spans, meaning they are never pruned by age.
+    ///
+    /// The SDK decides how many state spans exist (a couple per session part), so they are neither
+    /// pruned at insert time nor given an allowance in the payload budget. Expressed as `nil`
+    /// rather than a sentinel number so no caller can read it as a literal cap.
+    func test_limitByType_treatsStateAsUncapped() throws {
+        storage.options.spanLimitDefault = 42
+
+        XCTAssertEqual(storage.limitByType(.performance), 42)
+        XCTAssertEqual(storage.limitByType(.ux), 42)
+        XCTAssertEqual(storage.limitByType(.system), 42)
+
+        XCTAssertNil(storage.limitByType(.state))
+    }
+
+    /// The behavioral half of the contract above: an uncapped type is never pruned on insert.
+    func test_upsertSpan_doesNotPruneUncappedStateSpans() throws {
+        storage.options.spanLimitDefault = 3
+
+        for i in 0..<10 {
+            storage.upsertSpan(
+                MockSpan(
+                    name: "state \(i)",
+                    type: .state
+                ))
+        }
+
+        let request = SpanRecord.createFetchRequest()
+        let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
+
+        XCTAssertEqual(
+            allRecords.count, 10,
+            "state spans are uncapped, so the insert-time limit must not evict them")
+    }
+
+    /// A caller-configured limit of `0` prunes aggressively; it does not disable pruning.
+    ///
+    /// This is the distinction `limitByType` returning `Int?` exists to preserve. While "unlimited"
+    /// was signalled in-band as `0`, the pruning guard had to skip every zero — silently inverting
+    /// the meaning of a limit a caller had deliberately set.
+    ///
+    /// The surviving record is the one being inserted: pruning runs *before* the insert, so each
+    /// upsert clears what came before and then adds itself.
+    func test_upsertSpan_honoursAConfiguredLimitOfZero() throws {
+        storage.options.spanLimits[.performance] = 0
+
+        for i in 0..<5 {
+            storage.upsertSpan(MockSpan(name: "perf \(i)", type: .performance))
+        }
+
+        let request = SpanRecord.createFetchRequest()
+        let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
+
+        XCTAssertEqual(
+            allRecords.count, 1,
+            "a configured limit of 0 must prune, not disable pruning")
+        XCTAssertEqual(allRecords.first?.name, "perf 4")
     }
 }

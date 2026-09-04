@@ -57,6 +57,11 @@ public class EmbraceType: RawRepresentable, Hashable {
         .init(primary: .system, secondary: nil)
     }
 
+    /// An `EmbraceType` for state spans. Serializes to the bare `"state"`.
+    public static var state: EmbraceType {
+        .init(primary: .state, secondary: nil)
+    }
+
     // MARK: RawRepresentable
     public var rawValue: String {
         [primary.name, secondary]
@@ -96,20 +101,25 @@ public enum PrimaryType: Int, CaseIterable {
     /// Category for observing the system's operation or status
     case system = 3
 
+    /// Category for observing a named, continuously-valued signal over time.
+    case state = 4
+
     var name: String {
         switch self {
         case .performance: "perf"
         case .ux: "ux"
         case .system: "sys"
+        case .state: "state"
         }
     }
 
-    /// Creates a `PrimaryType` from its serialized name (`"perf"`, `"ux"`, or `"sys"`).
+    /// Creates a `PrimaryType` from its serialized name (`"perf"`, `"ux"`, `"sys"` or `"state"`).
     /// Unknown names default to `.performance`.
     public init(name: String) {
         switch name {
         case "ux": self = .ux
         case "sys": self = .system
+        case "state": self = .state
         default: self = .performance
         }
     }
