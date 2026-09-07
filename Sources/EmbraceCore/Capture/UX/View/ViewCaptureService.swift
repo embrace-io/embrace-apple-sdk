@@ -99,6 +99,13 @@
         private var navigationTracker: ScreenNavigationTracker?
 
         func onViewControllerAppearance(_ vc: UIViewController, phase: ScreenAppearancePhase, at time: Date) {
+            // The other handler paths inherit this check from `onViewDidLoadStart`, which is what
+            // sets the instrumentation state they all guard on. This tap deliberately sits above
+            // that guard, so it has to make the check itself or a stopped SDK would keep recording.
+            guard serviceState == .active else {
+                return
+            }
+
             navigationTracker?.onAppearance(vc, phase: phase, at: time)
         }
 
@@ -145,25 +152,18 @@
             startScreenNavigationTrackingIfEnabled()
         }
 
-        /// Evaluates the screen-tracking gates once, here, and never again.
+        /// Whether the screen-navigation timeline should run.
         ///
-        /// Both remote gates must pass. They are read at start rather than on every config refresh
-        /// because ``StateCaptureCoordinator`` has no `unregister`: a recorder registered later
-        /// would begin its timeline partway through a session part, reporting an `initial_value`
-        /// for a screen the user had already left, and a gate turning *off* could not be honoured
-        /// until the next launch either way. Config is loaded from cache during setup, so this only
-        /// costs the very first launch after install, where the timeline is absent rather than
-        /// wrong.
+        /// Split out from the wiring below so the combination can be tested without standing up an
+        /// SDK instance.
         ///
-        /// ``instrumentVisibility`` is required too, and the reason is mechanical rather than
-        /// philosophical: it is the only thing that installs the `viewDidDisappear` swizzle. Without
-        /// those pause events a screen is never removed from the visible set, so from the second
-        /// screen onwards the broker always sees more than one visible and stops backdating load
-        /// times — a timeline that looks complete but is systematically late. Requiring the option
-        /// also means every callback the timeline needs is present regardless of
-        /// ``instrumentFirstRender`` or the remote UI-load flag it depends on.
-        /// The gate itself, split out from the wiring so the combination can be tested without
-        /// standing up an SDK instance.
+        /// ``instrumentVisibility`` is required for a mechanical reason rather than a philosophical
+        /// one: it is the only thing that installs the `viewDidDisappear` swizzle. Without those
+        /// pause events a screen is never removed from the visible set, so from the second screen
+        /// onwards the broker always sees more than one visible and stops backdating load times — a
+        /// timeline that looks complete but is systematically late. Requiring it also means every
+        /// callback the timeline needs is present regardless of ``instrumentFirstRender`` or the
+        /// remote UI-load flag that depends on.
         static func shouldTrackScreenNavigation(
             instrumentVisibility: Bool,
             config: EmbraceConfigurable?
@@ -177,6 +177,14 @@
                 && config.isScreenTrackingEnabled
         }
 
+        /// Evaluates the gate once, at start, and never again.
+        ///
+        /// Read here rather than on every config refresh because ``StateCaptureCoordinator`` has no
+        /// `unregister`: a recorder registered later would begin its timeline partway through a
+        /// session part, reporting an `initial_value` for a screen the user had already left — and a
+        /// gate turning *off* could not be honoured until the next launch either way. Config is
+        /// loaded from cache during setup, so this only costs the very first launch after install,
+        /// where the timeline is absent rather than wrong.
         private func startScreenNavigationTrackingIfEnabled() {
             guard navigationTracker == nil,
                 let client = Embrace.client,
@@ -202,8 +210,23 @@
                 sessionSpan: client.sessionController.currentSessionSpan
             )
 
+            // Routed through this service rather than handing the lifecycle the tracker directly,
+            // so app-state transitions get the same `serviceState` check as appearance callbacks.
             // Held weakly by the lifecycle; this service owns the tracker's lifetime.
-            client.sessionLifecycle.setAppStateObserver(tracker)
+            client.sessionLifecycle.setAppStateObserver(self)
+        }
+    }
+
+    extension ViewCaptureService: AppStateObserver {
+
+        func appWillBackground(at time: Date) {
+            guard serviceState == .active else { return }
+            navigationTracker?.appWillBackground(at: time)
+        }
+
+        func appDidForeground(at time: Date) {
+            guard serviceState == .active else { return }
+            navigationTracker?.appDidForeground(at: time)
         }
     }
 
