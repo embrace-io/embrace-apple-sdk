@@ -51,12 +51,31 @@ struct SessionSpanUtils {
         span?.setInternalAttribute(key: SpanSemantics.Session.keyTerminated, value: String(terminated))
     }
 
+    /// Sets the experiments and feature flags tracked so far in this process.
+    /// A `nil` value means nothing is tracked, and the attribute is left off entirely.
+    ///
+    /// Set as an internal attribute so the value is exempt from the attribute value length limit
+    /// and doesn't count against the span's attribute limit. The encoded value is bounded by the
+    /// experiments limits instead, and truncating it would corrupt the records it carries.
+    static func setExperiments(span: EmbraceSpan?, value: String?) {
+        guard let value = value else {
+            return
+        }
+        span?.setInternalAttribute(key: SpanSemantics.keyExperiments, value: value)
+    }
+
     static func payload(
         from session: EmbraceSession,
         span: EmbraceSpan? = nil,
-        properties: [EmbraceMetadata] = []
+        properties: [EmbraceMetadata] = [],
+        experiments: String? = nil
     ) -> SpanPayload {
-        return SpanPayload(from: session, span: span, properties: properties)
+        return SpanPayload(
+            from: session,
+            span: span,
+            properties: properties,
+            experiments: experiments
+        )
     }
 }
 
@@ -64,7 +83,8 @@ extension SpanPayload {
     fileprivate init(
         from session: EmbraceSession,
         span: EmbraceSpan? = nil,
-        properties: [EmbraceMetadata]
+        properties: [EmbraceMetadata],
+        experiments: String?
     ) {
         self.traceId = session.traceId
         self.spanId = session.spanId
@@ -140,6 +160,16 @@ extension SpanPayload {
             attributeArray.append(
                 Attribute(key: SpanSemantics.Session.keyIsFinalSessionPart, value: "1")
             )
+        }
+
+        // Read from storage for this session's own process, so a session recovered from an earlier
+        // launch reports what that process had tracked rather than what this one has.
+        if let experiments = experiments {
+            attributeArray.append(
+                Attribute(
+                    key: SpanSemantics.keyExperiments,
+                    value: experiments
+                ))
         }
 
         attributeArray.append(

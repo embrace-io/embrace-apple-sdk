@@ -10,9 +10,12 @@ import Foundation
 #endif
 
 /// Class used to create and customize an `EmbraceIO.CaptureServicesOptions` instance.
-public class CaptureServicesOptionsBuilder: NSObject {
+public final class CaptureServicesOptionsBuilder {
     private var map: [EmbraceCaptureService: Any] = [:]
     private var customServices: [CaptureService] = []
+
+    /// Creates a builder with no `CaptureService` added.
+    public init() {}
 
     /// Returns the `EmbraceIO.CaptureServicesOptions` instance generated with this builder.
     public func build() -> EmbraceIO.CaptureServicesOptions {

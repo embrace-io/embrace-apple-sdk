@@ -27,6 +27,17 @@ struct LogPayloadBuilder {
 
     }
 
+    /// Builds a single-log payload.
+    ///
+    /// - Parameters:
+    ///   - userSessionId: User session the log belongs to. When present, resources are resolved
+    ///                    through the user session and the given process.
+    ///   - processId: Process the log belongs to, or `nil` when it can't be determined. A crash
+    ///                recovered from an earlier launch has to pass the process that crashed, so its
+    ///                resources describe that process rather than the one building the payload.
+    ///                There is deliberately no default: a log attributed to the wrong process
+    ///                reports another process's resources as if they were its own, so a caller that
+    ///                cannot name the process has to say so and go without them.
     static func build(
         timestamp: Date,
         severity: EmbraceLogSeverity,
@@ -34,14 +45,14 @@ struct LogPayloadBuilder {
         attributes: EmbraceAttributes,
         storage: EmbraceStorage?,
         userSessionId: EmbraceIdentifier?,
-        processId: EmbraceIdentifier = ProcessIdentifier.current
+        processId: EmbraceIdentifier?
     ) -> PayloadEnvelope<[LogPayload]> {
 
         // build resources and metadata payloads
         var resources: [EmbraceMetadata] = []
         var metadata: [EmbraceMetadata] = []
 
-        if let storage = storage {
+        if let storage = storage, let processId = processId {
             if let userSessionId = userSessionId {
                 resources = storage.fetchResources(userSessionId: userSessionId, processId: processId)
 

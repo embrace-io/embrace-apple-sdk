@@ -2,7 +2,6 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import CompilerPluginSupport
-import Foundation
 import PackageDescription
 
 #if TUIST
@@ -16,15 +15,6 @@ import PackageDescription
         ]
     )
 #endif
-
-var linkerSettings: [LinkerSetting]?
-
-// This applies only to targets like EmbraceCore and EmbraceIO that contain `@objc extensions`.
-// When linked statically (as Tuist tends to do when installing Embrace via SPM packages),
-// selectors from these extensions are stripped unless `-ObjC` is passed explicitly to the linker.
-if ProcessInfo.processInfo.environment["EMBRACE_ENABLE_TUIST_OBJC_LINK"] != nil {
-    linkerSettings = [.unsafeFlags(["-ObjC"])]
-}
 
 let package = Package(
     name: "EmbraceIO",
@@ -41,7 +31,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/kstenerud/KSCrash",
-            from: "2.5.1"
+            exact: "2.6.0"
         ),
         .package(
             url: "https://github.com/open-telemetry/opentelemetry-swift-core",
@@ -66,8 +56,7 @@ let package = Package(
                 "EmbraceCrashlyticsSupport",
                 "EmbraceKSCrashBacktraceSupport",
                 "EmbraceOTelBridge"
-            ],
-            linkerSettings: linkerSettings
+            ]
         ),
 
         .testTarget(
@@ -98,8 +87,7 @@ let package = Package(
             ],
             resources: [
                 .copy("PrivacyInfo.xcprivacy")
-            ],
-            linkerSettings: linkerSettings
+            ]
         ),
 
         .testTarget(
