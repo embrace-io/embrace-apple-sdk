@@ -52,9 +52,9 @@ extension Embrace {
             queue: DispatchQueue(label: "com.embrace.config"),
             appId: appId,
             deviceId: deviceId,
-            osVersion: EMBDevice.appVersion ?? "",
+            osVersion: EMBDevice.operatingSystemVersion,
             sdkVersion: EmbraceMeta.sdkVersion,
-            appVersion: EMBDevice.operatingSystemVersion,
+            appVersion: EMBDevice.appVersion ?? "",
             userAgent: EmbraceMeta.userAgent,
             cacheLocation: cacheLocation
         )

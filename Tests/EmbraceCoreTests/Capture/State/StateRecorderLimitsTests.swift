@@ -75,8 +75,7 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
         attachment: EmbraceLogAttachment?,
         attributes: EmbraceAttributes,
         stackTraceBehavior: EmbraceStackTraceBehavior,
-        isInternal: Bool,
-        send: Bool
+        isInternal: Bool
     ) throws {
         try wrapped._log(
             message,
@@ -86,8 +85,7 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
             attachment: attachment,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior,
-            isInternal: isInternal,
-            send: send
+            isInternal: isInternal
         )
     }
 }

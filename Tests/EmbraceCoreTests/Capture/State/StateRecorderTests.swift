@@ -141,7 +141,7 @@ final class StateRecorderTests: XCTestCase {
         // The state span is deliberately not private; emitting `emb.private` here would change the
         // payload the backend sees.
         let span = try XCTUnwrap(stateSpans.first)
-        XCTAssertNil(span.attributes[SpanSemantics.keyIsPrivateSpan])
+        XCTAssertNil(span.attributes[SpanSemantics.keyPrivate])
     }
 
     func testSpanClosesAtPartEndWithThePartEndTime() throws {
