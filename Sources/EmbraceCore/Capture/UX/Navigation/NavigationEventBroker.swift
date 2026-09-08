@@ -74,7 +74,14 @@ final class NavigationEventBroker {
         switch event.kind {
         case .started:
             guard let componentId = event.componentId else { return }
-            startTimes[componentId] = event.timestamp
+            // Keep the earliest. One appearance can report more than once: a subclass that overrides
+            // `viewWillAppear` is swizzled too, so it reports, runs its own body, and only then calls
+            // `super` — which reports again, later. Overwriting would silently exclude exactly the
+            // work the load time is meant to measure. A pause clears the entry, so a genuine second
+            // appearance still starts fresh.
+            if startTimes[componentId] == nil {
+                startTimes[componentId] = event.timestamp
+            }
 
         case .resumed:
             guard let componentId = event.componentId else { return }

@@ -119,6 +119,34 @@ final class NavigationEventBrokerTests: XCTestCase {
         XCTAssertEqual(loads[1].time, time(3))
     }
 
+    func testARepeatedStartKeepsTheEarliestTime() throws {
+        let vc = Container()
+
+        // One appearance, reported twice: a swizzled subclass reports, runs its own
+        // `viewWillAppear` body, then calls `super`, which reports again later.
+        broker.handle(.started(id(vc), name: "Home", at: time(0)))
+        broker.handle(.started(id(vc), name: "Home", at: time(4)))
+        broker.handle(.resumed(id(vc), name: "Home", at: time(5)))
+
+        // Backdating must reach the first report. Taking the later one would silently exclude the
+        // subclass's own work — precisely what the load time exists to measure.
+        let load = try XCTUnwrap(loads.first)
+        XCTAssertEqual(load.time, time(0))
+    }
+
+    func testAPauseLetsTheNextAppearanceStartFresh() throws {
+        let vc = Container()
+
+        appear(vc, named: "Home", startedAt: 0, resumedAt: 1)
+        broker.handle(.paused(id(vc), name: "Home", at: time(2)))
+
+        // Keeping the earliest start must not mean keeping a *stale* one across visits.
+        broker.handle(.started(id(vc), name: "Detail", at: time(10)))
+        broker.handle(.resumed(id(vc), name: "Detail", at: time(11)))
+
+        XCTAssertEqual(loads.last?.time, time(10))
+    }
+
     // MARK: - The dedup gate
 
     func testDuplicateEventsForTheSameContainerAndNameAreDropped() {
