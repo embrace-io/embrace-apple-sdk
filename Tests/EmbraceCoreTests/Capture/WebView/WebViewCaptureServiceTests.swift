@@ -170,4 +170,29 @@
         }
     }
 
+    class WebViewCaptureServiceTests_Six: WebViewCaptureServiceTests {
+
+        // Like the test above, this goes through `didLoad` rather than the swizzle path, so it needs no
+        // `checkTestAllowed()` gating. The exhaustive coverage of the redaction rules lives in
+        // `WebViewURLSanitizerTests`; this only proves the option reaches the captured attribute.
+        func test_didLoad_fragmentHandling_controlsFragmentInCapturedURL() {
+            let url = URL(string: "https://example.com/path?id=42#access_token=eyJhbGciOiJIUzI1NiJ9&/orders/123")!
+
+            let expected: [WebViewCaptureService.FragmentHandling: String] = [
+                .keep: url.absoluteString,
+                .redact: "https://example.com/path?id=42#access_token=&/orders/123",
+                .remove: "https://example.com/path?id=42"
+            ]
+
+            for (handling, expectedURL) in expected {
+                let service = WebViewCaptureService(options: .init(fragmentHandling: handling))
+                let otel = MockOTelSignalsHandler()
+                service.install(otel: otel)
+                service.didLoad(url: url, statusCode: 200)
+
+                XCTAssertEqual(otel.events.last!.attributes["webview.url"]!.description, expectedURL)
+            }
+        }
+    }
+
 #endif

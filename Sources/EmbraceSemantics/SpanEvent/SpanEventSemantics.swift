@@ -4,5 +4,5 @@
 
 /// Namespace for the OpenTelemetry attribute keys used on Embrace span events.
 public struct SpanEventSemantics {
-    public static let keyEmbraceType = "emb.type"
+    public static let keyEmbraceType = CommonSemantics.keyEmbraceType
 }

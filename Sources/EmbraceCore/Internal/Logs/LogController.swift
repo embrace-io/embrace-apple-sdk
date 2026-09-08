@@ -23,6 +23,8 @@ class LogController: LogBatcherDelegate {
     let queue: DispatchQueue
 
     weak var sdkStateProvider: EmbraceSDKStateProvider?
+    weak var experiments: ExperimentsHandler?
+    weak var privateLogger: EmbracePrivateLogger?
 
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
@@ -94,7 +96,6 @@ class LogController: LogBatcherDelegate {
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default,
-        send: Bool = true,
         completion: ((EmbraceLog?) -> Void)? = nil
     ) {
 
@@ -121,6 +122,7 @@ class LogController: LogBatcherDelegate {
             .addLogType(type)
             .addApplicationState()
             .addSessionIdentifier()
+            .addExperiments(experiments?.encodedExperiments)
 
         // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.
@@ -196,9 +198,7 @@ class LogController: LogBatcherDelegate {
                 sessionId: sessionController.currentSession?.id
             )
 
-            if send {
-                addLog(log)
-            }
+            addLog(log)
 
             completion?(log)
         }
@@ -231,6 +231,15 @@ extension LogController {
                 userSessionId: session.userSessionId,
                 processId: session.processId
             )
+
+            // the backend drops payloads that are missing the required metadata,
+            // so we discard these logs instead of uploading them
+            guard resourcePayload.hasRequiredMetadata else {
+                Embrace.logger.warning("Dropped \(logs.count) logs due to missing metadata!")
+                storage?.remove(logs: logs)
+                return
+            }
+
             send(logs: logs, resourcePayload: resourcePayload, metadataPayload: metadataPayload, completion: {})
         } catch let exception {
             Error.couldntCreatePayload(reason: exception.localizedDescription).log()
@@ -248,6 +257,11 @@ extension LogController {
         // Process batches sequentially so each compressed payload
         // is released before the next one is allocated.
         let semaphore = DispatchSemaphore(value: 0)
+
+        // Batches missing the required metadata are dropped, and a single private log
+        // is sent at the end reporting the total amount of logs lost. This avoids
+        // sending one private log per batch when many of them are dropped in a row.
+        var droppedLogCount = 0
 
         for batch in batches {
             autoreleasepool {
@@ -277,6 +291,14 @@ extension LogController {
                     let resourcePayload = try createResourcePayload(userSessionId: userSessionId, processId: processId)
                     let metadataPayload = try createMetadataPayload(userSessionId: userSessionId, processId: processId)
 
+                    // the backend drops payloads that are missing the required metadata,
+                    // so we discard these logs instead of uploading them
+                    guard resourcePayload.hasRequiredMetadata else {
+                        droppedLogCount += batch.logs.count
+                        storage?.remove(logs: batch.logs)
+                        return
+                    }
+
                     send(
                         logs: batch.logs,
                         resourcePayload: resourcePayload,
@@ -290,6 +312,10 @@ extension LogController {
                     Error.couldntCreatePayload(reason: exception.localizedDescription).log()
                 }
             }
+        }
+
+        if droppedLogCount > 0 {
+            privateLogger?.sendPrivateLog("Logs dropped due to missing metadata: \(droppedLogCount)")
         }
 
         completion?()

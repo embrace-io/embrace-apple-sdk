@@ -88,8 +88,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default,
-        isInternal: Bool = true,
-        send: Bool = true
+        isInternal: Bool = true
     ) {
         let log = MockLog(
             id: UUID().withoutHyphen,
@@ -113,21 +112,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
 
     }
 
-    public func exportLog(
-        _ message: String,
-        severity: EmbraceLogSeverity,
-        type: EmbraceType,
-        timestamp: Date,
-        attributes: EmbraceAttributes
-    ) {
-        _log(
-            message,
-            severity: severity,
-            type: type,
-            timestamp: timestamp,
-            attachment: nil,
-            attributes: attributes,
-            stackTraceBehavior: .notIncluded
-        )
+    public func exportLog(_ log: EmbraceLog) {
+        logs.append(log)
     }
 }
