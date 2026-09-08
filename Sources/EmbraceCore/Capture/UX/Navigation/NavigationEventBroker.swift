@@ -100,6 +100,8 @@ final class NavigationEventBroker {
                 screenBeforeBackground = nil
             }
 
+            revealScreenUncoveredByPause(at: event.timestamp)
+
         case .backgrounded:
             // Captured before the emission below overwrites `lastEmission`. Guarding on a non-nil
             // component id keeps a second background from "restoring" the Backgrounded sentinel.
@@ -129,6 +131,30 @@ final class NavigationEventBroker {
     /// overlap the change cannot be attributed to that earlier start, so the event's own time wins.
     private func loadTime(_ startTime: Date, or eventTime: Date) -> Date {
         visibleScreens.count > 1 ? eventTime : startTime
+    }
+
+    /// Hands the timeline back to a screen that was underneath the one that just disappeared.
+    ///
+    /// A presentation that does not fully cover what it sits on — a sheet, a popover, an alert,
+    /// anything `overCurrentContext` — leaves the controller beneath it *appeared*, so UIKit sends
+    /// it no callbacks at all when the presentation goes away. Without this the timeline would stay
+    /// on the dismissed screen until the user happened to navigate somewhere new.
+    ///
+    /// Deliberately keyed on what is still visible rather than on the presentation style, which we
+    /// never see. That also makes a full-screen presentation exclude itself: there the presenter
+    /// really did pause, so it is no longer in the visible set, and its own appearance callbacks
+    /// emit it in the usual way — no double emission, no special case.
+    ///
+    /// The load time is the dismissal, not the revealed screen's original appearance. It did not
+    /// load now; it became current now, and its first appearance may have been minutes ago.
+    private func revealScreenUncoveredByPause(at time: Date) {
+        // More than one still visible is a transition in flight, and which is frontmost is
+        // ambiguous — leave it to the resume that follows.
+        guard visibleScreens.count == 1, let revealed = visibleScreens.first else {
+            return
+        }
+
+        emit(name: revealed.value, componentId: revealed.key, at: time)
     }
 
     /// The dedup gate every emission funnels through: fire only if the container **or** the name

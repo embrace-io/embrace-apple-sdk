@@ -189,6 +189,66 @@ final class NavigationEventBrokerTests: XCTestCase {
         XCTAssertTrue(loads.isEmpty)
     }
 
+    // MARK: - Uncovering a screen underneath
+
+    func testDismissingASheetReturnsToTheScreenBeneathIt() throws {
+        let home = Container()
+        let sheet = Container()
+
+        appear(home, named: "Home", startedAt: 0, resumedAt: 1)
+
+        // A sheet does not cover what it sits on, so `home` gets no disappear callback and stays
+        // visible underneath.
+        appear(sheet, named: "Sheet", startedAt: 2, resumedAt: 3)
+        broker.handle(.paused(id(sheet), name: "Sheet", at: time(10)))
+
+        XCTAssertEqual(names, ["Home", "Sheet", "Home"])
+        XCTAssertEqual(loads.last?.time, time(10), "the revealed screen became current at the dismissal")
+    }
+
+    func testDismissingAFullScreenModalDoesNotDoubleEmit() {
+        let home = Container()
+        let modal = Container()
+
+        appear(home, named: "Home", startedAt: 0, resumedAt: 1)
+
+        // A full-screen presentation *does* pause the presenter, so it leaves the visible set.
+        broker.handle(.paused(id(home), name: "Home", at: time(2)))
+        appear(modal, named: "Modal", startedAt: 3, resumedAt: 4)
+
+        // Dismissal: the modal pauses, and `home` re-appears for real.
+        broker.handle(.paused(id(modal), name: "Modal", at: time(10)))
+        appear(home, named: "Home", startedAt: 11, resumedAt: 12)
+
+        // `Home` must appear once here, from its own resume — not once from the reveal and again
+        // from the resume.
+        XCTAssertEqual(names, ["Home", "Modal", "Home"])
+    }
+
+    func testPausingWithNothingUnderneathEmitsNothing() {
+        let only = Container()
+
+        appear(only, named: "Only", startedAt: 0, resumedAt: 1)
+        broker.handle(.paused(id(only), name: "Only", at: time(2)))
+
+        XCTAssertEqual(names, ["Only"])
+    }
+
+    func testPausingDuringATransitionLeavesTheResumeToEmit() {
+        let first = Container()
+        let second = Container()
+        let third = Container()
+
+        appear(first, named: "First", startedAt: 0, resumedAt: 1)
+        appear(second, named: "Second", startedAt: 2, resumedAt: 3)
+
+        // Three visible: ambiguous which is frontmost, so a pause must not guess.
+        appear(third, named: "Third", startedAt: 4, resumedAt: 5)
+        broker.handle(.paused(id(third), name: "Third", at: time(6)))
+
+        XCTAssertEqual(names, ["First", "Second", "Third"])
+    }
+
     // MARK: - Backgrounding
 
     func testBackgroundEmitsTheSentinelAtTheEventTime() throws {
