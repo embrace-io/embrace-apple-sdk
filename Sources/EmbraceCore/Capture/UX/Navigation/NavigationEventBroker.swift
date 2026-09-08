@@ -93,6 +93,13 @@ final class NavigationEventBroker {
             // allocated at the same address, silently backdating its load.
             startTimes.removeValue(forKey: componentId)
 
+            // And so does the restore point, for the same reason: a controller torn down while the
+            // app is backgrounded would otherwise be re-emitted on foreground as though the user
+            // were still on it, holding a stale address that a later controller can reuse.
+            if screenBeforeBackground?.componentId == componentId {
+                screenBeforeBackground = nil
+            }
+
         case .backgrounded:
             // Captured before the emission below overwrites `lastEmission`. Guarding on a non-nil
             // component id keeps a second background from "restoring" the Backgrounded sentinel.

@@ -59,18 +59,18 @@
         // MARK: - Input
 
         func onAppearance(_ vc: UIViewController, phase: ScreenAppearancePhase, at time: Date) {
-            guard shouldTrack(vc) else {
-                return
-            }
-
             let componentId = ObjectIdentifier(vc)
             let name = vc.emb_viewName
 
             switch phase {
             case .willAppear:
+                guard shouldTrack(vc) else { return }
                 broker.handle(.started(componentId, name: name, at: time))
+
             case .didAppear:
+                guard shouldTrack(vc) else { return }
                 broker.handle(.resumed(componentId, name: name, at: time))
+
             case .didDisappear:
                 broker.handle(.paused(componentId, name: name, at: time))
             }

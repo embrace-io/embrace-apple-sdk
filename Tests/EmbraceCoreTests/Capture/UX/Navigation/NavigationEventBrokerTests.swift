@@ -281,6 +281,21 @@ final class NavigationEventBrokerTests: XCTestCase {
         XCTAssertEqual(names, ["Home", "Backgrounded", "Home", "Detail"])
     }
 
+    func testAScreenPausedWhileBackgroundedIsNotRestored() {
+        let vc = Container()
+
+        appear(vc, named: "Home", startedAt: 0, resumedAt: 1)
+        broker.handle(.backgrounded(at: time(10)))
+
+        // The controller is torn down while the app is in the background.
+        broker.handle(.paused(id(vc), name: "Home", at: time(11)))
+        broker.handle(.foregrounded(at: time(20)))
+
+        // Restoring it would claim the user is on a screen that no longer exists, and would hold a
+        // dead `ObjectIdentifier` that a later controller can be allocated into.
+        XCTAssertEqual(names, ["Home", "Backgrounded"])
+    }
+
     // MARK: - Threading
 
     func testAnEventArrivingOffTheMainThreadIsDroppedRatherThanTrapping() {

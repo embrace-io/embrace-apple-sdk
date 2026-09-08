@@ -70,11 +70,20 @@
             tracker.onAppearance(vc, phase: .didAppear, at: time(resumedAt))
         }
 
+        private var stateSpan: EmbraceSpan? {
+            mockOTel.startedSpans.first { $0.name == "emb-state-screen-automatic" }
+        }
+
+        /// Asserts the span exists rather than defaulting to `[]`, so the "nothing was recorded"
+        /// tests below cannot pass by the pipeline being dead instead of the filter working.
         private var recordedScreens: [String] {
-            let span = mockOTel.startedSpans.first { $0.name == "emb-state-screen-automatic" }
-            return span?.events.compactMap {
+            guard let stateSpan else {
+                XCTFail("no state span — the pipeline is not running, so filtering proves nothing")
+                return []
+            }
+            return stateSpan.events.compactMap {
                 $0.attributes[SpanSemantics.State.keyNewValue]?.description
-            } ?? []
+            }
         }
 
         // MARK: - What counts as a screen
@@ -128,6 +137,28 @@
             // The same opt-out the view instrumentation honours, so a controller a customer has
             // already excluded stays out of both streams.
             XCTAssertTrue(recordedScreens.isEmpty)
+        }
+
+        func testADisappearanceIsForwardedEvenWhenTheControllerBecomesBlocked() throws {
+            var blocked: Set<String> = []
+            let tracker = makeTracker { blocked.contains(String(describing: type(of: $0))) }
+
+            let first = PlainViewController()
+            appear(tracker, first, startedAt: 0, resumedAt: 1)
+
+            // A remote-config refresh lands mid-visit and blocks this controller's class.
+            blocked.insert("PlainViewController")
+            tracker.onAppearance(first, phase: .didDisappear, at: time(2))
+            blocked.removeAll()
+
+            // If the disappearance had been filtered out, `first` would still be counted visible and
+            // this load would not be backdated to its start.
+            let second = NamedViewController()
+            appear(tracker, second, startedAt: 3, resumedAt: 8)
+
+            let span = try XCTUnwrap(stateSpan)
+            let load = try XCTUnwrap(span.events.last)
+            XCTAssertEqual(load.timestamp, time(3), "backdating must survive a mid-visit filter change")
         }
 
         // MARK: - Naming
