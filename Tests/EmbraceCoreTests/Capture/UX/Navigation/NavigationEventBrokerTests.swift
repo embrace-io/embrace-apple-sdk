@@ -281,6 +281,28 @@ final class NavigationEventBrokerTests: XCTestCase {
         XCTAssertEqual(names, ["Home", "Backgrounded", "Home", "Detail"])
     }
 
+    // MARK: - Threading
+
+    func testAnEventArrivingOffTheMainThreadIsDroppedRatherThanTrapping() {
+        let vc = Container()
+        let done = expectation(description: "off-main handle returns")
+
+        DispatchQueue.global().async { [self] in
+            // The broker's state is unsynchronized, so this must not be processed — but it must
+            // also not terminate the host app. A `dispatchPrecondition` here would trap in every
+            // optimisation level, including `-Ounchecked`, on a swizzle attached to every
+            // UIViewController in the customer's app.
+            broker.handle(.started(id(vc), name: "Home", at: time(0)))
+            done.fulfill()
+        }
+
+        wait(for: [done], timeout: 5)
+
+        // Dropped, so the matching resume on main has no start time and emits nothing.
+        broker.handle(.resumed(id(vc), name: "Home", at: time(1)))
+        XCTAssertTrue(loads.isEmpty)
+    }
+
     // MARK: - Interleaving
 
     func testInterleavedStartsAndResumesAttributeToTheRightContainer() {

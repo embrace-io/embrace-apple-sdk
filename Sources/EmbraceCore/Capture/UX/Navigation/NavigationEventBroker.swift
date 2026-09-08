@@ -12,8 +12,14 @@ import Foundation
 ///
 /// ## Threading
 /// Ordering *is* the correctness mechanism, so events are processed serially on the main queue and
-/// the state below is deliberately unsynchronized. ``handle(_:)`` asserts that contract rather than
-/// merely documenting it: a debug crash beats a silent data race.
+/// the state below is deliberately unsynchronized. ``handle(_:)`` drops anything arriving off the
+/// main queue and reports it, rather than trusting the contract silently.
+///
+/// It deliberately does **not** use `dispatchPrecondition`: that bottoms out in libdispatch's
+/// `dispatch_assert_queue`, which traps in every optimisation level including `-Ounchecked`, and
+/// this type is fed by a swizzle installed on every `UIViewController` in the host app. An app that
+/// drives an appearance callback off the main thread would then crash *because this SDK is linked*.
+/// Losing a screen transition is the right trade against terminating a customer's process.
 ///
 /// ## Not handled yet
 /// Every screen name here comes from the container itself. Once SwiftUI `NavigationStack`
@@ -58,7 +64,12 @@ final class NavigationEventBroker {
     // MARK: - Input
 
     func handle(_ event: NavigationEvent) {
-        dispatchPrecondition(condition: .onQueue(.main))
+        guard Thread.isMainThread else {
+            Embrace.logger.error(
+                "Screen tracking: a navigation event arrived off the main thread and was dropped. "
+                    + "Appearance callbacks must be delivered on the main thread.")
+            return
+        }
 
         switch event.kind {
         case .started:
