@@ -123,6 +123,16 @@ class UnsentDataHandler {
                 }
             }
 
+            // Resolve the process the crash belongs to, so the log carries that process's experiments
+            // and not this one's. The session knows it; failing that the report may carry it; and if
+            // neither does, `nil` leaves the attribute off rather than guessing.
+            var processId: EmbraceIdentifier?
+            if let session = session {
+                processId = session.processId
+            } else if let reportProcessId = report.processId {
+                processId = EmbraceIdentifier(stringValue: reportProcessId)
+            }
+
             // send crash log
             group.enter()
             sendCrashLog(
@@ -131,7 +141,8 @@ class UnsentDataHandler {
                 session: session,
                 storage: storage,
                 upload: upload,
-                otel: otel
+                otel: otel,
+                processId: processId
             ) {
                 group.leave()
             }
@@ -169,17 +180,37 @@ class UnsentDataHandler {
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
         otel: InternalOTelSignalsHandler?,
+        processId: EmbraceIdentifier? = nil,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
         let timestamp = (report.timestamp ?? session?.lastHeartbeatTime) ?? Date()
+        let finalProcessId = processId ?? session?.processId
 
-        // send otel log
         let attributes = createLogCrashAttributes(
-            otel: otel,
             storage: storage,
             report: report,
             session: session,
-            timestamp: timestamp
+            processId: finalProcessId
+        )
+
+        // Push the crash log through the OTel pipeline so processors and exporters set by the
+        // user get to see it. The log is handed over fully built: it describes the session and
+        // the process that crashed, both of which have already ended, so re-deriving any of its
+        // attributes from the current session would attribute the crash to the wrong one.
+        //
+        // The log id matches `LogSemantics.Crash.keyId` in the attributes, so the record and the
+        // crash report it carries are identified by the same value.
+        otel?.exportLog(
+            DefaultEmbraceLog(
+                id: report.id.withoutHyphen,
+                severity: .fatal,
+                type: .crash,
+                timestamp: timestamp,
+                body: "",
+                attributes: attributes,
+                sessionId: session?.id,
+                processId: finalProcessId ?? ProcessIdentifier.current
+            )
         )
 
         guard let upload = upload else {
@@ -197,7 +228,7 @@ class UnsentDataHandler {
                 attributes: attributes,
                 storage: storage,
                 userSessionId: session?.userSessionId,
-                processId: session?.processId ?? ProcessIdentifier.current
+                processId: finalProcessId
             )
             let payloadData = try JSONEncoder().encode(payload).gzipped()
 
@@ -225,11 +256,10 @@ class UnsentDataHandler {
     }
 
     static private func createLogCrashAttributes(
-        otel: InternalOTelSignalsHandler?,
         storage: EmbraceStorage?,
         report: EmbraceCrashReport,
         session: EmbraceSession?,
-        timestamp: Date
+        processId: EmbraceIdentifier?
     ) -> EmbraceAttributes {
 
         let attributesBuilder = EmbraceLogAttributesBuilder(
@@ -239,24 +269,29 @@ class UnsentDataHandler {
             initialAttributes: [:]
         )
 
-        let attributes =
+        // The crash belongs to a process that has already ended, so its experiments come from
+        // storage rather than from the handler in memory. When the process can't be determined the
+        // attribute is left off entirely.
+        var experiments: String?
+        if let processId = processId {
+            experiments =
+                storage?.fetchMetadata(
+                    key: SpanSemantics.keyExperiments,
+                    type: .requiredResource,
+                    lifespan: .process,
+                    lifespanId: processId.stringValue
+                )?.value
+        }
+
+        return
             attributesBuilder
             .addLogType(.crash)
             .addApplicationProperties()
             .addApplicationState()
             .addSessionIdentifier()
             .addCrashReportProperties()
+            .addExperiments(experiments)
             .build()
-
-        otel?.exportLog(
-            "",
-            severity: .fatal,
-            type: .crash,
-            timestamp: timestamp,
-            attributes: attributes
-        )
-
-        return attributes
     }
 
     static private func sendSessions(
@@ -425,7 +460,8 @@ class UnsentDataHandler {
             body: logs,
             attributes: attributes,
             storage: nil,
-            userSessionId: nil
+            userSessionId: nil,
+            processId: ProcessIdentifier.current
         )
 
         // send log
@@ -494,11 +530,18 @@ extension UnsentDataHandler {
         session: EmbraceSession?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: InternalOTelSignalsHandler?
+        otel: InternalOTelSignalsHandler?,
+        processId: EmbraceIdentifier? = nil
     ) async {
         await withCheckedContinuation { continuation in
             sendCrashLog(
-                report: report, reporter: reporter, session: session, storage: storage, upload: upload, otel: otel
+                report: report,
+                reporter: reporter,
+                session: session,
+                storage: storage,
+                upload: upload,
+                otel: otel,
+                processId: processId
             ) {
                 continuation.resume()
             }

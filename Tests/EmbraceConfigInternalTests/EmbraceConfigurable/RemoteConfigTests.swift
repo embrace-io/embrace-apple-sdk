@@ -155,6 +155,47 @@ final class RemoteConfigTests: XCTestCase {
         )
     }
 
+    func test_experimentsLimits() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        config.payload.maxExperimentCount = 1000
+        config.payload.maxExperimentIdLength = 256
+        config.payload.maxExperimentVariantLength = 64
+
+        XCTAssertEqual(
+            config.experimentsLimits,
+            ExperimentsLimits(maxCount: 1000, maxIdLength: 256, maxVariantLength: 64)
+        )
+    }
+
+    func test_experimentsLimits_clampsOutOfRangePayloadValues() {
+        // given a config with payload values above the ceilings
+        let config = RemoteConfig(options: options, logger: logger)
+
+        config.payload.maxExperimentCount = 6000
+        config.payload.maxExperimentIdLength = 2048
+        config.payload.maxExperimentVariantLength = 2048
+
+        // then the limits are clamped
+        let limits = config.experimentsLimits
+        XCTAssertEqual(limits.maxCount, ExperimentsLimits.maxSettableCount)
+        XCTAssertEqual(limits.maxIdLength, ExperimentsLimits.maxSettableIdLength)
+        XCTAssertEqual(limits.maxVariantLength, ExperimentsLimits.maxSettableVariantLength)
+    }
+
+    func test_experimentsLimits_fallsBackToDefaultsForNegativePayloadValues() {
+        // given a config with malformed (negative) payload values
+        let config = RemoteConfig(options: options, logger: logger)
+
+        config.payload.maxExperimentCount = -1
+        config.payload.maxExperimentIdLength = -1
+        config.payload.maxExperimentVariantLength = -1
+
+        // then the built-in defaults are used
+        XCTAssertEqual(config.experimentsLimits, ExperimentsLimits())
+    }
+
     func test_networkPayloadCaptureRules() {
         // given a config
         let config = RemoteConfig(options: options, logger: logger)

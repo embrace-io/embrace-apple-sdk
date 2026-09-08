@@ -128,6 +128,21 @@ class EmbraceLogAttributesBuilder {
         return self
     }
 
+    /// Adds the experiments and feature flags the user is enrolled in.
+    ///
+    /// A `nil` value means nothing is tracked, and the attribute is left off entirely.
+    @discardableResult
+    func addExperiments(_ experiments: String?) -> Self {
+        guard let experiments = experiments,
+            attributes[LogSemantics.keyExperiments] == nil
+        else {
+            return self
+        }
+
+        attributes[LogSemantics.keyExperiments] = experiments
+        return self
+    }
+
     @discardableResult
     func addSessionIdentifier() -> Self {
         return addSessionIdentifier(

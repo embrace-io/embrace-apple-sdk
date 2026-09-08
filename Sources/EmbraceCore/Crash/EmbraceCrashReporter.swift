@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 extension Notification.Name {
@@ -28,7 +29,8 @@ final class EmbraceCrashReporter {
         let internalKeys: [String] = [
             CrashReporterInfoKey.sdkVersion,
             CrashReporterInfoKey.sessionId,
-            CrashReporterInfoKey.userSessionId
+            CrashReporterInfoKey.userSessionId,
+            CrashReporterInfoKey.processId
         ]
         var allowsInternalDataChange: Bool = false
     }
@@ -83,6 +85,24 @@ final class EmbraceCrashReporter {
         }
     }
 
+    /// Adds the current process identifier to the crash reports.
+    ///
+    /// Written once when the reporter is installed, since it doesn't change for the life of the
+    /// process. A report recovered by a later launch carries it, which is what lets that launch
+    /// attribute the crash to the right process even if the session it belonged to is already gone.
+    private(set) var processId: String? {
+        get {
+            getCrashInfo(key: CrashReporterInfoKey.processId)
+        }
+        set {
+            data.withLock { $0.allowsInternalDataChange = true }
+            defer {
+                data.withLock { $0.allowsInternalDataChange = false }
+            }
+            appendCrashInfo(key: CrashReporterInfoKey.processId, value: newValue)
+        }
+    }
+
     /// Use this to prevent MetricKit reports to be used along with this crash reporter
     var disableMetricKitReports: Bool {
         reporter.disableMetricKitReports
@@ -115,6 +135,7 @@ final class EmbraceCrashReporter {
 
     func install(context: CrashReporterContext) {
         sdkVersion = context.sdkVersion
+        processId = ProcessIdentifier.current.stringValue
         do {
             try reporter.install(context: context)
         } catch {

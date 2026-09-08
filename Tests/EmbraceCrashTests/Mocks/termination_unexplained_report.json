@@ -1,0 +1,32 @@
+{
+    "report": {
+        "version": "3.9.0",
+        "id": "8F6D3B4A-3E5C-4A9D-9C2F-4B7E0D5A9C33",
+        "run_id": "C3D4E5F6-A7B8-4C9D-8E0F-2A3B4C5D6E7F",
+        "process_name": "",
+        "timestamp": 1696619964760585,
+        "type": "standard",
+        "monitor_id": "Termination"
+    },
+    "system": {
+        "application_stats": {
+            "application_active": true,
+            "application_in_foreground": true,
+            "app_transition_state": "active",
+            "user_perceptible": true
+        }
+    },
+    "crash": {
+        "error": {
+            "type": "termination",
+            "termination_reason": "unexplained",
+            "is_fatal": true,
+            "is_clean_exit": false,
+            "signal": {
+                "signal": 9,
+                "name": "SIGKILL",
+                "code": 0
+            }
+        }
+    }
+}

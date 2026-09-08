@@ -48,6 +48,7 @@ class SessionController: SessionControllable {
     weak var sdkStateProvider: EmbraceSDKStateProvider?
     weak var otel: InternalOTelSignalsHandler?
     weak var userSessionController: UserSessionController?
+    weak var experiments: ExperimentsHandler?
     weak var stateCoordinator: StateCaptureCoordinator?
 
     private struct SessionInfo {
@@ -97,6 +98,13 @@ class SessionController: SessionControllable {
             self?.checkUserSessionMaxDurationExpiry(now: now)
             span.end()
         }
+
+        Embrace.notificationCenter.addObserver(
+            self,
+            selector: #selector(onExperimentsChanged),
+            name: .embraceExperimentsChanged,
+            object: nil
+        )
     }
 
     /// Triggered each heartbeat tick. If the active user session has crossed its max-duration
@@ -252,6 +260,11 @@ class SessionController: SessionControllable {
 
     deinit {
         heartbeat.stop()
+        Embrace.notificationCenter.removeObserver(self)
+    }
+
+    @objc private func onExperimentsChanged(notification: Notification) {
+        update(experiments: notification.object as? String)
     }
 
     func clear() {
@@ -330,6 +343,9 @@ class SessionController: SessionControllable {
             else {
                 return (nil, nil)
             }
+
+            // a session started mid-process has to carry whatever is already tracked
+            SessionSpanUtils.setExperiments(span: span, value: experiments?.encodedExperiments)
 
             // Resolve which user session this new part belongs to. The user-session controller
             // decides whether to reuse the active user session or start a new one, and returns
@@ -535,6 +551,23 @@ class SessionController: SessionControllable {
             if let span = sessionInfo.sessionSpan {
                 SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
             }
+        }
+    }
+
+    /// Refreshes the experiments attribute on the current session span.
+    ///
+    /// Only the live span is touched here. The session payload reads the value from storage when it is
+    /// built, since that session may belong to an earlier process.
+    func update(experiments: String?) {
+        let sessionInfo = _session.safeValue
+        lock.locked {
+            guard sessionInfo.session != nil,
+                let span = sessionInfo.sessionSpan
+            else {
+                return
+            }
+
+            SessionSpanUtils.setExperiments(span: span, value: experiments)
         }
     }
 

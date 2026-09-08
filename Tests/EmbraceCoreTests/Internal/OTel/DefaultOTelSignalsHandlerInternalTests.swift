@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceStorageInternal
 import TestSupport
@@ -220,26 +221,58 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         limiter.shouldCreateLogReturnValue = false
         sanitizer.sanitizeLogAttributesReturnValue = ["sanitizedKey": "sanitizedValue"]
 
-        // when exporting a log
+        // given a prebuilt log that belongs to a session and a process other than the current ones
         let timestamp = Date(timeIntervalSince1970: 5)
+        let otherSessionId = EmbraceIdentifier.random
+        let otherProcessId = EmbraceIdentifier.random
+        let attributes: EmbraceAttributes = [
+            "key": "value",
+            LogSemantics.keyEmbraceType: EmbraceType.crash.rawValue,
+            LogSemantics.keyState: SessionState.background.rawValue,
+            LogSemantics.keySessionId: "other-user-session",
+            LogSemantics.keyUserSessionId: "other-user-session",
+            LogSemantics.keyPartId: otherSessionId.stringValue,
+            LogSemantics.keyExperiments: "other-experiments"
+        ]
+
+        // when exporting it
         handler.exportLog(
-            "test",
-            severity: .debug,
-            type: .message,
-            timestamp: timestamp,
-            attributes: ["key": "value"]
+            DefaultEmbraceLog(
+                id: "test-id",
+                severity: .fatal,
+                type: .crash,
+                timestamp: timestamp,
+                body: "test",
+                attributes: attributes,
+                sessionId: otherSessionId,
+                processId: otherProcessId
+            )
         )
 
-        // then the right calls are made
+        // then no limit is checked and nothing is sanitized
         XCTAssertEqual(limiter.shouldCreateLogCallCount, 0)
         XCTAssertEqual(sanitizer.sanitizeLogAttributesCallCount, 0)
 
-        // then the log is forwarded to the bridge without it being added to the batch
+        // then the log is forwarded to the bridge untouched
         wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.currentBatch())
         XCTAssertEqual(bridge.createLogCallCount, 1)
+        let exported = try XCTUnwrap(bridge.createdLogs.first)
+        XCTAssertEqual(exported.id, "test-id")
+        XCTAssertEqual(exported.severity, .fatal)
+        XCTAssertEqual(exported.type, .crash)
+        XCTAssertEqual(exported.timestamp, timestamp)
+        XCTAssertEqual(exported.body, "test")
+        XCTAssertEqual(exported.sessionId, otherSessionId)
+        XCTAssertEqual(exported.processId, otherProcessId)
 
-        // then the log is not saved
+        // the attributes of the current session must not replace the ones the log came with
+        XCTAssertEqual(exported.attributes.count, attributes.count)
+        for (key, value) in attributes {
+            XCTAssertEqual(exported.attributes[key] as? String, value as? String, "attribute \(key) was modified")
+        }
+
+        // then the log is neither batched nor saved
+        XCTAssertNil(logController.batcher.currentBatch())
         XCTAssertEqual(storage.fetchAllLogs().count, 0)
     }
 

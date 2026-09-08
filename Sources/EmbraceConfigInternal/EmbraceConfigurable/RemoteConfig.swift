@@ -104,6 +104,14 @@ extension RemoteConfig: EmbraceConfigurable {
         )
     }
 
+    public var experimentsLimits: ExperimentsLimits {
+        ExperimentsLimits(
+            maxCount: payload.maxExperimentCount,
+            maxIdLength: payload.maxExperimentIdLength,
+            maxVariantLength: payload.maxExperimentVariantLength
+        )
+    }
+
     public var isSDKEnabled: Bool { isEnabled(threshold: payload.sdkEnabledThreshold) }
 
     public var isBackgroundSessionEnabled: Bool { isEnabled(threshold: payload.backgroundSessionThreshold) }
