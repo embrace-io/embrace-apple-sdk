@@ -22,14 +22,6 @@
         func isViewControllerBlocked(_ vc: UIViewController) -> Bool {
             return blockList.isBlocked(viewController: vc)
         }
-
-        /// Recorded so tests can assert the handler taps the navigation seam at the right moments,
-        /// on the calling thread, with the callback's own timestamp.
-        private(set) var appearanceCalls: [(vc: UIViewController, phase: ScreenAppearancePhase, time: Date)] = []
-
-        func onViewControllerAppearance(_ vc: UIViewController, phase: ScreenAppearancePhase, at time: Date) {
-            appearanceCalls.append((vc, phase, time))
-        }
     }
 
 #endif

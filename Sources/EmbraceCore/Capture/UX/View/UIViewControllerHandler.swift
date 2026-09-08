@@ -18,13 +18,6 @@
         var instrumentFirstRender: Bool { get }
 
         func isViewControllerBlocked(_ vc: UIViewController) -> Bool
-
-        /// Forwards a raw appearance callback to the screen-navigation timeline, if it is enabled.
-        ///
-        /// Called on the thread the callback arrived on — the main thread — and before this handler
-        /// hops to its own queue, because the navigation side attributes load times to the original
-        /// callback's timestamp and is serialized on the main queue.
-        func onViewControllerAppearance(_ vc: UIViewController, phase: ScreenAppearancePhase, at time: Date)
     }
 
     class UIViewControllerHandler {
@@ -166,8 +159,6 @@
         }
 
         func onViewWillAppearStart(_ vc: UIViewController, now: Date = Date()) {
-            dataSource?.onViewControllerAppearance(vc, phase: .willAppear, at: now)
-
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
             }
@@ -259,8 +250,6 @@
         }
 
         func onViewDidAppearStart(_ vc: UIViewController, now: Date = Date()) {
-            dataSource?.onViewControllerAppearance(vc, phase: .didAppear, at: now)
-
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
             }
@@ -371,14 +360,13 @@
             }
         }
 
-        func onViewDidDisappear(_ vc: UIViewController, now: Date = Date()) {
-            dataSource?.onViewControllerAppearance(vc, phase: .didDisappear, at: now)
-
+        func onViewDidDisappear(_ vc: UIViewController) {
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
             }
 
             queue.async {
+                let now = Date()
 
                 // end visibility span
                 if let span = self.data.withLock({ $0.self.visibilitySpans[id] }) {

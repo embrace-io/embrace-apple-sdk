@@ -5,77 +5,116 @@
 #if canImport(UIKit) && !os(watchOS)
 
     import EmbraceConfiguration
+    import EmbraceSemantics
     import TestSupport
     import UIKit
     import XCTest
 
     @testable import EmbraceCore
 
-    /// Pins the two pieces of wiring the navigation timeline depends on but cannot verify itself:
-    /// that the view instrumentation actually taps the seam, and that the gates combine correctly.
-    final class ScreenNavigationWiringTests: XCTestCase {
+    /// Pins the wiring the timeline depends on but cannot verify itself: that a real swizzled
+    /// appearance callback actually reaches the tracker, and that the gates combine correctly.
+    ///
+    /// These drive `vc.viewWillAppear(_:)` and friends so the **swizzle** runs. Calling the handler
+    /// directly would prove nothing — the swizzle is where the decision to record is made, and it
+    /// applies gates of its own that the handler never sees.
+    final class ScreenNavigationWiringTests: SwizzlerTestCase {
 
-        private final class PlainViewController: UIViewController {}
+        private final class ScreenA: UIViewController {}
 
-        // MARK: - The seam
+        private var mockOTel: MockOTelSignalsHandler!
+        private var service: ViewCaptureService!
 
-        private var handler: UIViewControllerHandler!
-        private var dataSource: MockUIViewControllerHandlerDataSource!
+        private let origin = Date(timeIntervalSince1970: 1_000)
 
         override func setUpWithError() throws {
-            handler = UIViewControllerHandler()
-            dataSource = MockUIViewControllerHandlerDataSource()
-            handler.dataSource = dataSource
+            try super.setUpWithError()
+
+            mockOTel = MockOTelSignalsHandler()
+            service = ViewCaptureService(options: ViewCaptureService.Options(), lock: NSLock())
+            service.install(otel: mockOTel)
+            service.start()
+
+            // The gate needs an SDK instance, so the tracker is injected directly. Everything the
+            // tests exercise below — the swizzles, the filter, the broker — is the real thing.
+            let sessionSpan = try mockOTel.createInternalSpan(
+                name: SpanSemantics.Session.name, type: .session, startTime: origin)
+            let reporter = ScreenStateReporter(otel: mockOTel)
+            reporter.recorder.onSessionPartStart(sessionSpan: sessionSpan, at: origin)
+            reporter.recorder.activate(at: origin)
+
+            service.navigationTracker = ScreenNavigationTracker(reporter: reporter) { [weak service] vc in
+                service?.isViewControllerBlocked(vc) ?? true
+            }
         }
 
         override func tearDownWithError() throws {
-            handler = nil
-            dataSource = nil
+            restoreSwizzleCacheAdditions()
+            mockOTel = nil
+            service = nil
+            try super.tearDownWithError()
         }
 
-        func testEveryAppearanceCallbackReachesTheNavigationSeam() throws {
-            let vc = PlainViewController()
-            let start = Date(timeIntervalSince1970: 1_000)
-
-            handler.onViewWillAppearStart(vc, now: start)
-            handler.onViewDidAppearStart(vc, now: start.addingTimeInterval(1))
-            handler.onViewDidDisappear(vc, now: start.addingTimeInterval(2))
-
-            XCTAssertEqual(dataSource.appearanceCalls.map(\.phase), [.willAppear, .didAppear, .didDisappear])
+        private var recordedScreens: [String] {
+            let span = mockOTel.startedSpans.first { $0.name == "emb-state-screen-automatic" }
+            return span?.events.compactMap {
+                $0.attributes[SpanSemantics.State.keyNewValue]?.description
+            } ?? []
         }
 
-        func testTheSeamReceivesTheCallbacksOwnTimestamp() throws {
-            let vc = PlainViewController()
-            let start = Date(timeIntervalSince1970: 1_000)
-
-            handler.onViewWillAppearStart(vc, now: start)
-
-            // Load times are attributed to when the OS callback fired, so the seam must be handed
-            // that timestamp rather than one taken later on the handler's queue.
-            let call = try XCTUnwrap(dataSource.appearanceCalls.first)
-            XCTAssertEqual(call.time, start)
+        /// Production always carries an identifier here — assigned in `onViewDidLoadStart` or
+        /// `onViewDidAppearEnd`. Without one the handler returns before latching its
+        /// `…SpanCreated` flags, which is exactly the gate these tests exist to get past.
+        private func appearInstrumented(_ vc: UIViewController) {
+            vc.emb_instrumentation_state = .init(identifier: UUID().uuidString)
+            vc.viewWillAppear(false)
+            vc.viewDidAppear(false)
         }
 
-        func testTheSeamIsTappedSynchronouslyOnTheCallingThread() {
-            let vc = PlainViewController()
+        // MARK: - The swizzle actually reaches the timeline
 
-            handler.onViewWillAppearStart(vc, now: Date())
+        func testAnAppearanceRecordsAScreen() {
+            appearInstrumented(ScreenA())
 
-            // Asserted with no waiting: the broker downstream is serialized on the main queue and
-            // asserts it, so the tap must happen before the handler hops to its own queue.
-            XCTAssertEqual(dataSource.appearanceCalls.count, 1)
+            XCTAssertEqual(recordedScreens, ["ScreenA"])
         }
 
-        func testTheSeamIsTappedEvenWithoutInstrumentationState() {
-            // `emb_instrumentation_state` is only set when first-render instrumentation runs. The
-            // navigation tap sits above that guard so the timeline does not inherit an unrelated
-            // feature's configuration.
-            let vc = PlainViewController()
-            XCTAssertNil(vc.emb_instrumentation_state)
+        func testReturningToTheSameControllerRecordsAgain() {
+            let home = ScreenA()
+            let detail = UIViewController()
 
-            handler.onViewWillAppearStart(vc, now: Date())
+            appearInstrumented(home)
+            appearInstrumented(detail)
+            home.viewDidDisappear(false)
+            detail.viewDidDisappear(false)
 
-            XCTAssertEqual(dataSource.appearanceCalls.count, 1)
+            // The second visit to `home` is the case that matters. The span-creation path latches
+            // `viewWillAppearSpanCreated` on first appearance and never resets it, so a tap placed
+            // inside the handler would go silent here and the timeline would claim the user never
+            // left `detail`.
+            home.viewWillAppear(false)
+            home.viewDidAppear(false)
+
+            XCTAssertEqual(recordedScreens, ["ScreenA", "UIViewController", "ScreenA"])
+        }
+
+        func testAppearanceIsRecordedWithoutFirstRenderInstrumentation() {
+            // No `emb_instrumentation_state`: the span-creating branch is skipped entirely, which is
+            // what happens whenever first-render instrumentation is off. The timeline must not
+            // inherit that feature's configuration.
+            let vc = ScreenA()
+            vc.viewWillAppear(false)
+            vc.viewDidAppear(false)
+
+            XCTAssertEqual(recordedScreens, ["ScreenA"])
+        }
+
+        func testAStoppedServiceRecordsNothing() {
+            service.stop()
+
+            appearInstrumented(ScreenA())
+
+            XCTAssertTrue(recordedScreens.isEmpty)
         }
 
         // MARK: - The gates
@@ -90,34 +129,24 @@
         func testBothGatesOnAndVisibilityOnEnablesTracking() {
             XCTAssertTrue(
                 ViewCaptureService.shouldTrackScreenNavigation(
-                    instrumentVisibility: true,
-                    config: config(state: true, screen: true)
-                ))
+                    instrumentVisibility: true, config: config(state: true, screen: true)))
         }
 
         func testEitherGateOffDisablesTracking() {
-            // The epic's headline criterion: either flag at 0 means no screen state at all.
             XCTAssertFalse(
                 ViewCaptureService.shouldTrackScreenNavigation(
-                    instrumentVisibility: true,
-                    config: config(state: false, screen: true)
-                ))
+                    instrumentVisibility: true, config: config(state: false, screen: true)))
             XCTAssertFalse(
                 ViewCaptureService.shouldTrackScreenNavigation(
-                    instrumentVisibility: true,
-                    config: config(state: true, screen: false)
-                ))
+                    instrumentVisibility: true, config: config(state: true, screen: false)))
         }
 
         func testVisibilityInstrumentationOffDisablesTracking() {
-            // Mechanical, not philosophical: `instrumentVisibility` is what installs the
-            // `viewDidDisappear` swizzle, and without those pause events the broker never clears
-            // its visible set — so load times silently stop being backdated.
+            // `instrumentVisibility` is what installs the `viewDidDisappear` swizzle; without those
+            // pause events the broker never clears its visible set and stops backdating load times.
             XCTAssertFalse(
                 ViewCaptureService.shouldTrackScreenNavigation(
-                    instrumentVisibility: false,
-                    config: config(state: true, screen: true)
-                ))
+                    instrumentVisibility: false, config: config(state: true, screen: true)))
         }
 
         func testNoConfigDisablesTracking() {

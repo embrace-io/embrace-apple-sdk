@@ -96,12 +96,22 @@
         /// the timeline is built from; hanging the tracker here avoids a second swizzler and a
         /// second block list. A `nil` tracker means nothing is observed at all — navigation events
         /// are never constructed, rather than being built and discarded.
-        private var navigationTracker: ScreenNavigationTracker?
+        internal var navigationTracker: ScreenNavigationTracker?
 
-        func onViewControllerAppearance(_ vc: UIViewController, phase: ScreenAppearancePhase, at time: Date) {
-            // The other handler paths inherit this check from `onViewDidLoadStart`, which is what
-            // sets the instrumentation state they all guard on. This tap deliberately sits above
-            // that guard, so it has to make the check itself or a stopped SDK would keep recording.
+        /// Feeds the screen-navigation timeline from a raw appearance callback.
+        ///
+        /// Called straight from the swizzle, on the thread the callback arrived on — the main
+        /// thread — so the broker stays on its required queue and load times keep the OS
+        /// callback's own timestamp.
+        ///
+        /// Checks `serviceState` itself. The span-creating paths get that check from
+        /// `onViewDidLoadStart`; this one runs above all of them, so a stopped SDK would otherwise
+        /// keep feeding the timeline.
+        fileprivate func onViewControllerAppearance(
+            _ vc: UIViewController,
+            phase: ScreenAppearancePhase,
+            at time: Date
+        ) {
             guard serviceState == .active else {
                 return
             }
@@ -275,6 +285,8 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
+                        self.onViewControllerAppearance(viewController, phase: .willAppear, at: Date())
+
                         // If by this time (`viewWillAppear` being called) there's no `emb_instrumentation_state` associated
                         // to the viewController, then we don't swizzle as the "instrument render" feature might be disabled.
                         if let state = viewController.emb_instrumentation_state {
@@ -315,6 +327,9 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
+                        // See `instrumentViewWillAppear`: above the span-creation latch on purpose.
+                        self.onViewControllerAppearance(viewController, phase: .didAppear, at: Date())
+
                         // If the state was already fulfilled, then call the original implementation.
                         if let state = viewController.emb_instrumentation_state, state.viewDidAppearSpanCreated {
                             originalImplementation(viewController, selector, animated)
@@ -348,6 +363,7 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
+                        self.onViewControllerAppearance(viewController, phase: .didDisappear, at: Date())
                         self.handler.onViewDidDisappear(viewController)
                         originalImplementation(viewController, selector, animated)
                     }
