@@ -32,8 +32,6 @@
         /// Container controllers are skipped: they appear alongside the content they present, so
         /// letting them through would put "UINavigationController" in the timeline and, worse, make
         /// two screens visible at once — which suppresses load-time backdating for the real screen.
-        ///
-        /// Android had no equivalent need; its Activity granularity is already this coarse.
         private static let containerClasses: [UIViewController.Type] = [
             UINavigationController.self,
             UITabBarController.self,
@@ -76,12 +74,6 @@
             }
         }
 
-        // MARK: - App state
-
-        /// - Note: `UIApplication`'s state notifications are delivered on the main thread, which is
-        ///   what the broker's serialization contract requires — the same thread the appearance
-        ///   callbacks arrive on.
-
         // MARK: - Filtering
 
         private func shouldTrack(_ vc: UIViewController) -> Bool {
@@ -97,6 +89,10 @@
         }
     }
 
+    /// App-state transitions reach here from `iOSSessionLifecycle`'s `UIApplication` observers, by
+    /// way of `ViewCaptureService`. Delivery is synchronous the whole way, and UIKit posts those
+    /// notifications on the main thread, so this arrives on the thread the broker requires — the
+    /// same one the appearance callbacks come in on.
     extension ScreenNavigationTracker: AppStateObserver {
 
         func appWillBackground(at time: Date) {

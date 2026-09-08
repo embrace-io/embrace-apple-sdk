@@ -135,8 +135,9 @@
             let now = Date()
             currentState = .foreground
 
-            // Deferred so it lands *after* the session work below: foregrounding starts a new part,
-            // and anything recorded here belongs to that new part rather than the one being closed.
+            // Deferred so it lands *after* the session work below: when foregrounding starts a new
+            // part, what is recorded here belongs to that part rather than the one being closed.
+            // (Not every path starts one — see the early returns below.)
             // `defer` rather than a trailing call because every early return below is also a
             // foreground the observer needs to hear about.
             defer {

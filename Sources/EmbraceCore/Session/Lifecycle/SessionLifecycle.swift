@@ -8,16 +8,18 @@ import Foundation
 ///
 /// This exists because ordering *is* the contract for anything that has to record something as the
 /// final entry of the outgoing session part. `SessionController.endSessionNoLock` closes state spans
-/// before it ends the part span, and posts its notifications afterwards — so every observer-based
-/// seam in the SDK fires too late to write into the part that is going away.
+/// before it ends the part span, and posts `.embraceSessionPartWillEnd` via `DispatchQueue.main.async`
+/// — so an observer of that notification has no ordering guarantee at all relative to the close, and
+/// when the caller is already on main it is guaranteed to run after it.
 protocol AppStateObserver: AnyObject {
 
     /// The app is backgrounding. Called **before** any session work, so the outgoing part is still
     /// open and can still record.
     func appWillBackground(at time: Date)
 
-    /// The app has foregrounded. Called **after** session work, so a new part already exists and
-    /// receives whatever this records.
+    /// The app has foregrounded. Called **after** the session machinery has run, so if foregrounding
+    /// started a new part this lands in it. Note it does not always start one — an already-foreground
+    /// app, and a cold start inside the launch grace period, both reuse the current part.
     func appDidForeground(at time: Date)
 }
 

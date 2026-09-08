@@ -11,8 +11,7 @@ import Foundation
 /// Feeds the screens resolved by ``NavigationEventBroker`` into the generic state primitive.
 ///
 /// Kept as its own (thin) type rather than a closure so the feature's wire parameters — the state
-/// name, the default value, the per-part cap — live in one named place, and so the capture service
-/// can wire the broker to it without reaching into a `StateRecorder` directly.
+/// name, the default value, the per-part cap — live in one named place.
 ///
 /// The name deliberately avoids "tracker": the view-controller observer that *produces* navigation
 /// events is the other end of this same pipeline, and two similarly-named types across it would be

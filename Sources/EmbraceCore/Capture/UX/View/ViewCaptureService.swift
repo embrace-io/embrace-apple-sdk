@@ -104,9 +104,9 @@
         /// thread — so the broker stays on its required queue and load times keep the OS
         /// callback's own timestamp.
         ///
-        /// Checks `serviceState` itself. The span-creating paths get that check from
-        /// `onViewDidLoadStart`; this one runs above all of them, so a stopped SDK would otherwise
-        /// keep feeding the timeline.
+        /// Checks `serviceState` itself, because nothing upstream does it for this path. Only
+        /// `onViewDidLoadStart` carries that check, and the tap runs above it — so without this a
+        /// stopped SDK would keep feeding the timeline.
         fileprivate func onViewControllerAppearance(
             _ vc: UIViewController,
             phase: ScreenAppearancePhase,
@@ -171,9 +171,12 @@
         /// one: it is the only thing that installs the `viewDidDisappear` swizzle. Without those
         /// pause events a screen is never removed from the visible set, so from the second screen
         /// onwards the broker always sees more than one visible and stops backdating load times — a
-        /// timeline that looks complete but is systematically late. Requiring it also means every
-        /// callback the timeline needs is present regardless of ``instrumentFirstRender`` or the
-        /// remote UI-load flag that depends on.
+        /// timeline that looks complete but is systematically late.
+        ///
+        /// Requiring it is also sufficient: `instrumentVisibility` alone installs all three
+        /// appearance swizzles, and the taps sit above the span-creation bookkeeping inside them,
+        /// so the timeline works regardless of ``instrumentFirstRender`` or the remote UI-load flag
+        /// it depends on.
         static func shouldTrackScreenNavigation(
             instrumentVisibility: Bool,
             config: EmbraceConfigurable?
