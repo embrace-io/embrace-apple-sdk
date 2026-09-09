@@ -294,7 +294,8 @@
                 let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
                 let child = self.otel.startedSpans.first(where: { $0.name == "ui-ready" })
 
-                return child != nil && child!.parentSpanId == parent!.context.spanId
+                guard let parent, let child else { return false }
+                return child.parentSpanId == parent.context.spanId
             }
 
             // when the view controller becomes interactable
@@ -378,7 +379,8 @@
                 let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
                 let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-did-load" })
 
-                return parent != nil && child!.parentSpanId == parent!.context.spanId && child!.type == .viewLoad
+                guard let parent, let child else { return false }
+                return child.parentSpanId == parent.context.spanId && child.type == .viewLoad
             }
 
             // when view did load ends
@@ -400,7 +402,8 @@
                 let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
                 let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-will-appear" })
 
-                return parent != nil && child!.parentSpanId == parent!.context.spanId && child!.type == .viewLoad
+                guard let parent, let child else { return false }
+                return child.parentSpanId == parent.context.spanId && child.type == .viewLoad
             }
 
             // when view will appear ends
@@ -422,7 +425,8 @@
                 let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
                 let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-is-appearing" })
 
-                return parent != nil && child!.parentSpanId == parent!.context.spanId && child!.type == .viewLoad
+                guard let parent, let child else { return false }
+                return child.parentSpanId == parent.context.spanId && child.type == .viewLoad
             }
 
             // when view is appearing ends
@@ -444,7 +448,8 @@
                 let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
                 let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-did-appear" })
 
-                return parent != nil && child!.parentSpanId == parent!.context.spanId && child!.type == .viewLoad
+                guard let parent, let child else { return false }
+                return child.parentSpanId == parent.context.spanId && child.type == .viewLoad
             }
 
             // when view did appear ends
