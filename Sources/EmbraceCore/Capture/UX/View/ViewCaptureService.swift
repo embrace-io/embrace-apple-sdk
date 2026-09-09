@@ -227,6 +227,12 @@
             // so app-state transitions get the same `serviceState` check as appearance callbacks.
             // Held weakly by the lifecycle; this service owns the tracker's lifetime.
             client.sessionLifecycle.setAppStateObserver(self)
+
+            // Same reasoning for screens declared in SwiftUI, which reach the SDK from the host
+            // app's view tree with no route to this service other than the registry. Publishing
+            // only once the gate has passed is what makes the modifier a no-op when the feature
+            // is off: there is nothing there to report to.
+            ManualScreenRegistry.reporter = self
         }
     }
 
@@ -240,6 +246,24 @@
         func appDidForeground(at time: Date) {
             guard serviceState == .active else { return }
             navigationTracker?.appDidForeground(at: time)
+        }
+    }
+
+    extension ViewCaptureService: ManualScreenReporting {
+
+        func onManualScreenAppear(
+            id: ObjectIdentifier,
+            name: String,
+            attributes: EmbraceAttributes,
+            at time: Date
+        ) {
+            guard serviceState == .active else { return }
+            navigationTracker?.onManualScreenAppear(id: id, name: name, attributes: attributes, at: time)
+        }
+
+        func onManualScreenDisappear(id: ObjectIdentifier, name: String, at time: Date) {
+            guard serviceState == .active else { return }
+            navigationTracker?.onManualScreenDisappear(id: id, name: name, at: time)
         }
     }
 

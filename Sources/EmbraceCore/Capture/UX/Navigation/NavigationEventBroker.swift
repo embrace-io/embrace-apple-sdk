@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
 /// Reconciles raw container lifecycle events into a single timeline of *distinct* screens, with
 /// load times attributed to when the user started navigating rather than when we heard about it.
 ///
@@ -39,6 +43,19 @@ final class NavigationEventBroker {
     private struct Emission: Equatable {
         let name: String
         let componentId: ObjectIdentifier?
+
+        /// Carried so a restore can replay what the screen was declared with, **not** compared.
+        let attributes: EmbraceAttributes
+
+        /// Identity is the `(container, screen)` pair only.
+        ///
+        /// Attributes are deliberately excluded: they are metadata about a screen, not part of what
+        /// makes it a different one. Including them would let a view re-rendering with a changed
+        /// attribute value (a product id, a cart total) pass the dedup gate below and record a
+        /// transition to the screen the user is already on.
+        static func == (lhs: Emission, rhs: Emission) -> Bool {
+            lhs.name == rhs.name && lhs.componentId == rhs.componentId
+        }
     }
 
     /// Containers that have started appearing but not yet finished. The value is what a resume
@@ -54,10 +71,11 @@ final class NavigationEventBroker {
     /// What was on screen when the app backgrounded, so foregrounding can restore it.
     private var screenBeforeBackground: Emission?
 
-    /// Called with `(loadTime, screenName)` for each *distinct* screen the timeline moves to.
-    private let onScreenLoad: (Date, String) -> Void
+    /// Called with `(loadTime, screenName, attributes)` for each *distinct* screen the timeline
+    /// moves to. Attributes are empty for every screen except those declared with their own.
+    private let onScreenLoad: (Date, String, EmbraceAttributes) -> Void
 
-    init(onScreenLoad: @escaping (Date, String) -> Void) {
+    init(onScreenLoad: @escaping (Date, String, EmbraceAttributes) -> Void) {
         self.onScreenLoad = onScreenLoad
     }
 
@@ -90,7 +108,11 @@ final class NavigationEventBroker {
             guard let startTime = startTimes.removeValue(forKey: componentId) else { return }
 
             visibleScreens[componentId] = event.name
-            emit(name: event.name, componentId: componentId, at: loadTime(startTime, or: event.timestamp))
+            emit(
+                name: event.name,
+                componentId: componentId,
+                attributes: event.attributes,
+                at: loadTime(startTime, or: event.timestamp))
 
         case .paused:
             guard let componentId = event.componentId else { return }
@@ -113,7 +135,7 @@ final class NavigationEventBroker {
             if let lastEmission, lastEmission.componentId != nil {
                 screenBeforeBackground = lastEmission
             }
-            emit(name: Screen.backgrounded.name, componentId: nil, at: event.timestamp)
+            emit(name: Screen.backgrounded.name, componentId: nil, attributes: [:], at: event.timestamp)
 
         case .foregrounded:
             // UIKit does not re-fire appearance callbacks for a controller that stayed the visible
@@ -122,7 +144,14 @@ final class NavigationEventBroker {
             // exists to backdate to.
             guard let restored = screenBeforeBackground else { return }
             screenBeforeBackground = nil
-            emit(name: restored.name, componentId: restored.componentId, at: event.timestamp)
+            // Replayed with the attributes it was declared with: this is the same screen the user
+            // was on, so reporting it stripped of its metadata would make the restored transition
+            // look different from the original.
+            emit(
+                name: restored.name,
+                componentId: restored.componentId,
+                attributes: restored.attributes,
+                at: event.timestamp)
         }
     }
 
@@ -145,11 +174,16 @@ final class NavigationEventBroker {
     /// `(container, screen)` states. Note it is not the only dedup in the chain — the state
     /// primitive downstream drops *value*-equal consecutive transitions and counts them, so moving
     /// between two different containers with the same name passes this gate and is dropped there.
-    private func emit(name: String, componentId: ObjectIdentifier?, at loadTime: Date) {
-        let emission = Emission(name: name, componentId: componentId)
+    private func emit(
+        name: String,
+        componentId: ObjectIdentifier?,
+        attributes: EmbraceAttributes,
+        at loadTime: Date
+    ) {
+        let emission = Emission(name: name, componentId: componentId, attributes: attributes)
         defer { lastEmission = emission }
 
         guard lastEmission != emission else { return }
-        onScreenLoad(loadTime, name)
+        onScreenLoad(loadTime, name, attributes)
     }
 }

@@ -6,6 +6,10 @@
     import Foundation
     import UIKit
 
+    #if !EMBRACE_COCOAPOD_BUILDING_SDK
+        import EmbraceSemantics
+    #endif
+
     /// Which appearance callback a view controller is reporting.
     ///
     /// Kept separate from ``NavigationEvent/Kind`` so the view-instrumentation side can forward raw
@@ -83,9 +87,36 @@
                 return false
             }
 
+            guard !Self.isAnonymousHostingController(vc) else {
+                return false
+            }
+
             // `isKind(of:)` rather than `isMember(of:)`: custom container subclasses are common,
             // and a `MyNavigationController: UINavigationController` is just as much a container.
             return !Self.containerClasses.contains { vc.isKind(of: $0) }
+        }
+
+        /// A SwiftUI host that has no name of its own to offer.
+        ///
+        /// Decided here rather than deferring to the view instrumentation's block list, because the
+        /// two are answering different questions. `uiInstrumentationCaptureHostingControllers`
+        /// governs whether SwiftUI hosts get *view* spans — how long something took to render. The
+        /// timeline asks what screen the user is on, and a host's class name answers that with
+        /// `UIHostingController<ModifiedContent<Text, _PaddingLayout>>`: a description of the view
+        /// tree, not a screen. Letting that flag decide would put such names in the timeline the
+        /// moment it was turned on. SwiftUI screens are named with the `.embraceScreen` modifier.
+        ///
+        /// A host that *does* supply a name through `EmbraceViewControllerCustomization` is kept —
+        /// naming it is the developer saying it is a screen.
+        ///
+        /// Deliberately does not walk up to parents the way the block list does. A child view
+        /// controller presented inside SwiftUI has a real class name of its own, and is a screen on
+        /// the same terms as any other; only the host itself is anonymous.
+        private static func isAnonymousHostingController(_ vc: UIViewController) -> Bool {
+            guard vc is EmbraceIdentifiableHostingController else {
+                return false
+            }
+            return (vc as? EmbraceViewControllerCustomization)?.nameForViewControllerInEmbrace == nil
         }
     }
 
@@ -101,6 +132,38 @@
 
         func appDidForeground(at time: Date) {
             broker.handle(.foregrounded(at: time))
+        }
+    }
+
+    /// Screens a developer declared with the public SwiftUI modifier, feeding the same broker as the
+    /// automatic ones.
+    ///
+    /// Sharing the broker is the point. There is one screen timeline, so both producers have to pass
+    /// the same dedup gate, occupy the same visible-screen bookkeeping, and be restorable after a
+    /// backgrounding. A declared screen reporting straight to the state primitive would bypass all
+    /// three and interleave a second, unreconciled stream into one span.
+    ///
+    /// No filtering is applied here: the block lists are matched against view controller classes,
+    /// which a declared name has none of, and naming the screen *is* the developer opting in.
+    extension ScreenNavigationTracker: ManualScreenReporting {
+
+        func onManualScreenAppear(
+            id: ObjectIdentifier,
+            name: String,
+            attributes: EmbraceAttributes,
+            at time: Date
+        ) {
+            // SwiftUI has no equivalent of the will/did appear split, so the start is synthesized at
+            // the same instant. That is not a lost measurement: `onAppear` is the earliest signal the
+            // framework offers, so there is no earlier moment to backdate the load to, and emitting
+            // both keeps the resume rule's "no start means nothing to attribute" guard satisfied
+            // instead of needing a manual-only exception inside the broker.
+            broker.handle(.started(id, name: name, at: time))
+            broker.handle(.resumed(id, name: name, at: time, attributes: attributes))
+        }
+
+        func onManualScreenDisappear(id: ObjectIdentifier, name: String, at time: Date) {
+            broker.handle(.paused(id, name: name, at: time))
         }
     }
 #endif
