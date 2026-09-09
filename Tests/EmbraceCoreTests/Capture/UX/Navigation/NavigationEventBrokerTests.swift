@@ -415,6 +415,26 @@ final class NavigationEventBrokerTests: XCTestCase {
         XCTAssertEqual(loads[2].attributes["product_id"]?.description, "42")
     }
 
+    /// Pins the choice documented on `Emission.attributes`: a re-declaration the dedup gate
+    /// suppressed still updates what a later restore replays. Without this, the `defer` in `emit`
+    /// looks like an accident and someone will "fix" it.
+    func testRestoreReplaysTheMostRecentDeclarationEvenIfItWasSuppressed() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "Cart", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "Cart", at: time(1), attributes: ["total": "10"]))
+        // Same screen, fresher metadata — suppressed by the gate, emits nothing.
+        broker.handle(.started(id(vc), name: "Cart", at: time(2)))
+        broker.handle(.resumed(id(vc), name: "Cart", at: time(3), attributes: ["total": "20"]))
+        broker.handle(.backgrounded(at: time(4)))
+        broker.handle(.foregrounded(at: time(5)))
+
+        XCTAssertEqual(names, ["Cart", "Backgrounded", "Cart"])
+        XCTAssertEqual(
+            loads[2].attributes["total"]?.description, "20",
+            "the restore describes the screen as it stands now, not as it last shipped")
+    }
+
     func testTheBackgroundedSentinelCarriesNoAttributes() throws {
         let vc = Container()
 

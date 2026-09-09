@@ -96,27 +96,31 @@
             return !Self.containerClasses.contains { vc.isKind(of: $0) }
         }
 
-        /// A SwiftUI host that has no name of its own to offer.
+        /// A SwiftUI host whose resolved name describes a view tree rather than a screen.
         ///
         /// Decided here rather than deferring to the view instrumentation's block list, because the
         /// two are answering different questions. `uiInstrumentationCaptureHostingControllers`
         /// governs whether SwiftUI hosts get *view* spans — how long something took to render. The
-        /// timeline asks what screen the user is on, and a host's class name answers that with
-        /// `UIHostingController<ModifiedContent<Text, _PaddingLayout>>`: a description of the view
-        /// tree, not a screen. Letting that flag decide would put such names in the timeline the
-        /// moment it was turned on. SwiftUI screens are named with the `.embraceScreen` modifier.
+        /// timeline asks what screen the user is on, and a bare host answers that with
+        /// `UIHostingController<ModifiedContent<Text, _PaddingLayout>>`. Letting that flag decide
+        /// would put such names in the timeline the moment it was turned on. SwiftUI screens are
+        /// named with the `.embraceScreen` modifier.
         ///
-        /// A host that *does* supply a name through `EmbraceViewControllerCustomization` is kept —
-        /// naming it is the developer saying it is a screen.
+        /// The test is the *name*, not the type, because the name is what the exclusion is about.
+        /// A developer-authored subclass — `CheckoutHostingController` — names itself perfectly well
+        /// and is kept, as is any host naming itself through `EmbraceViewControllerCustomization`
+        /// (which `emb_viewName` has already applied by this point). Only a generic host, whose name
+        /// still carries its type parameters, is anonymous.
         ///
         /// Deliberately does not walk up to parents the way the block list does. A child view
-        /// controller presented inside SwiftUI has a real class name of its own, and is a screen on
-        /// the same terms as any other; only the host itself is anonymous.
+        /// controller presented inside SwiftUI has a real class name of its own; only the host is
+        /// anonymous. Note the block list still gets the first say, so under the default config
+        /// (hosts blocked) none of this is reached.
         private static func isAnonymousHostingController(_ vc: UIViewController) -> Bool {
             guard vc is EmbraceIdentifiableHostingController else {
                 return false
             }
-            return (vc as? EmbraceViewControllerCustomization)?.nameForViewControllerInEmbrace == nil
+            return vc.emb_viewName.contains("<")
         }
     }
 
@@ -153,6 +157,17 @@
             attributes: EmbraceAttributes,
             at time: Date
         ) {
+            // Refused rather than recorded: downstream equality is by name, so a screen declared
+            // with a sentinel's name would swallow the real transition it collides with — a session
+            // that genuinely backgrounded would report that it never did. Reported, because unlike
+            // the feature being switched off this is a mistake the developer can fix.
+            guard !Screen.isReserved(name) else {
+                Embrace.logger.warning(
+                    "Screen tracking: the screen name \"\(name)\" is reserved by the SDK and was "
+                        + "ignored. Choose a different name for this screen.")
+                return
+            }
+
             // SwiftUI has no equivalent of the will/did appear split, so the start is synthesized at
             // the same instant. That is not a lost measurement: `onAppear` is the earliest signal the
             // framework offers, so there is no earlier moment to backdate the load to, and emitting

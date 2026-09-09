@@ -44,7 +44,14 @@ final class NavigationEventBroker {
         let name: String
         let componentId: ObjectIdentifier?
 
-        /// Carried so a restore can replay what the screen was declared with, **not** compared.
+        /// Carried so a restore can replay the screen's metadata, **not** compared.
+        ///
+        /// This tracks the most recent *declaration*, not the most recent emission: `emit` records
+        /// the attempt even when the dedup gate suppresses it. So a screen re-declared with fresher
+        /// values while the user stays on it restores with those fresher values, even though they
+        /// never shipped a transition of their own. That is the intent — a restore says "the user is
+        /// back on this screen", and the screen's current metadata describes it better than a stale
+        /// copy from whenever it last passed the gate.
         let attributes: EmbraceAttributes
 
         /// Identity is the `(container, screen)` pair only.
@@ -144,9 +151,8 @@ final class NavigationEventBroker {
             // exists to backdate to.
             guard let restored = screenBeforeBackground else { return }
             screenBeforeBackground = nil
-            // Replayed with the attributes it was declared with: this is the same screen the user
-            // was on, so reporting it stripped of its metadata would make the restored transition
-            // look different from the original.
+            // Replayed with the screen's metadata rather than stripped of it — see `Emission` for
+            // which declaration that is when the screen was re-declared while the user stayed on it.
             emit(
                 name: restored.name,
                 componentId: restored.componentId,

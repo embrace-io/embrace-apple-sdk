@@ -17,6 +17,10 @@
     final class ScreenNavigationTrackerTests: XCTestCase {
 
         private final class PlainViewController: UIViewController {}
+
+        /// A developer-authored host subclass. Names itself; does NOT adopt the customization
+        /// protocol, which is the case a type-based exclusion would wrongly drop.
+        private final class CheckoutHostingController: UIHostingController<Text> {}
         private final class CustomNavigationController: UINavigationController {}
 
         private final class NamedViewController: UIViewController, EmbraceViewControllerCustomization {
@@ -157,8 +161,22 @@
             XCTAssertEqual(recordedScreens, ["CustomName"])
         }
 
-        /// The host is anonymous, not everything inside it: a child view controller presented from
-        /// SwiftUI has a real class name and is a screen on the same terms as any other.
+        /// A developer-authored subclass names itself perfectly well, so the exclusion must not
+        /// catch it. `EmbraceIdentifiableHostingController` is conformed by every subclass, so a
+        /// type-based test would silently drop this — the name is what the rule is about.
+        func testAHostingControllerSubclassWithItsOwnNameIsTracked() {
+            let tracker = makeTracker()
+
+            appear(tracker, CheckoutHostingController(rootView: Text("hi")), startedAt: 0, resumedAt: 1)
+
+            XCTAssertEqual(recordedScreens, ["CheckoutHostingController"])
+        }
+
+        /// The host is anonymous, not everything inside it.
+        ///
+        /// Note this is the behaviour *when hosting-controller capture is enabled*: `makeTracker()`
+        /// blocks nothing, standing in for that config. Under the default block list the parent walk
+        /// in `ViewControllerBlockList` excludes this child before the tracker is ever consulted.
         func testAChildControllerInsideAHostIsStillTracked() {
             let tracker = makeTracker()
 
@@ -345,6 +363,32 @@
             let load = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
             XCTAssertEqual(load.timestamp, time(9), "two screens visible means no backdating")
         }
+
+        /// A caller must not be able to mint a name the framework gives its own meaning to.
+        /// Equality downstream is by name, so without this the real background transition — and the
+        /// foreground restore after it — are both swallowed, and the session reports an app that
+        /// never backgrounded.
+        func testAScreenDeclaredWithAReservedNameIsRefused() {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: Screen.backgrounded.name, at: 0)
+            tracker.appWillBackground(at: time(10))
+            tracker.appDidForeground(at: time(20))
+
+            XCTAssertEqual(recordedScreens, ["Backgrounded"], "only the real backgrounding, once")
+            XCTAssertEqual(
+                stateSpan?.events.count, 1,
+                "the declared screen must not have produced a transition of its own")
+        }
+
+        func testTheInitializingSentinelIsReservedToo() {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: Screen.initializing.name, at: 0)
+
+            XCTAssertTrue(recordedScreens.isEmpty)
+        }
+
     }
 
 #endif

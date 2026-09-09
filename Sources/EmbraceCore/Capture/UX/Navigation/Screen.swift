@@ -24,4 +24,13 @@ struct Screen: StateValue {
 
     /// Value of the state while the app is backgrounded. Wire contract, as above.
     static let backgrounded = Screen("Backgrounded")
+
+    /// Names the framework gives its own meaning to, which a caller must not be able to mint.
+    ///
+    /// Equality is by name, so a screen declared with one of these is indistinguishable from the
+    /// sentinel downstream: the state primitive would collapse the real transition into the
+    /// caller's, and a session where the app genuinely backgrounded would report that it never did.
+    static func isReserved(_ name: String) -> Bool {
+        name == initializing.name || name == backgrounded.name
+    }
 }
