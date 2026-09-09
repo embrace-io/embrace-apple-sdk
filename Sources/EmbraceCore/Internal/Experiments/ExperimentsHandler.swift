@@ -304,12 +304,12 @@ package class ExperimentsHandler {
             self?.persistCurrentValue()
         }
 
-        let delay: TimeInterval = state.withLock { state in
-            state.pendingPersist?.cancel()
-            state.pendingPersist = item
-
+        let delay: TimeInterval? = state.withLock { state in
             let now = Date()
+
             guard let firstChange = state.firstPendingChange else {
+                state.pendingPersist?.cancel()
+                state.pendingPersist = item
                 state.firstPendingChange = now
                 return persistDebounceInterval
             }
@@ -317,7 +317,21 @@ package class ExperimentsHandler {
             // Whatever is left of the max wait, so the deadline set by the first unreported change
             // survives every later change that pushes the debounce out.
             let remaining = maxPersistDelay - now.timeIntervalSince(firstChange)
+
+            // Once that deadline is up the item already waiting is due, and replacing it would
+            // defer a write that is owed — indefinitely, for as long as changes keep arriving.
+            // Leave it in place: it reads the value when it runs, so it reports this change too.
+            if remaining <= 0, state.pendingPersist != nil {
+                return nil
+            }
+
+            state.pendingPersist?.cancel()
+            state.pendingPersist = item
             return max(0, min(persistDebounceInterval, remaining))
+        }
+
+        guard let delay = delay else {
+            return
         }
 
         persistQueue.asyncAfter(deadline: .now() + delay, execute: item)

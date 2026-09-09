@@ -20,7 +20,11 @@ jobs:
         with:
           persist-credentials: false
 
+      # Pinned past the 3.22.1 tag, whose image installs Node 18. The action's Dockerfile
+      # installs danger-js unpinned, and danger-js 14 needs Node 20.18.1+: its undici 7
+      # dependency touches the Node 20+ `File` global at require time. This ref is the
+      # first with Node 24 in the image; move back to a tag once 3.22.2 ships.
       - name: Run Danger Swift
-        uses: danger/swift@434d7c25f3b02d490a340b23f5e78dd15a5670bc # 3.22.1
+        uses: danger/swift@f7ed29d43ffd423e9ee75e98e306e63d3c521c92 # master, post-3.22.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

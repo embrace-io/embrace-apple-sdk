@@ -30,10 +30,18 @@ final class ExperimentsHandlerTests: XCTestCase {
 
     /// Defaults to reporting inline, so tests that aren't about the debounce don't have to wait it
     /// out. The debounce tests pass their own interval.
+    ///
+    /// The handler's own queue is `qos: .utility`, which a loaded machine can starve for longer than
+    /// the millisecond-scale intervals the debounce tests use. These run at `.userInitiated` so the
+    /// timings under test are what the assertions measure, rather than how busy the runner is.
     private func handler(
         limits: ExperimentsLimits = ExperimentsLimits(),
         persistDebounceInterval: TimeInterval = 0,
-        maxPersistDelay: TimeInterval = ExperimentsHandler.defaultMaxPersistDelay
+        maxPersistDelay: TimeInterval = ExperimentsHandler.defaultMaxPersistDelay,
+        persistQueue: DispatchQueue = DispatchQueue(
+            label: "io.embrace.tests.experiments.persist",
+            qos: .userInitiated
+        )
     ) -> ExperimentsHandler {
         ExperimentsHandler(
             storage: storage,
@@ -41,7 +49,8 @@ final class ExperimentsHandlerTests: XCTestCase {
             configNotificationCenter: notificationCenter,
             logger: logger,
             persistDebounceInterval: persistDebounceInterval,
-            maxPersistDelay: maxPersistDelay
+            maxPersistDelay: maxPersistDelay,
+            persistQueue: persistQueue
         )
     }
 
@@ -687,13 +696,20 @@ final class ExperimentsHandlerTests: XCTestCase {
         // Changes closer together than the debounce interval, for longer than the max delay.
         let deadline = Date().addingTimeInterval(.shortTimeout)
         var index = 0
+
+        // Sampled inside the loop rather than read at the end: the count only grows, so a read after
+        // the stream can't tell a report forced by the max delay from one the debounce produced once
+        // the changes stopped — and only the former is what this test is about.
+        var reportedMidStream = false
+
         while Date() < deadline {
             handler.trackExperiments([.init(id: "exp-\(index)", startedAt: Date(timeIntervalSince1970: 1000))])
             index += 1
             wait(delay: .veryShortTimeout / 2)
+            reportedMidStream = reportedMidStream || reports() > 0
         }
 
-        XCTAssertGreaterThan(reports(), 0, "the max delay should have forced a report mid-stream")
+        XCTAssertTrue(reportedMidStream, "the max delay should have forced a report mid-stream")
     }
 
     /// Nothing is reported while a burst is pending, so the value has to be flushed on the way out.
