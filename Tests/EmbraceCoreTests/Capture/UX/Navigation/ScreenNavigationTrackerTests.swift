@@ -36,6 +36,10 @@
             var shouldCaptureViewInEmbrace: Bool = true
         }
 
+        /// A generic host subclass, whose *class* name carries type parameters even though it is
+        /// developer-authored.
+        private final class GenericHostingController<V: View>: UIHostingController<V> {}
+
         private var mockOTel: MockOTelSignalsHandler!
         private var sessionSpan: EmbraceSpan!
         private var reporter: ScreenStateReporter!
@@ -170,6 +174,28 @@
             appear(tracker, CheckoutHostingController(rootView: Text("hi")), startedAt: 0, resumedAt: 1)
 
             XCTAssertEqual(recordedScreens, ["CheckoutHostingController"])
+        }
+
+        /// Naming a host is an unconditional opt-in. The generic test must not be applied to the
+        /// developer's own string — `<` in a chosen name means nothing to us.
+        func testANamedHostIsKeptEvenWhenItsNameContainsAngleBrackets() {
+            let tracker = makeTracker()
+            let vc = NamedHostingController(rootView: Text("hi"))
+            vc.nameForViewControllerInEmbrace = "Cart <checkout v2>"
+
+            appear(tracker, vc, startedAt: 0, resumedAt: 1)
+
+            XCTAssertEqual(recordedScreens, ["Cart <checkout v2>"])
+        }
+
+        /// A generic subclass still produces a name carrying type parameters, so it stays excluded —
+        /// the customization protocol is its way in.
+        func testAGenericHostSubclassIsStillAnonymous() {
+            let tracker = makeTracker()
+
+            appear(tracker, GenericHostingController(rootView: Text("hi")), startedAt: 0, resumedAt: 1)
+
+            XCTAssertTrue(recordedScreens.isEmpty)
         }
 
         /// The host is anonymous, not everything inside it.
@@ -365,37 +391,51 @@
         }
 
         /// A caller must not be able to mint a name the framework gives its own meaning to.
-        /// Equality downstream is by name, so without this the real background transition — and the
-        /// foreground restore after it — are both swallowed, and the session reports an app that
-        /// never backgrounded.
-        func testAScreenDeclaredWithAReservedNameIsRefused() {
+        ///
+        /// Needs a real screen *before* the declaration, or it proves nothing: with nothing to
+        /// return to, the foreground restore never runs, and the recorder's own value-dedup
+        /// collapses the forged sentinel into the real one so the recorded output is identical
+        /// either way. The harm only becomes visible in the restore and the sentinel's timestamp.
+        func testAScreenDeclaredWithAReservedNameIsRefused() throws {
             let tracker = makeTracker()
 
-            declareAppearance(tracker, Token(), name: Screen.backgrounded.name, at: 0)
+            appear(tracker, PlainViewController(), startedAt: 0, resumedAt: 1)
+            declareAppearance(tracker, Token(), name: Screen.backgrounded.name, at: 5)
             tracker.appWillBackground(at: time(10))
             tracker.appDidForeground(at: time(20))
 
-            XCTAssertEqual(recordedScreens, ["Backgrounded"], "only the real backgrounding, once")
             XCTAssertEqual(
-                stateSpan?.events.count, 1,
-                "the declared screen must not have produced a transition of its own")
+                recordedScreens,
+                ["PlainViewController", "Backgrounded", "PlainViewController"],
+                "the user's return must survive — a forged sentinel swallows it")
+
+            let sentinel = try XCTUnwrap(
+                stateSpan?.events.first {
+                    $0.attributes[SpanSemantics.State.keyNewValue]?.description == "Backgrounded"
+                })
+            XCTAssertEqual(
+                sentinel.timestamp, time(10),
+                "the sentinel must be the real backgrounding, not the declaration it collided with")
         }
 
-        func testTheInitializingSentinelIsReservedToo() {
+        /// `Initializing` collides with the state's own default value, so a forged one is silently
+        /// swallowed by value-dedup and merely inflates the dropped counter. That counter is the
+        /// only observable difference, which is what this asserts.
+        func testTheInitializingSentinelIsReservedToo() throws {
             let tracker = makeTracker()
 
             declareAppearance(tracker, Token(), name: Screen.initializing.name, at: 0)
+            appear(tracker, PlainViewController(), startedAt: 1, resumedAt: 2)
 
-            XCTAssertTrue(recordedScreens.isEmpty)
-        }
+            XCTAssertEqual(recordedScreens, ["PlainViewController"])
 
-        func testAScreenDeclaredWithABlankNameIsRefused() {
-            let tracker = makeTracker()
-
-            declareAppearance(tracker, Token(), name: "   ", at: 0)
-            declareAppearance(tracker, Token(), name: "", at: 1)
-
-            XCTAssertTrue(recordedScreens.isEmpty)
+            // The counter rides on the next recorded event, not on the span — a declaration that
+            // reached the recorder and was dropped there would show up here.
+            let transition = try XCTUnwrap(
+                stateSpan?.events.first { $0.name == SpanSemantics.State.transitionEventName })
+            XCTAssertNil(
+                transition.attributes[SpanSemantics.State.keyDroppedByInstrumentation],
+                "a refused declaration must never reach the recorder at all")
         }
 
         // MARK: - Bounding caller attributes

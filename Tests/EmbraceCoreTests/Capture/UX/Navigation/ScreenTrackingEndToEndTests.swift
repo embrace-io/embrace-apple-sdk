@@ -30,6 +30,10 @@
 
         private var service: ViewCaptureService!
 
+        /// Every service this suite starts, so teardown can stop them all — including one a test
+        /// stands up mid-way to swap the config.
+        private var startedServices: [ViewCaptureService] = []
+
         override func setUpWithError() throws {
             try super.setUpWithError()
 
@@ -38,6 +42,7 @@
             config.isScreenTrackingEnabled = true
 
             service = ViewCaptureService(options: ViewCaptureService.Options(), lock: NSLock())
+            startedServices.append(service)
             try Embrace.setup(
                 options: Embrace.Options(
                     captureServices: [service],
@@ -48,8 +53,13 @@
         }
 
         override func tearDownWithError() throws {
-            // Releasing the service withdraws its registry publication, so nothing leaks into the
-            // next test — that is the registration token's job, not the test's.
+            // Stopped explicitly, because releasing it does not withdraw its registry publication:
+            // a service that has run `onInstall` is retained for the process lifetime by its own
+            // swizzle IMPs, which capture `self`. `IntegrationTestCase` only clears
+            // `Embrace.client`, so without this the reporter stays published into every later test
+            // in the bundle — and `ManualScreenRegistry` is process-global.
+            startedServices.forEach { $0.stop() }
+            startedServices = []
             service = nil
             try super.tearDownWithError()
         }
@@ -228,13 +238,19 @@
         // MARK: - The gates really do gate
 
         func testWithScreenTrackingOffNoStateSpanIsProducedAtAll() throws {
-            // Rebuild the SDK with the screen gate off.
+            // The setUp service must be stopped, not just abandoned. It is still `.active` and still
+            // the published reporter, so `declare` below would reach *its* tracker and write into
+            // the previous SDK's storage — and this test would then pass by inspecting the new
+            // client's payload for a screen that never went near it.
+            service.stop()
+
             Embrace.client = nil
             let config = EditableConfig()
             config.isStateCaptureEnabled = true
             config.isScreenTrackingEnabled = false
 
             let gatedService = ViewCaptureService(options: ViewCaptureService.Options(), lock: NSLock())
+            startedServices.append(gatedService)
             try Embrace.setup(
                 options: Embrace.Options(
                     captureServices: [gatedService],
@@ -242,6 +258,11 @@
                     runtimeConfiguration: config
                 )
             ).start()
+
+            // The actual precondition: the gate left nothing published, so a declared screen has
+            // nowhere to go. Without this the assertion below cannot distinguish a working gate
+            // from a screen that was quietly delivered somewhere else.
+            XCTAssertNil(ManualScreenRegistry.reporter)
 
             visit(HomeViewController())
             declare(Token(), "Settings")

@@ -109,16 +109,35 @@
         /// would put such names in the timeline the moment it was turned on. SwiftUI screens are
         /// named with the `.embraceScreen` modifier.
         ///
-        /// The test is the *name*, not the type, because the name is what the exclusion is about.
-        /// A developer-authored subclass — `CheckoutHostingController` — names itself perfectly well
-        /// and is kept, as is any host naming itself through `EmbraceViewControllerCustomization`
-        /// (which `emb_viewName` has already applied by this point). Only a generic host, whose name
-        /// still carries its type parameters, is anonymous.
+        /// Naming it is an unconditional opt-in: a host that supplies
+        /// `nameForViewControllerInEmbrace` is never anonymous, whatever it chose to call itself.
+        /// The generic test would otherwise be applied to the developer's own string and reject
+        /// `"Cart <checkout v2>"` — a deliberate name — for containing a character it never meant
+        /// anything by.
+        ///
+        /// Failing that, the test is on the *class* name, since that is what produces the soup.
+        /// `CheckoutHostingController` names itself perfectly well and is kept; a generic subclass
+        /// like `ScreenHost<CheckoutView>` is not, and its escape hatch is the customization
+        /// protocol above.
         ///
         /// Deliberately does not walk up to parents the way the block list does. A child view
         /// controller presented inside SwiftUI has a real class name of its own; only the host is
         /// anonymous. Note the block list still gets the first say, so under the default config
         /// (hosts blocked) none of this is reached.
+        private static func isAnonymousHostingController(_ vc: UIViewController) -> Bool {
+            guard vc is EmbraceIdentifiableHostingController else {
+                return false
+            }
+
+            if let customized = vc as? EmbraceViewControllerCustomization,
+                customized.nameForViewControllerInEmbrace != nil
+            {
+                return false
+            }
+
+            return vc.className.contains("<")
+        }
+
         /// Trims and truncates a screen name before it becomes part of the timeline.
         ///
         /// A screen name is the one caller-supplied string that nothing downstream bounds. It is
@@ -142,13 +161,6 @@
 
         private static let sanitizer = DefaultOtelSignalsSanitizer()
         private static let sessionLimits = SessionLimits()
-
-        private static func isAnonymousHostingController(_ vc: UIViewController) -> Bool {
-            guard vc is EmbraceIdentifiableHostingController else {
-                return false
-            }
-            return vc.emb_viewName.contains("<")
-        }
     }
 
     /// App-state transitions reach here from `iOSSessionLifecycle`'s `UIApplication` observers, by
