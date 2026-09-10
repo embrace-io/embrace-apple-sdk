@@ -157,10 +157,20 @@
             attributes: EmbraceAttributes,
             at time: Date
         ) {
-            // Refused rather than recorded: downstream equality is by name, so a screen declared
-            // with a sentinel's name would swallow the real transition it collides with — a session
-            // that genuinely backgrounded would report that it never did. Reported, because unlike
-            // the feature being switched off this is a mistake the developer can fix.
+            // Both guards report rather than dropping silently: unlike the feature being switched
+            // off, these are mistakes the developer can fix.
+
+            // A blank name is indistinguishable from an absent one downstream, and still spends one
+            // of the part's transitions.
+            guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                Embrace.logger.warning(
+                    "Screen tracking: a screen was declared with a blank name and was ignored.")
+                return
+            }
+
+            // A sentinel's name is worse than useless: equality downstream is by name, so it
+            // swallows the real transition it collides with, and a session that genuinely
+            // backgrounded reports that it never did.
             guard !Screen.isReserved(name) else {
                 Embrace.logger.warning(
                     "Screen tracking: the screen name \"\(name)\" is reserved by the SDK and was "

@@ -98,6 +98,10 @@
         /// are never constructed, rather than being built and discarded.
         internal var navigationTracker: ScreenNavigationTracker?
 
+        /// Keeps this service published as the reporter for screens declared in SwiftUI. Releasing
+        /// it withdraws, so the registry cannot outlive the service that filled it.
+        private var manualScreenRegistration: ManualScreenRegistry.Registration?
+
         /// Feeds the screen-navigation timeline from a raw appearance callback.
         ///
         /// Called straight from the swizzle, on the thread the callback arrived on — the main
@@ -162,6 +166,18 @@
             startScreenNavigationTrackingIfEnabled()
         }
 
+        override public func onStop() {
+            lock.lock()
+            defer {
+                lock.unlock()
+            }
+
+            // Withdrawn explicitly rather than left to deallocation, so when this service stops
+            // being the published reporter does not depend on when ARC drops the last reference.
+            // The tracker is deliberately kept — see `startScreenNavigationTrackingIfEnabled`.
+            manualScreenRegistration = nil
+        }
+
         /// Whether the screen-navigation timeline should run.
         ///
         /// Split out from the wiring below so the combination can be tested without standing up an
@@ -199,8 +215,7 @@
         /// loaded from cache during setup, so this only costs the very first launch after install,
         /// where the timeline is absent rather than wrong.
         private func startScreenNavigationTrackingIfEnabled() {
-            guard navigationTracker == nil,
-                let client = Embrace.client,
+            guard let client = Embrace.client,
                 Self.shouldTrackScreenNavigation(
                     instrumentVisibility: instrumentVisibility,
                     config: client.config.configurable
@@ -209,30 +224,36 @@
                 return
             }
 
-            let reporter = ScreenStateReporter(otel: otel)
+            // Built at most once. `StateCaptureCoordinator` has no `unregister`, so a second tracker
+            // would mean a second recorder and two `emb-state-screen-automatic` spans in every
+            // later part.
+            if navigationTracker == nil {
+                let reporter = ScreenStateReporter(otel: otel)
 
-            let tracker = ScreenNavigationTracker(reporter: reporter) { [weak self] vc in
-                // No service means no block list to consult; treat that as blocked rather than
-                // capturing screens this service would have excluded.
-                self?.isViewControllerBlocked(vc) ?? true
+                let tracker = ScreenNavigationTracker(reporter: reporter) { [weak self] vc in
+                    // No service means no block list to consult; treat that as blocked rather than
+                    // capturing screens this service would have excluded.
+                    self?.isViewControllerBlocked(vc) ?? true
+                }
+                navigationTracker = tracker
+
+                client.stateCoordinator.register(
+                    reporter.recorder,
+                    sessionSpan: client.sessionController.currentSessionSpan
+                )
+
+                // Routed through this service rather than handing the lifecycle the tracker
+                // directly, so app-state transitions get the same `serviceState` check as
+                // appearance callbacks. Held weakly by the lifecycle; this service owns the
+                // tracker's lifetime.
+                client.sessionLifecycle.setAppStateObserver(self)
             }
-            navigationTracker = tracker
 
-            client.stateCoordinator.register(
-                reporter.recorder,
-                sessionSpan: client.sessionController.currentSessionSpan
-            )
-
-            // Routed through this service rather than handing the lifecycle the tracker directly,
-            // so app-state transitions get the same `serviceState` check as appearance callbacks.
-            // Held weakly by the lifecycle; this service owns the tracker's lifetime.
-            client.sessionLifecycle.setAppStateObserver(self)
-
-            // Same reasoning for screens declared in SwiftUI, which reach the SDK from the host
-            // app's view tree with no route to this service other than the registry. Publishing
-            // only once the gate has passed is what makes the modifier a no-op when the feature
-            // is off: there is nothing there to report to.
-            ManualScreenRegistry.reporter = self
+            // Published on *every* start, unlike the tracker: `onStop` withdraws, so a restart
+            // would otherwise keep UIKit screens working while silently dropping every SwiftUI one.
+            // Publishing only once the gate has passed is what makes the modifier a no-op when the
+            // feature is off — there is nothing to report to.
+            manualScreenRegistration = ManualScreenRegistry.publish(self)
         }
     }
 

@@ -89,6 +89,7 @@
         private var model: Model!
         private var window: UIWindow!
         private var renders: RenderCounter!
+        private var registration: ManualScreenRegistry.Registration!
 
         override func setUpWithError() throws {
             spy = SpyReporter()
@@ -96,7 +97,7 @@
             renders = RenderCounter()
             // Held strongly here: the registry's reference is weak, so a spy the test does not
             // retain would vanish and every assertion below would pass vacuously.
-            ManualScreenRegistry.reporter = spy
+            registration = ManualScreenRegistry.publish(spy)
         }
 
         override func tearDownWithError() throws {
@@ -104,7 +105,7 @@
             window = nil
             model = nil
             renders = nil
-            ManualScreenRegistry.reporter = nil
+            registration = nil
             spy = nil
         }
 
@@ -228,7 +229,7 @@
         /// With no reporter published — the feature off, or the SDK not started — the modifier must
         /// be inert rather than crashing or trapping.
         func testWithNoReporterTheModifierIsInert() {
-            ManualScreenRegistry.reporter = nil
+            registration = nil
 
             present()
             // Nothing to wait for; pump the run loop so any reporting would have happened.

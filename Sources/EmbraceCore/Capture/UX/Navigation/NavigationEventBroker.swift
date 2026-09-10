@@ -34,35 +34,33 @@ import Foundation
 /// funnel below are shaped to take them.
 final class NavigationEventBroker {
 
-    /// What was last handed downstream, for the dedup gate below.
+    /// What makes one screen different from another: the container it came from and its name.
     ///
-    /// Storing what was *emitted* is only equivalent to storing the event that triggered it for as
-    /// long as every emission's value is its own event's name. That stops holding once the
-    /// destination rules above arrive — a background restore emits a destination name while its
-    /// triggering event carries the container's name — so revisit this alongside them.
-    private struct Emission: Equatable {
+    /// Attributes are deliberately *not* part of this. They are metadata about a screen, not part of
+    /// what makes it a different one — a view re-rendering with a changed value (a product id, a
+    /// cart total) is not a navigation, and if identity included them it would record a transition
+    /// to the screen the user is already on.
+    private struct ScreenIdentity: Equatable {
         let name: String
         let componentId: ObjectIdentifier?
+    }
 
-        /// Carried so a restore can replay the screen's metadata, **not** compared.
-        ///
-        /// This tracks the most recent *declaration*, not the most recent emission: `emit` records
-        /// the attempt even when the dedup gate suppresses it. So a screen re-declared with fresher
+    /// An emission is its identity plus the payload that rode along with it.
+    ///
+    /// Two types rather than one with a hand-written `==` ignoring a stored property: that operator
+    /// would mean equal values are not interchangeable, and any later `Hashable` or `Set` use would
+    /// inherit it. Here `ScreenIdentity` gets synthesized equality and `Emission` has no operator to
+    /// misuse.
+    private struct Emission {
+        let identity: ScreenIdentity
+
+        /// Tracks the most recent *declaration*, not the most recent emission: `emit` records the
+        /// attempt even when the dedup gate suppresses it. So a screen re-declared with fresher
         /// values while the user stays on it restores with those fresher values, even though they
         /// never shipped a transition of their own. That is the intent — a restore says "the user is
         /// back on this screen", and the screen's current metadata describes it better than a stale
         /// copy from whenever it last passed the gate.
         let attributes: EmbraceAttributes
-
-        /// Identity is the `(container, screen)` pair only.
-        ///
-        /// Attributes are deliberately excluded: they are metadata about a screen, not part of what
-        /// makes it a different one. Including them would let a view re-rendering with a changed
-        /// attribute value (a product id, a cart total) pass the dedup gate below and record a
-        /// transition to the screen the user is already on.
-        static func == (lhs: Emission, rhs: Emission) -> Bool {
-            lhs.name == rhs.name && lhs.componentId == rhs.componentId
-        }
     }
 
     /// Containers that have started appearing but not yet finished. The value is what a resume
@@ -73,6 +71,12 @@ final class NavigationEventBroker {
     /// flight, which is what suppresses backdating.
     private var visibleScreens: [ObjectIdentifier: String] = [:]
 
+    /// What was last handed downstream, for the dedup gate below.
+    ///
+    /// Storing what was *emitted* is only equivalent to storing the event that triggered it for as
+    /// long as every emission's value is its own event's name. That stops holding once the
+    /// destination rules above arrive — a background restore emits a destination name while its
+    /// triggering event carries the container's name — so revisit this alongside them.
     private var lastEmission: Emission?
 
     /// What was on screen when the app backgrounded, so foregrounding can restore it.
@@ -116,8 +120,7 @@ final class NavigationEventBroker {
 
             visibleScreens[componentId] = event.name
             emit(
-                name: event.name,
-                componentId: componentId,
+                ScreenIdentity(name: event.name, componentId: componentId),
                 attributes: event.attributes,
                 at: loadTime(startTime, or: event.timestamp))
 
@@ -132,17 +135,20 @@ final class NavigationEventBroker {
             // And so does the restore point, for the same reason: a controller torn down while the
             // app is backgrounded would otherwise be re-emitted on foreground as though the user
             // were still on it, holding a stale address that a later controller can reuse.
-            if screenBeforeBackground?.componentId == componentId {
+            if screenBeforeBackground?.identity.componentId == componentId {
                 screenBeforeBackground = nil
             }
 
         case .backgrounded:
             // Captured before the emission below overwrites `lastEmission`. Guarding on a non-nil
             // component id keeps a second background from "restoring" the Backgrounded sentinel.
-            if let lastEmission, lastEmission.componentId != nil {
+            if let lastEmission, lastEmission.identity.componentId != nil {
                 screenBeforeBackground = lastEmission
             }
-            emit(name: Screen.backgrounded.name, componentId: nil, attributes: [:], at: event.timestamp)
+            emit(
+                ScreenIdentity(name: Screen.backgrounded.name, componentId: nil),
+                attributes: [:],
+                at: event.timestamp)
 
         case .foregrounded:
             // UIKit does not re-fire appearance callbacks for a controller that stayed the visible
@@ -153,11 +159,7 @@ final class NavigationEventBroker {
             screenBeforeBackground = nil
             // Replayed with the screen's metadata rather than stripped of it — see `Emission` for
             // which declaration that is when the screen was re-declared while the user stayed on it.
-            emit(
-                name: restored.name,
-                componentId: restored.componentId,
-                attributes: restored.attributes,
-                at: event.timestamp)
+            emit(restored.identity, attributes: restored.attributes, at: event.timestamp)
         }
     }
 
@@ -181,15 +183,13 @@ final class NavigationEventBroker {
     /// primitive downstream drops *value*-equal consecutive transitions and counts them, so moving
     /// between two different containers with the same name passes this gate and is dropped there.
     private func emit(
-        name: String,
-        componentId: ObjectIdentifier?,
+        _ identity: ScreenIdentity,
         attributes: EmbraceAttributes,
         at loadTime: Date
     ) {
-        let emission = Emission(name: name, componentId: componentId, attributes: attributes)
-        defer { lastEmission = emission }
+        defer { lastEmission = Emission(identity: identity, attributes: attributes) }
 
-        guard lastEmission != emission else { return }
-        onScreenLoad(loadTime, name, attributes)
+        guard lastEmission?.identity != identity else { return }
+        onScreenLoad(loadTime, identity.name, attributes)
     }
 }

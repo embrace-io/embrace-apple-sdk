@@ -48,7 +48,8 @@
         }
 
         override func tearDownWithError() throws {
-            ManualScreenRegistry.reporter = nil
+            // Releasing the service withdraws its registry publication, so nothing leaks into the
+            // next test — that is the registration token's job, not the test's.
             service = nil
             try super.tearDownWithError()
         }

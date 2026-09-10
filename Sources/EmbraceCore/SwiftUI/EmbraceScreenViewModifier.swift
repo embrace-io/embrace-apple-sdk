@@ -53,9 +53,16 @@ import SwiftUI
 ///   the screen — unless it supplies one through `EmbraceViewControllerCustomization`.
 ///
 /// - Parameters:
-///   - name: The screen's name, recorded verbatim.
-///   - attributes: Optional metadata recorded on this screen's transition. Keys in the reserved
+///   - name: The screen's name, recorded verbatim. A blank name, or one the SDK reserves for its
+///     own use, is ignored with a warning.
+///   - attributes: Optional metadata recorded on this screen's transition. Values must be strings,
+///     and the same count and length limits apply as to attributes anywhere else in the SDK — past
+///     the count limit, the ones kept are chosen in sorted key order. Keys in the reserved
 ///     `emb.state.*` namespace are ignored.
+///
+///     Recorded once, when the screen appears. Re-declaring the same screen with changed values
+///     does not record them again — that is not a navigation — so avoid values that track live data
+///     and expect them to update.
 /// - Returns: The view, marked as a screen.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension View {

@@ -24,10 +24,17 @@
         /// Stands in for the `@State` token the SwiftUI modifier holds.
         private final class Token {}
 
+        /// Every service these tests start, so teardown can stop them.
+        ///
+        /// `IntegrationTestCase` clears `Embrace.client` but does not stop capture services, and a
+        /// service that is still running is still published to `ManualScreenRegistry` — a
+        /// process-global. Without this, whether the next test sees a stale reporter depends on when
+        /// ARC happens to release the previous SDK instance.
+        private var startedServices: [ViewCaptureService] = []
+
         override func tearDownWithError() throws {
-            // Process-global, and the modifier reads it with no other setup — so a value left behind
-            // here would make an unrelated test look like it had a live timeline.
-            ManualScreenRegistry.reporter = nil
+            startedServices.forEach { $0.stop() }
+            startedServices = []
             try super.tearDownWithError()
         }
 
@@ -51,6 +58,7 @@
                     runtimeConfiguration: config
                 )
             ).start()
+            startedServices.append(service)
             return service
         }
 
@@ -126,6 +134,19 @@
             // `StateCaptureCoordinator` has no `unregister`, so a second tracker would mean a second
             // recorder and two `emb-state-screen-automatic` spans in every subsequent part.
             XCTAssertTrue(first === service.navigationTracker)
+        }
+
+        /// A restart must re-publish. `onStop` withdraws, and the tracker is deliberately *not*
+        /// rebuilt, so without re-publishing the service would keep recording UIKit screens while
+        /// every SwiftUI one silently vanished.
+        func testRestartingTheServiceRepublishesTheRegistry() throws {
+            let service = try startSDK(with: config(state: true, screen: true))
+
+            service.stop()
+            XCTAssertNil(ManualScreenRegistry.reporter, "a stopped service must not stay published")
+
+            service.start()
+            XCTAssertTrue(ManualScreenRegistry.reporter === service)
         }
 
         // MARK: - The SwiftUI modifier's route into the SDK

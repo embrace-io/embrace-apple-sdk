@@ -389,6 +389,90 @@
             XCTAssertTrue(recordedScreens.isEmpty)
         }
 
+        func testAScreenDeclaredWithABlankNameIsRefused() {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: "   ", at: 0)
+            declareAppearance(tracker, Token(), name: "", at: 1)
+
+            XCTAssertTrue(recordedScreens.isEmpty)
+        }
+
+        // MARK: - Bounding caller attributes
+
+        /// State spans skip the sanitizer (that exemption is what lets a part record far more than
+        /// the customer event limit), so the bound has to be applied deliberately — otherwise the
+        /// first public API to accept caller attributes ships them unbounded.
+        func testCallerAttributesAreCappedInCount() throws {
+            let tracker = makeTracker()
+
+            var attributes: EmbraceAttributes = [:]
+            for i in 0..<40 {
+                attributes[String(format: "key-%02d", i)] = "v"
+            }
+            declareAppearance(tracker, Token(), name: "Busy", attributes: attributes, at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            let callerKeys = event.attributes.keys.filter { $0.hasPrefix("key-") }
+            XCTAssertEqual(callerKeys.count, 10)
+        }
+
+        func testCallerAttributeValuesAreTruncated() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(
+                tracker, Token(), name: "Long",
+                attributes: ["blob": String(repeating: "x", count: 5_000)], at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertEqual(event.attributes["blob"]?.description.count, 1_024)
+        }
+
+        func testCallerAttributeKeysAreTruncated() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(
+                tracker, Token(), name: "LongKey",
+                attributes: [String(repeating: "k", count: 500): "v"], at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertTrue(event.attributes.keys.contains(String(repeating: "k", count: 128)))
+        }
+
+        /// Matches every other public attribute API in the SDK, which drops non-`String` values in
+        /// `DefaultOtelSignalsSanitizer.sanitizeAttributes`. `EmbraceAttributeValue` admits
+        /// `Int`/`Bool`/`Double` and the payload would serialize them, so this is arguably wrong —
+        /// but it is wrong *consistently*, and diverging here would mean the same call recorded on a
+        /// breadcrumb and on a screen behaved differently. Fix it in the sanitizer or not at all.
+        func testNonStringAttributeValuesAreDropped() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(
+                tracker, Token(), name: "Cart",
+                attributes: ["items": 3, "flag": true, "sku": "abc"], at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertNil(event.attributes["items"])
+            XCTAssertNil(event.attributes["flag"])
+            XCTAssertEqual(event.attributes["sku"]?.description, "abc", "strings still get through")
+        }
+
+        /// The framework's own keys must never be squeezed out by the caller's cap.
+        func testTheContractKeysSurviveAFullCallerBudget() throws {
+            let tracker = makeTracker()
+
+            var attributes: EmbraceAttributes = [:]
+            for i in 0..<40 {
+                attributes["aaa-\(i)"] = "v"
+            }
+            declareAppearance(tracker, Token(), name: "Busy", attributes: attributes, at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertEqual(
+                event.attributes[SpanSemantics.State.keyNewValue]?.description, "Busy",
+                "emb.state.new_value must not compete with caller attributes for the budget")
+        }
+
     }
 
 #endif
