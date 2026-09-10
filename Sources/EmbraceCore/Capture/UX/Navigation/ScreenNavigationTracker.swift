@@ -62,7 +62,10 @@
 
         func onAppearance(_ vc: UIViewController, phase: ScreenAppearancePhase, at time: Date) {
             let componentId = ObjectIdentifier(vc)
-            let name = vc.emb_viewName
+            // Normalized here too, not only on the declared path: `emb_viewName` prefers
+            // `nameForViewControllerInEmbrace`, which is public API and just as unbounded as a
+            // string passed to `.embraceScreen`. A class name is unaffected.
+            let name = Self.normalized(vc.emb_viewName)
 
             switch phase {
             case .willAppear:
@@ -116,6 +119,30 @@
         /// controller presented inside SwiftUI has a real class name of its own; only the host is
         /// anonymous. Note the block list still gets the first say, so under the default config
         /// (hosts blocked) none of this is reached.
+        /// Trims and truncates a screen name before it becomes part of the timeline.
+        ///
+        /// A screen name is the one caller-supplied string that nothing downstream bounds. It is
+        /// written as an attribute *value* — `emb.state.new_value` on the transition,
+        /// `emb.state.initial_value` on the span, and `emb.state.<name>` stamped on every log — and
+        /// all of those live on internal spans, which skip sanitization entirely. So an unbounded
+        /// name is not one oversized field: it is one per log for the rest of the session.
+        ///
+        /// Trimming matters as much as the length cap, and for a different reason. Equality
+        /// downstream is by name, so `"Home"` and `"Home\n"` are two screens: the timeline shows a
+        /// navigation the user never made, which is exactly the failure the modifier's own
+        /// documentation warns against.
+        ///
+        /// Uses the SDK's own name treatment rather than the attribute-value one. A screen name is
+        /// conceptually a name, the event-name budget is the right order of magnitude for one, and
+        /// treating it as a 1024-character value would leave it far too large for something copied
+        /// onto every log.
+        private static func normalized(_ name: String) -> String {
+            sanitizer.sanitizeName(name, lengthLimit: sessionLimits.events.nameLength)
+        }
+
+        private static let sanitizer = DefaultOtelSignalsSanitizer()
+        private static let sessionLimits = SessionLimits()
+
         private static func isAnonymousHostingController(_ vc: UIViewController) -> Bool {
             guard vc is EmbraceIdentifiableHostingController else {
                 return false
@@ -157,12 +184,14 @@
             attributes: EmbraceAttributes,
             at time: Date
         ) {
-            // Both guards report rather than dropping silently: unlike the feature being switched
-            // off, these are mistakes the developer can fix.
+            // Normalized before anything looks at it, so the checks below and the value that ships
+            // are the same string. Checking the raw name would let `" Backgrounded "` past the
+            // sentinel guard and still collide downstream, where equality is by name.
+            let name = Self.normalized(name)
 
             // A blank name is indistinguishable from an absent one downstream, and still spends one
             // of the part's transitions.
-            guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            guard !name.isEmpty else {
                 Embrace.logger.warning(
                     "Screen tracking: a screen was declared with a blank name and was ignored.")
                 return

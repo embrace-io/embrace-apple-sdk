@@ -473,6 +473,51 @@
                 "emb.state.new_value must not compete with caller attributes for the budget")
         }
 
+        // MARK: - Bounding the screen name
+
+        /// The name is the one caller string nothing downstream bounds — it ships as an attribute
+        /// value on internal spans, which skip sanitization, and is copied onto every log.
+        func testALongScreenNameIsTruncated() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: String(repeating: "N", count: 5_000), at: 0)
+
+            XCTAssertEqual(recordedScreens.first?.count, 128)
+        }
+
+        /// Equality downstream is by name, so an untrimmed name invents navigations the user never
+        /// made — the exact failure the public doc warns about.
+        func testNamesDifferingOnlyByWhitespaceAreOneScreen() {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: "Home", at: 0)
+            declareAppearance(tracker, Token(), name: "Home\n", at: 1)
+            declareAppearance(tracker, Token(), name: "  Home  ", at: 2)
+
+            XCTAssertEqual(recordedScreens, ["Home"], "one screen, not three")
+        }
+
+        /// Normalization runs before the sentinel check, or padding walks straight past it.
+        func testAPaddedReservedNameIsStillRefused() {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: "  Backgrounded  ", at: 0)
+
+            XCTAssertTrue(recordedScreens.isEmpty)
+        }
+
+        /// The automatic path is exposed to the same unbounded input through the public
+        /// `EmbraceViewControllerCustomization`, so it gets the same treatment.
+        func testACustomViewControllerNameIsAlsoNormalized() {
+            let tracker = makeTracker()
+            let vc = NamedViewController()
+            vc.nameForViewControllerInEmbrace = "  Checkout\n"
+
+            appear(tracker, vc, startedAt: 0, resumedAt: 1)
+
+            XCTAssertEqual(recordedScreens, ["Checkout"])
+        }
+
     }
 
 #endif

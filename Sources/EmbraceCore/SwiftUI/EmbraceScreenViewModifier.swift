@@ -39,7 +39,7 @@ import SwiftUI
 /// ```
 ///
 /// **Best Practices:**
-///  - Use stable names. The name is recorded verbatim, so a name built from changing data produces
+///  - Use stable names. Screens are told apart by name, so a name built from changing data produces
 ///    a timeline of screens that look distinct but are not.
 ///  - Never put PII in the name or the attributes.
 ///  - Mark screens, not components. A modifier on a row or a button records a "screen" the user
@@ -53,8 +53,8 @@ import SwiftUI
 ///   the screen — unless it supplies one through `EmbraceViewControllerCustomization`.
 ///
 /// - Parameters:
-///   - name: The screen's name, recorded verbatim. A blank name, or one the SDK reserves for its
-///     own use, is ignored with a warning.
+///   - name: The screen's name. Surrounding whitespace is trimmed and long names are truncated; a
+///     name that is blank once trimmed, or one the SDK reserves for its own use, is ignored.
 ///   - attributes: Optional metadata recorded on this screen's transition. Values must be strings,
 ///     and the same count and length limits apply as to attributes anywhere else in the SDK — past
 ///     the count limit, the ones kept are chosen in sorted key order. Keys in the reserved
