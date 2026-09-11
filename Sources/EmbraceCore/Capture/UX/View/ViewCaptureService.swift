@@ -90,6 +90,32 @@
             return blockList.safeValue.isBlocked(viewController: vc)
         }
 
+        /// Owns the screen-navigation timeline when enabled, `nil` when not.
+        ///
+        /// Hosted here because this service already owns the appearance instrumentation the timeline
+        /// is built from, so there is no second swizzler or block list. `nil` means events are never
+        /// constructed at all, rather than built and discarded.
+        internal var navigationTracker: ScreenNavigationTracker?
+
+        /// Feeds the screen-navigation timeline from a raw appearance callback.
+        ///
+        /// Called straight from the swizzle on the callback's own thread, so the broker stays on the
+        /// main queue and load times keep the OS timestamp.
+        ///
+        /// Checks `serviceState` itself: the tap runs above the only upstream check, so without this
+        /// a stopped SDK would keep feeding the timeline.
+        fileprivate func onViewControllerAppearance(
+            _ vc: UIViewController,
+            phase: ScreenAppearancePhase,
+            at time: Date
+        ) {
+            guard serviceState == .active else {
+                return
+            }
+
+            navigationTracker?.onAppearance(vc, phase: phase, at: time)
+        }
+
         func onViewBecameInteractive(_ vc: UIViewController) {
             handler.onViewBecameInteractive(vc)
         }
@@ -122,6 +148,86 @@
             if instrumentVisibility {
                 instrumentViewDidDisappear(of: UIViewController.self)
             }
+        }
+
+        override public func onStart() {
+            lock.lock()
+            defer {
+                lock.unlock()
+            }
+
+            startScreenNavigationTrackingIfEnabled()
+        }
+
+        /// Whether the screen-navigation timeline should run. Split from the wiring below so the
+        /// combination is testable without an SDK instance.
+        ///
+        /// ``instrumentVisibility`` is required mechanically, not philosophically: it alone installs
+        /// the `viewDidDisappear` swizzle, and without those pause events screens are never removed
+        /// from the visible set — backdating stops from the second screen on, giving a timeline that
+        /// looks complete and is systematically late. It is also sufficient, since it installs all
+        /// three appearance swizzles and the taps sit above their span bookkeeping.
+        static func shouldTrackScreenNavigation(
+            instrumentVisibility: Bool,
+            config: EmbraceConfigurable?
+        ) -> Bool {
+            guard let config else {
+                return false
+            }
+
+            return instrumentVisibility
+                && config.isStateCaptureEnabled
+                && config.isScreenTrackingEnabled
+        }
+
+        /// Evaluates the gate at start, never on a config refresh.
+        ///
+        /// ``StateCaptureCoordinator`` has no `unregister`, so a recorder added later would start
+        /// its timeline mid-part with an `initial_value` for a screen the user had already left, and
+        /// a gate turning *off* could not be honoured until relaunch anyway. Config is read from
+        /// cache during setup, so this only costs the first launch after install.
+        private func startScreenNavigationTrackingIfEnabled() {
+            guard navigationTracker == nil,
+                let client = Embrace.client,
+                Self.shouldTrackScreenNavigation(
+                    instrumentVisibility: instrumentVisibility,
+                    config: client.config.configurable
+                )
+            else {
+                return
+            }
+
+            let reporter = ScreenStateReporter(otel: otel)
+
+            let tracker = ScreenNavigationTracker(reporter: reporter) { [weak self] vc in
+                // No service means no block list to consult; treat that as blocked rather than
+                // capturing screens this service would have excluded.
+                self?.isViewControllerBlocked(vc) ?? true
+            }
+            navigationTracker = tracker
+
+            client.stateCoordinator.register(
+                reporter.recorder,
+                sessionSpan: client.sessionController.currentSessionSpan
+            )
+
+            // Routed through this service rather than handing the lifecycle the tracker directly,
+            // so app-state transitions get the same `serviceState` check as appearance callbacks.
+            // Held weakly by the lifecycle; this service owns the tracker's lifetime.
+            client.sessionLifecycle.setAppStateObserver(self)
+        }
+    }
+
+    extension ViewCaptureService: AppStateObserver {
+
+        func appWillBackground(at time: Date) {
+            guard serviceState == .active else { return }
+            navigationTracker?.appWillBackground(at: time)
+        }
+
+        func appDidForeground(at time: Date) {
+            guard serviceState == .active else { return }
+            navigationTracker?.appDidForeground(at: time)
         }
     }
 
@@ -170,6 +276,8 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
+                        self.onViewControllerAppearance(viewController, phase: .willAppear, at: Date())
+
                         // If by this time (`viewWillAppear` being called) there's no `emb_instrumentation_state` associated
                         // to the viewController, then we don't swizzle as the "instrument render" feature might be disabled.
                         if let state = viewController.emb_instrumentation_state {
@@ -210,6 +318,9 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
+                        // See `instrumentViewWillAppear`: above the span-creation latch on purpose.
+                        self.onViewControllerAppearance(viewController, phase: .didAppear, at: Date())
+
                         // If the state was already fulfilled, then call the original implementation.
                         if let state = viewController.emb_instrumentation_state, state.viewDidAppearSpanCreated {
                             originalImplementation(viewController, selector, animated)
@@ -243,6 +354,7 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
+                        self.onViewControllerAppearance(viewController, phase: .didDisappear, at: Date())
                         self.handler.onViewDidDisappear(viewController)
                         originalImplementation(viewController, selector, animated)
                     }

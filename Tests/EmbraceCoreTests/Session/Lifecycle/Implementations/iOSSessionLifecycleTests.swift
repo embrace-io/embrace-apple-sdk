@@ -10,6 +10,31 @@ import XCTest
 
 #if os(iOS) || os(tvOS)
 
+    /// Records whether the session controller had already been driven at the moment it was notified.
+    ///
+    /// The ordering is the whole reason `AppStateObserver` exists: a state that must record into the
+    /// *outgoing* session part has to hear about backgrounding before that part is closed, and a
+    /// state that belongs to the *incoming* part has to hear about foregrounding after it starts.
+    private final class SpyAppStateObserver: AppStateObserver {
+
+        private let controller: MockSessionController
+
+        private(set) var backgroundCalls: [(sessionEnded: Bool, sessionStarted: Bool)] = []
+        private(set) var foregroundCalls: [(sessionEnded: Bool, sessionStarted: Bool)] = []
+
+        init(controller: MockSessionController) {
+            self.controller = controller
+        }
+
+        func appWillBackground(at time: Date) {
+            backgroundCalls.append((controller.didCallEndSession, controller.didCallStartSession))
+        }
+
+        func appDidForeground(at time: Date) {
+            foregroundCalls.append((controller.didCallEndSession, controller.didCallStartSession))
+        }
+    }
+
     final class iOSSessionLifecycleTests: XCTestCase {
 
         var mockController = MockSessionController()
@@ -22,6 +47,58 @@ import XCTest
 
         override func tearDownWithError() throws {
             lifecycle = nil
+        }
+
+        // MARK: - AppStateObserver ordering
+
+        func test_appWillBackground_isNotifiedBeforeTheSessionIsTouched() {
+            let spy = SpyAppStateObserver(controller: mockController)
+            lifecycle.setAppStateObserver(spy)
+
+            lifecycle.appDidEnterBackground()
+
+            // The outgoing part must still be open. If this call moved below the controller work,
+            // the "Backgrounded" transition would land after its state span closed and be counted
+            // as having happened outside a session.
+            XCTAssertEqual(spy.backgroundCalls.count, 1)
+            XCTAssertFalse(spy.backgroundCalls[0].sessionStarted)
+            XCTAssertFalse(spy.backgroundCalls[0].sessionEnded)
+        }
+
+        func test_appDidForeground_isNotifiedAfterTheSessionIsStarted() {
+            mockController.currentSession = nil
+            let spy = SpyAppStateObserver(controller: mockController)
+            lifecycle.setAppStateObserver(spy)
+
+            lifecycle.appDidBecomeActive()
+
+            // The incoming part must already exist, so whatever this records belongs to it.
+            XCTAssertEqual(spy.foregroundCalls.count, 1)
+            XCTAssertTrue(spy.foregroundCalls[0].sessionStarted)
+        }
+
+        func test_appDidForeground_isNotifiedEvenWhenNoSessionWorkHappens() {
+            // The `defer` exists for this: an already-foreground app, a cold start inside the launch
+            // grace period, and a nil/inactive controller are all still foregrounds the observer
+            // needs to hear about. A trailing call would silently skip every one of them.
+            let controllerless = iOSSessionLifecycle(controller: MockSessionController())
+            controllerless.stop()
+            let spy = SpyAppStateObserver(controller: mockController)
+            controllerless.setAppStateObserver(spy)
+
+            controllerless.appDidBecomeActive()
+
+            XCTAssertEqual(spy.foregroundCalls.count, 1)
+        }
+
+        func test_appStateObserver_isHeldWeakly() {
+            var spy: SpyAppStateObserver? = SpyAppStateObserver(controller: mockController)
+            lifecycle.setAppStateObserver(spy)
+            spy = nil
+
+            // The registrant owns the observer's lifetime; the lifecycle must not keep it alive.
+            // Reaching here without a crash and with nothing recorded is the assertion.
+            lifecycle.appDidEnterBackground()
         }
 
         // MARK: startSession
