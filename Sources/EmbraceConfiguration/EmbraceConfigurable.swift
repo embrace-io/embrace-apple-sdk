@@ -83,12 +83,10 @@ public protocol EmbraceConfigurable: AnyObject {
 
     /// Whether state spans are captured at all — the global gate for the state subsystem.
     ///
-    /// Combined with ``isScreenTrackingEnabled`` using AND: if either is off, no screen state is
-    /// recorded. Defaults to `false` so the feature stays dark until it is deliberately rolled out.
+    /// AND-ed with ``isScreenTrackingEnabled``: if either is off, no screen state is recorded.
     var isStateCaptureEnabled: Bool { get }
 
-    /// Whether the screen/navigation state is captured, gated separately from the state subsystem
-    /// as a whole. See ``isStateCaptureEnabled`` for how the two combine.
+    /// Whether the screen state is captured, gated separately from the subsystem as a whole.
     var isScreenTrackingEnabled: Bool { get }
 
     /// Tell the configurable implementation it should update if possible.
@@ -100,9 +98,9 @@ public protocol EmbraceConfigurable: AnyObject {
 }
 
 extension EmbraceConfigurable {
-    /// Default implementations keep these additions from being a source-breaking change for external
-    /// conformers of this public protocol. `RemoteConfig` overrides both; the requirements stay
-    /// declared in the protocol body above so dispatch remains dynamic and its overrides win.
+    /// Defaults so adding these is not source-breaking for external conformers. The requirements
+    /// stay declared in the protocol body: moving them here would make dispatch static and silently
+    /// ignore `RemoteConfig`'s overrides.
     public var isStateCaptureEnabled: Bool { false }
     public var isScreenTrackingEnabled: Bool { false }
 }

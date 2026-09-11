@@ -49,49 +49,34 @@ private struct PendingTransition {
     let flushed: UnrecordedTransitions
 }
 
-/// Records the history of one named, continuously-valued signal.
-///
-/// This is the reusable primitive behind every state: it owns the current value, the span currently
-/// recording it, and the counts of changes that were not recorded. The screen state is its first
-/// consumer; network and power states could be migrated onto it later without changing this type.
+/// Records the history of one named, continuously-valued signal: the current value, the span
+/// recording it, and the counts of changes that were not recorded.
 ///
 /// ## Guarantees
-/// - **Value retention.** ``currentValue`` is updated before any decision to drop a change, so the
-///   next span's `emb.state.initial_value` is right even when the change itself never became an event.
+/// - **Value retention.** ``currentValue`` updates before any decision to drop a change, so the next
+///   span's `initial_value` is right even when the change never became an event.
 /// - **Lossless counting.** Dropped changes are counted and flushed onto the next recorded event, or
-///   onto the span at close. If a write fails, the counts are put back rather than discarded.
+///   onto the span at close. A failed write puts its counts back.
 /// - **Duplicate suppression.** Two equal consecutive values never produce two events.
 ///
 /// ## Threading
-/// All accounting happens under a single lock, so concurrent calls can neither lose counts nor open
-/// two spans. Nothing that can **re-enter this type** is called while that lock is held — span
-/// creation, `addEvent`, `setAttribute`, `end`, link writes and every log call happen after it is
-/// released. Each method decides under the lock, performs its writes after releasing it, and
-/// re-acquires to install a token or reconcile a failure.
+/// Every method decides under the lock, performs its span writes after releasing it, then
+/// re-acquires to install a token or reconcile a failure. Nothing that can re-enter this type runs
+/// while the lock is held.
 ///
-/// The re-entrancy that forces this is not the exporter chain — customer exporters are dispatched
-/// to a queue by `EmbraceSpanProcessor` and never run on the calling thread. It is the SDK's own
-/// logging:
+/// What forces that is the SDK's own logging, not the exporter chain: a log call reaches
+/// `StateCaptureCoordinator.logAttributes` and back into this lock, which is non-reentrant and so
+/// **traps** rather than deadlocking. This type logs from several failure branches, which is why
+/// each sits outside the `withLock` that detected it.
 ///
-///     Embrace.logger.error(…) → BaseInternalLogger.sendOTelLog → internalLog
-///       → LogController.createLog → EmbraceLogAttributesBuilder.addCurrentStates
-///       → StateCaptureCoordinator.logAttributes → currentStateDescription → this lock
+/// The one exception is the `part.endTime` read in the install step — a plain property read taking
+/// only the span's own mutex. It is the line to be careful around: a span call or a log added beside
+/// it reintroduces the hazard.
 ///
-/// `EmbraceMutex` wraps a non-reentrant `os_unfair_lock`, so that path **traps** rather than
-/// deadlocking. This type logs from several failure branches, which is why each one sits outside
-/// the lock rather than inside the `withLock` closure that detected the failure.
+/// Because writes happen outside the lock, concurrent transitions can write the same span, so
+/// `EmbraceSpan` conformances must be thread-safe — test doubles included.
 ///
-/// The one exception is the `part.endTime` read in the install step, which touches the span while
-/// this lock is held. It is a plain property read that takes only the span's own mutex and invokes
-/// no callbacks — but it is the line to be careful around, because a span call or a log added
-/// beside it would reintroduce exactly the hazard above.
-///
-/// A consequence worth naming: because the writes happen outside this lock, concurrent transitions
-/// can write to the same span at once, so this relies on `EmbraceSpan` conformances being
-/// thread-safe. `DefaultEmbraceSpan` is — it guards its events, links and attributes with its own
-/// mutex — and any test double must be too.
-///
-/// Callers supply the observation time themselves so dispatch latency never skews event timestamps.
+/// Callers supply the observation time so dispatch latency never skews event timestamps.
 final class StateRecorder<Value: StateValue>: StateRecording {
 
     let stateName: String
