@@ -11,10 +11,8 @@ import Foundation
 
 /// What the public SwiftUI modifier needs from the navigation pipeline, and nothing else.
 ///
-/// The modifier is compiled on every platform, while the type that implements this is UIKit-only.
-/// Talking through a protocol is what lets the two stay apart: the modifier never imports UIKit,
-/// never learns which capture service owns the timeline, and does not change if that ownership
-/// moves — which it will, if the feature is ever extended to platforms with no view controllers.
+/// The modifier compiles on every platform; the type implementing this is UIKit-only. The protocol
+/// is what lets the two stay apart.
 protocol ManualScreenReporting: AnyObject {
 
     /// A declared screen became visible. `id` identifies the *view instance*, so two views showing
@@ -26,15 +24,11 @@ protocol ManualScreenReporting: AnyObject {
         at time: Date
     )
 
-    /// A declared screen stopped being visible.
     func onManualScreenDisappear(id: ObjectIdentifier, name: String, at time: Date)
 }
 
-/// Where ``EmbraceScreenModifier`` finds the live reporter.
-///
-/// A lookup rather than an injected dependency: the modifier is constructed by the host app in its
-/// own view tree, and the type implementing the protocol is UIKit-only, so a modifier that compiles
-/// on every platform cannot name it.
+/// Where ``EmbraceScreenModifier`` finds the live reporter. A lookup because a view modifier is
+/// constructed by the host app, with no route to the SDK's object graph.
 ///
 /// Empty means no live reporter — the case whenever the gate has not passed — which is what makes
 /// the modifier a silent no-op there rather than something needing a gate check of its own.
@@ -42,10 +36,8 @@ enum ManualScreenRegistry {
 
     /// Proof that a reporter is published, and the thing that un-publishes it.
     ///
-    /// Publishing returns one of these rather than assigning a static so that ownership decides who
-    /// is published. Without it the registry can be left pointing at a service that has been
-    /// replaced, and "never published" and "published then orphaned" look identical at the point of
-    /// use.
+    /// Without it the registry can be left pointing at a service that has since been replaced, and
+    /// "never published" and "published then orphaned" look identical at the point of use.
     final class Registration {
         fileprivate init() {}
 

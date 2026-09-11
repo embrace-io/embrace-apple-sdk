@@ -11,9 +11,8 @@ import SwiftUI
 
 /// Marks a SwiftUI view as a screen in the user's navigation timeline.
 ///
-/// UIKit screens are detected automatically, but SwiftUI has no reliable equivalent — a `View` is a
-/// value that the framework re-creates freely, and nothing in it says "this is a screen". Applying
-/// this modifier is how you say so.
+/// UIKit screens are detected automatically; SwiftUI has no reliable equivalent, so this is how you
+/// say a view is a screen.
 ///
 /// The screen is recorded when the view appears. Nothing is recorded when it disappears: the next
 /// screen's appearance is what ends this one, the same way it works for automatically detected
@@ -49,8 +48,8 @@ import SwiftUI
 ///   platforms where the feature does not run. It is always safe to leave in place.
 ///
 /// - Note: This is the only way a SwiftUI screen is named. The `UIHostingController` presenting it
-///   is never recorded as a screen on its own — its class name describes the view tree rather than
-///   the screen — unless it supplies one through `EmbraceViewControllerCustomization`.
+///   is not recorded as a screen on its own, unless it names itself through
+///   `EmbraceViewControllerCustomization`.
 ///
 /// - Parameters:
 ///   - name: The screen's name. Surrounding whitespace is trimmed and long names are truncated; a
@@ -71,12 +70,11 @@ extension View {
     }
 }
 
-/// Identity for one appearance of a declared screen.
+/// Identity for one declared screen's view lifetime.
 ///
-/// The navigation pipeline identifies screens by object identity, which a SwiftUI `View` cannot
-/// supply — it is a struct, re-created on every evaluation. Holding a reference type in `@State`
-/// borrows SwiftUI's own notion of view identity: one instance per view lifetime, stable across
-/// re-evaluations, and a new one when SwiftUI considers the view genuinely new.
+/// Empty on purpose. The pipeline keys screens by object identity, which a `View` cannot supply —
+/// it is a struct, re-created on every evaluation. Held in `@State`, this borrows SwiftUI's own
+/// notion of view identity instead.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 final class ScreenIdentityToken {}
 
@@ -99,10 +97,9 @@ struct EmbraceScreenModifier: ViewModifier {
                 )
             }
             .onDisappear {
-                // Reported even though it records nothing, because the pipeline tracks which screens
-                // are currently visible. A screen that never reports going away stays counted as
-                // visible forever, which stops later screens from having their load time attributed
-                // to when the user started navigating.
+                // Records nothing, but the pipeline tracks which screens are visible: one that
+                // never reports going away stays counted forever, and later screens silently stop
+                // having their load times backdated.
                 ManualScreenRegistry.reporter?.onManualScreenDisappear(
                     id: ObjectIdentifier(token),
                     name: name,

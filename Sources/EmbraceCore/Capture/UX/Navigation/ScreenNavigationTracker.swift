@@ -115,16 +115,13 @@
         /// would put such names in the timeline the moment it was turned on. SwiftUI screens are
         /// named with the `.embraceScreen` modifier.
         ///
-        /// Naming it is an unconditional opt-in: a host that supplies
-        /// `nameForViewControllerInEmbrace` is never anonymous, whatever it chose to call itself.
-        /// The generic test would otherwise be applied to the developer's own string and reject
-        /// `"Cart <checkout v2>"` — a deliberate name — for containing a character it never meant
-        /// anything by.
+        /// Naming it is an unconditional opt-in — otherwise the generic test would run against the
+        /// developer's own string and reject `"Cart <checkout v2>"` for a character they meant
+        /// nothing by.
         ///
         /// Failing that, the test is on the *class* name, since that is what produces the soup.
-        /// `CheckoutHostingController` names itself perfectly well and is kept; a generic subclass
-        /// like `ScreenHost<CheckoutView>` is not, and its escape hatch is the customization
-        /// protocol above.
+        /// `CheckoutHostingController` is kept; a generic subclass like `ScreenHost<CheckoutView>`
+        /// is not, and its way in is the customization protocol.
         ///
         /// Deliberately does not walk up to parents the way the block list does. A child view
         /// controller presented inside SwiftUI has a real class name of its own; only the host is
