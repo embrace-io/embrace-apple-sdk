@@ -597,6 +597,24 @@
                 "the real background/foreground cycle must survive a colliding screen name")
         }
 
+        /// The public doc promises that past the count limit the survivors are "chosen in sorted key
+        /// order". Asserting only how many survive leaves that promise unpinned — the same call
+        /// could ship a different subset run to run and nothing would notice.
+        func testWhichAttributesSurviveTheCapIsSortedByKey() throws {
+            let tracker = makeTracker()
+
+            var attributes: EmbraceAttributes = [:]
+            for i in 0..<20 {
+                attributes[String(format: "k%02d", i)] = "v"
+            }
+            declareAppearance(tracker, Token(), name: "Busy", attributes: attributes, at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            let survivors = event.attributes.keys.filter { $0.hasPrefix("k") }.sorted()
+
+            XCTAssertEqual(survivors, (0..<10).map { String(format: "k%02d", $0) })
+        }
+
     }
 
 #endif
