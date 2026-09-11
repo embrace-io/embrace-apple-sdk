@@ -10,9 +10,8 @@ import Foundation
 
 /// Why a transition was or was not written to the span.
 ///
-/// The two failure cases are distinguished because they mean different things on the wire: a closed
-/// span means the change happened outside a recording part, whereas a dropped event means the
-/// instrumentation itself discarded it.
+/// The two failure cases are kept apart because they mean different things on the wire: a closed
+/// span means the change happened outside a part, a dropped event means we discarded it.
 enum StateTransitionOutcome {
 
     /// The `transition` event was written.
@@ -26,12 +25,10 @@ enum StateTransitionOutcome {
 }
 
 /// One state's recording within one session part: the handle to the open `emb-state-<name>` span.
+/// Created when a part starts, discarded when it ends, never reused across parts.
 ///
-/// A token is created when a session part starts and discarded when it ends; it is never reused
-/// across parts.
-///
-/// The token performs span I/O and is deliberately called **outside** ``StateRecorder``'s lock, so
-/// it owns no mutable accounting of its own — the recorder decides what to write and passes it in.
+/// Performs its span I/O **outside** ``StateRecorder``'s lock, so it owns no mutable accounting —
+/// the recorder decides what to write and passes it in.
 final class StateSpanToken {
 
     let span: EmbraceSpan
@@ -64,16 +61,15 @@ final class StateSpanToken {
             return .spanEnded
         }
 
-        // Strip the reserved namespace from caller attributes rather than just letting the keys we
-        // write overwrite them: the counter keys are omitted when their count is zero, so merging
+        // Stripped rather than overwritten: the counter keys are omitted when zero, so merging
         // alone would let a forged `emb.state.not_in_session` through on any event without counts.
         var eventAttributes = attributes.filter { !SpanSemantics.State.isReserved($0.key) }
         eventAttributes.merge(flushed.attributes) { _, builtIn in builtIn }
         eventAttributes[SpanSemantics.State.keyNewValue] = value
 
-        // State spans are created internal, so the event bypasses the customer-facing per-span
-        // event limit (see `StateRecorderLimitsTests`). The nil check guards the general
-        // `EmbraceSpan` contract, which permits a conformance to drop the event.
+        // Internal spans bypass the customer-facing per-span event limit (see
+        // `StateRecorderLimitsTests`). The nil check covers the `EmbraceSpan` contract, which
+        // permits a conformance to drop the event.
         guard
             span.addEvent(
                 name: SpanSemantics.State.transitionEventName,
