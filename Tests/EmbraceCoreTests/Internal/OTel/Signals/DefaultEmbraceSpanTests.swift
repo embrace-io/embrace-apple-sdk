@@ -242,6 +242,81 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(handler.onSpanLinkAddedCallCount, 1)
     }
 
+    func test_addInternalLink_bypassesTheLimitAndIsCountedSeparately() throws {
+        // given a span whose customer link budget is exhausted
+        let span = testSpan
+        handler.createLinkError = EmbraceOTelError.spanLinkLimitReached("test")
+
+        XCTAssertNil(
+            span.addLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId),
+            "precondition: a customer link must be rejected here")
+
+        // when the SDK adds one of its own
+        let result = span.addInternalLink(
+            spanId: TestConstants.spanId,
+            traceId: TestConstants.traceId,
+            attributes: ["key": "value"]
+        )
+
+        // then it lands anyway, without consulting the limiter
+        let link = try XCTUnwrap(result)
+        XCTAssertEqual(link.context.spanId, TestConstants.spanId)
+        XCTAssertEqual(span.links.last?.attributes["key"] as! String, "value")
+
+        // and it is tracked apart from the customer budget, so it never consumes it
+        XCTAssertEqual(span.state.safeValue.internalLinkCount, 1)
+        XCTAssertEqual(handler.onSpanLinkAddedCallCount, 1)
+    }
+
+    func test_addInternalLink_returnsNilWithoutAHandler() throws {
+        // given a span with no handler — nothing can persist a link through it
+        let span = DefaultEmbraceSpan(
+            context: EmbraceSpanContext(spanId: TestConstants.spanId, traceId: TestConstants.traceId),
+            parentSpanId: nil,
+            name: "name",
+            type: .performance,
+            status: .unset,
+            startTime: Date(timeIntervalSince1970: 1),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:],
+            internalAttributeCount: 0,
+            sessionId: TestConstants.sessionId,
+            processId: TestConstants.processId,
+            autoTerminationCode: nil,
+            handler: nil
+        )
+
+        let result = span.addInternalLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
+
+        // then nil, matching the customer path. Callers use a nil return to detect a link that did
+        // not land — `StateRecorder.close` is the only detector for a dropped STATE link — so
+        // returning a link that only ever existed in memory would report a false success.
+        XCTAssertNil(result)
+        XCTAssertTrue(span.links.isEmpty)
+        XCTAssertEqual(span.state.safeValue.internalLinkCount, 0)
+    }
+
+    func test_addLink_isCountedAgainstLinksNotEvents() throws {
+        // given a span carrying far more customer events than the link limit would allow
+        let span = testSpan
+        let eventCount = 30
+        for i in 0..<eventCount {
+            span.addEvent(name: "event-\(i)", type: nil, timestamp: Date(), attributes: [:])
+        }
+        let linksBefore = span.links.count
+
+        // when a customer link is added
+        span.addLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
+
+        // then the budget was measured against the links already present, not the events.
+        // Regression guard: this used to pass `events.count`, so a span with a busy event list
+        // could never be linked at all.
+        XCTAssertEqual(handler.lastCreateLinkCurrentCount, linksBefore)
+        XCTAssertNotEqual(handler.lastCreateLinkCurrentCount, eventCount)
+    }
+
     func test_addLink_failure() throws {
         // given a span
         let span = testSpan

@@ -37,6 +37,9 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
 
     var createLinkCallCount: Int = 0
     var createLinkError: Error?
+    /// The budget the span computed for the most recent call. Lets a test assert *what* the link
+    /// limit was measured against.
+    var lastCreateLinkCurrentCount: Int?
     func createLink(
         forSpanNamed spanName: String,
         spanId: String,
@@ -45,6 +48,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         currentCount: Int
     ) throws -> EmbraceSpanLink {
         createLinkCallCount += 1
+        lastCreateLinkCurrentCount = currentCount
 
         if let createLinkError {
             throw createLinkError
