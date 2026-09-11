@@ -15,27 +15,21 @@ import Foundation
 /// the state below is deliberately unsynchronized. ``handle(_:)`` drops anything arriving off the
 /// main queue and reports it, rather than trusting the contract silently.
 ///
-/// It deliberately does **not** use `dispatchPrecondition`: that bottoms out in libdispatch's
-/// `dispatch_assert_queue`, which traps in every optimisation level including `-Ounchecked`, and
-/// this type is fed by a swizzle installed on every `UIViewController` in the host app. An app that
-/// drives an appearance callback off the main thread would then crash *because this SDK is linked*.
-/// Losing a screen transition is the right trade against terminating a customer's process.
+/// Checked rather than asserted: `dispatchPrecondition` survives release builds, and this type is
+/// fed by a swizzle on every `UIViewController` in the host app. Losing a transition beats
+/// terminating a customer's process.
 ///
 /// ## Not handled yet
-/// Every screen name here comes from the container itself. Once SwiftUI `NavigationStack`
-/// destinations are observed, a container's visible screen will be able to change with no
-/// appearance callback at all, which needs two further rules on a resume: re-emitting the last known
-/// destination for a container coming back from the background, and suppressing the resume that
-/// follows a destination change on first display. Both are additive — the maps and the emission
-/// funnel below are shaped to take them.
+/// Observing SwiftUI `NavigationStack` destinations will let a container's visible screen change
+/// with no appearance callback, needing two further rules on a resume. Both are additive; the maps
+/// and the emission funnel are shaped to take them.
 final class NavigationEventBroker {
 
     /// What was last handed downstream, for the dedup gate below.
     ///
-    /// Storing what was *emitted* is only equivalent to storing the event that triggered it for as
-    /// long as every emission's value is its own event's name. That stops holding once the
-    /// destination rules above arrive — a background restore emits a destination name while its
-    /// triggering event carries the container's name — so revisit this alongside them.
+    /// Storing the *emission* rather than its triggering event is equivalent only while every
+    /// emission carries its own event's name — which stops holding once the destination rules
+    /// above arrive. Revisit it alongside them.
     private struct Emission: Equatable {
         let name: String
         let componentId: ObjectIdentifier?
@@ -74,11 +68,9 @@ final class NavigationEventBroker {
         switch event.kind {
         case .started:
             guard let componentId = event.componentId else { return }
-            // Keep the earliest. One appearance can report more than once: a subclass that overrides
-            // `viewWillAppear` is swizzled too, so it reports, runs its own body, and only then calls
-            // `super` — which reports again, later. Overwriting would silently exclude exactly the
-            // work the load time is meant to measure. A pause clears the entry, so a genuine second
-            // appearance still starts fresh.
+            // Keep the earliest: a swizzled subclass reports, runs its body, then calls `super`
+            // which reports again. Overwriting would exclude exactly the work being measured. A
+            // pause clears the entry, so a genuine second appearance still starts fresh.
             if startTimes[componentId] == nil {
                 startTimes[componentId] = event.timestamp
             }
@@ -95,14 +87,12 @@ final class NavigationEventBroker {
         case .paused:
             guard let componentId = event.componentId else { return }
             visibleScreens.removeValue(forKey: componentId)
-            // The start time goes too. `ObjectIdentifier` is the address of a live object, so one
-            // left behind by a deallocated controller could be picked up by an unrelated controller
-            // allocated at the same address, silently backdating its load.
+            // Start time and restore point go too. `ObjectIdentifier` is a live object's address, so
+            // an entry left by a deallocated controller can be inherited by an unrelated one
+            // allocated there later — silently backdating its load, or restoring it as though the
+            // user were still on it.
             startTimes.removeValue(forKey: componentId)
 
-            // And so does the restore point, for the same reason: a controller torn down while the
-            // app is backgrounded would otherwise be re-emitted on foreground as though the user
-            // were still on it, holding a stale address that a later controller can reuse.
             if screenBeforeBackground?.componentId == componentId {
                 screenBeforeBackground = nil
             }
@@ -116,10 +106,9 @@ final class NavigationEventBroker {
             emit(name: Screen.backgrounded.name, componentId: nil, at: event.timestamp)
 
         case .foregrounded:
-            // UIKit does not re-fire appearance callbacks for a controller that stayed the visible
-            // one, so nothing else would move the state off the Backgrounded sentinel until the
-            // user happened to navigate. Load time is the foreground time — no new start time
-            // exists to backdate to.
+            // UIKit does not re-fire appearance callbacks for the controller that stayed visible,
+            // so without this the state sits on the sentinel until the user happens to navigate.
+            // Load time is the foreground time; no start time exists to backdate to.
             guard let restored = screenBeforeBackground else { return }
             screenBeforeBackground = nil
             emit(name: restored.name, componentId: restored.componentId, at: event.timestamp)
@@ -131,20 +120,18 @@ final class NavigationEventBroker {
     /// Backdate a load to when the container started appearing, **unless** more than one screen is
     /// visible.
     ///
-    /// Backdating is product semantics: navigation began when the window started becoming visible,
-    /// not when it finished. The exception exists because during fast switches or transitional
-    /// overlap the change cannot be attributed to that earlier start, so the event's own time wins.
+    /// Navigation began when the window started becoming visible, not when it finished. The
+    /// exception covers transitional overlap, where the change cannot be attributed to that start.
     private func loadTime(_ startTime: Date, or eventTime: Date) -> Date {
         visibleScreens.count > 1 ? eventTime : startTime
     }
 
     /// The dedup gate every emission funnels through: fire only if the container **or** the name
-    /// differs from the last emission. The first always fires.
+    /// differs from the last. The first always fires.
     ///
-    /// This is what collapses replayed and duplicated callbacks into a timeline of distinct
-    /// `(container, screen)` states. Note it is not the only dedup in the chain — the state
-    /// primitive downstream drops *value*-equal consecutive transitions and counts them, so moving
-    /// between two different containers with the same name passes this gate and is dropped there.
+    /// Not the only dedup in the chain — the state primitive downstream drops *value*-equal
+    /// consecutive transitions, so two containers resolving to the same name pass here and are
+    /// dropped there.
     private func emit(name: String, componentId: ObjectIdentifier?, at loadTime: Date) {
         let emission = Emission(name: name, componentId: componentId)
         defer { lastEmission = emission }
