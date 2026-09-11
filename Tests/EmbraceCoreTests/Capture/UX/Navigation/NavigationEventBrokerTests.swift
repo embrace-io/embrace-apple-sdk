@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import XCTest
 
 @testable import EmbraceCore
@@ -17,15 +18,15 @@ final class NavigationEventBrokerTests: XCTestCase {
     private final class Container {}
 
     private var broker: NavigationEventBroker!
-    private var loads: [(time: Date, name: String)] = []
+    private var loads: [(time: Date, name: String, attributes: EmbraceAttributes)] = []
 
     private let origin = Date(timeIntervalSince1970: 1_000)
 
     override func setUp() {
         super.setUp()
         loads = []
-        broker = NavigationEventBroker { [weak self] time, name in
-            self?.loads.append((time, name))
+        broker = NavigationEventBroker { [weak self] time, name, attributes in
+            self?.loads.append((time, name, attributes))
         }
     }
 
@@ -361,5 +362,87 @@ final class NavigationEventBrokerTests: XCTestCase {
         XCTAssertEqual(names, ["Detail", "Home"])
         XCTAssertEqual(loads[0].time, time(1), "Detail backdates to its own start")
         XCTAssertEqual(loads[1].time, time(0), "Home backdates to its own start")
+    }
+
+    // MARK: - Caller attributes
+
+    /// Attributes travel with the screen they were declared on, and only that one.
+    func testAttributesAreCarriedThroughToTheEmission() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "ProductDetail", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "ProductDetail", at: time(1), attributes: ["product_id": "42"]))
+
+        let emitted = try XCTUnwrap(loads.first)
+        XCTAssertEqual(emitted.attributes["product_id"]?.description, "42")
+    }
+
+    func testAutomaticScreensCarryNoAttributes() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "Home", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "Home", at: time(1)))
+
+        XCTAssertTrue(try XCTUnwrap(loads.first).attributes.isEmpty)
+    }
+
+    /// The dedup gate is `(container, screen)`. A view re-appearing with changed metadata is still
+    /// the screen the user is already on, so it must not record a second transition — otherwise any
+    /// screen whose attributes track live data would emit on every re-appearance.
+    func testAChangedAttributeAloneDoesNotPassTheDedupGate() {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "Cart", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "Cart", at: time(1), attributes: ["total": "10"]))
+        broker.handle(.started(id(vc), name: "Cart", at: time(2)))
+        broker.handle(.resumed(id(vc), name: "Cart", at: time(3), attributes: ["total": "20"]))
+
+        XCTAssertEqual(names, ["Cart"], "an attribute change is not a navigation")
+    }
+
+    /// A restore replays the screen the user was on, so it has to replay what that screen was
+    /// declared with too — a restored transition stripped of its metadata would not match the
+    /// original one it is standing in for.
+    func testForegroundRestoreReplaysTheAttributes() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "ProductDetail", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "ProductDetail", at: time(1), attributes: ["product_id": "42"]))
+        broker.handle(.backgrounded(at: time(2)))
+        broker.handle(.foregrounded(at: time(3)))
+
+        XCTAssertEqual(names, ["ProductDetail", "Backgrounded", "ProductDetail"])
+        XCTAssertEqual(loads[2].attributes["product_id"]?.description, "42")
+    }
+
+    /// Pins the choice documented on `Emission.attributes`: a re-declaration the dedup gate
+    /// suppressed still updates what a later restore replays. Without this, the `defer` in `emit`
+    /// looks like an accident and someone will "fix" it.
+    func testRestoreReplaysTheMostRecentDeclarationEvenIfItWasSuppressed() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "Cart", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "Cart", at: time(1), attributes: ["total": "10"]))
+        // Same screen, fresher metadata — suppressed by the gate, emits nothing.
+        broker.handle(.started(id(vc), name: "Cart", at: time(2)))
+        broker.handle(.resumed(id(vc), name: "Cart", at: time(3), attributes: ["total": "20"]))
+        broker.handle(.backgrounded(at: time(4)))
+        broker.handle(.foregrounded(at: time(5)))
+
+        XCTAssertEqual(names, ["Cart", "Backgrounded", "Cart"])
+        XCTAssertEqual(
+            loads[2].attributes["total"]?.description, "20",
+            "the restore describes the screen as it stands now, not as it last shipped")
+    }
+
+    func testTheBackgroundedSentinelCarriesNoAttributes() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "ProductDetail", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "ProductDetail", at: time(1), attributes: ["product_id": "42"]))
+        broker.handle(.backgrounded(at: time(2)))
+
+        XCTAssertEqual(loads[1].name, "Backgrounded")
+        XCTAssertTrue(loads[1].attributes.isEmpty, "the sentinel is not the declared screen")
     }
 }

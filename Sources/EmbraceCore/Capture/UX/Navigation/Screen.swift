@@ -26,4 +26,10 @@ struct Screen: StateValue {
     ///
     /// TODO: figure out a better value or a better system for these cases. Align with other platforms.
     static let backgrounded = Screen("Backgrounded")
+
+    /// User created screens named one of the above will be dropped.
+    /// This method serves as a check when a screen span is emited to make sure the screen isn't named a reserve word.
+    static func isReserved(_ name: String) -> Bool {
+        name == initializing.name || name == backgrounded.name
+    }
 }

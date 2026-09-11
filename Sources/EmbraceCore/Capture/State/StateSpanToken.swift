@@ -48,7 +48,8 @@ final class StateSpanToken {
     ///   - value: Serialized new value of the state.
     ///   - time: When the change was *observed*, never when it was processed.
     ///   - count: Running number of recorded transitions, decided by the recorder under its lock.
-    ///   - attributes: Optional caller-supplied attributes for this transition.
+    ///   - attributes: Attributes supplied from **outside** the SDK. Unlike everything else written
+    ///     here they are untrusted, and are filtered and bounded before use.
     ///   - flushed: Unrecorded-transition counts to attach to this event.
     func recordTransition(
         value: String,
@@ -61,9 +62,7 @@ final class StateSpanToken {
             return .spanEnded
         }
 
-        // Stripped rather than overwritten: the counter keys are omitted when zero, so merging
-        // alone would let a forged `emb.state.not_in_session` through on any event without counts.
-        var eventAttributes = attributes.filter { !SpanSemantics.State.isReserved($0.key) }
+        var eventAttributes = Self.bounded(attributes)
         eventAttributes.merge(flushed.attributes) { _, builtIn in builtIn }
         eventAttributes[SpanSemantics.State.keyNewValue] = value
 
@@ -88,6 +87,24 @@ final class StateSpanToken {
 
         return .recorded
     }
+
+    /// Filters and bounds attributes that came from outside the SDK.
+    ///
+    /// State spans are internal, and `isInternal` skips sanitization — an exemption written when
+    /// every attribute here was the SDK's own. A public API taking caller attributes changes that,
+    /// so the sanitizer is applied by hand. Note it drops non-`String` values.
+    ///
+    /// The reserved filter runs first rather than relying on the later merge to overwrite: the
+    /// counter keys are omitted when zero, so a forged `emb.state.not_in_session` would survive on
+    /// any event without counts.
+    private static func bounded(_ callerAttributes: EmbraceAttributes) -> EmbraceAttributes {
+        let allowed = callerAttributes.filter { !SpanSemantics.State.isReserved($0.key) }
+        return sanitizer.sanitizeSpanEventAttributes(allowed)
+    }
+
+    /// Default-constructed, which is the only way the handler ever builds one. If its limits become
+    /// configurable, thread that instance in here rather than letting this one keep its own.
+    private static let sanitizer = DefaultOtelSignalsSanitizer()
 
     /// Writes the transition count and any residual counts onto the span, then closes it.
     ///
