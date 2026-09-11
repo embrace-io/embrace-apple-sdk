@@ -18,18 +18,18 @@ struct Screen: StateValue {
         self.name = name
     }
 
-    /// Value of the state before anything has appeared. Wire contract — the backend reads this
-    /// string, so it must not be reworded.
+    /// Value of the state before any screen has appeared
+    ///
+    /// TODO: figure out a better value or a better system for these cases. Aling with other platforms.
     static let initializing = Screen("Initializing")
 
-    /// Value of the state while the app is backgrounded. Wire contract, as above.
+    /// Value of the state while the app is backgrounded, as above.
+    ///
+    /// TODO: figure out a better value or a better system for these cases. Aling with other platforms.
     static let backgrounded = Screen("Backgrounded")
 
-    /// Names the framework gives its own meaning to, which a caller must not be able to mint.
-    ///
-    /// Equality is by name, so a screen declared with one of these is indistinguishable from the
-    /// sentinel downstream: the state primitive would collapse the real transition into the
-    /// caller's, and a session where the app genuinely backgrounded would report that it never did.
+    /// User created screens named one of the above will be dropped.
+    /// This method serves as a check when a screen span is emited to make sure the screen isn't named a reserve word.
     static func isReserved(_ name: String) -> Bool {
         name == initializing.name || name == backgrounded.name
     }

@@ -18,6 +18,9 @@
 
         private final class PlainViewController: UIViewController {}
 
+        /// A splash screen a developer would plausibly name this — the realistic collision.
+        private final class Initializing: UIViewController {}
+
         /// A developer-authored host subclass. Names itself; does NOT adopt the customization
         /// protocol, which is the case a type-based exclusion would wrongly drop.
         private final class CheckoutHostingController: UIHostingController<Text> {}
@@ -556,6 +559,42 @@
             appear(tracker, vc, startedAt: 0, resumedAt: 1)
 
             XCTAssertEqual(recordedScreens, ["Checkout"])
+        }
+
+        /// The automatic path is exposed to the same collision: a class can be named after a
+        /// sentinel, and `nameForViewControllerInEmbrace` is public API that can return one.
+        func testAViewControllerNamedAfterASentinelIsRefused() throws {
+            let tracker = makeTracker()
+
+            appear(tracker, Initializing(), startedAt: 0, resumedAt: 1)
+            appear(tracker, PlainViewController(), startedAt: 2, resumedAt: 3)
+
+            XCTAssertEqual(recordedScreens, ["PlainViewController"])
+
+            // Asserting only on what was recorded proves nothing here: a screen colliding with the
+            // state's own default value is swallowed by value-dedup whether or not the guard runs.
+            // Reaching the recorder at all is the observable difference.
+            let transition = try XCTUnwrap(
+                stateSpan?.events.first { $0.name == SpanSemantics.State.transitionEventName })
+            XCTAssertNil(transition.attributes[SpanSemantics.State.keyDroppedByInstrumentation])
+        }
+
+        /// The severe case: without the guard the forged value collides with the real backgrounding,
+        /// and the whole background/foreground cycle disappears from the timeline.
+        func testACustomNameCannotMintTheBackgroundedSentinel() {
+            let tracker = makeTracker()
+            let vc = NamedViewController()
+            vc.nameForViewControllerInEmbrace = "Backgrounded"
+
+            appear(tracker, PlainViewController(), startedAt: 0, resumedAt: 1)
+            appear(tracker, vc, startedAt: 2, resumedAt: 3)
+            tracker.appWillBackground(at: time(10))
+            tracker.appDidForeground(at: time(20))
+
+            XCTAssertEqual(
+                recordedScreens,
+                ["PlainViewController", "Backgrounded", "PlainViewController"],
+                "the real background/foreground cycle must survive a colliding screen name")
         }
 
     }

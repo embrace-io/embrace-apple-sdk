@@ -69,19 +69,33 @@
 
             switch phase {
             case .willAppear:
-                guard shouldTrack(vc) else { return }
+                guard shouldTrack(vc, named: name) else { return }
                 broker.handle(.started(componentId, name: name, at: time))
 
             case .didAppear:
-                guard shouldTrack(vc) else { return }
+                guard shouldTrack(vc, named: name) else { return }
                 broker.handle(.resumed(componentId, name: name, at: time))
 
             case .didDisappear:
+                // Forwarded unconditionally: a pause emits nothing and only clears bookkeeping, so
+                // it stays correct even for a controller the guards above refused.
                 broker.handle(.paused(componentId, name: name, at: time))
             }
         }
 
         // MARK: - Filtering
+
+        private func shouldTrack(_ vc: UIViewController, named name: String) -> Bool {
+            guard !Screen.isReserved(name) else {
+                Embrace.logger.warning(
+                    "Screen tracking: \"\(name)\" is reserved by the SDK, so that screen was not "
+                        + "recorded. Rename it, or report a different name for it with "
+                        + "`nameForViewControllerInEmbrace`.")
+                return false
+            }
+
+            return shouldTrack(vc)
+        }
 
         private func shouldTrack(_ vc: UIViewController) -> Bool {
             // Reuses the view instrumentation's existing exclusions rather than inventing a second
