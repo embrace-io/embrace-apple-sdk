@@ -11,9 +11,6 @@
     #endif
 
     /// Which appearance callback a view controller is reporting.
-    ///
-    /// Kept separate from ``NavigationEvent/Kind`` so the view-instrumentation side can forward raw
-    /// UIKit lifecycle without owning any part of the navigation model.
     enum ScreenAppearancePhase {
         case willAppear
         case didAppear
@@ -22,20 +19,16 @@
 
     /// Turns view controller appearance callbacks into the navigation timeline.
     ///
-    /// Sits between the existing view instrumentation and ``NavigationEventBroker``: it decides
-    /// *which* controllers count as screens and what they are called, and the broker decides what
-    /// the resulting timeline looks like.
+    /// Decides *which* controllers count as screens and what they are called; the broker decides
+    /// what the resulting timeline looks like.
     ///
-    /// ## Threading
-    /// Appearance callbacks arrive on the main thread and are forwarded straight through, because
-    /// the broker's serialization contract is the main queue. Everything here is main-only; nothing
-    /// is dispatched, so the load time a transition is attributed to stays the timestamp of the
-    /// original callback.
+    /// Main-thread only, and nothing is dispatched — that satisfies the broker's serialization
+    /// contract and keeps each transition on its originating callback's timestamp.
     final class ScreenNavigationTracker {
 
-        /// Container controllers are skipped: they appear alongside the content they present, so
-        /// letting them through would put "UINavigationController" in the timeline and, worse, make
-        /// two screens visible at once — which suppresses load-time backdating for the real screen.
+        /// Skipped: containers appear alongside the content they present, which would both put
+        /// "UINavigationController" in the timeline and keep two screens visible at once —
+        /// suppressing load-time backdating for the real one.
         private static let containerClasses: [UIViewController.Type] = [
             UINavigationController.self,
             UITabBarController.self,
@@ -98,8 +91,7 @@
         }
 
         private func shouldTrack(_ vc: UIViewController) -> Bool {
-            // Reuses the view instrumentation's existing exclusions rather than inventing a second
-            // set, so a controller a customer has already opted out of stays out of both streams.
+            // A controller the customer has already opted out of stays out of both streams.
             guard vc.emb_shouldCaptureView, !isBlocked(vc) else {
                 return false
             }

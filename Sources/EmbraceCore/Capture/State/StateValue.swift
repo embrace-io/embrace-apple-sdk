@@ -4,19 +4,14 @@
 
 /// A value that can be recorded as a state.
 ///
-/// States are compared to suppress duplicate transitions and serialized into the `emb.state.*`
-/// attributes, so conformances must make both operations deliberate: two values that serialize
-/// identically should compare equal, otherwise the same visible value will be recorded twice.
+/// Values are compared to suppress duplicate transitions and serialized into `emb.state.*`, so a
+/// conformance must keep the two in step: two values that serialize identically must compare equal,
+/// or the same visible value is recorded twice.
 ///
-/// This is intentionally a dedicated protocol rather than a use of `CustomStringConvertible` —
-/// `description` is inherited too easily and its output is not a wire contract, whereas
-/// ``stateDescription`` is written verbatim into the telemetry payload.
-///
-/// Deliberately **not** `public`: no public API exposes a state value, so making this public would
-/// commit the SDK to it (and to a retroactive conformance on `String`) for no benefit.
+/// Separate from `CustomStringConvertible` because `description` is inherited too easily to be
+/// trusted as a wire format.
 protocol StateValue: Equatable {
-    /// Canonical serialization of this value, written to `emb.state.initial_value` and
-    /// `emb.state.new_value`.
+    /// Written verbatim to `emb.state.initial_value` and `emb.state.new_value`.
     var stateDescription: String { get }
 }
 

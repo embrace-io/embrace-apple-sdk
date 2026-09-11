@@ -6,12 +6,11 @@
     import EmbraceSemantics
 #endif
 
-/// Counts of state changes that happened but were **not** recorded as `transition` events.
+/// Counts of state changes that were **not** recorded as `transition` events.
 ///
-/// State capture is lossless in aggregate: a change that never becomes an event is still counted
-/// here, and the counts ride along with the next event that *is* recorded (or land on the span at
-/// close if no further event ever comes). A backend can therefore always reconstruct how many
-/// changes occurred, even when the individual events are missing.
+/// State capture is lossless in aggregate: an unrecorded change is still counted here, and the
+/// counts ride along with the next recorded event, or land on the span at close. The total number
+/// of changes is always reconstructable, even when individual events are missing.
 struct UnrecordedTransitions: Equatable {
 
     /// Changes that occurred while no session part was recording.
@@ -27,10 +26,8 @@ struct UnrecordedTransitions: Equatable {
         notInSession == 0 && droppedByInstrumentation == 0
     }
 
-    /// Attributes for these counts, omitting any counter that is zero.
-    ///
-    /// Zero-valued counters are left out rather than written as `"0"` — their absence is what the
-    /// wire contract specifies.
+    /// Attributes for these counts. A zero counter is omitted rather than written as `"0"` — its
+    /// absence is what the wire contract specifies.
     var attributes: EmbraceAttributes {
         var attributes: EmbraceAttributes = [:]
         if notInSession > 0 {

@@ -10,12 +10,8 @@ import Foundation
 
 /// A single normalized navigation input, ready for ``NavigationEventBroker``.
 ///
-/// Deliberately a plain value with no UIKit types in it: the broker is a pure state machine over
-/// these, so its whole edge-case surface is testable without a running app or a view controller.
-/// Producing them from real UIKit callbacks is the capture service's job.
-/// Not `Equatable`: attribute values are an open protocol with no equality, and the alternative —
-/// an `==` that compares everything *except* attributes — would quietly pass for two events that
-/// differ in the one field a test comparing them would most likely be checking.
+/// Not `Equatable`: attribute values are an open protocol with no equality, and an `==` that
+/// skipped them would silently pass for two events differing only in the field a test compared.
 struct NavigationEvent {
 
     enum Kind: Equatable {
@@ -25,8 +21,8 @@ struct NavigationEvent {
         case resumed
         /// The container finished disappearing (`viewDidDisappear`).
         case paused
-        /// The app went to the background, from the SDK's own app-state signal — deliberately not a
-        /// view-controller callback, so navigation and session backgrounding agree on one timestamp.
+        /// The app backgrounded, from the SDK's app-state signal — so navigation and session
+        /// backgrounding share one timestamp.
         case backgrounded
         /// The app returned to the foreground, from that same app-state signal.
         case foregrounded
@@ -37,10 +33,8 @@ struct NavigationEvent {
     /// Screen name. Empty for app-scoped events, whose name is supplied by the broker.
     let name: String
 
-    /// Identity of the emitting container, or `nil` for app-scoped events.
-    ///
-    /// **Instance** identity, not class identity — two instances of the same view controller class
-    /// must not collapse into one.
+    /// Identity of the emitting container, or `nil` for app-scoped events. **Instance** identity,
+    /// not class — two instances of the same controller class must not collapse into one.
     let componentId: ObjectIdentifier?
 
     /// When the originating OS callback fired — never "now". All downstream processing uses this.

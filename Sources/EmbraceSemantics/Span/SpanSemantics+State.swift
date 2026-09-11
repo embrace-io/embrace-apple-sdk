@@ -9,11 +9,9 @@ extension SpanSemantics {
     /// power mode) whose history is recorded as one span per session part, carrying one `transition`
     /// event per recorded change.
     ///
-    /// These keys are the wire contract the backend reads — they must not be renamed or extended
-    /// without a corresponding change there. In particular there is deliberately **no**
-    /// `emb.state.max_enforced` key and state spans are **not** private: when a transition is
-    /// dropped because the per-part cap was reached, it is counted silently in
-    /// ``keyDroppedByInstrumentation``.
+    /// These keys are a wire contract: renaming or extending them needs a matching change downstream.
+    /// Two omissions are deliberate rather than oversights — there is no `max_enforced` key, and
+    /// state spans are not private. Cap overflow is counted in ``keyDroppedByInstrumentation``.
     public struct State {
         /// Name of the span recording one state's history, e.g. `emb-state-screen-automatic`.
         public static func spanName(for stateName: String) -> String {
@@ -30,37 +28,33 @@ extension SpanSemantics {
         /// Written at span start.
         public static let keyInitialValue = "emb.state.initial_value"
 
-        /// Total number of *recorded* transition events, written once when the span closes. Always
-        /// present — a part in which the state never changed reports `0` rather than omitting it.
+        /// Number of *recorded* transition events, written when the span closes. Always present: a
+        /// part in which the state never changed reports `0`.
         public static let keyTransitionCount = "emb.state.transition_count"
 
         /// The state's new value. Always present on a `transition` event.
         public static let keyNewValue = "emb.state.new_value"
 
-        /// Count of changes that occurred while no session part existed. Written only when > 0,
-        /// either onto the next recorded transition or onto the span at close.
+        /// Changes that occurred while no session part existed. Written only when > 0.
         public static let keyNotInSession = "emb.state.not_in_session"
 
-        /// Count of changes deliberately dropped by the instrumentation — duplicates of the current
-        /// value, per-part cap overflow, and caller-declared coalesced changes. Written only when
-        /// > 0, either onto the next recorded transition or onto the span at close.
+        /// Changes deliberately dropped: duplicates of the current value, cap overflow, and
+        /// caller-declared coalesced changes. Written only when > 0.
         public static let keyDroppedByInstrumentation = "emb.state.dropped_by_instrumentation"
 
-        /// Name of the span event recording a single state transition.
-        ///
-        /// Deliberately un-prefixed: the event lives on an `emb-`-prefixed internal span, and this
-        /// literal is what the backend matches on.
+        /// Name of the span event recording a single state transition. Deliberately un-prefixed —
+        /// it lives on an `emb-`-prefixed span, and this literal is what is matched downstream.
         public static let transitionEventName = "transition"
 
-        /// `emb.link_type` value used on the session part span's link to a state span. This is how
-        /// the backend finds the state spans belonging to a part.
+        /// `emb.link_type` on the session part span's link to a state span — how a part's state
+        /// spans are found.
         public static let linkType = "STATE"
 
         /// Whether `key` lies in the reserved `emb.state.*` namespace.
         ///
-        /// Caller-supplied transition attributes are filtered through this so they can never forge
-        /// a contract key — including the counter keys, which are absent from the payload when their
-        /// count is zero and would otherwise slip through unnoticed.
+        /// Caller attributes are filtered through this so they cannot forge a contract key. It
+        /// matters most for the counter keys: they are absent when zero, so nothing else would
+        /// overwrite a forged one.
         public static func isReserved(_ key: String) -> Bool {
             key.hasPrefix(keyPrefix)
         }

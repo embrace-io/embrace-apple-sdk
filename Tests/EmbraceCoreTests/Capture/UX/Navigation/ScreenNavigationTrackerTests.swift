@@ -441,6 +441,17 @@
                 "a refused declaration must never reach the recorder at all")
         }
 
+        /// Normalization trims first, so a name that is only whitespace arrives here empty. A blank
+        /// name is indistinguishable from an absent one downstream and still spends a transition.
+        func testAScreenDeclaredWithABlankNameIsRefused() {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: "   ", at: 0)
+            declareAppearance(tracker, Token(), name: "", at: 1)
+
+            XCTAssertTrue(recordedScreens.isEmpty)
+        }
+
         // MARK: - Bounding caller attributes
 
         /// State spans skip the sanitizer (that exemption is what lets a part record far more than

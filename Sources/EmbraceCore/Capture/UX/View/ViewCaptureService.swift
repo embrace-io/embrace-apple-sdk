@@ -90,12 +90,11 @@
             return blockList.safeValue.isBlocked(viewController: vc)
         }
 
-        /// Owns the screen-navigation timeline when it is enabled, and is `nil` when it is not.
+        /// Owns the screen-navigation timeline when enabled, `nil` when not.
         ///
-        /// This service is the entry point because it already owns the appearance instrumentation
-        /// the timeline is built from; hanging the tracker here avoids a second swizzler and a
-        /// second block list. A `nil` tracker means nothing is observed at all — navigation events
-        /// are never constructed, rather than being built and discarded.
+        /// Hosted here because this service already owns the appearance instrumentation the timeline
+        /// is built from, so there is no second swizzler or block list. `nil` means events are never
+        /// constructed at all, rather than built and discarded.
         internal var navigationTracker: ScreenNavigationTracker?
 
         /// Keeps this service published as the reporter for screens declared in SwiftUI. Releasing
@@ -104,13 +103,11 @@
 
         /// Feeds the screen-navigation timeline from a raw appearance callback.
         ///
-        /// Called straight from the swizzle, on the thread the callback arrived on — the main
-        /// thread — so the broker stays on its required queue and load times keep the OS
-        /// callback's own timestamp.
+        /// Called straight from the swizzle on the callback's own thread, so the broker stays on the
+        /// main queue and load times keep the OS timestamp.
         ///
-        /// Checks `serviceState` itself, because nothing upstream does it for this path. Only
-        /// `onViewDidLoadStart` carries that check, and the tap runs above it — so without this a
-        /// stopped SDK would keep feeding the timeline.
+        /// Checks `serviceState` itself: the tap runs above the only upstream check, so without this
+        /// a stopped SDK would keep feeding the timeline.
         fileprivate func onViewControllerAppearance(
             _ vc: UIViewController,
             phase: ScreenAppearancePhase,
@@ -178,21 +175,14 @@
             manualScreenRegistration = nil
         }
 
-        /// Whether the screen-navigation timeline should run.
+        /// Whether the screen-navigation timeline should run. Split from the wiring below so the
+        /// combination is testable without an SDK instance.
         ///
-        /// Split out from the wiring below so the combination can be tested without standing up an
-        /// SDK instance.
-        ///
-        /// ``instrumentVisibility`` is required for a mechanical reason rather than a philosophical
-        /// one: it is the only thing that installs the `viewDidDisappear` swizzle. Without those
-        /// pause events a screen is never removed from the visible set, so from the second screen
-        /// onwards the broker always sees more than one visible and stops backdating load times — a
-        /// timeline that looks complete but is systematically late.
-        ///
-        /// Requiring it is also sufficient: `instrumentVisibility` alone installs all three
-        /// appearance swizzles, and the taps sit above the span-creation bookkeeping inside them,
-        /// so the timeline works regardless of ``instrumentFirstRender`` or the remote UI-load flag
-        /// it depends on.
+        /// ``instrumentVisibility`` is required mechanically, not philosophically: it alone installs
+        /// the `viewDidDisappear` swizzle, and without those pause events screens are never removed
+        /// from the visible set — backdating stops from the second screen on, giving a timeline that
+        /// looks complete and is systematically late. It is also sufficient, since it installs all
+        /// three appearance swizzles and the taps sit above their span bookkeeping.
         static func shouldTrackScreenNavigation(
             instrumentVisibility: Bool,
             config: EmbraceConfigurable?
@@ -206,14 +196,12 @@
                 && config.isScreenTrackingEnabled
         }
 
-        /// Evaluates the gate once, at start, and never again.
+        /// Evaluates the gate at start, never on a config refresh.
         ///
-        /// Read here rather than on every config refresh because ``StateCaptureCoordinator`` has no
-        /// `unregister`: a recorder registered later would begin its timeline partway through a
-        /// session part, reporting an `initial_value` for a screen the user had already left — and a
-        /// gate turning *off* could not be honoured until the next launch either way. Config is
-        /// loaded from cache during setup, so this only costs the very first launch after install,
-        /// where the timeline is absent rather than wrong.
+        /// ``StateCaptureCoordinator`` has no `unregister`, so a recorder added later would start
+        /// its timeline mid-part with an `initial_value` for a screen the user had already left, and
+        /// a gate turning *off* could not be honoured until relaunch anyway. Config is read from
+        /// cache during setup, so this only costs the first launch after install.
         private func startScreenNavigationTrackingIfEnabled() {
             guard let client = Embrace.client,
                 Self.shouldTrackScreenNavigation(

@@ -160,7 +160,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         nsfThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .nsfThreshold)
         traceparentInjectionThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .traceparentInjectionThreshold)
 
-        // state capture: the global gate and the screen/navigation gate, AND-ed by consumers
         stateCaptureThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .stateCaptureThreshold)
         screenTrackingThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .screenTrackingThreshold)
 
