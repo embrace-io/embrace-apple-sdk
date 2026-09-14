@@ -37,7 +37,7 @@
             self.threshold = threshold
             self.timingSource = FrameTimingSource()
 
-            timingSource.onTick = { [weak self] delay in
+            timingSource.onTick = { [weak self] delay, _ in
                 self?.handle(delay: delay)
             }
         }
