@@ -10,6 +10,15 @@ import XCTest
 
 class CrashlyticsReporterTests: XCTestCase {
 
+    func test_disableMetricKitReports_isFalse() {
+        // given a crashlytics reporter
+        let options = CrashlyticsReporter.Options(domain: "test.com", path: "path")
+        let reporter = CrashlyticsReporter(options: options)
+
+        // then MetricKit reports are not disabled
+        XCTAssertFalse(reporter.disableMetricKitReports)
+    }
+
     func test_crashReportGeneration() throws {
         // given a crashlytics reporter
         let options = CrashlyticsReporter.Options(domain: "test.com", path: "path")
