@@ -20,10 +20,13 @@
     /// suspend gaps are excluded without any extra bookkeeping.
     final class FrameTimingSource {
 
-        /// Called on each frame tick (after the first, which only arms the comparison) with the
-        /// delay in seconds between the tick's actual timestamp and the previous tick's
-        /// `targetTimestamp`. A positive value means the frame arrived later than promised.
-        var onTick: ((TimeInterval) -> Void)?
+        /// Called on each frame tick (after the first, which only arms the comparison) with:
+        /// - `delay`: seconds between the tick's actual timestamp and the previous tick's
+        ///   `targetTimestamp`. A positive value means the frame arrived later than promised.
+        /// - `frameDuration`: the nominal duration of the upcoming frame at the display's current
+        ///   refresh rate (`targetTimestamp - timestamp`), which can vary tick to tick under
+        ///   ProMotion / `preferredFrameRateRange`.
+        var onTick: ((_ delay: TimeInterval, _ frameDuration: TimeInterval) -> Void)?
 
         /// Creates a new `FrameTimingSource` and immediately begins observing frame timing.
         ///
@@ -85,7 +88,8 @@
             }
 
             let delay = currentTick.timestamp - expectedTimestamp
-            onTick?(delay)
+            let frameDuration = currentTick.targetTimestamp - currentTick.timestamp
+            onTick?(delay, frameDuration)
         }
     }
 
