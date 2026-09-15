@@ -11,6 +11,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
 
     var createEventCallCount: Int = 0
     var createEventError: Error?
+    var createEventCurrentCount: Int?
     func createEvent(
         forSpanNamed spanName: String,
         name: String,
@@ -22,6 +23,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         isSessionEvent: Bool
     ) throws -> EmbraceSpanEvent {
         createEventCallCount += 1
+        createEventCurrentCount = currentCount
 
         if let createEventError {
             throw createEventError
@@ -37,6 +39,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
 
     var createLinkCallCount: Int = 0
     var createLinkError: Error?
+    var createLinkCurrentCount: Int?
     func createLink(
         forSpanNamed spanName: String,
         spanId: String,
@@ -45,6 +48,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         currentCount: Int
     ) throws -> EmbraceSpanLink {
         createLinkCallCount += 1
+        createLinkCurrentCount = currentCount
 
         if let createLinkError {
             throw createLinkError
