@@ -33,8 +33,11 @@ final class StateSpanToken {
 
     let span: EmbraceSpan
 
-    init(span: EmbraceSpan) {
+    private let sanitizer: OTelSignalsSanitizer
+
+    init(span: EmbraceSpan, sanitizer: OTelSignalsSanitizer = DefaultOtelSignalsSanitizer()) {
         self.span = span
+        self.sanitizer = sanitizer
     }
 
     /// Whether this token's span is still open and able to accept transitions.
@@ -62,7 +65,7 @@ final class StateSpanToken {
             return .spanEnded
         }
 
-        var eventAttributes = Self.bounded(attributes)
+        var eventAttributes = bounded(attributes)
         eventAttributes.merge(flushed.attributes) { _, builtIn in builtIn }
         eventAttributes[SpanSemantics.State.keyNewValue] = value
 
@@ -97,14 +100,10 @@ final class StateSpanToken {
     /// The reserved filter runs first rather than relying on the later merge to overwrite: the
     /// counter keys are omitted when zero, so a forged `emb.state.not_in_session` would survive on
     /// any event without counts.
-    private static func bounded(_ callerAttributes: EmbraceAttributes) -> EmbraceAttributes {
+    private func bounded(_ callerAttributes: EmbraceAttributes) -> EmbraceAttributes {
         let allowed = callerAttributes.filter { !SpanSemantics.State.isReserved($0.key) }
         return sanitizer.sanitizeSpanEventAttributes(allowed)
     }
-
-    /// Default-constructed, which is the only way the handler ever builds one. If its limits become
-    /// configurable, thread that instance in here rather than letting this one keep its own.
-    private static let sanitizer = DefaultOtelSignalsSanitizer()
 
     /// Writes the transition count and any residual counts onto the span, then closes it.
     ///

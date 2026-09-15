@@ -90,6 +90,8 @@ final class StateRecorder<Value: StateValue>: StateRecording {
 
     private weak var otel: EmbraceOTelSignalsHandler?
 
+    private let sanitizer: OTelSignalsSanitizer
+
     /// Where this recorder stands relative to the session part.
     ///
     /// Modelling the part and its token together makes "a token without a part" unrepresentable, and
@@ -120,8 +122,10 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         defaultValue: Value,
         otel: EmbraceOTelSignalsHandler?,
         maxTransitions: Int = 100,
-        capturesOnCreation: Bool = true
+        capturesOnCreation: Bool = true,
+        sanitizer: OTelSignalsSanitizer = DefaultOtelSignalsSanitizer()
     ) {
+        self.sanitizer = sanitizer
         self.stateName = stateName
         // A non-positive cap would silently convert every change into a dropped one.
         self.maxTransitions = max(1, maxTransitions)
@@ -399,7 +403,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
             guard case .opening(let part) = storage.recording, part.endTime == nil else {
                 return true
             }
-            storage.recording = .recording(part: part, token: StateSpanToken(span: span))
+            storage.recording = .recording(part: part, token: StateSpanToken(span: span, sanitizer: sanitizer))
             storage.transitionsRecorded = 0
             installed = true
             return false

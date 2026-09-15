@@ -42,12 +42,16 @@
         /// Whether this controller is excluded by the customer's or the config's block list.
         private let isBlocked: (UIViewController) -> Bool
 
+        private let sanitizer: OTelSignalsSanitizer
+
         init(
             reporter: ScreenStateReporter,
-            isBlocked: @escaping (UIViewController) -> Bool
+            isBlocked: @escaping (UIViewController) -> Bool,
+            sanitizer: OTelSignalsSanitizer = DefaultOtelSignalsSanitizer()
         ) {
             self.reporter = reporter
             self.isBlocked = isBlocked
+            self.sanitizer = sanitizer
             self.broker = NavigationEventBroker(onScreenLoad: reporter.onScreenLoad)
         }
 
@@ -58,7 +62,7 @@
             // Normalized here too, not only on the declared path: `emb_viewName` prefers
             // `nameForViewControllerInEmbrace`, which is public API and just as unbounded as a
             // string passed to `.embraceScreen`. A class name is unaffected.
-            let name = Self.normalized(vc.emb_viewName)
+            let name = normalized(vc.emb_viewName)
 
             switch phase {
             case .willAppear:
@@ -154,16 +158,12 @@
         /// navigation the user never made, which is exactly the failure the modifier's own
         /// documentation warns against.
         ///
-        /// Uses the SDK's own name treatment rather than the attribute-value one. A screen name is
-        /// conceptually a name, the event-name budget is the right order of magnitude for one, and
-        /// treating it as a 1024-character value would leave it far too large for something copied
-        /// onto every log.
-        private static func normalized(_ name: String) -> String {
-            sanitizer.sanitizeName(name, lengthLimit: sessionLimits.events.nameLength)
+        /// Treated as a *name* rather than an attribute value: a screen name is conceptually a name,
+        /// and the 1024-character value budget would be far too large for something copied onto
+        /// every log.
+        private func normalized(_ name: String) -> String {
+            sanitizer.sanitizeSpanEventName(name)
         }
-
-        private static let sanitizer = DefaultOtelSignalsSanitizer()
-        private static let sessionLimits = SessionLimits()
     }
 
     /// App-state transitions reach here from `iOSSessionLifecycle`'s `UIApplication` observers, by
@@ -202,7 +202,7 @@
             // Normalized before anything looks at it, so the checks below and the value that ships
             // are the same string. Checking the raw name would let `" Backgrounded "` past the
             // sentinel guard and still collide downstream, where equality is by name.
-            let name = Self.normalized(name)
+            let name = normalized(name)
 
             // A blank name is indistinguishable from an absent one downstream, and still spends one
             // of the part's transitions.
