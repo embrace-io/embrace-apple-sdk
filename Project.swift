@@ -123,23 +123,6 @@ let project = Project(
             ])
         ),
         .target(
-            name: "EmbraceOTelInternal",
-            destinations: .iOS,
-            product: .framework,
-            bundleId: "com.embraceio.EmbraceOTelInternal",
-            deploymentTargets: .iOS("13.0"),
-            sources: ["Sources/EmbraceOTelInternal/**"],
-            dependencies: [
-                .target(name: "EmbraceCommonInternal"),
-                .target(name: "EmbraceSemantics"),
-                .external(name: "OpenTelemetrySdk")
-            ],
-            settings: .settings(base: [
-                "SKIP_INSTALL": "NO",
-                "BUILD_LIBRARY_FOR_DISTRIBUTION": "YES"
-            ])
-        ),
-        .target(
             name: "EmbraceStorageInternal",
             destinations: .iOS,
             product: .framework,
