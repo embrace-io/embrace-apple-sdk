@@ -262,6 +262,67 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(handler.onSpanLinkAddedCallCount, 0)
     }
 
+    // MARK: link limit counter
+
+    func test_addLink_countsLinksNotEvents() throws {
+        // given a span that starts with 1 event and 1 link, with an extra event
+        // added so the two counters can't coincide
+        let span = testSpan
+        span.addEvent(name: "extra")
+        XCTAssertEqual(span.events.count, 2)
+        XCTAssertEqual(span.links.count, 1)
+
+        // when adding a new link
+        span.addLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
+
+        // then the count handed to the limiter is the number of links already
+        // on the span, not the number of events
+        XCTAssertEqual(handler.createLinkCurrentCount, 1)
+    }
+
+    func test_addLink_eventsDoNotConsumeTheLinkBudget() throws {
+        // given a span with several events added on top of its initial event
+        let span = testSpan
+        for index in 0..<5 {
+            span.addEvent(name: "event\(index)")
+        }
+
+        // when adding a link
+        span.addLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
+
+        // then the events are not counted against the link limit
+        XCTAssertEqual(span.events.count, 6)
+        XCTAssertEqual(handler.createLinkCurrentCount, 1)
+    }
+
+    func test_addLink_linksDoNotConsumeTheEventBudget() throws {
+        // given a span with several links added on top of its initial link
+        let span = testSpan
+        for _ in 0..<5 {
+            span.addLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
+        }
+
+        // when adding an event
+        span.addEvent(name: "event")
+
+        // then the links are not counted against the event limit
+        XCTAssertEqual(span.links.count, 6)
+        XCTAssertEqual(handler.createEventCurrentCount, 1)
+    }
+
+    func test_addLink_countGrowsWithEachAddedLink() throws {
+        // given a span that starts with 1 link
+        let span = testSpan
+
+        // when adding links one after the other
+        // then each call reports the number of links present at that point
+        for expected in 1..<4 {
+            XCTAssertNil(handler.createLinkError)
+            span.addLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
+            XCTAssertEqual(handler.createLinkCurrentCount, expected)
+        }
+    }
+
     // MARK: object overloads
 
     func test_addEvent_object_returnsStoredEvent() throws {

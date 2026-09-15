@@ -192,7 +192,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
         }
 
         let currentCount = state.withLock {
-            $0.events.count - $0.internalEventCount
+            $0.links.count - $0.internalLinkCount
         }
 
         do {
