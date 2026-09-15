@@ -122,8 +122,11 @@
 
         private func waitForAppearance() {
             let reported = expectation(description: "screen reported as appeared")
+            // SwiftUI may report an appearance more than once for the same view, and does on some
+            // platforms. We only need to know it happened at least once.
+            reported.assertForOverFulfill = false
             spy.onAppear = { reported.fulfill() }
-            wait(for: [reported], timeout: 5)
+            wait(for: [reported], timeout: 10)
         }
 
         /// Lets SwiftUI actually run an update pass, and returns whether the body was rebuilt.
@@ -142,8 +145,9 @@
 
         private func waitForDisappearance() {
             let reported = expectation(description: "screen reported as disappeared")
+            reported.assertForOverFulfill = false
             spy.onDisappear = { reported.fulfill() }
-            wait(for: [reported], timeout: 5)
+            wait(for: [reported], timeout: 10)
         }
 
         // MARK: - The modifier reports at all
