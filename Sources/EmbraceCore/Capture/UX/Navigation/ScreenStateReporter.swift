@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 /// Feeds the screens resolved by ``NavigationEventBroker`` into the generic state primitive.
@@ -31,7 +32,7 @@ final class ScreenStateReporter {
         )
     }
 
-    func onScreenLoad(at time: Date, name: String) {
-        recorder.onStateChange(to: Screen(name), at: time)
+    func onScreenLoad(at time: Date, name: String, attributes: EmbraceAttributes = [:]) {
+        recorder.onStateChange(to: Screen(name), at: time, attributes: attributes)
     }
 }

@@ -6,6 +6,7 @@
 
     import EmbraceSemantics
     import TestSupport
+    import SwiftUI
     import UIKit
     import XCTest
 
@@ -16,12 +17,31 @@
     final class ScreenNavigationTrackerTests: XCTestCase {
 
         private final class PlainViewController: UIViewController {}
+
+        /// A splash screen a developer would plausibly name this — the realistic collision.
+        private final class Initializing: UIViewController {}
+
+        /// A developer-authored host subclass. Names itself; does NOT adopt the customization
+        /// protocol, which is the case a type-based exclusion would wrongly drop.
+        private final class CheckoutHostingController: UIHostingController<Text> {}
         private final class CustomNavigationController: UINavigationController {}
 
         private final class NamedViewController: UIViewController, EmbraceViewControllerCustomization {
             var nameForViewControllerInEmbrace: String? = "CustomName"
             var shouldCaptureViewInEmbrace: Bool = true
         }
+
+        /// A host that names itself, which is the developer declaring it a screen.
+        private final class NamedHostingController<V: View>: UIHostingController<V>,
+            EmbraceViewControllerCustomization
+        {
+            var nameForViewControllerInEmbrace: String? = "CustomName"
+            var shouldCaptureViewInEmbrace: Bool = true
+        }
+
+        /// A generic host subclass, whose *class* name carries type parameters even though it is
+        /// developer-authored.
+        private final class GenericHostingController<V: View>: UIHostingController<V> {}
 
         private var mockOTel: MockOTelSignalsHandler!
         private var sessionSpan: EmbraceSpan!
@@ -127,6 +147,77 @@
             XCTAssertTrue(recordedScreens.isEmpty)
         }
 
+        /// The host's class name describes the SwiftUI view tree, not a screen — putting
+        /// `UIHostingController<ModifiedContent<…>>` in the timeline is never the right answer.
+        /// `makeTracker()` blocks nothing, standing in for the config flag that captures hosts being
+        /// turned on: even then the timeline must refuse them.
+        func testAnonymousHostingControllersAreSkippedEvenWhenNotBlocked() {
+            let tracker = makeTracker()
+
+            appear(tracker, UIHostingController(rootView: Text("hi")), startedAt: 0, resumedAt: 1)
+
+            XCTAssertTrue(recordedScreens.isEmpty)
+        }
+
+        /// Naming a host is the developer saying it is a screen, so it is kept.
+        func testANamedHostingControllerIsTracked() {
+            let tracker = makeTracker()
+
+            appear(tracker, NamedHostingController(rootView: Text("hi")), startedAt: 0, resumedAt: 1)
+
+            XCTAssertEqual(recordedScreens, ["CustomName"])
+        }
+
+        /// A developer-authored subclass names itself perfectly well, so the exclusion must not
+        /// catch it. `EmbraceIdentifiableHostingController` is conformed by every subclass, so a
+        /// type-based test would silently drop this — the name is what the rule is about.
+        func testAHostingControllerSubclassWithItsOwnNameIsTracked() {
+            let tracker = makeTracker()
+
+            appear(tracker, CheckoutHostingController(rootView: Text("hi")), startedAt: 0, resumedAt: 1)
+
+            XCTAssertEqual(recordedScreens, ["CheckoutHostingController"])
+        }
+
+        /// Naming a host is an unconditional opt-in. The generic test must not be applied to the
+        /// developer's own string — `<` in a chosen name means nothing to us.
+        func testANamedHostIsKeptEvenWhenItsNameContainsAngleBrackets() {
+            let tracker = makeTracker()
+            let vc = NamedHostingController(rootView: Text("hi"))
+            vc.nameForViewControllerInEmbrace = "Cart <checkout v2>"
+
+            appear(tracker, vc, startedAt: 0, resumedAt: 1)
+
+            XCTAssertEqual(recordedScreens, ["Cart <checkout v2>"])
+        }
+
+        /// A generic subclass still produces a name carrying type parameters, so it stays excluded —
+        /// the customization protocol is its way in.
+        func testAGenericHostSubclassIsStillAnonymous() {
+            let tracker = makeTracker()
+
+            appear(tracker, GenericHostingController(rootView: Text("hi")), startedAt: 0, resumedAt: 1)
+
+            XCTAssertTrue(recordedScreens.isEmpty)
+        }
+
+        /// The host is anonymous, not everything inside it.
+        ///
+        /// Note this is the behaviour *when hosting-controller capture is enabled*: `makeTracker()`
+        /// blocks nothing, standing in for that config. Under the default block list the parent walk
+        /// in `ViewControllerBlockList` excludes this child before the tracker is ever consulted.
+        func testAChildControllerInsideAHostIsStillTracked() {
+            let tracker = makeTracker()
+
+            let host = UIHostingController(rootView: Text("hi"))
+            let child = PlainViewController()
+            host.addChild(child)
+
+            appear(tracker, child, startedAt: 0, resumedAt: 1)
+
+            XCTAssertEqual(recordedScreens, ["PlainViewController"])
+        }
+
         func testControllersOptedOutOfCaptureAreSkipped() {
             let tracker = makeTracker()
             let vc = NamedViewController()
@@ -194,6 +285,347 @@
 
             XCTAssertEqual(recordedScreens.last, Screen.backgrounded.name)
         }
+
+        // MARK: - Screens declared in SwiftUI
+
+        /// Stands in for the `@State` token the view modifier holds. Only its identity matters.
+        private final class Token {}
+
+        private func declareAppearance(
+            _ tracker: ScreenNavigationTracker,
+            _ token: Token,
+            name: String,
+            attributes: EmbraceAttributes = [:],
+            at offset: TimeInterval
+        ) {
+            tracker.onManualScreenAppear(
+                id: ObjectIdentifier(token),
+                name: name,
+                attributes: attributes,
+                at: time(offset)
+            )
+        }
+
+        func testADeclaredScreenIsRecorded() {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: "Settings", at: 0)
+
+            XCTAssertEqual(recordedScreens, ["Settings"])
+        }
+
+        func testDeclaredAttributesLandOnTheTransitionEvent() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(
+                tracker, Token(), name: "ProductDetail", attributes: ["product_id": "42"], at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertEqual(event.attributes["product_id"]?.description, "42")
+            XCTAssertEqual(
+                event.attributes[SpanSemantics.State.keyNewValue]?.description, "ProductDetail")
+        }
+
+        /// The public API cannot forge the framework's own keys, whatever a caller passes.
+        ///
+        /// Deliberately forges a **counter** key. The counters are omitted from the event when their
+        /// count is zero, so nothing overwrites a forged one — they are the keys the reserved-name
+        /// filter actually protects. Asserting on `emb.state.new_value` instead would prove nothing,
+        /// because that key is written after the merge and wins on ordering alone.
+        func testReservedAttributeKeysCannotBeForged() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(
+                tracker,
+                Token(),
+                name: "Settings",
+                attributes: [
+                    SpanSemantics.State.keyNotInSession: "99",
+                    SpanSemantics.State.keyNewValue: "forged"
+                ],
+                at: 0
+            )
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertNil(
+                event.attributes[SpanSemantics.State.keyNotInSession],
+                "a forged counter must not reach the payload")
+            XCTAssertEqual(event.attributes[SpanSemantics.State.keyNewValue]?.description, "Settings")
+        }
+
+        /// One timeline, one span — a declared screen is not a second, parallel stream.
+        func testDeclaredAndAutomaticScreensShareOneTimeline() {
+            let tracker = makeTracker()
+
+            appear(tracker, PlainViewController(), startedAt: 0, resumedAt: 1)
+            declareAppearance(tracker, Token(), name: "Settings", at: 2)
+
+            XCTAssertEqual(recordedScreens, ["PlainViewController", "Settings"])
+            XCTAssertEqual(
+                mockOTel.startedSpans.filter { $0.name == "emb-state-screen-automatic" }.count, 1)
+        }
+
+        /// The reason the modifier reports `onDisappear` at all: a declared screen that never
+        /// reported going away would stay counted as visible and silently stop the *next* screen's
+        /// load time from being backdated.
+        func testADeclaredScreenDisappearingFreesTheVisibleSlot() throws {
+            let tracker = makeTracker()
+            let token = Token()
+
+            declareAppearance(tracker, token, name: "Settings", at: 0)
+            tracker.onManualScreenDisappear(id: ObjectIdentifier(token), name: "Settings", at: time(1))
+
+            appear(tracker, PlainViewController(), startedAt: 2, resumedAt: 9)
+
+            let load = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertEqual(load.timestamp, time(2), "the next screen must still backdate to its start")
+        }
+
+        /// Without a disappearance the overlap rule takes over, which is the behaviour a developer
+        /// gets for a sheet presented over a screen that stays visible underneath.
+        func testADeclaredScreenLeftVisibleSuppressesBackdating() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: "Settings", at: 0)
+            appear(tracker, PlainViewController(), startedAt: 2, resumedAt: 9)
+
+            let load = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertEqual(load.timestamp, time(9), "two screens visible means no backdating")
+        }
+
+        /// A caller must not be able to mint a name the framework gives its own meaning to.
+        ///
+        /// Needs a real screen *before* the declaration, or it proves nothing: with nothing to
+        /// return to, the foreground restore never runs, and the recorder's own value-dedup
+        /// collapses the forged sentinel into the real one so the recorded output is identical
+        /// either way. The harm only becomes visible in the restore and the sentinel's timestamp.
+        func testAScreenDeclaredWithAReservedNameIsRefused() throws {
+            let tracker = makeTracker()
+
+            appear(tracker, PlainViewController(), startedAt: 0, resumedAt: 1)
+            declareAppearance(tracker, Token(), name: Screen.backgrounded.name, at: 5)
+            tracker.appWillBackground(at: time(10))
+            tracker.appDidForeground(at: time(20))
+
+            XCTAssertEqual(
+                recordedScreens,
+                ["PlainViewController", "Backgrounded", "PlainViewController"],
+                "the user's return must survive — a forged sentinel swallows it")
+
+            let sentinel = try XCTUnwrap(
+                stateSpan?.events.first {
+                    $0.attributes[SpanSemantics.State.keyNewValue]?.description == "Backgrounded"
+                })
+            XCTAssertEqual(
+                sentinel.timestamp, time(10),
+                "the sentinel must be the real backgrounding, not the declaration it collided with")
+        }
+
+        /// `Initializing` collides with the state's own default value, so a forged one is silently
+        /// swallowed by value-dedup and merely inflates the dropped counter. That counter is the
+        /// only observable difference, which is what this asserts.
+        func testTheInitializingSentinelIsReservedToo() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: Screen.initializing.name, at: 0)
+            appear(tracker, PlainViewController(), startedAt: 1, resumedAt: 2)
+
+            XCTAssertEqual(recordedScreens, ["PlainViewController"])
+
+            // The counter rides on the next recorded event, not on the span — a declaration that
+            // reached the recorder and was dropped there would show up here.
+            let transition = try XCTUnwrap(
+                stateSpan?.events.first { $0.name == SpanSemantics.State.transitionEventName })
+            XCTAssertNil(
+                transition.attributes[SpanSemantics.State.keyDroppedByInstrumentation],
+                "a refused declaration must never reach the recorder at all")
+        }
+
+        /// Normalization trims first, so a name that is only whitespace arrives here empty. A blank
+        /// name is indistinguishable from an absent one downstream and still spends a transition.
+        func testAScreenDeclaredWithABlankNameIsRefused() {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: "   ", at: 0)
+            declareAppearance(tracker, Token(), name: "", at: 1)
+
+            XCTAssertTrue(recordedScreens.isEmpty)
+        }
+
+        // MARK: - Bounding caller attributes
+
+        /// State spans skip the sanitizer (that exemption is what lets a part record far more than
+        /// the customer event limit), so the bound has to be applied deliberately — otherwise the
+        /// first public API to accept caller attributes ships them unbounded.
+        func testCallerAttributesAreCappedInCount() throws {
+            let tracker = makeTracker()
+
+            var attributes: EmbraceAttributes = [:]
+            for i in 0..<40 {
+                attributes[String(format: "key-%02d", i)] = "v"
+            }
+            declareAppearance(tracker, Token(), name: "Busy", attributes: attributes, at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            let callerKeys = event.attributes.keys.filter { $0.hasPrefix("key-") }
+            XCTAssertEqual(callerKeys.count, 10)
+        }
+
+        func testCallerAttributeValuesAreTruncated() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(
+                tracker, Token(), name: "Long",
+                attributes: ["blob": String(repeating: "x", count: 5_000)], at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertEqual(event.attributes["blob"]?.description.count, 1_024)
+        }
+
+        func testCallerAttributeKeysAreTruncated() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(
+                tracker, Token(), name: "LongKey",
+                attributes: [String(repeating: "k", count: 500): "v"], at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertTrue(event.attributes.keys.contains(String(repeating: "k", count: 128)))
+        }
+
+        /// Matches every other public attribute API in the SDK, which drops non-`String` values in
+        /// `DefaultOtelSignalsSanitizer.sanitizeAttributes`. `EmbraceAttributeValue` admits
+        /// `Int`/`Bool`/`Double` and the payload would serialize them, so this is arguably wrong —
+        /// but it is wrong *consistently*, and diverging here would mean the same call recorded on a
+        /// breadcrumb and on a screen behaved differently. Fix it in the sanitizer or not at all.
+        func testNonStringAttributeValuesAreDropped() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(
+                tracker, Token(), name: "Cart",
+                attributes: ["items": 3, "flag": true, "sku": "abc"], at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertNil(event.attributes["items"])
+            XCTAssertNil(event.attributes["flag"])
+            XCTAssertEqual(event.attributes["sku"]?.description, "abc", "strings still get through")
+        }
+
+        /// The framework's own keys must never be squeezed out by the caller's cap.
+        func testTheContractKeysSurviveAFullCallerBudget() throws {
+            let tracker = makeTracker()
+
+            var attributes: EmbraceAttributes = [:]
+            for i in 0..<40 {
+                attributes["aaa-\(i)"] = "v"
+            }
+            declareAppearance(tracker, Token(), name: "Busy", attributes: attributes, at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            XCTAssertEqual(
+                event.attributes[SpanSemantics.State.keyNewValue]?.description, "Busy",
+                "emb.state.new_value must not compete with caller attributes for the budget")
+        }
+
+        // MARK: - Bounding the screen name
+
+        /// The name is the one caller string nothing downstream bounds — it ships as an attribute
+        /// value on internal spans, which skip sanitization, and is copied onto every log.
+        func testALongScreenNameIsTruncated() throws {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: String(repeating: "N", count: 5_000), at: 0)
+
+            XCTAssertEqual(recordedScreens.first?.count, 128)
+        }
+
+        /// Equality downstream is by name, so an untrimmed name invents navigations the user never
+        /// made — the exact failure the public doc warns about.
+        func testNamesDifferingOnlyByWhitespaceAreOneScreen() {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: "Home", at: 0)
+            declareAppearance(tracker, Token(), name: "Home\n", at: 1)
+            declareAppearance(tracker, Token(), name: "  Home  ", at: 2)
+
+            XCTAssertEqual(recordedScreens, ["Home"], "one screen, not three")
+        }
+
+        /// Normalization runs before the sentinel check, or padding walks straight past it.
+        func testAPaddedReservedNameIsStillRefused() {
+            let tracker = makeTracker()
+
+            declareAppearance(tracker, Token(), name: "  Backgrounded  ", at: 0)
+
+            XCTAssertTrue(recordedScreens.isEmpty)
+        }
+
+        /// The automatic path is exposed to the same unbounded input through the public
+        /// `EmbraceViewControllerCustomization`, so it gets the same treatment.
+        func testACustomViewControllerNameIsAlsoNormalized() {
+            let tracker = makeTracker()
+            let vc = NamedViewController()
+            vc.nameForViewControllerInEmbrace = "  Checkout\n"
+
+            appear(tracker, vc, startedAt: 0, resumedAt: 1)
+
+            XCTAssertEqual(recordedScreens, ["Checkout"])
+        }
+
+        /// The automatic path is exposed to the same collision: a class can be named after a
+        /// sentinel, and `nameForViewControllerInEmbrace` is public API that can return one.
+        func testAViewControllerNamedAfterASentinelIsRefused() throws {
+            let tracker = makeTracker()
+
+            appear(tracker, Initializing(), startedAt: 0, resumedAt: 1)
+            appear(tracker, PlainViewController(), startedAt: 2, resumedAt: 3)
+
+            XCTAssertEqual(recordedScreens, ["PlainViewController"])
+
+            // Asserting only on what was recorded proves nothing here: a screen colliding with the
+            // state's own default value is swallowed by value-dedup whether or not the guard runs.
+            // Reaching the recorder at all is the observable difference.
+            let transition = try XCTUnwrap(
+                stateSpan?.events.first { $0.name == SpanSemantics.State.transitionEventName })
+            XCTAssertNil(transition.attributes[SpanSemantics.State.keyDroppedByInstrumentation])
+        }
+
+        /// The severe case: without the guard the forged value collides with the real backgrounding,
+        /// and the whole background/foreground cycle disappears from the timeline.
+        func testACustomNameCannotMintTheBackgroundedSentinel() {
+            let tracker = makeTracker()
+            let vc = NamedViewController()
+            vc.nameForViewControllerInEmbrace = "Backgrounded"
+
+            appear(tracker, PlainViewController(), startedAt: 0, resumedAt: 1)
+            appear(tracker, vc, startedAt: 2, resumedAt: 3)
+            tracker.appWillBackground(at: time(10))
+            tracker.appDidForeground(at: time(20))
+
+            XCTAssertEqual(
+                recordedScreens,
+                ["PlainViewController", "Backgrounded", "PlainViewController"],
+                "the real background/foreground cycle must survive a colliding screen name")
+        }
+
+        /// The public doc promises that past the count limit the survivors are "chosen in sorted key
+        /// order". Asserting only how many survive leaves that promise unpinned — the same call
+        /// could ship a different subset run to run and nothing would notice.
+        func testWhichAttributesSurviveTheCapIsSortedByKey() throws {
+            let tracker = makeTracker()
+
+            var attributes: EmbraceAttributes = [:]
+            for i in 0..<20 {
+                attributes[String(format: "k%02d", i)] = "v"
+            }
+            declareAppearance(tracker, Token(), name: "Busy", attributes: attributes, at: 0)
+
+            let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
+            let survivors = event.attributes.keys.filter { $0.hasPrefix("k") }.sorted()
+
+            XCTAssertEqual(survivors, (0..<10).map { String(format: "k%02d", $0) })
+        }
+
     }
 
 #endif

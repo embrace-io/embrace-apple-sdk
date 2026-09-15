@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceSemantics
 import XCTest
 
 @testable import EmbraceCore
@@ -17,15 +18,15 @@ final class NavigationEventBrokerTests: XCTestCase {
     private final class Container {}
 
     private var broker: NavigationEventBroker!
-    private var loads: [(time: Date, name: String)] = []
+    private var loads: [(time: Date, name: String, attributes: EmbraceAttributes)] = []
 
     private let origin = Date(timeIntervalSince1970: 1_000)
 
     override func setUp() {
         super.setUp()
         loads = []
-        broker = NavigationEventBroker { [weak self] time, name in
-            self?.loads.append((time, name))
+        broker = NavigationEventBroker { [weak self] time, name, attributes in
+            self?.loads.append((time, name, attributes))
         }
     }
 
@@ -362,4 +363,220 @@ final class NavigationEventBrokerTests: XCTestCase {
         XCTAssertEqual(loads[0].time, time(1), "Detail backdates to its own start")
         XCTAssertEqual(loads[1].time, time(0), "Home backdates to its own start")
     }
+
+    // MARK: - Caller attributes
+
+    /// Attributes travel with the screen they were declared on, and only that one.
+    func testAttributesAreCarriedThroughToTheEmission() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "ProductDetail", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "ProductDetail", at: time(1), attributes: ["product_id": "42"]))
+
+        let emitted = try XCTUnwrap(loads.first)
+        XCTAssertEqual(emitted.attributes["product_id"]?.description, "42")
+    }
+
+    func testAutomaticScreensCarryNoAttributes() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "Home", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "Home", at: time(1)))
+
+        XCTAssertTrue(try XCTUnwrap(loads.first).attributes.isEmpty)
+    }
+
+    /// The dedup gate is `(container, screen)`. A view re-appearing with changed metadata is still
+    /// the screen the user is already on, so it must not record a second transition — otherwise any
+    /// screen whose attributes track live data would emit on every re-appearance.
+    func testAChangedAttributeAloneDoesNotPassTheDedupGate() {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "Cart", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "Cart", at: time(1), attributes: ["total": "10"]))
+        broker.handle(.started(id(vc), name: "Cart", at: time(2)))
+        broker.handle(.resumed(id(vc), name: "Cart", at: time(3), attributes: ["total": "20"]))
+
+        XCTAssertEqual(names, ["Cart"], "an attribute change is not a navigation")
+    }
+
+    /// A restore replays the screen the user was on, so it has to replay what that screen was
+    /// declared with too — a restored transition stripped of its metadata would not match the
+    /// original one it is standing in for.
+    func testForegroundRestoreReplaysTheAttributes() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "ProductDetail", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "ProductDetail", at: time(1), attributes: ["product_id": "42"]))
+        broker.handle(.backgrounded(at: time(2)))
+        broker.handle(.foregrounded(at: time(3)))
+
+        XCTAssertEqual(names, ["ProductDetail", "Backgrounded", "ProductDetail"])
+        XCTAssertEqual(loads[2].attributes["product_id"]?.description, "42")
+    }
+
+    /// Pins the choice documented on `Emission.attributes`: a re-declaration the dedup gate
+    /// suppressed still updates what a later restore replays. Without this, the `defer` in `emit`
+    /// looks like an accident and someone will "fix" it.
+    func testRestoreReplaysTheMostRecentDeclarationEvenIfItWasSuppressed() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "Cart", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "Cart", at: time(1), attributes: ["total": "10"]))
+        // Same screen, fresher metadata — suppressed by the gate, emits nothing.
+        broker.handle(.started(id(vc), name: "Cart", at: time(2)))
+        broker.handle(.resumed(id(vc), name: "Cart", at: time(3), attributes: ["total": "20"]))
+        broker.handle(.backgrounded(at: time(4)))
+        broker.handle(.foregrounded(at: time(5)))
+
+        XCTAssertEqual(names, ["Cart", "Backgrounded", "Cart"])
+        XCTAssertEqual(
+            loads[2].attributes["total"]?.description, "20",
+            "the restore describes the screen as it stands now, not as it last shipped")
+    }
+
+    func testTheBackgroundedSentinelCarriesNoAttributes() throws {
+        let vc = Container()
+
+        broker.handle(.started(id(vc), name: "ProductDetail", at: time(0)))
+        broker.handle(.resumed(id(vc), name: "ProductDetail", at: time(1), attributes: ["product_id": "42"]))
+        broker.handle(.backgrounded(at: time(2)))
+
+        XCTAssertEqual(loads[1].name, "Backgrounded")
+        XCTAssertTrue(loads[1].attributes.isEmpty, "the sentinel is not the declared screen")
+    }
+
+    // MARK: - Recovery at the background boundary
+
+    /// A screen that never pauses would otherwise hold `visibleScreens` above one forever, silently
+    /// disabling backdating for every later screen. Backgrounding is a point where we know nothing
+    /// is visible, so it recovers.
+    func testBackgroundingClearsAStrandedVisibleScreen() throws {
+        let leaked = Container()
+        broker.handle(.started(id(leaked), name: "Leaked", at: time(0)))
+        broker.handle(.resumed(id(leaked), name: "Leaked", at: time(1)))
+        // no pause for `leaked` — it is stranded
+
+        broker.handle(.backgrounded(at: time(5)))
+        broker.handle(.foregrounded(at: time(6)))
+
+        // A later screen must get its load backdated to when it started appearing.
+        let next = Container()
+        broker.handle(.started(id(next), name: "Home", at: time(10)))
+        broker.handle(.resumed(id(next), name: "Home", at: time(20)))
+
+        let home = try XCTUnwrap(loads.last)
+        XCTAssertEqual(home.name, "Home")
+        XCTAssertEqual(home.time, time(10), "backdating must recover after a background")
+    }
+
+    /// The same boundary clears pending start times, so an address reused by a later object cannot
+    /// inherit a dead screen's timestamp.
+    func testBackgroundingClearsAPendingStartTime() throws {
+        let vc = Container()
+        broker.handle(.started(id(vc), name: "Pending", at: time(0)))
+
+        broker.handle(.backgrounded(at: time(5)))
+        broker.handle(.foregrounded(at: time(6)))
+
+        // Same id, appearing for real now: it must not backdate to the pre-background start.
+        broker.handle(.started(id(vc), name: "Pending", at: time(10)))
+        broker.handle(.resumed(id(vc), name: "Pending", at: time(11)))
+
+        XCTAssertEqual(try XCTUnwrap(loads.last).time, time(10))
+    }
+
+    // MARK: - Uncovering a screen underneath
+
+    /// A sheet does not cover what it sits on, so the screen beneath stays visible and is never
+    /// re-declared on dismissal. Without this the timeline sits on the dismissed sheet.
+    func testDismissingASheetReturnsToTheScreenBeneathIt() throws {
+        let home = Container()
+        let sheet = Container()
+
+        broker.handle(.started(id(home), name: "Home", at: time(0)))
+        broker.handle(.resumed(id(home), name: "Home", at: time(1)))
+        broker.handle(.started(id(sheet), name: "Sheet", at: time(5)))
+        broker.handle(.resumed(id(sheet), name: "Sheet", at: time(6)))
+        broker.handle(.paused(id(sheet), name: "Sheet", at: time(10)))
+
+        XCTAssertEqual(names, ["Home", "Sheet", "Home"])
+        XCTAssertEqual(loads.last?.time, time(10), "the reveal is timed at the dismissal")
+    }
+
+    /// The revealed screen keeps the metadata it was declared with.
+    func testARevealedScreenKeepsItsAttributes() throws {
+        let home = Container()
+        let sheet = Container()
+
+        broker.handle(.started(id(home), name: "Home", at: time(0)))
+        broker.handle(.resumed(id(home), name: "Home", at: time(1), attributes: ["tier": "gold"]))
+        broker.handle(.started(id(sheet), name: "Sheet", at: time(5)))
+        broker.handle(.resumed(id(sheet), name: "Sheet", at: time(6)))
+        broker.handle(.paused(id(sheet), name: "Sheet", at: time(10)))
+
+        XCTAssertEqual(loads.last?.attributes["tier"]?.description, "gold")
+    }
+
+    /// A full-screen presentation *does* pause the presenter, so it leaves the visible set and its
+    /// own resume emits it. The reveal must not also fire, or the screen appears twice.
+    func testDismissingAFullScreenPresentationDoesNotDoubleEmit() {
+        let home = Container()
+        let modal = Container()
+
+        broker.handle(.started(id(home), name: "Home", at: time(0)))
+        broker.handle(.resumed(id(home), name: "Home", at: time(1)))
+        broker.handle(.started(id(modal), name: "Modal", at: time(5)))
+        broker.handle(.resumed(id(modal), name: "Modal", at: time(6)))
+        broker.handle(.paused(id(home), name: "Home", at: time(7)))
+
+        // Dismissal: the modal pauses and Home re-appears for real.
+        broker.handle(.started(id(home), name: "Home", at: time(10)))
+        broker.handle(.resumed(id(home), name: "Home", at: time(11)))
+        broker.handle(.paused(id(modal), name: "Modal", at: time(12)))
+
+        XCTAssertEqual(names, ["Home", "Modal", "Home"], "Home must appear once on the way back")
+    }
+
+    func testPausingWithNothingUnderneathEmitsNothing() {
+        let only = Container()
+        broker.handle(.started(id(only), name: "Only", at: time(0)))
+        broker.handle(.resumed(id(only), name: "Only", at: time(1)))
+        broker.handle(.paused(id(only), name: "Only", at: time(2)))
+
+        XCTAssertEqual(names, ["Only"])
+    }
+
+    /// More than one still visible means a transition is in flight and which is frontmost is
+    /// ambiguous — the resume that follows will say.
+    func testPausingDuringATransitionLeavesTheResumeToEmit() {
+        let a = Container()
+        let b = Container()
+        let c = Container()
+        for (vc, name) in [(a, "A"), (b, "B"), (c, "C")] {
+            broker.handle(.started(id(vc), name: name, at: time(0)))
+            broker.handle(.resumed(id(vc), name: name, at: time(1)))
+        }
+        broker.handle(.paused(id(c), name: "C", at: time(5)))
+
+        XCTAssertEqual(names, ["A", "B", "C"], "no guess while two remain visible")
+    }
+
+    /// A pause arriving after the app backgrounded must not hand the timeline back to a screen —
+    /// the user is not looking at anything.
+    func testAPauseAfterBackgroundingDoesNotReveal() {
+        let home = Container()
+        let sheet = Container()
+
+        broker.handle(.started(id(home), name: "Home", at: time(0)))
+        broker.handle(.resumed(id(home), name: "Home", at: time(1)))
+        broker.handle(.started(id(sheet), name: "Sheet", at: time(5)))
+        broker.handle(.resumed(id(sheet), name: "Sheet", at: time(6)))
+
+        broker.handle(.backgrounded(at: time(10)))
+        broker.handle(.paused(id(sheet), name: "Sheet", at: time(11)))
+
+        XCTAssertEqual(names, ["Home", "Sheet", "Backgrounded"], "nothing is revealed while backgrounded")
+    }
+
 }
