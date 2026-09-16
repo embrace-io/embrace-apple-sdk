@@ -99,7 +99,28 @@ class DefaultEmbraceSpan: EmbraceSpan {
         }
     }
 
+    /// Returns whether this span has already ended, and therefore no longer accepts changes.
+    ///
+    /// A span that ends becomes a completed record: its status, attributes, events and links are
+    /// fixed from that point on. This mirrors the OpenTelemetry behavior, where a span stops
+    /// recording once it ends. Without it, a late change would reach the copy Embrace stores and
+    /// uploads while being silently refused by the OpenTelemetry pipeline, leaving the two
+    /// descriptions of the same span disagreeing.
+    var hasEnded: Bool {
+        state.safeValue.endTime != nil
+    }
+
+    /// Reports a change that was dropped because the span had already ended.
+    func logIgnoredMutation(_ description: String) {
+        Embrace.logger.warning("Ignoring \(description) on span '\(self.name)': the span already ended.")
+    }
+
     func setStatus(_ status: EmbraceSpanStatus) {
+        guard !hasEnded else {
+            logIgnoredMutation("status update")
+            return
+        }
+
         state.safeValue.status = status
         handler?.onSpanStatusUpdated(self, status: status)
     }
@@ -136,6 +157,11 @@ class DefaultEmbraceSpan: EmbraceSpan {
         isInternal: Bool,
         isSessionEvent: Bool = false
     ) throws -> EmbraceSpanEvent? {
+
+        guard !hasEnded else {
+            logIgnoredMutation("event '\(name)'")
+            return nil
+        }
 
         let event: EmbraceSpanEvent
 
@@ -191,6 +217,11 @@ class DefaultEmbraceSpan: EmbraceSpan {
             return nil
         }
 
+        guard !hasEnded else {
+            logIgnoredMutation("link")
+            return nil
+        }
+
         let currentCount = state.withLock {
             $0.links.count - $0.internalLinkCount
         }
@@ -231,6 +262,11 @@ class DefaultEmbraceSpan: EmbraceSpan {
             return
         }
 
+        guard !hasEnded else {
+            logIgnoredMutation("attribute '\(key)'")
+            return
+        }
+
         var attribute: (String, EmbraceAttributeValue?) = (key, value)
 
         // apply limits?
@@ -265,7 +301,22 @@ class DefaultEmbraceSpan: EmbraceSpan {
     }
 
     func end(endTime: Date) {
-        self.endTime = endTime
+        // Claiming the end time and checking for a previous one happen together, so that two
+        // threads ending the same span concurrently can't both notify the handler.
+        let alreadyEnded = state.withLock { data -> Bool in
+            guard data.endTime == nil else {
+                return true
+            }
+
+            data.endTime = endTime
+            return false
+        }
+
+        guard !alreadyEnded else {
+            logIgnoredMutation("end")
+            return
+        }
+
         handler?.onSpanEnded(self, endTime: endTime)
     }
 

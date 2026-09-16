@@ -20,10 +20,20 @@ class DefaultEmbraceSpanTests: XCTestCase {
         handler = nil
     }
 
+    /// An open span. Spans stop accepting changes once they end, so the default fixture has to be
+    /// open for any test that mutates it.
     var testSpan: DefaultEmbraceSpan {
+        makeTestSpan()
+    }
+
+    /// A span that is already ended, for the tests that need one.
+    var endedTestSpan: DefaultEmbraceSpan {
+        makeTestSpan(endTime: Date(timeIntervalSince1970: 2))
+    }
+
+    func makeTestSpan(endTime: Date? = nil) -> DefaultEmbraceSpan {
         let context = EmbraceSpanContext(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
         let startTime = Date(timeIntervalSince1970: 1)
-        let endTime = Date(timeIntervalSince1970: 2)
         let event = EmbraceSpanEvent(name: "event")
         let link = EmbraceSpanLink(spanId: "spanId", traceId: "traceId")
 
@@ -48,7 +58,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
 
     func test_init() {
         // when initializing a span
-        let span = testSpan
+        let span = endedTestSpan
 
         // then the values are stored correctly
         XCTAssertEqual(span.context.spanId, TestConstants.spanId)
@@ -493,5 +503,107 @@ class DefaultEmbraceSpanTests: XCTestCase {
         // and the handler is notified
         XCTAssertNotNil(span.endTime)
         XCTAssertEqual(handler.onSpanEndedCallCount, 1)
+    }
+
+    // MARK: ended spans reject changes
+
+    func test_end_secondCallIsIgnored() throws {
+        // given a span that already ended
+        let span = testSpan
+        let endTime = Date(timeIntervalSince1970: 9)
+        span.end(endTime: endTime)
+
+        // when ending it again
+        span.end(endTime: Date(timeIntervalSince1970: 20))
+
+        // then the original end time is kept and the handler is not notified again
+        XCTAssertEqual(span.endTime, endTime)
+        XCTAssertEqual(handler.onSpanEndedCallCount, 1)
+    }
+
+    func test_setStatus_afterEnd_isIgnored() throws {
+        // given a span that ended with a status
+        let span = testSpan
+        span.setStatus(.ok)
+        span.end()
+
+        // when updating the status afterwards
+        span.setStatus(.error)
+
+        // then the status is unchanged and nothing is written through
+        XCTAssertEqual(span.status, .ok)
+        XCTAssertEqual(handler.onSpanStatusUpdatedCallCount, 1)
+    }
+
+    func test_setAttribute_afterEnd_isIgnored() throws {
+        // given a span that ended
+        let span = testSpan
+        span.end()
+
+        // when setting an attribute afterwards
+        span.setAttribute(key: "key", value: "value")
+
+        // then it isn't stored and nothing is written through
+        XCTAssertNil(span.attributes["key"])
+        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 0)
+    }
+
+    func test_addEvent_afterEnd_isIgnored() throws {
+        // given a span that ended
+        let span = testSpan
+        let eventCount = span.events.count
+        span.end()
+
+        // when adding an event afterwards
+        let result = span.addEvent(name: "newEvent")
+
+        // then nothing is added and nothing is written through
+        XCTAssertNil(result)
+        XCTAssertEqual(span.events.count, eventCount)
+        XCTAssertEqual(handler.onSpanEventAddedCallCount, 0)
+    }
+
+    func test_addLink_afterEnd_isIgnored() throws {
+        // given a span that ended
+        let span = testSpan
+        let linkCount = span.links.count
+        span.end()
+
+        // when adding a link afterwards
+        let result = span.addLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
+
+        // then nothing is added and nothing is written through
+        XCTAssertNil(result)
+        XCTAssertEqual(span.links.count, linkCount)
+        XCTAssertEqual(handler.onSpanLinkAddedCallCount, 0)
+    }
+
+    func test_endWithErrorCode_afterEnd_keepsTheOriginalOutcome() throws {
+        // given a span that ended successfully
+        let span = testSpan
+        span.end(errorCode: nil, endTime: Date(timeIntervalSince1970: 9))
+
+        // when ending it again with an error code, as auto termination would
+        span.end(errorCode: .userAbandon, endTime: Date(timeIntervalSince1970: 20))
+
+        // then the span is still reported as successful
+        XCTAssertEqual(span.status, .ok)
+        XCTAssertNil(span.attributes[SpanSemantics.keyErrorCode])
+        XCTAssertEqual(span.endTime, Date(timeIntervalSince1970: 9))
+        XCTAssertEqual(handler.onSpanEndedCallCount, 1)
+    }
+
+    func test_spanCreatedWithEndTime_rejectsChanges() throws {
+        // given a span created already ended
+        let span = endedTestSpan
+
+        // when trying to change it
+        span.setAttribute(key: "key", value: "value")
+        span.setStatus(.ok)
+
+        // then nothing is written through
+        XCTAssertNil(span.attributes["key"])
+        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 0)
+        XCTAssertEqual(handler.onSpanStatusUpdatedCallCount, 0)
     }
 }

@@ -206,15 +206,19 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
 
     // ends all the cached auto-termination spans
     func autoTerminateSpans() {
-        cache.withLock {
-            let now = Date()
-
-            for span in $0.autoTerminationSpans.values {
-                let code = span.autoTerminationCode ?? .unknown
-                span.end(errorCode: code, endTime: now)
-            }
-
+        // The spans are taken out of the cache before being ended, not while holding the lock:
+        // ending one calls back into `onSpanEnded`, which needs the same lock to drop the span
+        // it just ended.
+        let spans = cache.withLock {
+            let spans = Array($0.autoTerminationSpans.values)
             $0.autoTerminationSpans.removeAll()
+            return spans
+        }
+
+        let now = Date()
+        for span in spans {
+            let code = span.autoTerminationCode ?? .unknown
+            span.end(errorCode: code, endTime: now)
         }
 
         limiter.reset()
@@ -312,6 +316,14 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
     }
 
     func onSpanEnded(_ span: any EmbraceSpan, endTime: Date) {
+        // A span that ended on its own must not be auto terminated when the session ends: that
+        // would stamp an error code and an error status on a span that already completed, and
+        // would report it as failed. Dropping it here also keeps the cache from holding every
+        // auto terminating span for the whole session.
+        cache.withLock {
+            $0.autoTerminationSpans[span.context.spanId] = nil
+        }
+
         bridge.endSpan(span, endTime: endTime)
         storage?.endSpan(id: span.context.spanId, traceId: span.context.traceId, endTime: endTime)
     }

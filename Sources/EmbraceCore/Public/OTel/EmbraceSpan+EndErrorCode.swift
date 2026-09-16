@@ -16,6 +16,13 @@ extension EmbraceSpan {
     ///   - errorCode: Error code for the span
     ///   - endTime: Time when the span ended
     public func end(errorCode: EmbraceSpanErrorCode? = nil, endTime: Date = Date()) {
+        // A span that already ended keeps the status and error code it ended with. Returning here
+        // rather than letting each step be refused on its own keeps a single call from reporting
+        // the same thing three times.
+        guard self.endTime == nil else {
+            return
+        }
+
         if let errorCode {
             setInternalAttribute(key: SpanSemantics.keyErrorCode, value: errorCode.name)
             setStatus(.error)
