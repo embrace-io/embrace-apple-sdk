@@ -70,7 +70,7 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
         var count = 0
 
         for key in sortedKeys {
-            guard let value = attributes[key] as? String else {
+            guard let value = attributes[key] else {
                 continue
             }
 
