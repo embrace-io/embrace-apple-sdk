@@ -4,6 +4,7 @@
 
 import EmbraceConfiguration
 import EmbraceSemantics
+import OpenTelemetrySdk
 import TestSupport
 import XCTest
 
@@ -44,5 +45,74 @@ class EmbraceIOOptionsTests: XCTestCase {
         // and the provided configuration is retained
         let stored = try XCTUnwrap(options.runtimeConfiguration as? MockEmbraceConfigurable)
         XCTAssertTrue(stored === config)
+    }
+
+    // MARK: OTelOptions — signal consumers
+
+    func test_otelOptions_withNoProcessorsOrExporters_hasNoSignalConsumers() {
+        XCTAssertFalse(EmbraceIO.OTelOptions().hasSignalConsumers)
+    }
+
+    func test_otelOptions_withOnlyAResource_hasNoSignalConsumers() {
+        // a resource customizes the data the SDK generates, it doesn't consume signals
+        let options = EmbraceIO.OTelOptions(resource: Resource(attributes: ["key": .string("value")]))
+
+        XCTAssertFalse(options.hasSignalConsumers)
+        XCTAssertNotNil(options.resource)
+    }
+
+    func test_otelOptions_withASpanExporter_hasSignalConsumers() {
+        let options = EmbraceIO.OTelOptions(spanExporters: [InMemorySpanExporter()])
+
+        XCTAssertTrue(options.hasSignalConsumers)
+    }
+
+    func test_otelOptions_withASpanProcessor_hasSignalConsumers() {
+        let options = EmbraceIO.OTelOptions(spanProcessors: [MockSpanProcessor()])
+
+        XCTAssertTrue(options.hasSignalConsumers)
+    }
+
+    func test_otelOptions_withALogExporter_hasSignalConsumers() {
+        let options = EmbraceIO.OTelOptions(logExporters: [InMemoryLogRecordExporter()])
+
+        XCTAssertTrue(options.hasSignalConsumers)
+    }
+
+    // MARK: OTel bridge creation
+
+    func test_makeOTelBridge_withNoOTelOptions_returnsNil() {
+        XCTAssertNil(EmbraceIO.makeOTelBridge(for: nil, resource: Resource()))
+    }
+
+    func test_makeOTelBridge_withEmptyOTelOptions_returnsNil() {
+        // nothing would consume the signals, so the OTel SDK is never initialized
+        let options = EmbraceIO.OTelOptions()
+
+        XCTAssertNil(EmbraceIO.makeOTelBridge(for: options, resource: Resource()))
+    }
+
+    func test_makeOTelBridge_withOnlyAResource_returnsNil() {
+        let options = EmbraceIO.OTelOptions(resource: Resource(attributes: ["key": .string("value")]))
+
+        XCTAssertNil(EmbraceIO.makeOTelBridge(for: options, resource: Resource()))
+    }
+
+    func test_makeOTelBridge_withASpanExporter_returnsABridge() {
+        let options = EmbraceIO.OTelOptions(spanExporters: [InMemorySpanExporter()])
+
+        XCTAssertNotNil(EmbraceIO.makeOTelBridge(for: options, resource: Resource()))
+    }
+
+    func test_makeOTelBridge_withALogExporter_returnsABridge() {
+        let options = EmbraceIO.OTelOptions(logExporters: [InMemoryLogRecordExporter()])
+
+        XCTAssertNotNil(EmbraceIO.makeOTelBridge(for: options, resource: Resource()))
+    }
+
+    func test_makeOTelBridge_withASpanProcessor_returnsABridge() {
+        let options = EmbraceIO.OTelOptions(spanProcessors: [MockSpanProcessor()])
+
+        XCTAssertNotNil(EmbraceIO.makeOTelBridge(for: options, resource: Resource()))
     }
 }

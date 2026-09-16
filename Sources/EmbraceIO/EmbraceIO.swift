@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     @_exported import EmbraceCore
@@ -79,17 +80,7 @@ public class EmbraceIO {
         // Consturct OTel resources
         let otelResources = EmbraceDefaultResources.build(merging: options.otel?.resource)
 
-        // Create the OTel bridge from the OTel options if provided.
-        var bridge: EmbraceOTelBridge?
-        if let otelOptions = options.otel {
-            bridge = EmbraceOTelBridge(
-                resource: otelResources,
-                spanProcessors: [otelOptions.spanProcessor],
-                spanExporters: [otelOptions.spanExporter],
-                logProcessors: [otelOptions.logProcessor],
-                logExporters: [otelOptions.logExporter]
-            )
-        }
+        let bridge = makeOTelBridge(for: options.otel, resource: otelResources)
 
         if let internalOptions = Embrace.Options.from(options: options, bridge: bridge) {
             try Embrace.setup(options: internalOptions, otelResources: otelResources.toEmbraceAttributes())
@@ -106,6 +97,33 @@ public class EmbraceIO {
         }
 
         try EmbraceIO.shared._start()
+    }
+
+    /// Builds the bridge that connects the Embrace SDK to the OpenTelemetry SDK, if the given
+    /// options call for one.
+    ///
+    /// Options that carry no processors and no exporters produce no bridge, leaving the
+    /// OpenTelemetry SDK uninitialized: the pipeline would do work for every signal the SDK
+    /// generates and nothing would be listening at the end of it. A custom resource alone doesn't
+    /// call for a bridge either, since resources are applied to the data the Embrace SDK generates
+    /// regardless of whether one exists.
+    ///
+    /// - Parameters:
+    ///   - options: The OpenTelemetry options the SDK was started with, if any.
+    ///   - resource: The resources to attach to the signals sent through the bridge.
+    /// - Returns: The bridge to use, or `nil` when nothing would consume its signals.
+    static func makeOTelBridge(for options: EmbraceIO.OTelOptions?, resource: Resource) -> EmbraceOTelBridge? {
+        guard let options, options.hasSignalConsumers else {
+            return nil
+        }
+
+        return EmbraceOTelBridge(
+            resource: resource,
+            spanProcessors: [options.spanProcessor],
+            spanExporters: [options.spanExporter],
+            logProcessors: [options.logProcessor],
+            logExporters: [options.logExporter]
+        )
     }
 
     private func _start() throws {
