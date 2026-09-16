@@ -189,6 +189,67 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         XCTAssertEqual(mockDelegate.emittedLogs.count, 0)
     }
 
+    // MARK: - createLog internal ID lifetime
+
+    func test_createLog_doesNotRetainInternalLogId() {
+        bridge.createLog(MockEmbraceLog())
+        XCTAssertTrue(bridge.inFlightInternalLogIds.isEmpty)
+    }
+
+    func test_createLog_repeated_doesNotAccumulateInternalLogIds() {
+        for _ in 0..<1000 {
+            bridge.createLog(MockEmbraceLog())
+        }
+        XCTAssertTrue(bridge.inFlightInternalLogIds.isEmpty)
+    }
+
+    func test_createLog_repeated_stillSkipsDelegateAndExportsOnce() {
+        for _ in 0..<100 {
+            bridge.createLog(MockEmbraceLog())
+        }
+        // Each log reaches the exporter exactly once and none of them is treated as external.
+        XCTAssertEqual(logExporter.exportedLogs.count, 100)
+        XCTAssertEqual(mockDelegate.emittedLogs.count, 0)
+    }
+
+    func test_isInternalLog_logNotCreatedByBridge_isExternal() {
+        let external = makeReadableLogRecord(id: "not-created-by-the-bridge")
+        XCTAssertFalse(bridge.isInternalLog(external))
+    }
+
+    func test_isInternalLog_logWithoutIdAttribute_isExternal() {
+        let external = makeReadableLogRecord(id: nil)
+        XCTAssertFalse(bridge.isInternalLog(external))
+    }
+
+    func test_createLog_concurrent_allLogsAreInternalAndNoIdsAreRetained() {
+        let delegate = ThreadSafeMockOTelDelegate()
+        let exporter = ThreadSafeMockLogExporter()
+        let bridge = EmbraceOTelBridge(logExporters: [exporter])
+        bridge.setup(delegate: delegate, metadataProvider: mockMetadata)
+
+        DispatchQueue.concurrentPerform(iterations: 100) { _ in
+            bridge.createLog(MockEmbraceLog())
+        }
+
+        XCTAssertEqual(exporter.exportedLogs.count, 100)
+        XCTAssertEqual(delegate.emittedLogs.count, 0)
+        XCTAssertTrue(bridge.inFlightInternalLogIds.isEmpty)
+    }
+
+    private func makeReadableLogRecord(id: String?) -> ReadableLogRecord {
+        var attributes: [String: AttributeValue] = [:]
+        if let id {
+            attributes[LogSemantics.keyId] = .string(id)
+        }
+        return ReadableLogRecord(
+            resource: Resource(),
+            instrumentationScopeInfo: InstrumentationScopeInfo(name: "test"),
+            timestamp: Date(),
+            attributes: attributes
+        )
+    }
+
     // MARK: - updateSpanStatus
 
     func test_updateSpanStatus_changesUnderlyingOtelSpanStatus() {
@@ -459,6 +520,28 @@ class MockLogExporter: LogRecordExporter {
 
     func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
         exportedLogs.append(contentsOf: logRecords)
+        return .success
+    }
+
+    func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult { .success }
+    func shutdown(explicitTimeout: TimeInterval?) {}
+}
+
+class ThreadSafeMockOTelDelegate: EmbraceOTelDelegate {
+    private let logs = EmbraceMutex([EmbraceLog]())
+    var emittedLogs: [EmbraceLog] { logs.withLock { $0 } }
+
+    func onStartSpan(_ span: EmbraceSpan) {}
+    func onEndSpan(_ span: EmbraceSpan) {}
+    func onEmitLog(_ log: EmbraceLog) { logs.withLock { $0.append(log) } }
+}
+
+class ThreadSafeMockLogExporter: LogRecordExporter {
+    private let logs = EmbraceMutex([ReadableLogRecord]())
+    var exportedLogs: [ReadableLogRecord] { logs.withLock { $0 } }
+
+    func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
+        logs.withLock { $0.append(contentsOf: logRecords) }
         return .success
     }
 
