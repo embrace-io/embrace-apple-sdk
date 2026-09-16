@@ -399,6 +399,110 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         XCTAssertEqual(spanProcessor.endedSpans.first?.parentSpanId?.hexString, parentSpanId)
     }
 
+    // MARK: - Ambient active span
+
+    func test_startSpan_withoutParent_ignoresTheActiveSpan() {
+        // given an unrelated span active on the shared OTel context, as any other OTel user in
+        // the app could have
+        let ambientTracer = TracerProviderSdk().get(instrumentationName: "ambient")
+        let ambientSpan = ambientTracer.spanBuilder(spanName: "ambient").startSpan()
+
+        let ctx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
+            // when creating a span with no parent
+            bridge.startSpan(
+                name: "root",
+                parentSpan: nil,
+                status: .unset,
+                startTime: Date(),
+                endTime: nil,
+                events: [],
+                links: [],
+                attributes: [:]
+            )
+        }
+        ambientSpan.end()
+
+        // then it starts its own trace instead of joining the active one
+        XCTAssertNotEqual(ctx.traceId, ambientSpan.context.traceId.hexString)
+
+        let mockSpan = MockEmbraceSpan(spanId: ctx.spanId, traceId: ctx.traceId)
+        bridge.endSpan(mockSpan, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.contains { $0.name == "root" } }
+        let spanData = spanProcessor.endedSpans.first { $0.name == "root" }
+        XCTAssertNil(spanData?.parentSpanId)
+    }
+
+    func test_startSpan_withExplicitParent_isUnaffectedByTheActiveSpan() {
+        let ambientTracer = TracerProviderSdk().get(instrumentationName: "ambient")
+        let ambientSpan = ambientTracer.spanBuilder(spanName: "ambient").startSpan()
+
+        let parentCtx = bridge.startSpan(
+            name: "parent",
+            parentSpan: nil,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+        let parentMock = MockEmbraceSpan(spanId: parentCtx.spanId, traceId: parentCtx.traceId)
+
+        // when creating a child while an unrelated span is active
+        let childCtx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
+            bridge.startSpan(
+                name: "child",
+                parentSpan: parentMock,
+                status: .unset,
+                startTime: Date(),
+                endTime: nil,
+                events: [],
+                links: [],
+                attributes: [:]
+            )
+        }
+        ambientSpan.end()
+
+        // then the requested parent still wins
+        XCTAssertEqual(childCtx.traceId, parentCtx.traceId)
+        XCTAssertNotEqual(childCtx.traceId, ambientSpan.context.traceId.hexString)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.contains { $0.name == "child" } }
+        let childData = spanProcessor.endedSpans.first { $0.name == "child" }
+        XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
+    }
+
+    func test_startSpan_withoutParent_outsideAnyScope_startsItsOwnTrace() {
+        let first = bridge.startSpan(
+            name: "first",
+            parentSpan: nil,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+        let second = bridge.startSpan(
+            name: "second",
+            parentSpan: nil,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        XCTAssertTrue(TraceId(fromHexString: first.traceId).isValid)
+        XCTAssertTrue(TraceId(fromHexString: second.traceId).isValid)
+        XCTAssertNotEqual(first.traceId, second.traceId)
+    }
+
     func test_startSpan_withLinkShorterThanASpanId_doesNotTrap() {
         // `SpanId(fromHexString:)` traps on strings shorter than 16 characters, so a link the
         // bridge can't use has to be discarded before it reaches that initializer.

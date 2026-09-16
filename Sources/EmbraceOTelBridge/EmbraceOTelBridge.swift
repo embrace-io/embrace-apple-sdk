@@ -121,7 +121,13 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
     ) -> EmbraceSpanContext {
         var builder = tracer.spanBuilder(spanName: name).setStartTime(time: startTime)
 
-        // Set parent via cached OTel span or reconstructed SpanContext.
+        // Parentage is always stated explicitly, never left to the builder's default.
+        //
+        // A span builder with no parent set resolves one from the currently active span, which
+        // lives in a process-wide store shared with every other OpenTelemetry user in the app.
+        // Leaving that to chance would let an unrelated span become the parent of a span that
+        // was meant to start its own trace, and the resulting trace id would not match the one
+        // recorded alongside it.
         if let parentSpan {
             let parentId = parentSpan.context.spanId
 
@@ -132,9 +138,7 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
                 // The cache only holds spans that are still open, but parenting in OTel is a
                 // relationship between identifiers: a parent that already ended, or one that was
                 // never created through this bridge, is still a valid parent. Rebuilding the
-                // context from the identifiers keeps the child in the parent's trace. Without it
-                // the builder would fall back to whatever span happens to be active on the current
-                // thread, giving the child a trace it doesn't belong to.
+                // context from the identifiers keeps the child in the parent's trace.
                 //
                 // The identifiers are validated first: `SpanId(fromHexString:)` traps on strings
                 // shorter than 16 characters, so they can't be handed to it unchecked.
@@ -142,11 +146,14 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
                     builder = builder.setParent(parentContext)
 
                 } else {
-                    // The identifiers can't be honored, so start a new trace explicitly rather than
-                    // silently adopting the currently active span as the parent.
+                    // The identifiers can't be honored, so start a new trace rather than falling
+                    // back to the active span.
                     builder = builder.setNoParent()
                 }
             }
+
+        } else {
+            builder = builder.setNoParent()
         }
 
         // Set links before starting (only supported at creation time).
