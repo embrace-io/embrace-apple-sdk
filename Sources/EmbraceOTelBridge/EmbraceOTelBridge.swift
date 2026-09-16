@@ -135,16 +135,10 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
                 // context from the identifiers keeps the child in the parent's trace. Without it
                 // the builder would fall back to whatever span happens to be active on the current
                 // thread, giving the child a trace it doesn't belong to.
-                let otelTraceId = TraceId(fromHexString: parentSpan.context.traceId)
-                let otelSpanId = SpanId(fromHexString: parentId)
-
-                if otelTraceId.isValid && otelSpanId.isValid {
-                    let parentContext = SpanContext.create(
-                        traceId: otelTraceId,
-                        spanId: otelSpanId,
-                        traceFlags: .init(fromByte: 1),
-                        traceState: .init()
-                    )
+                //
+                // The identifiers are validated first: `SpanId(fromHexString:)` traps on strings
+                // shorter than 16 characters, so they can't be handed to it unchecked.
+                if let parentContext = Self.otelContext(from: parentSpan.context) {
                     builder = builder.setParent(parentContext)
 
                 } else {
@@ -157,15 +151,7 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
 
         // Set links before starting (only supported at creation time).
         for link in links {
-            let otelTraceId = TraceId(fromHexString: link.context.traceId)
-            let otelSpanId = SpanId(fromHexString: link.context.spanId)
-            if otelTraceId.isValid && otelSpanId.isValid {
-                let ctx = SpanContext.create(
-                    traceId: otelTraceId,
-                    spanId: otelSpanId,
-                    traceFlags: .init(fromByte: 1),
-                    traceState: .init()
-                )
+            if let ctx = Self.otelContext(from: link.context) {
                 builder = builder.addLink(spanContext: ctx, attributes: link.attributes.otelAttributes)
             }
         }
@@ -204,6 +190,31 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
         }
 
         return EmbraceSpanContext(spanId: spanId, traceId: traceId)
+    }
+
+    /// Converts an `EmbraceSpanContext` into the OTel equivalent, or returns `nil` when its
+    /// identifiers can't refer to a span.
+    ///
+    /// The identifiers are checked before being parsed: `SpanId(fromHexString:)` builds its string
+    /// indices before validating the length, so it traps on anything shorter than 16 characters.
+    private static func otelContext(from context: EmbraceSpanContext) -> SpanContext? {
+        guard context.isValid else {
+            return nil
+        }
+
+        let otelTraceId = TraceId(fromHexString: context.traceId)
+        let otelSpanId = SpanId(fromHexString: context.spanId)
+
+        guard otelTraceId.isValid, otelSpanId.isValid else {
+            return nil
+        }
+
+        return SpanContext.create(
+            traceId: otelTraceId,
+            spanId: otelSpanId,
+            traceFlags: .init(fromByte: 1),
+            traceState: .init()
+        )
     }
 
     package func updateSpanStatus(_ span: EmbraceSpan, status: EmbraceSpanStatus) {

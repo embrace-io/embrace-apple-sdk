@@ -295,21 +295,30 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler whose limiter rejects links past the second one
         limiter.shouldAddSpanLinkStub = { count in count < 2 }
 
+        // links need well formed identifiers to survive validation, so the trimming
+        // under test is the only reason any of them can be dropped
+        let spanIds = ["0000000000000001", "0000000000000002", "0000000000000003"]
+        let traceIds = [
+            "00000000000000000000000000000001",
+            "00000000000000000000000000000002",
+            "00000000000000000000000000000003"
+        ]
+
         // when creating a non-internal span with three initial links
         let span = try XCTUnwrap(
             handler.createSpan(
                 name: "test",
                 links: [
-                    EmbraceSpanLink(spanId: "s1", traceId: "t1"),
-                    EmbraceSpanLink(spanId: "s2", traceId: "t2"),
-                    EmbraceSpanLink(spanId: "s3", traceId: "t3")
+                    EmbraceSpanLink(spanId: spanIds[0], traceId: traceIds[0]),
+                    EmbraceSpanLink(spanId: spanIds[1], traceId: traceIds[1]),
+                    EmbraceSpanLink(spanId: spanIds[2], traceId: traceIds[2])
                 ]
             ))
 
         // then only the first two links are kept; the third is dropped
         XCTAssertEqual(span.links.count, 2)
-        XCTAssertEqual(span.links[0].context.spanId, "s1")
-        XCTAssertEqual(span.links[1].context.spanId, "s2")
+        XCTAssertEqual(span.links[0].context.spanId, spanIds[0])
+        XCTAssertEqual(span.links[1].context.spanId, spanIds[1])
     }
 
     func test_createSpan_initialEvents_areNotSanitized_forInternalSpan() throws {

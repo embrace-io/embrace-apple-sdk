@@ -368,9 +368,25 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
             throw EmbraceOTelError.spanLinkLimitReached("Links limit reached for span \(spanName)")
         }
 
+        // A link is nothing but a pair of identifiers pointing at another span, so identifiers that
+        // can't refer to one make the link meaningless: nothing downstream is able to resolve them.
+        // Rejecting here keeps the link out of the payload entirely, rather than recording one that
+        // only looks valid until something tries to follow it.
+        guard EmbraceSpanContext.isValidSpanId(spanId) else {
+            throw EmbraceOTelError.invalidSpanLinkIdentifiers(
+                "Invalid span id '\(spanId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.spanIdLength) hexadecimal characters."
+            )
+        }
+
+        guard EmbraceSpanContext.isValidTraceId(traceId) else {
+            throw EmbraceOTelError.invalidSpanLinkIdentifiers(
+                "Invalid trace id '\(traceId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.traceIdLength) hexadecimal characters."
+            )
+        }
+
         return EmbraceSpanLink(
-            spanId: spanId,
-            traceId: traceId,
+            spanId: EmbraceSpanContext.normalize(spanId),
+            traceId: EmbraceSpanContext.normalize(traceId),
             attributes: sanitizer.sanitizeSpanLinkAttributes(attributes)
         )
     }

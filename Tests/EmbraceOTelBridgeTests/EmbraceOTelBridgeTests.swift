@@ -399,6 +399,50 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         XCTAssertEqual(spanProcessor.endedSpans.first?.parentSpanId?.hexString, parentSpanId)
     }
 
+    func test_startSpan_withLinkShorterThanASpanId_doesNotTrap() {
+        // `SpanId(fromHexString:)` traps on strings shorter than 16 characters, so a link the
+        // bridge can't use has to be discarded before it reaches that initializer.
+        let link = EmbraceSpanLink(spanId: "abc", traceId: "def")
+
+        let ctx = bridge.startSpan(
+            name: "span",
+            parentSpan: nil,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [link],
+            attributes: [:]
+        )
+
+        let mockSpan = MockEmbraceSpan(spanId: ctx.spanId, traceId: ctx.traceId)
+        bridge.endSpan(mockSpan, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertEqual(spanProcessor.endedSpans.first?.links.count, 0)
+    }
+
+    func test_startSpan_withParentShorterThanASpanId_doesNotTrap() {
+        let parentMock = MockEmbraceSpan(spanId: "abc", traceId: "def")
+
+        let childCtx = bridge.startSpan(
+            name: "child",
+            parentSpan: parentMock,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertNil(spanProcessor.endedSpans.first?.parentSpanId)
+    }
+
     func test_startSpan_withUnusableParentIds_startsNewTrace() {
         let parentMock = MockEmbraceSpan(spanId: "not-hex", traceId: "not-hex")
 
