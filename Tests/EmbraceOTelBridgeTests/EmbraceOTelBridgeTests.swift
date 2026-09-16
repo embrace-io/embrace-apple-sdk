@@ -299,6 +299,128 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
     }
 
+    func test_startSpan_withEndedParent_stillInheritsTrace() {
+        let parentCtx = bridge.startSpan(
+            name: "parent",
+            parentSpan: nil,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+        let parentMock = MockEmbraceSpan(spanId: parentCtx.spanId, traceId: parentCtx.traceId)
+
+        // End the parent first, dropping it from the span cache.
+        bridge.endSpan(parentMock, endTime: Date())
+
+        let childCtx = bridge.startSpan(
+            name: "child",
+            parentSpan: parentMock,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        XCTAssertEqual(childCtx.traceId, parentCtx.traceId)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 2 }
+        let childData = spanProcessor.endedSpans.first { $0.name == "child" }
+        XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
+    }
+
+    func test_startSpan_withParentCreatedWithEndTime_stillInheritsTrace() {
+        let start = Date()
+
+        // A span created with an end time is ended — and uncached — before it can be used as a parent.
+        let parentCtx = bridge.startSpan(
+            name: "parent",
+            parentSpan: nil,
+            status: .unset,
+            startTime: start,
+            endTime: start.addingTimeInterval(1),
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+        let parentMock = MockEmbraceSpan(spanId: parentCtx.spanId, traceId: parentCtx.traceId)
+
+        let childCtx = bridge.startSpan(
+            name: "child",
+            parentSpan: parentMock,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        XCTAssertEqual(childCtx.traceId, parentCtx.traceId)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 2 }
+        let childData = spanProcessor.endedSpans.first { $0.name == "child" }
+        XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
+    }
+
+    func test_startSpan_withParentNeverCreatedByBridge_stillInheritsTrace() {
+        // Mirrors a parent that reached the bridge from outside, so it was never in the span cache.
+        let parentSpanId = "abcdef1234567890"
+        let parentTraceId = "abcdef1234567890abcdef1234567890"
+        let parentMock = MockEmbraceSpan(spanId: parentSpanId, traceId: parentTraceId)
+
+        let childCtx = bridge.startSpan(
+            name: "child",
+            parentSpan: parentMock,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        XCTAssertEqual(childCtx.traceId, parentTraceId)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertEqual(spanProcessor.endedSpans.first?.parentSpanId?.hexString, parentSpanId)
+    }
+
+    func test_startSpan_withUnusableParentIds_startsNewTrace() {
+        let parentMock = MockEmbraceSpan(spanId: "not-hex", traceId: "not-hex")
+
+        let childCtx = bridge.startSpan(
+            name: "child",
+            parentSpan: parentMock,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertNil(spanProcessor.endedSpans.first?.parentSpanId)
+        XCTAssertTrue(TraceId(fromHexString: childCtx.traceId).isValid)
+    }
+
     // MARK: - Links at creation time
 
     func test_startSpan_withLinks_addsLinksToOtelSpan() {

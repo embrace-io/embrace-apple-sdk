@@ -124,8 +124,34 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
         // Set parent via cached OTel span or reconstructed SpanContext.
         if let parentSpan {
             let parentId = parentSpan.context.spanId
+
             if let otelParent = spanCache.withLock({ $0[parentId] }) {
                 builder = builder.setParent(otelParent)
+
+            } else {
+                // The cache only holds spans that are still open, but parenting in OTel is a
+                // relationship between identifiers: a parent that already ended, or one that was
+                // never created through this bridge, is still a valid parent. Rebuilding the
+                // context from the identifiers keeps the child in the parent's trace. Without it
+                // the builder would fall back to whatever span happens to be active on the current
+                // thread, giving the child a trace it doesn't belong to.
+                let otelTraceId = TraceId(fromHexString: parentSpan.context.traceId)
+                let otelSpanId = SpanId(fromHexString: parentId)
+
+                if otelTraceId.isValid && otelSpanId.isValid {
+                    let parentContext = SpanContext.create(
+                        traceId: otelTraceId,
+                        spanId: otelSpanId,
+                        traceFlags: .init(fromByte: 1),
+                        traceState: .init()
+                    )
+                    builder = builder.setParent(parentContext)
+
+                } else {
+                    // The identifiers can't be honored, so start a new trace explicitly rather than
+                    // silently adopting the currently active span as the parent.
+                    builder = builder.setNoParent()
+                }
             }
         }
 
