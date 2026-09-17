@@ -26,13 +26,13 @@ public class EmbraceSpanContext {
 // MARK: Validation
 extension EmbraceSpanContext {
 
-    /// Amount of hexadecimal characters in a well formed trace identifier.
-    public static let traceIdLength = 32
+    /// Number of hexadecimal characters in a well-formed trace identifier.
+    package static let traceIdLength = 32
 
-    /// Amount of hexadecimal characters in a well formed span identifier.
-    public static let spanIdLength = 16
+    /// Number of hexadecimal characters in a well-formed span identifier.
+    package static let spanIdLength = 16
 
-    /// Returns wether the given string can be used as a trace identifier.
+    /// Returns whether the given string can be used as a trace identifier.
     /// A valid trace identifier is exactly 32 hexadecimal characters and is not entirely made of zeros.
     /// - Parameter traceId: The string to validate.
     public static func isValidTraceId(_ traceId: String) -> Bool {
@@ -51,10 +51,11 @@ extension EmbraceSpanContext {
         return Self.isValidSpanId(spanId) && Self.isValidTraceId(traceId)
     }
 
-    /// Identifiers are compared and stored in lowercase, so the same value written in either
-    /// case always ends up as the same identifier.
+    /// Returns the identifier in its canonical lowercase form. Call this 
+    /// before storing or comparing an identifier that came from outside 
+    /// the SDK.
     /// - Parameter identifier: The identifier to normalize.
-    public static func normalize(_ identifier: String) -> String {
+    package static func normalize(_ identifier: String) -> String {
         return identifier.lowercased()
     }
 

@@ -374,7 +374,7 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         // only looks valid until something tries to follow it.
         guard EmbraceSpanContext.isValidSpanId(spanId) else {
             throw EmbraceOTelError.invalidSpanLinkIdentifiers(
-                "Invalid span id '\(spanId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.spanIdLength) hexadecimal characters."
+                "Invalid span id '\(spanId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.spanIdLength) hexadecimal characters that are not all zeros."
             )
         }
 
