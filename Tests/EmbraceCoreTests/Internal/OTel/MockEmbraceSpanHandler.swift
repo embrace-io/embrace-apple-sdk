@@ -63,13 +63,16 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
 
     var validateAttributeCallCount: Int = 0
     var validateAttributeError: Error? = nil
+    var validateAttributeCurrentCount: Int?
     func validateAttribute(
-        for span: EmbraceSpan,
+        forSpanNamed spanName: String,
         key: String,
         value: EmbraceAttributeValue?,
+        currentAttributes: EmbraceAttributes,
         currentCount: Int
     ) throws -> (String, EmbraceAttributeValue?) {
         validateAttributeCallCount += 1
+        validateAttributeCurrentCount = currentCount
 
         if let validateAttributeError {
             throw validateAttributeError

@@ -38,10 +38,16 @@ protocol EmbraceSpanDataSource: AnyObject {
         currentCount: Int
     ) throws -> EmbraceSpanLink
 
+    /// Validates an attribute before it is written to a span.
+    ///
+    /// The span's current attributes are passed in rather than read back from the span so that the
+    /// caller can hold its own lock across the validation and the write, keeping the limit check and
+    /// the write that consumes a slot in a single critical section.
     func validateAttribute(
-        for span: EmbraceSpan,
+        forSpanNamed spanName: String,
         key: String,
         value: EmbraceAttributeValue?,
+        currentAttributes: EmbraceAttributes,
         currentCount: Int
     ) throws -> (String, EmbraceAttributeValue?)
 }

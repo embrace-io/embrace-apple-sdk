@@ -376,9 +376,10 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
     }
 
     func validateAttribute(
-        for span: EmbraceSpan,
+        forSpanNamed spanName: String,
         key: String,
         value: EmbraceAttributeValue?,
+        currentAttributes: EmbraceAttributes,
         currentCount: Int
     ) throws -> (String, EmbraceAttributeValue?) {
 
@@ -389,8 +390,8 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
 
         // check limit
         let finalKey = sanitizer.sanitizeAttributeKey(key)
-        guard span.attributes[finalKey] != nil || limiter.shouldAddSpanAttribute(currentCount: currentCount) else {
-            throw EmbraceOTelError.spanAttributeLimitReached("Attributes limit reached for span \(span.name)")
+        guard currentAttributes[finalKey] != nil || limiter.shouldAddSpanAttribute(currentCount: currentCount) else {
+            throw EmbraceOTelError.spanAttributeLimitReached("Attributes limit reached for span \(spanName)")
         }
 
         let finalValue = sanitizer.sanitizeAttributeValue(value)

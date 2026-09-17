@@ -583,8 +583,13 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         sanitizer.sanitizeAttributeValueReturnValue = "sanitizedValue"
 
         // when validating an attribute
-        let span = MockSpan(name: "test")
-        let attribute = try handler.validateAttribute(for: span, key: "key", value: "value", currentCount: 0)
+        let attribute = try handler.validateAttribute(
+            forSpanNamed: "test",
+            key: "key",
+            value: "value",
+            currentAttributes: [:],
+            currentCount: 0
+        )
 
         // then the right calls are made
         XCTAssertEqual(limiter.shouldAddSpanAttributeCallCount, 1)
@@ -601,13 +606,12 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         limiter.shouldAddSpanAttributeReturnValue = false
 
         // when validating an attribute
-        let span = MockSpan(name: "test")
-
         XCTAssertThrowsError(
             try handler.validateAttribute(
-                for: span,
+                forSpanNamed: "test",
                 key: "key",
                 value: "value",
+                currentAttributes: [:],
                 currentCount: 0
             )
         ) { error in
@@ -630,8 +634,13 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
 
         // when validating an attribute in a way that would update the current value
         // and the limit is reached
-        let span = MockSpan(name: "test", attributes: ["sanitizedKey": "oldValue"])
-        let attribute = try handler.validateAttribute(for: span, key: "sanitizedKey", value: "newValue", currentCount: 0)
+        let attribute = try handler.validateAttribute(
+            forSpanNamed: "test",
+            key: "sanitizedKey",
+            value: "newValue",
+            currentAttributes: ["sanitizedKey": "oldValue"],
+            currentCount: 0
+        )
 
         // then the right calls are made
         XCTAssertEqual(limiter.shouldAddSpanAttributeCallCount, 0)
@@ -646,8 +655,13 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
     func test_validateAttribute_delete() throws {
         // given a handler
         // when validating an attribute that is getting removed
-        let span = MockSpan(name: "test")
-        let attribute = try handler.validateAttribute(for: span, key: "key", value: nil, currentCount: 0)
+        let attribute = try handler.validateAttribute(
+            forSpanNamed: "test",
+            key: "key",
+            value: nil,
+            currentAttributes: [:],
+            currentCount: 0
+        )
 
         // then the right calls are made
         XCTAssertEqual(limiter.shouldAddSpanAttributeCallCount, 0)
