@@ -135,13 +135,6 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
                 builder = builder.setParent(otelParent)
 
             } else {
-                // The cache only holds spans that are still open, but parenting in OTel is a
-                // relationship between identifiers: a parent that already ended, or one that was
-                // never created through this bridge, is still a valid parent. Rebuilding the
-                // context from the identifiers keeps the child in the parent's trace.
-                //
-                // The identifiers are validated first: `SpanId(fromHexString:)` traps on strings
-                // shorter than 16 characters, so they can't be handed to it unchecked.
                 if let parentContext = Self.otelContext(from: parentSpan.context) {
                     builder = builder.setParent(parentContext)
 

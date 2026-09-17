@@ -363,11 +363,6 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         currentCount: Int
     ) throws -> EmbraceSpanLink {
 
-        // check limit
-        guard limiter.shouldAddSpanLink(currentCount: currentCount) else {
-            throw EmbraceOTelError.spanLinkLimitReached("Links limit reached for span \(spanName)")
-        }
-
         // A link is nothing but a pair of identifiers pointing at another span, so identifiers that
         // can't refer to one make the link meaningless: nothing downstream is able to resolve them.
         // Rejecting here keeps the link out of the payload entirely, rather than recording one that
@@ -382,6 +377,11 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
             throw EmbraceOTelError.invalidSpanLinkIdentifiers(
                 "Invalid trace id '\(traceId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.traceIdLength) hexadecimal characters."
             )
+        }
+
+        // check limit
+        guard limiter.shouldAddSpanLink(currentCount: currentCount) else {
+            throw EmbraceOTelError.spanLinkLimitReached("Links limit reached for span \(spanName)")
         }
 
         return EmbraceSpanLink(
