@@ -435,19 +435,111 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         XCTAssertNil(isolatedBridge.currentSessionId)
     }
 
-    // MARK: - Inbound (via external tracer on shared provider)
+    // MARK: - Concurrent span creation
 
-    // NOTE: To test the full inbound path, an external tracer would need to use the same
-    // TracerProviderSdk that is owned by the bridge. Since the bridge's provider is not
-    // exposed publicly, inbound integration is covered by EmbraceSpanProcessorTests.
+    func test_concurrentStartSpan_classifiesEverySpanAsInternal() {
+        let iterations = 200
+        let contexts = EmbraceMutex([EmbraceSpanContext]())
+
+        DispatchQueue.concurrentPerform(iterations: iterations) { index in
+            let context = bridge.startSpan(
+                name: "concurrent-\(index)",
+                parentSpan: nil,
+                status: .unset,
+                startTime: Date(),
+                endTime: nil,
+                events: [],
+                links: [],
+                attributes: [SpanSemantics.keyEmbraceType: EmbraceType.session.rawValue]
+            )
+            contexts.withLock { $0.append(context) }
+        }
+
+        let created = contexts.safeValue
+        let createdIds = Set(created.map { $0.spanId })
+
+        XCTAssertEqual(created.count, iterations)
+        XCTAssertEqual(createdIds.count, iterations, "Every span must get its own id")
+
+        // No span created here may be mistaken for one coming from outside the SDK.
+        XCTAssertEqual(mockDelegate.startedSpans.count, 0)
+        XCTAssertEqual(mockDelegate.endedSpans.count, 0)
+
+        // Every id is tracked exactly once, and no reservation leaked into the pending set.
+        XCTAssertTrue(bridge.pendingSpanIds.safeValue.isEmpty)
+        XCTAssertEqual(Set(bridge.spanCache.safeValue.keys), createdIds)
+
+        // The type each span started with survived: none was stamped as an external span.
+        bridge.waitForAllWork()
+        let started = spanProcessor.startedSpans.filter { $0.name.hasPrefix("concurrent-") }
+        XCTAssertEqual(started.count, iterations)
+        for span in started {
+            XCTAssertEqual(span.attributes[SpanSemantics.keyEmbraceType], .string(EmbraceType.session.rawValue))
+        }
+    }
+
+    func test_concurrentStartSpan_withExternalCreator_classifiesBothCorrectly() {
+        let iterations = 200
+        let tracer = bridge.tracerProvider.get(instrumentationName: "ExternalTracer", instrumentationVersion: nil)
+        let internalIds = EmbraceMutex(Set<String>())
+        let externalIds = EmbraceMutex(Set<String>())
+
+        // Half the threads drive the bridge; the other half create spans straight off the
+        // provider, the way a host app would once the providers are reachable.
+        DispatchQueue.concurrentPerform(iterations: iterations) { index in
+            if index.isMultiple(of: 2) {
+                let context = bridge.startSpan(
+                    name: "internal-\(index)",
+                    parentSpan: nil,
+                    status: .unset,
+                    startTime: Date(),
+                    endTime: nil,
+                    events: [],
+                    links: [],
+                    attributes: [SpanSemantics.keyEmbraceType: EmbraceType.session.rawValue]
+                )
+                internalIds.withLock { $0.insert(context.spanId) }
+            } else {
+                let span = tracer.spanBuilder(spanName: "external-\(index)").startSpan()
+                externalIds.withLock { $0.insert(span.context.spanId.hexString) }
+                span.end()
+            }
+        }
+
+        let internalSpanIds = internalIds.safeValue
+        let externalSpanIds = externalIds.safeValue
+        XCTAssertEqual(internalSpanIds.count, iterations / 2)
+        XCTAssertEqual(externalSpanIds.count, iterations / 2)
+        XCTAssertTrue(internalSpanIds.isDisjoint(with: externalSpanIds))
+
+        // Every external span reached the delegate exactly once; no internal span did.
+        let forwardedIds = mockDelegate.startedSpans.map { $0.context.spanId }
+        XCTAssertEqual(forwardedIds.count, externalSpanIds.count, "External spans must not be dropped or duplicated")
+        XCTAssertEqual(Set(forwardedIds), externalSpanIds)
+
+        XCTAssertTrue(bridge.pendingSpanIds.safeValue.isEmpty)
+        XCTAssertEqual(Set(bridge.spanCache.safeValue.keys), internalSpanIds)
+
+        // Only the external spans were stamped with the external-span type.
+        bridge.waitForAllWork()
+        for span in spanProcessor.startedSpans {
+            let type = span.attributes[SpanSemantics.keyEmbraceType]
+            if span.name.hasPrefix("external-") {
+                XCTAssertEqual(type, .string(EmbraceType.performance.rawValue))
+            } else {
+                XCTAssertEqual(type, .string(EmbraceType.session.rawValue))
+            }
+        }
+    }
 }
 
 // MARK: - Mocks
 
 class MockOTelDelegate: EmbraceOTelDelegate {
-    var startedSpans: [EmbraceSpan] = []
-    var endedSpans: [EmbraceSpan] = []
-    var emittedLogs: [EmbraceLog] = []
+    // Appended from the threads that create spans while tests read them on the main thread.
+    @TestLocked var startedSpans: [EmbraceSpan] = []
+    @TestLocked var endedSpans: [EmbraceSpan] = []
+    @TestLocked var emittedLogs: [EmbraceLog] = []
 
     func onStartSpan(_ span: EmbraceSpan) { startedSpans.append(span) }
     func onEndSpan(_ span: EmbraceSpan) { endedSpans.append(span) }
