@@ -130,6 +130,27 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         )
     }
 
+    func test_createSpan_withInvalidParent_ignoresTheParent() throws {
+        // given a parent whose identifiers can't refer to a span
+        let parent = MockSpan(
+            id: String(repeating: "0", count: 16),
+            traceId: String(repeating: "0", count: 32),
+            name: "parent"
+        )
+
+        // when creating a span with it
+        let span = try XCTUnwrap(handler.createSpan(name: "test", parentSpan: parent))
+
+        // then the parent is dropped rather than recorded alongside a trace it doesn't belong to
+        XCTAssertNil(span.parentSpanId)
+        XCTAssertNotEqual(span.context.traceId, parent.context.traceId)
+
+        // and the stored span agrees with what was reported to the OTel layer
+        let record = storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId)
+        XCTAssertNotNil(record)
+        XCTAssertNil(record!.parentSpanId)
+    }
+
     func test_createSpan_failure() throws {
         // given a handler
         // when creating a span that would break the limit

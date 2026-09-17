@@ -548,25 +548,72 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     }
 
     func test_startSpan_withUnusableParentIds_startsNewTrace() {
+        // given a parent whose identifiers can't refer to a span, and an unrelated span active
+        // on the shared OTel context. The active span is what makes this meaningful: a builder
+        // left to its own devices would adopt it, so the new trace has to be stated explicitly.
         let parentMock = MockEmbraceSpan(spanId: "not-hex", traceId: "not-hex")
+        let ambientTracer = TracerProviderSdk().get(instrumentationName: "ambient")
+        let ambientSpan = ambientTracer.spanBuilder(spanName: "ambient").startSpan()
 
-        let childCtx = bridge.startSpan(
-            name: "child",
-            parentSpan: parentMock,
-            status: .unset,
-            startTime: Date(),
-            endTime: nil,
-            events: [],
-            links: [],
-            attributes: [:]
-        )
+        let childCtx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
+            bridge.startSpan(
+                name: "child",
+                parentSpan: parentMock,
+                status: .unset,
+                startTime: Date(),
+                endTime: nil,
+                events: [],
+                links: [],
+                attributes: [:]
+            )
+        }
+        ambientSpan.end()
+
+        // then the span starts its own trace instead of joining the active one
+        XCTAssertTrue(TraceId(fromHexString: childCtx.traceId).isValid)
+        XCTAssertNotEqual(childCtx.traceId, ambientSpan.context.traceId.hexString)
 
         let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
         bridge.endSpan(childMock, endTime: Date())
 
         wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
         XCTAssertNil(spanProcessor.endedSpans.first?.parentSpanId)
+    }
+
+    func test_startSpan_withAllZeroParentIds_startsNewTrace() {
+        // given a parent with identifiers of the right length that are entirely made of zeros.
+        // They parse without trapping, so only the validity check keeps them from being used.
+        let parentMock = MockEmbraceSpan(
+            spanId: String(repeating: "0", count: 16),
+            traceId: String(repeating: "0", count: 32)
+        )
+        let ambientTracer = TracerProviderSdk().get(instrumentationName: "ambient")
+        let ambientSpan = ambientTracer.spanBuilder(spanName: "ambient").startSpan()
+
+        let childCtx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
+            bridge.startSpan(
+                name: "child",
+                parentSpan: parentMock,
+                status: .unset,
+                startTime: Date(),
+                endTime: nil,
+                events: [],
+                links: [],
+                attributes: [:]
+            )
+        }
+        ambientSpan.end()
+
+        // then the zeroed identifiers are refused and the span starts its own trace
         XCTAssertTrue(TraceId(fromHexString: childCtx.traceId).isValid)
+        XCTAssertNotEqual(childCtx.traceId, parentMock.context.traceId)
+        XCTAssertNotEqual(childCtx.traceId, ambientSpan.context.traceId.hexString)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertNil(spanProcessor.endedSpans.first?.parentSpanId)
     }
 
     // MARK: - Links at creation time
