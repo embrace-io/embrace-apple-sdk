@@ -205,10 +205,6 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
         let otelTraceId = TraceId(fromHexString: context.traceId)
         let otelSpanId = SpanId(fromHexString: context.spanId)
 
-        guard otelTraceId.isValid, otelSpanId.isValid else {
-            return nil
-        }
-
         return SpanContext.create(
             traceId: otelTraceId,
             spanId: otelSpanId,
