@@ -620,6 +620,26 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 0)
     }
 
+    func test_end_concurrent_onlyOneCallWinsAndTheHandlerIsNotifiedOnce() throws {
+        // given an open span
+        let span = testSpan
+
+        // when many threads end it at the same time, each with a different end time
+        let endTimes = (0..<100).map { Date(timeIntervalSince1970: Double(100 + $0)) }
+        DispatchQueue.concurrentPerform(iterations: endTimes.count) { index in
+            span.end(endTime: endTimes[index])
+        }
+
+        // then only one of them takes effect
+        XCTAssertEqual(handler.onSpanEndedCallCount, 1)
+
+        // and the span kept exactly the end time the handler was notified with,
+        // so the stored span and the exported one can't disagree
+        let reported = try XCTUnwrap(handler.onSpanEndedTimes.first)
+        XCTAssertEqual(span.endTime, reported)
+        XCTAssertTrue(endTimes.contains(reported))
+    }
+
     func test_addSessionEvent_afterEnd_isIgnored() throws {
         // given a span that ended
         let span = testSpan
