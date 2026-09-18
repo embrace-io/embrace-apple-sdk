@@ -640,6 +640,30 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertTrue(endTimes.contains(reported))
     }
 
+    func test_end_concurrent_withErrorCode_neverLeavesAPartialOutcome() throws {
+        for _ in 0..<2000 {
+            // given an open span with no outcome yet
+            let span = makeTestSpan()
+            span.setStatus(.unset)
+
+            // when it is ended with an error code and plainly at the same time
+            let group = DispatchGroup()
+            group.enter()
+            DispatchQueue.global().async {
+                span.end(errorCode: .userAbandon, endTime: Date(timeIntervalSince1970: 10))
+                group.leave()
+            }
+            span.end(endTime: Date(timeIntervalSince1970: 20))
+            group.wait()
+
+            // then either the error-code end won and the span is fully marked as failed, or the
+            // plain end won and none of that outcome is present. Never half of it.
+            if span.attributes[SpanSemantics.keyErrorCode] != nil {
+                XCTAssertEqual(span.status, .error)
+            }
+        }
+    }
+
     func test_addSessionEvent_afterEnd_isIgnored() throws {
         // given a span that ended
         let span = testSpan

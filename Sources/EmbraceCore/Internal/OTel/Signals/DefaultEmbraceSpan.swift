@@ -326,6 +326,71 @@ class DefaultEmbraceSpan: EmbraceSpan {
     }
 }
 
+// MARK: Ending With an Error Code
+
+/// Ends a span and records its outcome as one indivisible step.
+protocol EmbraceSpanErrorCodeEnd {
+    func _end(errorCode: EmbraceSpanErrorCode?, endTime: Date)
+}
+
+extension DefaultEmbraceSpan: EmbraceSpanErrorCodeEnd {
+
+    /// What a successful claim reports once the lock is released.
+    private struct EndOutcome {
+        let status: EmbraceSpanStatus
+        let errorCodeName: String?
+        let attributes: EmbraceAttributes
+        let endTime: Date
+    }
+
+    func _end(errorCode: EmbraceSpanErrorCode?, endTime: Date) {
+        // The outcome and the end time are claimed together. Written one at a time, a span being
+        // ended concurrently could keep half of an outcome — the error code attribute without the
+        // error status that gives it meaning.
+        let outcome: EndOutcome? = state.withLock { data in
+            guard data.endTime == nil else {
+                return nil
+            }
+
+            if let errorCode {
+                data.attributes[SpanSemantics.keyErrorCode] = errorCode.name
+                data.internalAttributeCount += 1
+                data.status = .error
+            } else {
+                data.status = .ok
+            }
+
+            data.endTime = endTime
+
+            return EndOutcome(
+                status: data.status,
+                errorCodeName: errorCode?.name,
+                attributes: data.attributes,
+                endTime: endTime
+            )
+        }
+
+        guard let outcome else {
+            logIgnoredMutation("end")
+            return
+        }
+
+        // Notifications happen after the lock is released: `onSpanAttributesUpdated` is handed the
+        // span's attributes, and reading them takes this same non-recursive lock.
+        if let errorCodeName = outcome.errorCodeName {
+            handler?.onSpanAttributesUpdated(
+                self,
+                key: SpanSemantics.keyErrorCode,
+                value: errorCodeName,
+                attributes: outcome.attributes
+            )
+        }
+
+        handler?.onSpanStatusUpdated(self, status: outcome.status)
+        handler?.onSpanEnded(self, endTime: outcome.endTime)
+    }
+}
+
 // MARK: Internal Attributes
 protocol EmbraceSpanInternalAttributes {
     func _setInternalAttribute(key: String, value: EmbraceAttributeValue?)
