@@ -524,7 +524,7 @@ final class StateRecorderTests: XCTestCase {
         recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
         recorder.onStateChange(to: "second", at: time(1))
 
-        XCTAssertEqual(recorder.currentSerializedValue?.description, "second")
+        XCTAssertEqual(recorder.currentSerializedValue?.stateDescription, "second")
     }
 
     func testLogAttributeTracksTheCurrentValueEvenWithoutAPart() {
@@ -533,7 +533,7 @@ final class StateRecorderTests: XCTestCase {
 
         recorder.onStateChange(to: "offline-change", at: time(1))
 
-        XCTAssertEqual(recorder.currentSerializedValue?.description, "offline-change")
+        XCTAssertEqual(recorder.currentSerializedValue?.stateDescription, "offline-change")
     }
 
     // MARK: - Write failures (the paths the defensive code exists for)
@@ -860,14 +860,13 @@ final class StateRecorderTests: XCTestCase {
         )
         coordinator.register(screen, sessionSpan: sessionSpan, at: partStart)
 
-        // A log emitted while the app is backgrounded is stamped with an SDK-set value...
+        // Backgrounded by the SDK: typed.
         screen.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
         var attributes = coordinator.logAttributes
         XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "Backgrounded")
         XCTAssertEqual(attributes["emb.state.screen-automatic.value_type"]?.description, "system")
 
-        // ...and one emitted on a screen of the app's own carries no type, even if the app named
-        // that screen exactly what the SDK calls the state above.
+        // The same name from the app: untyped, so a log on it is not read as the SDK's.
         screen.onStateChange(to: TypedValue("Backgrounded"), at: time(2))
         attributes = coordinator.logAttributes
         XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "Backgrounded")
@@ -910,6 +909,69 @@ final class StateRecorderTests: XCTestCase {
         let attributes = builder.addCurrentStates(coordinator).build()
 
         XCTAssertEqual(attributes["emb.state.screen-automatic.value_type"]?.description, "system")
+    }
+
+    /// The untyped half of the test above, and the one with teeth: an untyped value writes no type
+    /// key, so nothing overwrites a forged one and it has to be stripped. Untyped is every screen
+    /// that came from the app.
+    func testAForgedValueTypeStampIsStrippedWhileTheStateHasNone() throws {
+        let coordinator = StateCaptureCoordinator()
+        let screen = StateRecorder<TypedValue>(
+            stateName: "screen-automatic",
+            defaultValue: TypedValue("Home"),
+            otel: mockOTel
+        )
+        coordinator.register(screen, sessionSpan: sessionSpan, at: partStart)
+
+        let builder = EmbraceLogAttributesBuilder(
+            session: nil,
+            initialAttributes: ["emb.state.screen-automatic.value_type": "system"]
+        )
+        let attributes = builder.addCurrentStates(coordinator).build()
+
+        XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "Home")
+        XCTAssertNil(
+            attributes["emb.state.screen-automatic.value_type"],
+            "an app screen must never be readable as an SDK value")
+    }
+
+    /// The same strip for a state that has not been activated yet, which stamps nothing at all.
+    func testAForgedStampIsStrippedForAStateThatIsNotActiveYet() throws {
+        let coordinator = StateCaptureCoordinator()
+        let lazyState = StateRecorder<TypedValue>(
+            stateName: "screen-automatic",
+            defaultValue: TypedValue("Home"),
+            otel: mockOTel,
+            capturesOnCreation: false
+        )
+        coordinator.register(lazyState, sessionSpan: sessionSpan, at: partStart)
+
+        let builder = EmbraceLogAttributesBuilder(
+            session: nil,
+            initialAttributes: [
+                "emb.state.screen-automatic": "Checkout",
+                "emb.state.screen-automatic.value_type": "system"
+            ]
+        )
+        let attributes = builder.addCurrentStates(coordinator).build()
+
+        XCTAssertNil(attributes["emb.state.screen-automatic"])
+        XCTAssertNil(attributes["emb.state.screen-automatic.value_type"])
+    }
+
+    /// The check is on the `emb.state.` prefix, so the session's own `emb.state`
+    /// (foreground/background, no trailing dot) survives it.
+    func testTheSessionStateAttributeIsNotStripped() throws {
+        let coordinator = StateCaptureCoordinator()
+        coordinator.register(makeRecorder(), sessionSpan: sessionSpan, at: partStart)
+
+        let builder = EmbraceLogAttributesBuilder(
+            session: nil,
+            initialAttributes: [CommonSemantics.keyState: "foreground"]
+        )
+        let attributes = builder.addCurrentStates(coordinator).build()
+
+        XCTAssertEqual(attributes[CommonSemantics.keyState]?.description, "foreground")
     }
 
     func testLogStampingIsANoOpWithoutACoordinator() {

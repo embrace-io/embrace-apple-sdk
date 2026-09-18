@@ -12,17 +12,22 @@ struct Screen: StateValue {
     /// The name written verbatim to `emb.state.new_value` / `emb.state.initial_value`.
     let name: String
 
-    /// `.system` for the two values below, `nil` for every screen that came from the app.
+    /// `.system` for the SDK's own values declared below, `nil` for every screen that came from
+    /// the app.
     let stateValueType: StateValueType?
 
     var stateDescription: String { name }
 
     /// A screen of the app's own: a name the developer chose or a view controller's class.
+    ///
+    /// Declaring it also suppresses the memberwise initializer, which is what stops an app-supplied
+    /// name from being paired with a type.
     init(_ name: String) {
         self.name = name
         self.stateValueType = nil
     }
 
+    /// Private on purpose: only the values below are `.system`, whatever a screen is named.
     private init(system name: String) {
         self.name = name
         self.stateValueType = .system

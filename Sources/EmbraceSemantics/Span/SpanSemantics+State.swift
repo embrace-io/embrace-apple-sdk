@@ -44,12 +44,9 @@ extension SpanSemantics {
         /// The *type* of the value written beside it: ``keyInitialValue`` on the span,
         /// ``keyNewValue`` on a `transition` event.
         ///
-        /// A type names the domain a value belongs to, so two values spelled the same are only the
-        /// same value when their types match — an app screen named "Backgrounded" is not the
-        /// ``valueTypeSystem`` value of that name.
-        ///
-        /// **Omitted** when the value has no type, which is the common case: most values are
-        /// identified by their string alone.
+        /// Two values spelled the same are the same value only when their types match — an app
+        /// screen named "Backgrounded" is not the ``valueTypeSystem`` value of that name.
+        /// **Omitted** when the value has no type, which is the common case.
         public static let keyValueType = "emb.state.value_type"
 
         /// Value of ``keyValueType`` for values the SDK itself sets, rather than ones derived from
@@ -74,8 +71,9 @@ extension SpanSemantics {
         /// Whether `key` lies in the reserved `emb.state.*` namespace.
         ///
         /// Caller attributes are filtered through this so they cannot forge a contract key. It
-        /// matters most for the counter keys: they are absent when zero, so nothing else would
-        /// overwrite a forged one.
+        /// matters most for the keys that are omitted rather than written empty — the counters when
+        /// zero, and ``keyValueType`` when the value has no type. Nothing else would overwrite a
+        /// forged one of those.
         public static func isReserved(_ key: String) -> Bool {
             key.hasPrefix(keyPrefix)
         }

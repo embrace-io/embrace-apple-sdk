@@ -48,7 +48,7 @@ final class StateSpanToken {
     /// Records a transition event and updates the running transition count.
     ///
     /// - Parameters:
-    ///   - value: Serialized new value of the state, with the type written beside it.
+    ///   - value: Serialized new value of the state. Its type, when it has one, is written beside it.
     ///   - time: When the change was *observed*, never when it was processed.
     ///   - count: Running number of recorded transitions, decided by the recorder under its lock.
     ///   - attributes: Attributes supplied from **outside** the SDK. Unlike everything else written
@@ -67,11 +67,12 @@ final class StateSpanToken {
 
         var eventAttributes = bounded(attributes)
         eventAttributes.merge(flushed.attributes) { _, builtIn in builtIn }
-        eventAttributes[SpanSemantics.State.keyNewValue] = value.description
-        // Omitted rather than empty when untyped: "no type" must stay distinguishable from a type.
-        if let type = value.type {
-            eventAttributes[SpanSemantics.State.keyValueType] = type.wireValue
-        }
+        eventAttributes.merge(
+            value.attributes(
+                valueKey: SpanSemantics.State.keyNewValue,
+                typeKey: SpanSemantics.State.keyValueType
+            )
+        ) { _, builtIn in builtIn }
 
         // Internal spans bypass the customer-facing per-span event limit (see
         // `StateRecorderLimitsTests`). The nil check covers the `EmbraceSpan` contract, which
