@@ -41,8 +41,20 @@ final package class EmbraceOTelBridge {
     // isInternalSpan correctly returns true when onStart fires synchronously during startSpan().
     private let pendingSpanIds = EmbraceMutex(Set<String>())
 
-    // Cache of IDs for logs emitted outbound so the inbound processor can skip them.
+     // IDs of the logs the bridge is currently emitting, so `isInternalLog` can tell them apart from
+     // logs created by OTel code in the host app. `EmbraceLogProcessor` is the root processor
+     // registered on `loggerProvider`, and it consults `isInternalLog` at the top of its `onEmit`,
+     // which the OTel SDK calls synchronously from `emit()`. An ID therefore only has to be present
+     // across the `emit()` call in `createLog`, whatever the child processors do with the record.    
     private let internalLogIds = EmbraceMutex(Set<String>())
+
+    /// Test-only view of the IDs of the logs currently being emitted outbound.
+    ///
+    /// Outside of an in-flight `createLog` call this is always empty; tests use it to verify that
+    /// entries do not outlive the emit window they are needed for.
+    var inFlightInternalLogIds: Set<String> {
+        internalLogIds.withLock { $0 }
+    }
 
     private let idGenerator = EmbraceSpanIdGenerator()
     private let spanProcessor: EmbraceSpanProcessor
@@ -253,8 +265,11 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
 
     package func createLog(_ log: EmbraceLog) {
         let logId = log.id
-        // Track the ID so the inbound processor can skip it.
+        // Track the ID so the inbound processor can skip it. The processor consults this set from
+        // inside `emit()`, which dispatches to the processor chain synchronously, so the entry is
+        // only needed until this function returns.
         internalLogIds.withLock { $0.insert(logId) }
+        defer { internalLogIds.withLock { $0.remove(logId) } }
 
         var builder = logger.logRecordBuilder()
             .setTimestamp(log.timestamp)
