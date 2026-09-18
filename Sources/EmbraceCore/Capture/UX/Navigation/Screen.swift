@@ -38,4 +38,10 @@ struct Screen: StateValue {
 
     /// Value of the state while the app is backgrounded.
     static let backgrounded = Screen(system: "Backgrounded")
+
+    /// Compared by what is written, not by the stored properties, so a property added later cannot
+    /// silently widen this and split one screen into two.
+    static func == (lhs: Screen, rhs: Screen) -> Bool {
+        lhs.serialized == rhs.serialized
+    }
 }

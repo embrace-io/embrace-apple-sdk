@@ -67,10 +67,20 @@
             switch phase {
             case .willAppear:
                 guard shouldTrack(vc) else { return }
+                // Warned here rather than in `.didAppear`, which follows on the same controller and
+                // would log it twice for one appearance.
+                guard !name.isEmpty else {
+                    Embrace.logger.warning(
+                        """
+                        Screen tracking: '\(String(describing: type(of: vc)))' resolved to a blank \
+                        screen name and was ignored.
+                        """)
+                    return
+                }
                 broker.handle(.started(componentId, name: name, at: time))
 
             case .didAppear:
-                guard shouldTrack(vc) else { return }
+                guard shouldTrack(vc), !name.isEmpty else { return }
                 broker.handle(.resumed(componentId, name: name, at: time))
 
             case .didDisappear:
@@ -196,7 +206,7 @@
             let name = normalized(name)
 
             // A blank name is indistinguishable from an absent one downstream, and still spends one
-            // of the part's transitions. Nothing else here refuses a name.
+            // of the part's transitions.
             guard !name.isEmpty else {
                 Embrace.logger.warning(
                     "Screen tracking: a screen was declared with a blank name and was ignored.")
