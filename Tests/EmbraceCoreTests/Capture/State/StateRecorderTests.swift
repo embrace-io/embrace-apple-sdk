@@ -133,6 +133,14 @@ final class StateRecorderTests: XCTestCase {
         partStart.addingTimeInterval(offset)
     }
 
+    private func nextPartSpan() throws -> EmbraceSpan {
+        try mockOTel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(70)
+        )
+    }
+
     // MARK: - Span shape
 
     func testOpensOneSpanPerPartSeededWithTheCurrentValue() throws {
@@ -362,6 +370,34 @@ final class StateRecorderTests: XCTestCase {
         XCTAssertEqual(second.attributes[SpanSemantics.State.keyInitialValue]?.description, "second")
     }
 
+    /// The type crosses the boundary with the value it belongs to: the next part's span is seeded
+    /// from the stored value, which is the one place the pair is rebuilt rather than handed in.
+    func testTheCarriedOverValuesTypeSeedsTheNextPartsSpan() throws {
+        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+
+        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
+        recorder.onSessionPartWillEnd(at: time(60))
+        recorder.onSessionPartStart(sessionSpan: try nextPartSpan(), at: time(70))
+
+        XCTAssertEqual(stateSpans.count, 2)
+        let second = try XCTUnwrap(stateSpans.last)
+        XCTAssertEqual(second.attributes[SpanSemantics.State.keyInitialValue]?.description, "Backgrounded")
+        XCTAssertEqual(second.attributes[SpanSemantics.State.keyValueType]?.description, "system")
+    }
+
+    /// And an untyped one carries no type over, however the part before it started.
+    func testAnUntypedCarriedOverValueSeedsNoTypeOnTheNextPartsSpan() throws {
+        let recorder = startedTypedRecorder(defaultValue: TypedValue("Initializing", type: .system))
+
+        recorder.onStateChange(to: TypedValue("Home"), at: time(1))
+        recorder.onSessionPartWillEnd(at: time(60))
+        recorder.onSessionPartStart(sessionSpan: try nextPartSpan(), at: time(70))
+
+        let second = try XCTUnwrap(stateSpans.last)
+        XCTAssertEqual(second.attributes[SpanSemantics.State.keyInitialValue]?.description, "Home")
+        XCTAssertNil(second.attributes[SpanSemantics.State.keyValueType])
+    }
+
     func testValueIsRetainedEvenWhenTheChangeWasNeverRecorded() throws {
         // The value-retention invariant: a change dropped by the cap must still seed the next part.
         let recorder = startedRecorder(maxTransitions: 1)
@@ -458,6 +494,17 @@ final class StateRecorderTests: XCTestCase {
 
         let span = try XCTUnwrap(stateSpans.first)
         XCTAssertEqual(span.attributes[SpanSemantics.State.keyValueType]?.description, "system")
+    }
+
+    /// The direction the test above cannot catch: an untyped value writes no key, so a span that
+    /// opened untyped would keep whatever a rewrite put there.
+    func testTransitionsDoNotGiveAnUntypedSpanAType() throws {
+        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+
+        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
+
+        let span = try XCTUnwrap(stateSpans.first)
+        XCTAssertNil(span.attributes[SpanSemantics.State.keyValueType])
     }
 
     func testTransitionEventsRecordTheTypeOfTheNewValue() throws {
@@ -849,6 +896,9 @@ final class StateRecorderTests: XCTestCase {
             attributes["emb.state.screen-automatic"]?.description,
             "ProductDetailViewController"
         )
+        XCTAssertNil(
+            attributes["emb.state.screen-automatic.value_type"],
+            "a String has no type, so nothing is written beside it")
     }
 
     func testLogStampsCarryTheCurrentValuesType() throws {
@@ -974,9 +1024,20 @@ final class StateRecorderTests: XCTestCase {
         XCTAssertEqual(attributes[CommonSemantics.keyState]?.description, "foreground")
     }
 
+    /// The strip runs above the coordinator guard, so with nothing attached to stamp over a forged
+    /// key it is the only thing that removes one.
     func testLogStampingIsANoOpWithoutACoordinator() {
-        let builder = EmbraceLogAttributesBuilder(session: nil, initialAttributes: [:])
-        XCTAssertTrue(builder.addCurrentStates(nil).build().isEmpty)
+        let builder = EmbraceLogAttributesBuilder(
+            session: nil,
+            initialAttributes: [
+                "existing": "kept",
+                "emb.state.screen-automatic.value_type": "system"
+            ]
+        )
+        let attributes = builder.addCurrentStates(nil).build()
+
+        XCTAssertEqual(attributes["existing"]?.description, "kept")
+        XCTAssertNil(attributes["emb.state.screen-automatic.value_type"])
     }
 
     func testCoordinatorFansOutBoundariesAndAggregatesLogAttributes() throws {

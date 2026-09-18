@@ -567,6 +567,20 @@
             XCTAssertEqual(recordedScreens, ["Checkout"])
         }
 
+        /// `nameForViewControllerInEmbrace` returning `""` is not "no name": it is non-nil, so the
+        /// class-name fallback never runs and a blank would otherwise be stamped on every log until
+        /// the user navigated away.
+        func testAViewControllerResolvingToABlankNameIsRefused() {
+            let tracker = makeTracker()
+            let blank = NamedViewController()
+            blank.nameForViewControllerInEmbrace = "   "
+
+            appear(tracker, blank, startedAt: 0, resumedAt: 1)
+            appear(tracker, PlainViewController(), startedAt: 2, resumedAt: 3)
+
+            XCTAssertEqual(recordedScreens, ["PlainViewController"])
+        }
+
         /// The automatic path meets the same collision: a view controller class can be named after
         /// a sentinel, and `nameForViewControllerInEmbrace` is public API that can return one.
         func testAViewControllerNamedAfterASentinelIsRecorded() {

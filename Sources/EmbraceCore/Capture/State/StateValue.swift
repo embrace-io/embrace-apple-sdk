@@ -28,8 +28,9 @@ enum StateValueType {
 /// A value that can be recorded as a state.
 ///
 /// Values are compared to suppress duplicate transitions and written into `emb.state.*`, so the two
-/// must stay in step: values with an identical ``serialized`` form — same string *and* type — must
-/// compare equal, and a conformance with a type must include it in its `==`.
+/// must stay in step: `==` holds exactly when ``serialized`` is equal, in both directions. A
+/// conformance whose `==` reads fewer fields dedupes away real transitions; one that reads more
+/// ships duplicates.
 ///
 /// Separate from `CustomStringConvertible` because `description` is inherited too easily to be
 /// trusted as a wire format.
