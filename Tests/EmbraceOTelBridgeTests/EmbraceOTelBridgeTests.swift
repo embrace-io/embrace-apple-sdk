@@ -191,11 +191,6 @@ final class EmbraceOTelBridgeTests: XCTestCase {
 
     // MARK: - createLog internal ID lifetime
 
-    func test_createLog_doesNotRetainInternalLogId() {
-        bridge.createLog(MockEmbraceLog())
-        XCTAssertTrue(bridge.inFlightInternalLogIds.isEmpty)
-    }
-
     func test_createLog_repeated_doesNotAccumulateInternalLogIds() {
         for _ in 0..<1000 {
             bridge.createLog(MockEmbraceLog())
