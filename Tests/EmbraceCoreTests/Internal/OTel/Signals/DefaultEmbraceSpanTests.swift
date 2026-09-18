@@ -399,7 +399,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
         XCTAssertEqual(handler.validateAttributeCallCount, 1)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
     }
 
     func test_setAttribute_failure() throws {
@@ -427,7 +427,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertNil(span.attributes["myKey"])
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
         XCTAssertEqual(handler.validateAttributeCallCount, 1)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
     }
 
     func test_setInternalAttribute() throws {
@@ -443,7 +443,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 2)
         XCTAssertEqual(handler.validateAttributeCallCount, 0)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
     }
 
     func test_setInternalAttribute_delete() throws {
@@ -465,7 +465,77 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
 
         XCTAssertEqual(handler.validateAttributeCallCount, 0)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 2)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 2)
+    }
+
+    func test_setInternalAttribute_sameKeyTwice_doesNotInflateCount() throws {
+        // given a span
+        let span = testSpan
+
+        // when setting the same internal attribute twice
+        span.setInternalAttribute(key: "key", value: "value")
+        span.setInternalAttribute(key: "key", value: "otherValue")
+
+        // then the internal counter only counts the attribute once
+        XCTAssertEqual(span.attributes["key"] as! String, "otherValue")
+        XCTAssertEqual(span.state.safeValue.internalAttributeCount, 2)
+    }
+
+    func test_setInternalAttribute_deleteMissingKey_doesNotDecreaseCount() throws {
+        // given a span
+        let span = testSpan
+
+        // when deleting an internal attribute that was never set
+        span.setInternalAttribute(key: "missingKey", value: nil)
+
+        // then the internal counter is left alone
+        XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
+    }
+
+    // MARK: concurrency
+
+    func test_addLink_concurrent_keepsEveryLink() throws {
+        // given a span that starts with 1 link
+        let span = testSpan
+
+        // when adding links from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            span.addLink(spanId: "spanId\(index)", traceId: "traceId\(index)")
+        }
+
+        // then no link is lost
+        XCTAssertEqual(span.links.count, 1001)
+    }
+
+    func test_addEvent_concurrent_keepsEveryEvent() throws {
+        // given a span that starts with 1 event
+        let span = testSpan
+
+        // when adding events from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            span.addEvent(name: "event\(index)")
+        }
+
+        // then no event is lost
+        XCTAssertEqual(span.events.count, 1001)
+    }
+
+    func test_setAttribute_concurrent_keepsEveryAttribute() throws {
+        // given a span that starts with 1 attribute
+        let span = testSpan
+
+        // when setting different attributes from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            span.setAttribute(key: "key\(index)", value: "value\(index)")
+        }
+
+        // then no attribute is lost, and the handler is notified once per update
+        XCTAssertEqual(span.attributes.count, 1001)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1000)
+
+        for index in 0..<1000 {
+            XCTAssertEqual(span.attributes["key\(index)"] as? String, "value\(index)")
+        }
     }
 
     func test_end() throws {

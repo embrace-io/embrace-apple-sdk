@@ -248,7 +248,7 @@ class SpanRecordTests: XCTestCase {
         XCTAssertEqual(spans[0].attributes, "key,value")
     }
 
-    func test_setSpanAttributes() {
+    func test_setSpanAttribute_add() {
         // given inserted span
         storage.upsertSpan(
             MockSpan(
@@ -257,17 +257,21 @@ class SpanRecordTests: XCTestCase {
                 attributes: ["key": "value"]
             ))
 
-        // when updating the attributes
-        storage.setSpanAttributes(id: "id", traceId: TestConstants.traceId, attributes: ["newKey": "newValue"])
+        // when setting a new attribute
+        storage.setSpanAttribute(id: "id", traceId: TestConstants.traceId, key: "newKey", value: "newValue")
 
-        // then span should exist in storage with the correct values
+        // then the new attribute is added without removing the existing ones
         let spans: [SpanRecord] = storage.fetchAll()
         XCTAssertEqual(spans.count, 1)
         XCTAssertEqual(spans[0].id, "id")
-        XCTAssertEqual(spans[0].attributes, "newKey,newValue")
+
+        let attributes = EmbraceAttributes.keyValueDecode(spans[0].attributes)
+        XCTAssertEqual(attributes.count, 2)
+        XCTAssertEqual(attributes["key"], "value")
+        XCTAssertEqual(attributes["newKey"], "newValue")
     }
 
-    func test_setSpanAttributes_remove() {
+    func test_setSpanAttribute_update() {
         // given inserted span
         storage.upsertSpan(
             MockSpan(
@@ -276,14 +280,57 @@ class SpanRecordTests: XCTestCase {
                 attributes: ["key": "value"]
             ))
 
-        // when updating the attributes
-        storage.setSpanAttributes(id: "id", traceId: TestConstants.traceId, attributes: [:])
+        // when setting a new value for an existing attribute
+        storage.setSpanAttribute(id: "id", traceId: TestConstants.traceId, key: "key", value: "newValue")
 
-        // then span should exist in storage with the correct values
+        // then the attribute is updated in place
         let spans: [SpanRecord] = storage.fetchAll()
         XCTAssertEqual(spans.count, 1)
         XCTAssertEqual(spans[0].id, "id")
-        XCTAssertEqual(spans[0].attributes, "")
+        XCTAssertEqual(spans[0].attributes, "key,newValue")
+    }
+
+    func test_setSpanAttribute_remove() {
+        // given inserted span
+        storage.upsertSpan(
+            MockSpan(
+                id: "id",
+                name: "a name",
+                attributes: ["key": "value", "otherKey": "otherValue"]
+            ))
+
+        // when setting an attribute to nil
+        storage.setSpanAttribute(id: "id", traceId: TestConstants.traceId, key: "key", value: nil)
+
+        // then only that attribute is removed
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+        XCTAssertEqual(spans[0].id, "id")
+        XCTAssertEqual(spans[0].attributes, "otherKey,otherValue")
+    }
+
+    func test_setSpanAttribute_multipleKeys() {
+        // given inserted span
+        storage.upsertSpan(
+            MockSpan(
+                id: "id",
+                name: "a name"
+            ))
+
+        // when setting multiple attributes
+        for i in 0..<10 {
+            storage.setSpanAttribute(id: "id", traceId: TestConstants.traceId, key: "key\(i)", value: "value\(i)")
+        }
+
+        // then no update overwrites the others
+        let spans: [SpanRecord] = storage.fetchAll()
+        XCTAssertEqual(spans.count, 1)
+
+        let attributes = EmbraceAttributes.keyValueDecode(spans[0].attributes)
+        XCTAssertEqual(attributes.count, 10)
+        for i in 0..<10 {
+            XCTAssertEqual(attributes["key\(i)"], "value\(i)")
+        }
     }
 
     // MARK: Events

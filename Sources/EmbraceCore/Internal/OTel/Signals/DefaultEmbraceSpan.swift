@@ -204,7 +204,10 @@ class DefaultEmbraceSpan: EmbraceSpan {
                 currentCount: currentCount
             )
 
-            links.append(link)
+            state.withLock {
+                $0.links.append(link)
+            }
+
             handler.onSpanLinkAdded(self, link: link)
             return link
         } catch {
@@ -249,19 +252,17 @@ class DefaultEmbraceSpan: EmbraceSpan {
 
         // update
         state.withLock {
+            // only count the attribute when its presence actually changes,
+            // otherwise overwriting or clearing an absent key skews the count
+            let existed = $0.attributes[attribute.0] != nil
             $0.attributes[attribute.0] = attribute.1
 
-            if isInternal {
-                $0.internalAttributeCount += value != nil ? 1 : -1
+            if isInternal, existed != (attribute.1 != nil) {
+                $0.internalAttributeCount += attribute.1 != nil ? 1 : -1
             }
         }
 
-        handler.onSpanAttributesUpdated(
-            self,
-            key: attribute.0,
-            value: attribute.1,
-            attributes: attributes
-        )
+        handler.onSpanAttributeUpdated(self, key: attribute.0, value: attribute.1)
     }
 
     func end(endTime: Date) {
