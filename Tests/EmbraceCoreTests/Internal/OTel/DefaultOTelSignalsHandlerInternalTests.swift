@@ -329,13 +329,13 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(record!.links[0].context.traceId, TestConstants.traceId)
     }
 
-    func test_onSpanAttributesUpdated() throws {
+    func test_onSpanAttributeUpdated() throws {
         // given a span
         let span = MockSpan(name: "test")
         storage?.upsertSpan(span)
 
-        // when onSpanAttributesUpdated is called
-        handler.onSpanAttributesUpdated(span, key: "key", value: "value", attributes: ["key": "value"])
+        // when onSpanAttributeUpdated is called
+        handler.onSpanAttributeUpdated(span, key: "key", value: "value")
 
         // then the right calls are made
         XCTAssertEqual(bridge.updateSpanAttributeCallCount, 1)

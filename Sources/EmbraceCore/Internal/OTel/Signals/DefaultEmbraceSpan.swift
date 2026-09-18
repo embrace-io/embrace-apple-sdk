@@ -244,9 +244,8 @@ class DefaultEmbraceSpan: EmbraceSpan {
 
         // The count the limit is checked against and the write that consumes a slot share a single
         // critical section. Reading the count under its own lock would let two concurrent callers
-        // both pass the check and push the attribute count past the limit. The resulting snapshot is
-        // taken under the same lock so the delegate is handed the state produced by this very write.
-        let (attribute, snapshot) = try state.withLock { data -> ((String, EmbraceAttributeValue?), EmbraceAttributes) in
+        // both pass the check and push the attribute count past the limit.
+        let attribute = try state.withLock { data -> (String, EmbraceAttributeValue?) in
             var attribute: (String, EmbraceAttributeValue?) = (key, value)
 
             // apply limits?
@@ -260,21 +259,19 @@ class DefaultEmbraceSpan: EmbraceSpan {
                 )
             }
 
+            // only count the attribute when its presence actually changes, otherwise
+            // overwriting an existing key or clearing an absent one skews the count
+            let existed = data.attributes[attribute.0] != nil
             data.attributes[attribute.0] = attribute.1
 
-            if isInternal {
-                data.internalAttributeCount += value != nil ? 1 : -1
+            if isInternal, existed != (attribute.1 != nil) {
+                data.internalAttributeCount += attribute.1 != nil ? 1 : -1
             }
 
-            return (attribute, data.attributes)
+            return attribute
         }
 
-        handler.onSpanAttributesUpdated(
-            self,
-            key: attribute.0,
-            value: attribute.1,
-            attributes: snapshot
-        )
+        handler.onSpanAttributeUpdated(self, key: attribute.0, value: attribute.1)
     }
 
     func end(endTime: Date) {

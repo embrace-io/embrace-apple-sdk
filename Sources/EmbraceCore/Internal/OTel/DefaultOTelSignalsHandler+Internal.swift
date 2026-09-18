@@ -306,9 +306,9 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
         storage?.addSpanLink(id: span.context.spanId, traceId: span.context.traceId, link: link)
     }
 
-    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: EmbraceAttributeValue?, attributes: EmbraceAttributes) {
+    func onSpanAttributeUpdated(_ span: EmbraceSpan, key: String, value: EmbraceAttributeValue?) {
         bridge.updateSpanAttribute(span, key: key, value: value)
-        storage?.setSpanAttributes(id: span.context.spanId, traceId: span.context.traceId, attributes: attributes)
+        storage?.setSpanAttribute(id: span.context.spanId, traceId: span.context.traceId, key: key, value: value)
     }
 
     func onSpanEnded(_ span: any EmbraceSpan, endTime: Date) {
