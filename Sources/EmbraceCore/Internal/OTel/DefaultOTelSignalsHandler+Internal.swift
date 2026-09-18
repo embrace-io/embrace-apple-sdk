@@ -142,7 +142,15 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         // cache auto termination spans
         if let code {
             cache.withLock {
-                $0.autoTerminationSpans[context.spanId] = span
+                // Only spans that are still open can be terminated later. One created already ended
+                // never fires `onSpanEnded`, so it would never be evicted and would sit here for the
+                // rest of the session without anything to do.
+                if endTime == nil {
+                    $0.autoTerminationSpans[context.spanId] = span
+                }
+
+                // The code is kept either way, so a span created afterwards can name this one as
+                // its parent and inherit from it.
                 $0.autoTerminationCodes[context.spanId] = code
             }
         }

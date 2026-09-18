@@ -243,6 +243,47 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(span.attributes["emb.error_code"] as! String, "user_abandon")
     }
 
+    func test_createSpan_autoTermination_spanCreatedAlreadyEnded_isNotTracked() throws {
+        // given a handler
+        // when creating a span that is already ended and carries an auto termination code
+        let endTime = Date(timeIntervalSince1970: 100)
+        let span = try XCTUnwrap(
+            handler.createSpan(name: "test", endTime: endTime, autoTerminationCode: .userAbandon)
+        )
+
+        // then it isn't tracked for auto termination: it can never be ended again, so it would
+        // never be evicted and would be held for the rest of the session with nothing to do
+        XCTAssertTrue(handler.cache.safeValue.autoTerminationSpans.isEmpty)
+
+        // and the session ending leaves it untouched
+        handler.autoTerminateSpans()
+
+        XCTAssertEqual(span.endTime, endTime)
+        XCTAssertNil(span.attributes["emb.error_code"])
+    }
+
+    func test_createSpan_autoTermination_parentCode_afterParentCreatedAlreadyEnded() throws {
+        // given a parent created already ended that carries an auto termination code
+        let parentSpan = try XCTUnwrap(
+            handler.createSpan(
+                name: "parent",
+                endTime: Date(timeIntervalSince1970: 100),
+                autoTerminationCode: .userAbandon
+            )
+        )
+
+        // when creating a child afterwards
+        let child = try XCTUnwrap(handler.createSpan(name: "child", parentSpan: parentSpan))
+
+        // and the session ends
+        handler.autoTerminateSpans()
+
+        // then the child still inherits the parent's code, even though the parent was never
+        // tracked for auto termination itself
+        XCTAssertNotNil(child.endTime)
+        XCTAssertEqual(child.attributes["emb.error_code"] as? String, "user_abandon")
+    }
+
     func test_autoTermination_doesNotReEndASpanThatAlreadyEnded() throws {
         // given a span with an auto termination code that ended normally and successfully
         let span = try XCTUnwrap(handler.createSpan(name: "test", autoTerminationCode: .userAbandon))
