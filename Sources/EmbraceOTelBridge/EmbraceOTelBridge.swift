@@ -41,11 +41,11 @@ final package class EmbraceOTelBridge {
     // isInternalSpan correctly returns true when onStart fires synchronously during startSpan().
     private let pendingSpanIds = EmbraceMutex(Set<String>())
 
-    // IDs of logs currently being emitted outbound, so the inbound processor can skip them.
-    // Entries live only for the duration of the `emit()` call that creates them: the OTel
-    // `LogRecordProcessor` chain is invoked synchronously from `emit()`, so `isInternalLog` has
-    // already run by the time `createLog` removes the ID again. The set is therefore expected to
-    // be empty between `createLog` calls — a non-empty set outside a `createLog` frame is a bug.
+     // IDs of the logs the bridge is currently emitting, so `isInternalLog` can tell them apart from
+     // logs created by OTel code in the host app. `EmbraceLogProcessor` is the root processor
+     // registered on `loggerProvider`, and it consults `isInternalLog` at the top of its `onEmit`,
+     // which the OTel SDK calls synchronously from `emit()`. An ID therefore only has to be present
+     // across the `emit()` call in `createLog`, whatever the child processors do with the record.    
     private let internalLogIds = EmbraceMutex(Set<String>())
 
     /// Test-only view of the IDs of the logs currently being emitted outbound.
