@@ -9,13 +9,23 @@ import OpenTelemetryApi
 ///
 /// Signals created through these providers are captured by Embrace and forwarded to any custom
 /// processors and exporters supplied through `EmbraceIO.OTelOptions`, exactly like the signals the
-/// SDK generates itself. They also count against the same per-session limits as
-/// `createSpan(name:)` and `log(_:severity:)`.
+/// SDK generates itself. They count against the same per-session limits as `EmbraceIO.shared.createSpan`
+/// and `EmbraceIO.shared.log`, so they are dropped once that budget is exhausted.
 ///
-/// Every accessor here returns `nil` when the SDK was started without `EmbraceIO.OTelOptions`,
-/// because in that configuration no OpenTelemetry SDK instance is created at all. Nothing is
-/// substituted in its place: a `nil` return makes the missing configuration visible at the call
-/// site instead of silently discarding the telemetry.
+/// Every accessor returns `nil` when there is no Embrace OTel pipeline to hand back:
+///
+/// - `start(options:)` has not been called yet.
+/// - The SDK was started without `EmbraceIO.OTelOptions`.
+/// - `start(options:)` threw.
+/// - A previous `start(options:)` already created the SDK client, so the `OTelOptions` passed to
+///   any later call were ignored.
+///
+/// Nothing is substituted in place of the missing pipeline. An absent pipeline shows up at the
+/// call site rather than quietly swallowing the telemetry.
+///
+/// A non-`nil` provider means the options were supplied, not that the SDK is running. The
+/// providers outlive `EmbraceIO.stop()`, and signals created afterwards are stamped with an empty
+/// session id and belong to no session. Consult `state` or `isSDKEnabled` if you need to know.
 extension EmbraceIO {
 
     /// The `TracerProvider` backing the Embrace pipeline, or `nil` when the SDK was started

@@ -44,8 +44,10 @@ extension EmbraceIO {
         /// the Embrace pipeline. When `false`, the process-wide providers are left untouched and
         /// the Embrace providers are reachable only through `EmbraceIO.shared`.
         ///
-        /// Defaults to `false`. Three things are worth knowing before enabling it:
+        /// Defaults to `false`. These things are worth knowing before enabling it:
         ///
+        /// - It only takes effect when this `start(options:)` call is the one that creates the
+        ///   SDK client. The value passed to any later call is ignored.
         /// - Registration is process-global and last-writer-wins. An app that registers its own
         ///   providers after the Embrace SDK starts will displace Embrace's, and vice versa.
         /// - Registration is never undone, including by `EmbraceIO.stop()`. OpenTelemetry offers

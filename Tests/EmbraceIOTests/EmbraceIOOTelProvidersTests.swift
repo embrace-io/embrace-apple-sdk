@@ -43,6 +43,7 @@ final class EmbraceIOOTelProvidersTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
+        _ = try? Embrace.client?.stop()
         Embrace.client = nil
         EmbraceIO.shared.otelBridge.safeValue = nil
 
