@@ -118,7 +118,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         // get auto termination code from parent if needed
         var code = autoTerminationCode
         if let parentSpan, code == nil {
-            code = cache.safeValue.autoTerminationSpans[parentSpan.context.spanId]?.autoTerminationCode
+            code = cache.safeValue.autoTerminationCodes[parentSpan.context.spanId]
         }
 
         // create span
@@ -140,9 +140,10 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         )
 
         // cache auto termination spans
-        if code != nil {
+        if let code {
             cache.withLock {
                 $0.autoTerminationSpans[context.spanId] = span
+                $0.autoTerminationCodes[context.spanId] = code
             }
         }
 
@@ -212,6 +213,10 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         let spans = cache.withLock {
             let spans = Array($0.autoTerminationSpans.values)
             $0.autoTerminationSpans.removeAll()
+
+            // The codes go too: they exist to be inherited by spans created during the session
+            // that just ended, so nothing created afterwards should pick them up.
+            $0.autoTerminationCodes.removeAll()
             return spans
         }
 
@@ -317,7 +322,8 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
 
     func onSpanEnded(_ span: any EmbraceSpan, endTime: Date) {
         // Auto-terminating spans are dropped from the cache when they end on their own, so the cache
-        // doesn't hold every one of them for the whole session.        
+        // doesn't hold every one of them for the whole session. Their code is deliberately kept:
+        // a span created later can still name this one as its parent and inherit from it.
         cache.withLock {
             $0.autoTerminationSpans[span.context.spanId] = nil
         }

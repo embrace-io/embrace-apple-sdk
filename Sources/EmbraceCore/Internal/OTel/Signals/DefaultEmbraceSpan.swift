@@ -106,7 +106,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
     /// pipeline exports. Storage accepts any mutation it is handed. The OTel side accepts none once
     /// the span has ended, because the bridge drops it from its span cache and the OTel SDK stops
     /// recording. Refusing the change up front keeps a late write from landing in the Embrace instance
-    /// while being omitted from the OTel one.    
+    /// while being omitted from the OTel one.
     var hasEnded: Bool {
         state.safeValue.endTime != nil
     }

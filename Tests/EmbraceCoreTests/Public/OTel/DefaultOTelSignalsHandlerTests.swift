@@ -207,6 +207,22 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(span.attributes["emb.error_code"] as! String, "user_abandon")
     }
 
+    func test_createSpan_autoTermination_parentCode_afterParentEnded() throws {
+        // given a parent with an auto termination code that ended on its own
+        let parentSpan = try XCTUnwrap(handler.createSpan(name: "parent", autoTerminationCode: .userAbandon))
+        parentSpan.end()
+
+        // when creating a child afterwards
+        let child = try XCTUnwrap(handler.createSpan(name: "child", parentSpan: parentSpan))
+
+        // and the session ends
+        handler.autoTerminateSpans()
+
+        // then the child inherits the parent's code
+        XCTAssertNotNil(child.endTime)
+        XCTAssertEqual(child.attributes["emb.error_code"] as? String, "user_abandon")
+    }
+
     func test_createSpan_autoTermination_parentCode() throws {
         // given a handler
         // when creating a parent span with an auto termination code
@@ -240,6 +256,21 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(span.status, .ok)
         XCTAssertEqual(span.endTime, endTime)
         XCTAssertNil(span.attributes["emb.error_code"])
+    }
+
+    func test_setAttribute_afterEnd_doesNotReachStorage() throws {
+        // given a span with an attribute set before it ended
+        let span = try XCTUnwrap(handler.createSpan(name: "test"))
+        span.setAttribute(key: "early", value: "value")
+        span.end()
+
+        // when setting an attribute afterwards
+        span.setAttribute(key: "late", value: "value")
+
+        // then the stored record is unchanged
+        let record = try XCTUnwrap(storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId))
+        XCTAssertEqual(record.attributes["early"] as? String, "value")
+        XCTAssertNil(record.attributes["late"])
     }
 
     func test_autoTermination_stopsTrackingSpansOnceTheyEnd() throws {
