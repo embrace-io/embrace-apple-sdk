@@ -606,4 +606,32 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 0)
         XCTAssertEqual(handler.onSpanStatusUpdatedCallCount, 0)
     }
+
+    func test_setInternalAttribute_afterEnd_isIgnored() throws {
+        // given a span that ended
+        let span = testSpan
+        span.end()
+
+        // when the SDK itself writes an attribute afterwards
+        span.setInternalAttribute(key: "internalKey", value: "value")
+
+        // then it isn't stored and nothing is written through
+        XCTAssertNil(span.attributes["internalKey"])
+        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 0)
+    }
+
+    func test_addSessionEvent_afterEnd_isIgnored() throws {
+        // given a span that ended
+        let span = testSpan
+        let eventCount = span.events.count
+        span.end()
+
+        // when the SDK itself adds a session event afterwards
+        let result = try span.addSessionEvent(name: "sessionEvent", isInternal: true)
+
+        // then nothing is added and nothing is written through
+        XCTAssertNil(result)
+        XCTAssertEqual(span.events.count, eventCount)
+        XCTAssertEqual(handler.onSpanEventAddedCallCount, 0)
+    }
 }
