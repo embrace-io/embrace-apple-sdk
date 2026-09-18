@@ -381,21 +381,18 @@ final class StateRecorder<Value: StateValue>: StateRecording {
             return
         }
 
-        var spanAttributes: EmbraceAttributes = [
-            SpanSemantics.State.keyInitialValue: initialValue.description
-        ]
-        // Written once and never updated: it describes the value the part *began* with.
-        if let type = initialValue.type {
-            spanAttributes[SpanSemantics.State.keyValueType] = type.wireValue
-        }
-
         let span: EmbraceSpan
         do {
             span = try otel.createInternalSpan(
                 name: SpanSemantics.State.spanName(for: stateName),
                 type: .state,
                 startTime: time,
-                attributes: spanAttributes
+                // Scoped to `initial_value`: written once at span start, never rewritten however the
+                // value is typed later in the part.
+                attributes: initialValue.attributes(
+                    valueKey: SpanSemantics.State.keyInitialValue,
+                    typeKey: SpanSemantics.State.keyValueType
+                )
             )
         } catch {
             Embrace.logger.error(

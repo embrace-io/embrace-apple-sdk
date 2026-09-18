@@ -75,7 +75,7 @@ final class StateCaptureCoordinator {
     ///
     /// Gathered per recorder rather than atomically, so a log can see one state's new value beside
     /// another's old one. That is acceptable here, and must not be "fixed" by holding a lock across
-    /// the recorders — see the note on this type. A single state's value and type do come from one
+    /// the recorders — see the note on this type. A single state's value and type come from one
     /// read, so a type is never attributed to the wrong value.
     var logAttributes: EmbraceAttributes {
         var attributes: EmbraceAttributes = [:]
@@ -83,10 +83,12 @@ final class StateCaptureCoordinator {
             guard let value = recorder.currentSerializedValue else {
                 continue
             }
-            attributes[SpanSemantics.State.logAttributeKey(for: recorder.stateName)] = value.description
-            if let type = value.type {
-                attributes[SpanSemantics.State.logValueTypeAttributeKey(for: recorder.stateName)] = type.wireValue
-            }
+            attributes.merge(
+                value.attributes(
+                    valueKey: SpanSemantics.State.logAttributeKey(for: recorder.stateName),
+                    typeKey: SpanSemantics.State.logValueTypeAttributeKey(for: recorder.stateName)
+                )
+            ) { _, new in new }
         }
         return attributes
     }

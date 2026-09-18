@@ -93,7 +93,7 @@ final class ScreenStateReporterTests: XCTestCase {
     func testCurrentValueIsExposedForLogStamping() {
         reporter.onScreenLoad(at: time(1), screen: Screen("Home"))
 
-        XCTAssertEqual(reporter.recorder.currentSerializedValue?.description, "Home")
+        XCTAssertEqual(reporter.recorder.currentSerializedValue?.stateDescription, "Home")
     }
 
     func testEqualConsecutiveScreensAreDroppedAndCounted() throws {
@@ -113,9 +113,8 @@ final class ScreenStateReporterTests: XCTestCase {
 
     // MARK: - Sentinel name collisions
 
-    /// The clash this feature exists to resolve. Duplicate suppression is by value, so without the
-    /// type these two would be one value: whichever came second would be dropped, and a session
-    /// that genuinely backgrounded would report that it never did.
+    /// Duplicate suppression is by value, so without the type these two are one value: the second
+    /// is dropped, and a session that genuinely backgrounded reports that it never did.
     func testAnAppScreenNamedLikeTheSentinelIsRecordedBesideIt() throws {
         reporter.onScreenLoad(at: time(1), screen: Screen("Backgrounded"))
         reporter.onScreenLoad(at: time(2), screen: .backgrounded)

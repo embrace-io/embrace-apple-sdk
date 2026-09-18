@@ -82,8 +82,9 @@
 
         // MARK: - Filtering
 
-        /// What a controller *is* decides this; what it is called never does. A screen may share a
-        /// name with one of the SDK's own values — its value type is what keeps the two distinct.
+        /// Decided by what the controller *is*, never by the screen name it would ship — a name that
+        /// collides with one of the SDK's own values is kept apart by its value type instead. The
+        /// anonymous-host test below is on the controller's *class*, which is a different question.
         private func shouldTrack(_ vc: UIViewController) -> Bool {
             // A controller the customer has already opted out of stays out of both streams.
             guard vc.emb_shouldCaptureView, !isBlocked(vc) else {
@@ -195,7 +196,7 @@
             let name = normalized(name)
 
             // A blank name is indistinguishable from an absent one downstream, and still spends one
-            // of the part's transitions. It is the only name refused.
+            // of the part's transitions. Nothing else here refuses a name.
             guard !name.isEmpty else {
                 Embrace.logger.warning(
                     "Screen tracking: a screen was declared with a blank name and was ignored.")

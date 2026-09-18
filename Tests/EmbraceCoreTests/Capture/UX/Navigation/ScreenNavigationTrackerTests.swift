@@ -402,12 +402,9 @@
             XCTAssertEqual(load.timestamp, time(9), "two screens visible means no backdating")
         }
 
-        /// A screen may be called whatever the app calls it, including what the SDK calls its own
-        /// values. Both are recorded, and the value type is what tells them apart.
-        ///
-        /// Driven through a full background cycle because that is where the collision bites: the
-        /// declaration, the real backgrounding and the return are three transitions that all spell
-        /// "Backgrounded".
+        /// A screen may be called whatever the app calls it, and the value type is what tells it
+        /// apart from the SDK's own. Driven through a full background cycle because that is where
+        /// the collision bites: three transitions that all spell "Backgrounded".
         func testAScreenDeclaredWithASentinelsNameIsRecordedAndKeptDistinct() throws {
             let tracker = makeTracker()
 
