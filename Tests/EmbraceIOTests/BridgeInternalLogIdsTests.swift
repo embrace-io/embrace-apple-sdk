@@ -25,6 +25,7 @@ final class BridgeInternalLogIdsTests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
+        Embrace.client = nil
 
         exporter = ThreadSafeLogExporter()
         try EmbraceIO.start(
