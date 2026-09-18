@@ -99,19 +99,20 @@ class DefaultEmbraceSpan: EmbraceSpan {
         }
     }
 
-    /// Returns whether this span has already ended, and therefore no longer accepts changes.
+    /// Whether the span has ended. An ended span no longer accepts changes to its status,
+    /// attributes, events or links.
     ///
-    /// A span that ends becomes a completed record: its status, attributes, events and links are
-    /// fixed from that point on. This mirrors the OpenTelemetry behavior, where a span stops
-    /// recording once it ends. Without it, a late change would reach the copy Embrace stores and
-    /// uploads while being silently refused by the OpenTelemetry pipeline, leaving the two
-    /// descriptions of the same span disagreeing.
+    /// A span exists in two places: the record Embrace stores and uploads, and the span the OTel
+    /// pipeline exports. Storage accepts any mutation it is handed. The OTel side accepts none once
+    /// the span has ended, because the bridge drops it from its span cache and the OTel SDK stops
+    /// recording. Refusing the change up front keeps a late write from landing in the Embrace instance
+    /// while being omitted from the OTel one.    
     var hasEnded: Bool {
         state.safeValue.endTime != nil
     }
 
     /// Reports a change that was dropped because the span had already ended.
-    func logIgnoredMutation(_ description: String) {
+    private func logIgnoredMutation(_ description: String) {
         Embrace.logger.warning("Ignoring \(description) on span '\(self.name)': the span already ended.")
     }
 

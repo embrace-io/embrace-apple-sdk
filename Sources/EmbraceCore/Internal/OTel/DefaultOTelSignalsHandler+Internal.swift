@@ -316,10 +316,8 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
     }
 
     func onSpanEnded(_ span: any EmbraceSpan, endTime: Date) {
-        // A span that ended on its own must not be auto terminated when the session ends: that
-        // would stamp an error code and an error status on a span that already completed, and
-        // would report it as failed. Dropping it here also keeps the cache from holding every
-        // auto terminating span for the whole session.
+        // Auto-terminating spans are dropped from the cache when they end on their own, so the cache
+        // doesn't hold every one of them for the whole session.        
         cache.withLock {
             $0.autoTerminationSpans[span.context.spanId] = nil
         }
