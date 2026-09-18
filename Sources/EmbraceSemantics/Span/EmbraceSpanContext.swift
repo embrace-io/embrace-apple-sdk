@@ -51,8 +51,8 @@ extension EmbraceSpanContext {
         return Self.isValidSpanId(spanId) && Self.isValidTraceId(traceId)
     }
 
-    /// Returns the identifier in its canonical lowercase form. Call this 
-    /// before storing or comparing an identifier that came from outside 
+    /// Returns the identifier in its canonical lowercase form. Call this
+    /// before storing or comparing an identifier that came from outside
     /// the SDK.
     /// - Parameter identifier: The identifier to normalize.
     package static func normalize(_ identifier: String) -> String {

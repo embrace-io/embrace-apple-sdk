@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import XCTest
 
@@ -98,8 +99,22 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         onSpanAttributesUpdatedCallCount += 1
     }
 
-    var onSpanEndedCallCount: Int = 0
+    /// The end times the handler was notified with, in the order they arrived.
+    ///
+    /// Held behind a lock because several threads can end the same span at once. A plain
+    /// `count += 1` is a read-modify-write, so concurrent ends could lose an increment and make a
+    /// double notification look like a single one.
+    private let _onSpanEndedTimes = EmbraceMutex<[Date]>([])
+
+    var onSpanEndedTimes: [Date] {
+        _onSpanEndedTimes.safeValue
+    }
+
+    var onSpanEndedCallCount: Int {
+        _onSpanEndedTimes.safeValue.count
+    }
+
     func onSpanEnded(_ span: EmbraceSpan, endTime: Date) {
-        onSpanEndedCallCount += 1
+        _onSpanEndedTimes.withLock { $0.append(endTime) }
     }
 }
