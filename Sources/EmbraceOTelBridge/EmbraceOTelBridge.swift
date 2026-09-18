@@ -41,8 +41,20 @@ final package class EmbraceOTelBridge {
     // isInternalSpan correctly returns true when onStart fires synchronously during startSpan().
     private let pendingSpanIds = EmbraceMutex(Set<String>())
 
-    // Cache of IDs for logs emitted outbound so the inbound processor can skip them.
+    // IDs of the logs the bridge is currently emitting, so `isInternalLog` can tell them apart from
+    // logs created by OTel code in the host app. `EmbraceLogProcessor` is the root processor
+    // registered on `loggerProvider`, and it consults `isInternalLog` at the top of its `onEmit`,
+    // which the OTel SDK calls synchronously from `emit()`. An ID therefore only has to be present
+    // across the `emit()` call in `createLog`, whatever the child processors do with the record.
     private let internalLogIds = EmbraceMutex(Set<String>())
+
+    /// Test-only view of the IDs of the logs currently being emitted outbound.
+    ///
+    /// Outside of an in-flight `createLog` call this is always empty; tests use it to verify that
+    /// entries do not outlive the emit window they are needed for.
+    var inFlightInternalLogIds: Set<String> {
+        internalLogIds.withLock { $0 }
+    }
 
     private let idGenerator = EmbraceSpanIdGenerator()
     private let spanProcessor: EmbraceSpanProcessor
@@ -121,25 +133,37 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
     ) -> EmbraceSpanContext {
         var builder = tracer.spanBuilder(spanName: name).setStartTime(time: startTime)
 
-        // Set parent via cached OTel span or reconstructed SpanContext.
+        // Parentage is always stated explicitly, never left to the builder's default.
+        //
+        // A span builder with no parent set resolves one from the currently active span, which
+        // lives in a process-wide store shared with every other OpenTelemetry user in the app.
+        // Leaving that to chance would let an unrelated span become the parent of a span that
+        // was meant to start its own trace, and the resulting trace id would not match the one
+        // recorded alongside it.
         if let parentSpan {
             let parentId = parentSpan.context.spanId
+
             if let otelParent = spanCache.withLock({ $0[parentId] }) {
                 builder = builder.setParent(otelParent)
+
+            } else {
+                if let parentContext = Self.otelContext(from: parentSpan.context) {
+                    builder = builder.setParent(parentContext)
+
+                } else {
+                    // The identifiers can't be honored, so start a new trace rather than falling
+                    // back to the active span.
+                    builder = builder.setNoParent()
+                }
             }
+
+        } else {
+            builder = builder.setNoParent()
         }
 
         // Set links before starting (only supported at creation time).
         for link in links {
-            let otelTraceId = TraceId(fromHexString: link.context.traceId)
-            let otelSpanId = SpanId(fromHexString: link.context.spanId)
-            if otelTraceId.isValid && otelSpanId.isValid {
-                let ctx = SpanContext.create(
-                    traceId: otelTraceId,
-                    spanId: otelSpanId,
-                    traceFlags: .init(fromByte: 1),
-                    traceState: .init()
-                )
+            if let ctx = Self.otelContext(from: link.context) {
                 builder = builder.addLink(spanContext: ctx, attributes: link.attributes.otelAttributes)
             }
         }
@@ -178,6 +202,27 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
         }
 
         return EmbraceSpanContext(spanId: spanId, traceId: traceId)
+    }
+
+    /// Converts an `EmbraceSpanContext` into the OTel equivalent, or returns `nil` when its
+    /// identifiers can't refer to a span.
+    ///
+    /// The identifiers are checked before being parsed: `SpanId(fromHexString:)` builds its string
+    /// indices before validating the length, so it traps on anything shorter than 16 characters.
+    private static func otelContext(from context: EmbraceSpanContext) -> SpanContext? {
+        guard context.isValid else {
+            return nil
+        }
+
+        let otelTraceId = TraceId(fromHexString: context.traceId)
+        let otelSpanId = SpanId(fromHexString: context.spanId)
+
+        return SpanContext.create(
+            traceId: otelTraceId,
+            spanId: otelSpanId,
+            traceFlags: .init(fromByte: 1),
+            traceState: .init()
+        )
     }
 
     package func updateSpanStatus(_ span: EmbraceSpan, status: EmbraceSpanStatus) {
@@ -220,8 +265,11 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
 
     package func createLog(_ log: EmbraceLog) {
         let logId = log.id
-        // Track the ID so the inbound processor can skip it.
+        // Track the ID so the inbound processor can skip it. The processor consults this set from
+        // inside `emit()`, which dispatches to the processor chain synchronously, so the entry is
+        // only needed until this function returns.
         internalLogIds.withLock { $0.insert(logId) }
+        defer { internalLogIds.withLock { $0.remove(logId) } }
 
         var builder = logger.logRecordBuilder()
             .setTimestamp(log.timestamp)

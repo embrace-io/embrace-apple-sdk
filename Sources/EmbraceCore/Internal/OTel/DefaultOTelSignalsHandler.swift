@@ -18,7 +18,10 @@ package class DefaultOTelSignalsHandler {
     /// Creates a new span to be included in the current Embrace session.
     /// - Parameters:
     ///   - name: Name of the span.
-    ///   - parentSpan: Parent of the span, if any.
+    ///   - parentSpan: Parent of the span, if any. The parent is ignored, and the span starts a new
+    ///     trace instead, if the parent's identifiers are not well formed: its span id must be 16
+    ///     hexadecimal characters, its trace id 32, and neither can be entirely made of zeros.
+    ///     A warning is logged when a parent is ignored.
     ///   - type: Embrace specific type of the span. Defaults to `.performance`.
     ///   - status: Initial status of the span. Defaults to `.unset`.
     ///   - startTime: Start time of the span. Defaults to the current time.

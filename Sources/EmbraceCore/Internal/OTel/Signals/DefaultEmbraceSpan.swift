@@ -240,7 +240,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
             handler.onSpanLinkAdded(self, link: link)
             return link
         } catch {
-            Embrace.logger.warning("Failed to add link to span '\(self.name)': \(error.localizedDescription)")
+            Embrace.logger.error("Failed to add link to span '\(self.name)': \(error.localizedDescription)")
             return nil
         }
     }
