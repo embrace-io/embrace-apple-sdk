@@ -4,32 +4,44 @@
 
 /// The screen the user is currently on, as recorded by the `screen-automatic` state.
 ///
-/// Equality is by name alone, which is what suppresses duplicate transitions downstream: two
-/// containers resolving to the same name are one screen, not two.
+/// Equality is by name **and** type, which is what suppresses duplicate transitions downstream: two
+/// containers resolving to the same name are one screen, not two — while an app screen named
+/// "Backgrounded" and the SDK's value of that name stay two.
 struct Screen: StateValue {
 
     /// The name written verbatim to `emb.state.new_value` / `emb.state.initial_value`.
     let name: String
 
+    /// `.system` for the SDK's own values declared below, `nil` for every screen that came from
+    /// the app.
+    let stateValueType: StateValueType?
+
     var stateDescription: String { name }
 
+    /// A screen of the app's own: a name the developer chose or a view controller's class.
+    ///
+    /// Declaring it also suppresses the memberwise initializer, which is what stops an app-supplied
+    /// name from being paired with a type.
     init(_ name: String) {
         self.name = name
+        self.stateValueType = nil
     }
 
-    /// Value of the state before any screen has appeared
-    ///
-    /// TODO: figure out a better value or a better system for these cases. Align with other platforms.
-    static let initializing = Screen("Initializing")
+    /// Private on purpose: only the values below are `.system`, whatever a screen is named.
+    private init(system name: String) {
+        self.name = name
+        self.stateValueType = .system
+    }
 
-    /// Value of the state while the app is backgrounded, as above.
-    ///
-    /// TODO: figure out a better value or a better system for these cases. Align with other platforms.
-    static let backgrounded = Screen("Backgrounded")
+    /// Value of the state before any screen has appeared.
+    static let initializing = Screen(system: "Initializing")
 
-    /// User created screens named one of the above will be dropped.
-    /// This method serves as a check when a screen span is emited to make sure the screen isn't named a reserve word.
-    static func isReserved(_ name: String) -> Bool {
-        name == initializing.name || name == backgrounded.name
+    /// Value of the state while the app is backgrounded.
+    static let backgrounded = Screen(system: "Backgrounded")
+
+    /// Compared by what is written, not by the stored properties, so a property added later cannot
+    /// silently widen this and split one screen into two.
+    static func == (lhs: Screen, rhs: Screen) -> Bool {
+        lhs.serialized == rhs.serialized
     }
 }

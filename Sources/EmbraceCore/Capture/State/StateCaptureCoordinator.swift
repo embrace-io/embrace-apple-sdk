@@ -70,18 +70,25 @@ final class StateCaptureCoordinator {
         }
     }
 
-    /// `emb.state.<name>` stamps for every currently active state, for log metadata.
+    /// `emb.state.<name>` stamps for every currently active state, plus
+    /// `emb.state.<name>.value_type` for those whose value has a type, for log metadata.
     ///
     /// Gathered per recorder rather than atomically, so a log can see one state's new value beside
     /// another's old one. That is acceptable here, and must not be "fixed" by holding a lock across
-    /// the recorders — see the note on this type.
+    /// the recorders — see the note on this type. A single state's value and type come from one
+    /// read, so a type is never attributed to the wrong value.
     var logAttributes: EmbraceAttributes {
         var attributes: EmbraceAttributes = [:]
         for recorder in recorders.safeValue {
-            guard let value = recorder.currentStateDescription else {
+            guard let value = recorder.currentSerializedValue else {
                 continue
             }
-            attributes[SpanSemantics.State.logAttributeKey(for: recorder.stateName)] = value
+            attributes.merge(
+                value.attributes(
+                    valueKey: SpanSemantics.State.logAttributeKey(for: recorder.stateName),
+                    typeKey: SpanSemantics.State.logValueTypeAttributeKey(for: recorder.stateName)
+                )
+            ) { _, new in new }
         }
         return attributes
     }

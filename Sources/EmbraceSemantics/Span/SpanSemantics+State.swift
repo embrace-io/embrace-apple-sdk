@@ -24,6 +24,12 @@ extension SpanSemantics {
             "\(keyPrefix)\(stateName)"
         }
 
+        /// Key stamped beside ``logAttributeKey(for:)`` carrying that value's type, e.g.
+        /// `emb.state.screen-automatic.value_type`. Omitted when the value has no type.
+        public static func logValueTypeAttributeKey(for stateName: String) -> String {
+            "\(logAttributeKey(for: stateName))\(valueTypeSuffix)"
+        }
+
         /// Value of the state when its span was opened, carried over from the previous session part.
         /// Written at span start.
         public static let keyInitialValue = "emb.state.initial_value"
@@ -34,6 +40,18 @@ extension SpanSemantics {
 
         /// The state's new value. Always present on a `transition` event.
         public static let keyNewValue = "emb.state.new_value"
+
+        /// The *type* of the value written beside it: ``keyInitialValue`` on the span,
+        /// ``keyNewValue`` on a `transition` event.
+        ///
+        /// Two values spelled the same are the same value only when their types match — an app
+        /// screen named "Backgrounded" is not the ``valueTypeSystem`` value of that name.
+        /// **Omitted** when the value has no type, which is the common case.
+        public static let keyValueType = "emb.state.value_type"
+
+        /// Value of ``keyValueType`` for values the SDK itself sets, rather than ones derived from
+        /// the app.
+        public static let valueTypeSystem = "system"
 
         /// Changes that occurred while no session part existed. Written only when > 0.
         public static let keyNotInSession = "emb.state.not_in_session"
@@ -53,12 +71,17 @@ extension SpanSemantics {
         /// Whether `key` lies in the reserved `emb.state.*` namespace.
         ///
         /// Caller attributes are filtered through this so they cannot forge a contract key. It
-        /// matters most for the counter keys: they are absent when zero, so nothing else would
-        /// overwrite a forged one.
+        /// matters most for the keys that are omitted rather than written empty — the counters when
+        /// zero, and ``keyValueType`` when the value has no type. Nothing else would overwrite a
+        /// forged one of those.
         public static func isReserved(_ key: String) -> Bool {
             key.hasPrefix(keyPrefix)
         }
 
         private static let keyPrefix = "emb.state."
+
+        /// Turns the key a value is stored under into the key its type is stored under. Only the
+        /// log stamp needs it — on a span the value's key is fixed, so ``keyValueType`` is literal.
+        private static let valueTypeSuffix = ".value_type"
     }
 }

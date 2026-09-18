@@ -32,7 +32,9 @@ final class ScreenStateReporter {
         )
     }
 
-    func onScreenLoad(at time: Date, name: String, attributes: EmbraceAttributes = [:]) {
-        recorder.onStateChange(to: Screen(name), at: time, attributes: attributes)
+    /// Takes a whole ``Screen`` rather than a name: nothing here could re-derive from the string
+    /// whether the screen is one of the SDK's own.
+    func onScreenLoad(at time: Date, screen: Screen, attributes: EmbraceAttributes = [:]) {
+        recorder.onStateChange(to: screen, at: time, attributes: attributes)
     }
 }

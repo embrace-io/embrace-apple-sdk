@@ -106,6 +106,14 @@
             }
         }
 
+        /// The value type of each recorded transition, in the same order, `nil` where the attribute
+        /// is absent — which is every screen that came from the app.
+        private var recordedValueTypes: [String?] {
+            stateSpan?.events.map {
+                $0.attributes[SpanSemantics.State.keyValueType]?.description
+            } ?? []
+        }
+
         // MARK: - What counts as a screen
 
         func testAPlainViewControllerIsTracked() {
@@ -329,9 +337,10 @@
         /// The public API cannot forge the framework's own keys, whatever a caller passes.
         ///
         /// Deliberately forges a **counter** key. The counters are omitted from the event when their
-        /// count is zero, so nothing overwrites a forged one — they are the keys the reserved-name
-        /// filter actually protects. Asserting on `emb.state.new_value` instead would prove nothing,
-        /// because that key is written after the merge and wins on ordering alone.
+        /// count is zero, so nothing overwrites a forged one — they are the keys the
+        /// reserved-namespace filter actually protects. Asserting on `emb.state.new_value` instead
+        /// would prove nothing, because that key is written after the merge and wins on ordering
+        /// alone.
         func testReservedAttributeKeysCannotBeForged() throws {
             let tracker = makeTracker()
 
@@ -393,13 +402,10 @@
             XCTAssertEqual(load.timestamp, time(9), "two screens visible means no backdating")
         }
 
-        /// A caller must not be able to mint a name the framework gives its own meaning to.
-        ///
-        /// Needs a real screen *before* the declaration, or it proves nothing: with nothing to
-        /// return to, the foreground restore never runs, and the recorder's own value-dedup
-        /// collapses the forged sentinel into the real one so the recorded output is identical
-        /// either way. The harm only becomes visible in the restore and the sentinel's timestamp.
-        func testAScreenDeclaredWithAReservedNameIsRefused() throws {
+        /// A screen may be called whatever the app calls it, and the value type is what tells it
+        /// apart from the SDK's own. Driven through a full background cycle because that is where
+        /// the collision bites: three transitions that all spell "Backgrounded".
+        func testAScreenDeclaredWithASentinelsNameIsRecordedAndKeptDistinct() throws {
             let tracker = makeTracker()
 
             appear(tracker, PlainViewController(), startedAt: 0, resumedAt: 1)
@@ -409,36 +415,34 @@
 
             XCTAssertEqual(
                 recordedScreens,
-                ["PlainViewController", "Backgrounded", "PlainViewController"],
-                "the user's return must survive — a forged sentinel swallows it")
+                ["PlainViewController", "Backgrounded", "Backgrounded", "Backgrounded"],
+                "the declaration, the real backgrounding and the user's return all survive")
+            XCTAssertEqual(
+                recordedValueTypes, [nil, nil, "system", nil],
+                "only the SDK's own backgrounding is a system value")
 
             let sentinel = try XCTUnwrap(
                 stateSpan?.events.first {
-                    $0.attributes[SpanSemantics.State.keyNewValue]?.description == "Backgrounded"
+                    $0.attributes[SpanSemantics.State.keyValueType]?.description == "system"
                 })
             XCTAssertEqual(
                 sentinel.timestamp, time(10),
-                "the sentinel must be the real backgrounding, not the declaration it collided with")
+                "the system value is the real backgrounding, not the screen it shares a name with")
         }
 
-        /// `Initializing` collides with the state's own default value, so a forged one is silently
-        /// swallowed by value-dedup and merely inflates the dropped counter. That counter is the
-        /// only observable difference, which is what this asserts.
-        func testTheInitializingSentinelIsReservedToo() throws {
+        /// The same collision against the state's default value, which is on the span as
+        /// `initial_value` before any screen appears.
+        func testAScreenDeclaredAsInitializingIsRecordedAlongsideTheDefault() throws {
             let tracker = makeTracker()
 
             declareAppearance(tracker, Token(), name: Screen.initializing.name, at: 0)
             appear(tracker, PlainViewController(), startedAt: 1, resumedAt: 2)
 
-            XCTAssertEqual(recordedScreens, ["PlainViewController"])
-
-            // The counter rides on the next recorded event, not on the span — a declaration that
-            // reached the recorder and was dropped there would show up here.
-            let transition = try XCTUnwrap(
-                stateSpan?.events.first { $0.name == SpanSemantics.State.transitionEventName })
-            XCTAssertNil(
-                transition.attributes[SpanSemantics.State.keyDroppedByInstrumentation],
-                "a refused declaration must never reach the recorder at all")
+            XCTAssertEqual(recordedScreens, ["Initializing", "PlainViewController"])
+            XCTAssertEqual(recordedValueTypes, [nil, nil])
+            XCTAssertEqual(
+                stateSpan?.attributes[SpanSemantics.State.keyValueType]?.description, "system",
+                "the span's initial value is the SDK's, so it is typed even though the screen is not")
         }
 
         /// Normalization trims first, so a name that is only whitespace arrives here empty. A blank
@@ -551,15 +555,6 @@
             XCTAssertEqual(recordedScreens, ["Home"], "one screen, not three")
         }
 
-        /// Normalization runs before the sentinel check, or padding walks straight past it.
-        func testAPaddedReservedNameIsStillRefused() {
-            let tracker = makeTracker()
-
-            declareAppearance(tracker, Token(), name: "  Backgrounded  ", at: 0)
-
-            XCTAssertTrue(recordedScreens.isEmpty)
-        }
-
         /// The automatic path is exposed to the same unbounded input through the public
         /// `EmbraceViewControllerCustomization`, so it gets the same treatment.
         func testACustomViewControllerNameIsAlsoNormalized() {
@@ -572,27 +567,35 @@
             XCTAssertEqual(recordedScreens, ["Checkout"])
         }
 
-        /// The automatic path is exposed to the same collision: a class can be named after a
-        /// sentinel, and `nameForViewControllerInEmbrace` is public API that can return one.
-        func testAViewControllerNamedAfterASentinelIsRefused() throws {
+        /// `nameForViewControllerInEmbrace` returning `""` is not "no name": it is non-nil, so the
+        /// class-name fallback never runs and a blank would otherwise be stamped on every log until
+        /// the user navigated away.
+        func testAViewControllerResolvingToABlankNameIsRefused() {
+            let tracker = makeTracker()
+            let blank = NamedViewController()
+            blank.nameForViewControllerInEmbrace = "   "
+
+            appear(tracker, blank, startedAt: 0, resumedAt: 1)
+            appear(tracker, PlainViewController(), startedAt: 2, resumedAt: 3)
+
+            XCTAssertEqual(recordedScreens, ["PlainViewController"])
+        }
+
+        /// The automatic path meets the same collision: a view controller class can be named after
+        /// a sentinel, and `nameForViewControllerInEmbrace` is public API that can return one.
+        func testAViewControllerNamedAfterASentinelIsRecorded() {
             let tracker = makeTracker()
 
             appear(tracker, Initializing(), startedAt: 0, resumedAt: 1)
             appear(tracker, PlainViewController(), startedAt: 2, resumedAt: 3)
 
-            XCTAssertEqual(recordedScreens, ["PlainViewController"])
-
-            // Asserting only on what was recorded proves nothing here: a screen colliding with the
-            // state's own default value is swallowed by value-dedup whether or not the guard runs.
-            // Reaching the recorder at all is the observable difference.
-            let transition = try XCTUnwrap(
-                stateSpan?.events.first { $0.name == SpanSemantics.State.transitionEventName })
-            XCTAssertNil(transition.attributes[SpanSemantics.State.keyDroppedByInstrumentation])
+            XCTAssertEqual(recordedScreens, ["Initializing", "PlainViewController"])
+            XCTAssertEqual(recordedValueTypes, [nil, nil], "a class name is never a system value")
         }
 
-        /// The severe case: without the guard the forged value collides with the real backgrounding,
-        /// and the whole background/foreground cycle disappears from the timeline.
-        func testACustomNameCannotMintTheBackgroundedSentinel() {
+        /// The severe case: this screen shares its name with the real backgrounding, and the whole
+        /// background/foreground cycle has to survive beside it.
+        func testACustomNameMatchingTheSentinelIsKeptDistinctFromIt() {
             let tracker = makeTracker()
             let vc = NamedViewController()
             vc.nameForViewControllerInEmbrace = "Backgrounded"
@@ -604,8 +607,9 @@
 
             XCTAssertEqual(
                 recordedScreens,
-                ["PlainViewController", "Backgrounded", "PlainViewController"],
-                "the real background/foreground cycle must survive a colliding screen name")
+                ["PlainViewController", "Backgrounded", "Backgrounded", "Backgrounded"],
+                "the real background/foreground cycle survives beside the colliding screen name")
+            XCTAssertEqual(recordedValueTypes, [nil, nil, "system", nil])
         }
 
         /// The public doc promises that past the count limit the survivors are "chosen in sorted key
