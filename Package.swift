@@ -64,6 +64,8 @@ let package = Package(
             dependencies: [
                 "EmbraceIO",
                 "EmbraceCore",
+                "EmbraceCommonInternal",
+                "EmbraceOTelBridge",
                 "EmbraceKSCrashBacktraceSupport",
                 "TestSupport",
                 "TestSupportObjc",

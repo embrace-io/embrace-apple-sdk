@@ -60,6 +60,20 @@ final package class EmbraceOTelBridge {
     private let spanProcessor: EmbraceSpanProcessor
     private let logProcessor: EmbraceLogProcessor
 
+    // MARK: - Providers
+
+    /// The `TracerProvider` backing this bridge's pipeline.
+    ///
+    /// Exposed as the `TracerProvider` protocol rather than `TracerProviderSdk` so callers can
+    /// only obtain tracers from it — the processor chain and shutdown remain owned by the bridge.
+    package var otelTracerProvider: TracerProvider { tracerProvider }
+
+    /// The `LoggerProvider` backing this bridge's pipeline.
+    ///
+    /// Exposed as the `LoggerProvider` protocol rather than `LoggerProviderSdk` so callers can
+    /// only obtain loggers from it — the processor chain and shutdown remain owned by the bridge.
+    package var otelLoggerProvider: LoggerProvider { loggerProvider }
+
     // MARK: - Init
 
     package init(
