@@ -106,17 +106,17 @@ final class EmbraceSpanIdGeneratorTests: XCTestCase {
 
     func test_reservation_isNotVisibleToOtherThreads() {
         let otherThreadDidGenerate = expectation(description: "other thread generated an id")
-        var idFromOtherThread: SpanId?
+        let idFromOtherThread = EmbraceMutex<SpanId?>(nil)
 
         generator.withReservation { reserved in
             DispatchQueue.global().async {
-                idFromOtherThread = self.generator.generateSpanId()
+                idFromOtherThread.withLock { $0 = self.generator.generateSpanId() }
                 otherThreadDidGenerate.fulfill()
             }
             wait(for: [otherThreadDidGenerate], timeout: 10.0)
 
             // The other thread had no reservation of its own, so it must not have taken ours.
-            XCTAssertNotEqual(idFromOtherThread, reserved)
+            XCTAssertNotEqual(idFromOtherThread.safeValue, reserved)
 
             // Ours is still here to be consumed.
             XCTAssertEqual(generator.generateSpanId(), reserved)
