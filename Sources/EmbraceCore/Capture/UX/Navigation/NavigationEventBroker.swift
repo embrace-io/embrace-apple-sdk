@@ -28,12 +28,13 @@ import Foundation
 /// funnel are shaped to take them.
 final class NavigationEventBroker {
 
-    /// What makes one screen different from another: the container it came from and its name.
+    /// What makes one screen different from another: the container it came from and the screen
+    /// itself, which is its name *and* its type.
     ///
     /// Attributes are deliberately excluded — a view re-rendering with a changed value is not a
     /// navigation.
     private struct ScreenIdentity: Equatable {
-        let name: String
+        let screen: Screen
         let componentId: ObjectIdentifier?
     }
 
@@ -66,11 +67,11 @@ final class NavigationEventBroker {
     /// What was on screen when the app backgrounded, so foregrounding can restore it.
     private var screenBeforeBackground: Emission?
 
-    /// Called with `(loadTime, screenName, attributes)` for each *distinct* screen the timeline
-    /// moves to. Attributes are empty for every screen except those declared with their own.
-    private let onScreenLoad: (Date, String, EmbraceAttributes) -> Void
+    /// Called with `(loadTime, screen, attributes)` for each *distinct* screen the timeline moves
+    /// to. Attributes are empty for every screen except those declared with their own.
+    private let onScreenLoad: (Date, Screen, EmbraceAttributes) -> Void
 
-    init(onScreenLoad: @escaping (Date, String, EmbraceAttributes) -> Void) {
+    init(onScreenLoad: @escaping (Date, Screen, EmbraceAttributes) -> Void) {
         self.onScreenLoad = onScreenLoad
     }
 
@@ -100,11 +101,12 @@ final class NavigationEventBroker {
             // there is nothing to attribute a load to.
             guard let startTime = startTimes.removeValue(forKey: componentId) else { return }
 
-            visibleScreens[componentId] = Emission(
-                identity: ScreenIdentity(name: event.name, componentId: componentId),
-                attributes: event.attributes)
+            // Untyped: every producer feeding this broker names screens after the app — a
+            // developer's string or a view controller's class.
+            let identity = ScreenIdentity(screen: Screen(event.name), componentId: componentId)
+            visibleScreens[componentId] = Emission(identity: identity, attributes: event.attributes)
             emit(
-                ScreenIdentity(name: event.name, componentId: componentId),
+                identity,
                 attributes: event.attributes,
                 at: loadTime(startTime, or: event.timestamp))
 
@@ -135,7 +137,7 @@ final class NavigationEventBroker {
             startTimes.removeAll()
 
             emit(
-                ScreenIdentity(name: Screen.backgrounded.name, componentId: nil),
+                ScreenIdentity(screen: .backgrounded, componentId: nil),
                 attributes: [:],
                 at: event.timestamp)
 
@@ -181,7 +183,7 @@ final class NavigationEventBroker {
         emit(revealed.identity, attributes: revealed.attributes, at: time)
     }
 
-    /// The dedup gate every emission funnels through: fire only if the container **or** the name
+    /// The dedup gate every emission funnels through: fire only if the container **or** the screen
     /// differs from the last. The first always fires.
     ///
     /// Not the only dedup in the chain — the state primitive downstream drops *value*-equal
@@ -195,6 +197,6 @@ final class NavigationEventBroker {
         defer { lastEmission = Emission(identity: identity, attributes: attributes) }
 
         guard lastEmission?.identity != identity else { return }
-        onScreenLoad(loadTime, identity.name, attributes)
+        onScreenLoad(loadTime, identity.screen, attributes)
     }
 }

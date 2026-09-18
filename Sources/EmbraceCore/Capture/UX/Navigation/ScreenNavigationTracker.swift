@@ -66,11 +66,11 @@
 
             switch phase {
             case .willAppear:
-                guard shouldTrack(vc, named: name) else { return }
+                guard shouldTrack(vc) else { return }
                 broker.handle(.started(componentId, name: name, at: time))
 
             case .didAppear:
-                guard shouldTrack(vc, named: name) else { return }
+                guard shouldTrack(vc) else { return }
                 broker.handle(.resumed(componentId, name: name, at: time))
 
             case .didDisappear:
@@ -82,18 +82,8 @@
 
         // MARK: - Filtering
 
-        private func shouldTrack(_ vc: UIViewController, named name: String) -> Bool {
-            guard !Screen.isReserved(name) else {
-                Embrace.logger.warning(
-                    "Screen tracking: \"\(name)\" is reserved by the SDK, so that screen was not "
-                        + "recorded. Rename it, or report a different name for it with "
-                        + "`nameForViewControllerInEmbrace`.")
-                return false
-            }
-
-            return shouldTrack(vc)
-        }
-
+        /// What a controller *is* decides this; what it is called never does. A screen may share a
+        /// name with one of the SDK's own values — its value type is what keeps the two distinct.
         private func shouldTrack(_ vc: UIViewController) -> Bool {
             // A controller the customer has already opted out of stays out of both streams.
             guard vc.emb_shouldCaptureView, !isBlocked(vc) else {
@@ -199,26 +189,16 @@
             attributes: EmbraceAttributes,
             at time: Date
         ) {
-            // Normalized before anything looks at it, so the checks below and the value that ships
-            // are the same string. Checking the raw name would let `" Backgrounded "` past the
-            // sentinel guard and still collide downstream, where equality is by name.
+            // Normalized before anything looks at it, so the check below and the value that ships
+            // are the same string. Screens are told apart by name, so `"Home"` and `"Home\n"` would
+            // otherwise be two of them.
             let name = normalized(name)
 
             // A blank name is indistinguishable from an absent one downstream, and still spends one
-            // of the part's transitions.
+            // of the part's transitions. It is the only name refused.
             guard !name.isEmpty else {
                 Embrace.logger.warning(
                     "Screen tracking: a screen was declared with a blank name and was ignored.")
-                return
-            }
-
-            // A sentinel's name is worse than useless: equality downstream is by name, so it
-            // swallows the real transition it collides with, and a session that genuinely
-            // backgrounded reports that it never did.
-            guard !Screen.isReserved(name) else {
-                Embrace.logger.warning(
-                    "Screen tracking: the screen name \"\(name)\" is reserved by the SDK and was "
-                        + "ignored. Choose a different name for this screen.")
                 return
             }
 

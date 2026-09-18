@@ -103,6 +103,9 @@
             // Deleting that call leaves the tracker working and the timeline invisible.
             let stamps = try XCTUnwrap(Embrace.client?.stateCoordinator.logAttributes)
             XCTAssertEqual(stamps["emb.state.screen-automatic"]?.description, "Screen")
+            XCTAssertNil(
+                stamps["emb.state.screen-automatic.value_type"],
+                "a screen from the app has no value type")
         }
 
         func testAppStateIsHookedSoBackgroundingReachesTheTimeline() throws {
@@ -120,6 +123,9 @@
 
             let stamps = try XCTUnwrap(Embrace.client?.stateCoordinator.logAttributes)
             XCTAssertEqual(stamps["emb.state.screen-automatic"]?.description, "Backgrounded")
+            XCTAssertEqual(
+                stamps["emb.state.screen-automatic.value_type"]?.description, "system",
+                "so a log emitted here is not read as a screen the app happens to call that")
         }
 
         // MARK: - Registering twice would duplicate the state span

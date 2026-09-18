@@ -16,9 +16,9 @@ protocol StateRecording: AnyObject {
     /// Name of the state, e.g. `screen-automatic`.
     var stateName: String { get }
 
-    /// Serialized current value, or `nil` if this state has not been activated yet. Lazily-activated
-    /// states are absent from log metadata until their first change.
-    var currentStateDescription: String? { get }
+    /// Serialized current value and its type, or `nil` if this state has not been activated yet.
+    /// Lazily-activated states are absent from log metadata until their first change.
+    var currentSerializedValue: SerializedStateValue? { get }
 
     /// Whether this state opens its span as soon as capture is enabled, rather than waiting for the
     /// first change. See ``StateRecorder/capturesOnCreation``.
@@ -147,9 +147,9 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         storage.withLock { $0.currentValue }
     }
 
-    var currentStateDescription: String? {
+    var currentSerializedValue: SerializedStateValue? {
         storage.withLock { storage in
-            storage.isActive ? storage.currentValue.stateDescription : nil
+            storage.isActive ? storage.currentValue.serialized : nil
         }
     }
 
@@ -212,7 +212,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         }
 
         let outcome = pending.token.recordTransition(
-            value: newValue.stateDescription,
+            value: newValue.serialized,
             at: time,
             count: pending.count,
             attributes: attributes,
@@ -344,7 +344,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
     private func openSpanIfNeeded(activating: Bool, at time: Date) {
         // No live session part means no span. Changes in that window accumulate as
         // `not_in_session` and land on the next part's first recorded transition.
-        let initialValue: String? = storage.withLock { storage in
+        let initialValue: SerializedStateValue? = storage.withLock { storage in
             if activating {
                 storage.isActive = true
             }
@@ -354,7 +354,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
                 return nil
             }
             storage.recording = .opening(part)
-            return storage.currentValue.stateDescription
+            return storage.currentValue.serialized
         }
 
         guard let initialValue else {
@@ -381,15 +381,21 @@ final class StateRecorder<Value: StateValue>: StateRecording {
             return
         }
 
+        var spanAttributes: EmbraceAttributes = [
+            SpanSemantics.State.keyInitialValue: initialValue.description
+        ]
+        // Written once and never updated: it describes the value the part *began* with.
+        if let type = initialValue.type {
+            spanAttributes[SpanSemantics.State.keyValueType] = type.wireValue
+        }
+
         let span: EmbraceSpan
         do {
             span = try otel.createInternalSpan(
                 name: SpanSemantics.State.spanName(for: stateName),
                 type: .state,
                 startTime: time,
-                attributes: [
-                    SpanSemantics.State.keyInitialValue: initialValue
-                ]
+                attributes: spanAttributes
             )
         } catch {
             Embrace.logger.error(

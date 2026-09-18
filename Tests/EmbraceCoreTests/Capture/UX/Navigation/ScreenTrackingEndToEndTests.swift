@@ -136,6 +136,15 @@
             span.attributes.first { $0.key == key }?.value
         }
 
+        /// The value type of each transition, in the same order ``transitions(of:)`` returns them,
+        /// `nil` where the attribute is absent — which is every screen that came from the app.
+        private func transitionValueTypes(of span: SpanPayload) -> [String?] {
+            span.events
+                .filter { $0.name == SpanSemantics.State.transitionEventName }
+                .sorted { $0.timestamp < $1.timestamp }
+                .map { $0.attributes.first { $0.key == SpanSemantics.State.keyValueType }?.value }
+        }
+
         // MARK: - The whole journey
 
         /// A realistic mixed UIKit/SwiftUI session, asserted on the shipped payload.
@@ -160,6 +169,12 @@
             // Wire contract, all four layers agreeing.
             XCTAssertEqual(attribute(SpanSemantics.keyEmbraceType, of: state), EmbraceType.state.rawValue)
             XCTAssertEqual(attribute(SpanSemantics.State.keyInitialValue, of: state), "Initializing")
+            XCTAssertEqual(
+                attribute(SpanSemantics.State.keyValueType, of: state), "system",
+                "the initial value is the SDK's own, so it is typed")
+            XCTAssertEqual(
+                transitionValueTypes(of: state), [nil, nil, nil],
+                "screens that came from the app carry no type at all")
             XCTAssertEqual(attribute(SpanSemantics.State.keyTransitionCount, of: state), "3")
             XCTAssertNil(
                 attribute(SpanSemantics.keyPrivate, of: state),
@@ -221,6 +236,24 @@
             XCTAssertEqual(
                 transitions(of: secondState), ["HomeViewController"],
                 "the screen the user was on must be restored, not left on the sentinel")
+        }
+
+        /// A screen name is an arbitrary string from the app, so it can be anything the SDK calls
+        /// its own values. Both reach the wire, and `emb.state.value_type` is what tells a consumer
+        /// which "Backgrounded" is which.
+        func testAScreenNamedAfterTheSentinelIsDistinguishedOnTheWire() throws {
+            let client = try XCTUnwrap(Embrace.client)
+            let part = try XCTUnwrap(client.sessionController.currentSession)
+
+            declare(Token(), "Backgrounded")
+            NotificationCenter.default.post(
+                name: UIApplication.didEnterBackgroundNotification, object: nil)
+
+            let state = try stateSpan(in: payload(for: part.id))
+            XCTAssertEqual(transitions(of: state), ["Backgrounded", "Backgrounded"])
+            XCTAssertEqual(
+                transitionValueTypes(of: state), [nil, "system"],
+                "the app's screen first, then the SDK's backgrounding")
         }
 
         /// Caller metadata has to survive four hops — modifier, broker, recorder, payload builder.

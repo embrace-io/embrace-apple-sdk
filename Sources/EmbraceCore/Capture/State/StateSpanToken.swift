@@ -48,14 +48,14 @@ final class StateSpanToken {
     /// Records a transition event and updates the running transition count.
     ///
     /// - Parameters:
-    ///   - value: Serialized new value of the state.
+    ///   - value: Serialized new value of the state, with the type written beside it.
     ///   - time: When the change was *observed*, never when it was processed.
     ///   - count: Running number of recorded transitions, decided by the recorder under its lock.
     ///   - attributes: Attributes supplied from **outside** the SDK. Unlike everything else written
     ///     here they are untrusted, and are filtered and bounded before use.
     ///   - flushed: Unrecorded-transition counts to attach to this event.
     func recordTransition(
-        value: String,
+        value: SerializedStateValue,
         at time: Date,
         count: Int,
         attributes: EmbraceAttributes,
@@ -67,7 +67,11 @@ final class StateSpanToken {
 
         var eventAttributes = bounded(attributes)
         eventAttributes.merge(flushed.attributes) { _, builtIn in builtIn }
-        eventAttributes[SpanSemantics.State.keyNewValue] = value
+        eventAttributes[SpanSemantics.State.keyNewValue] = value.description
+        // Omitted rather than empty when untyped: "no type" must stay distinguishable from a type.
+        if let type = value.type {
+            eventAttributes[SpanSemantics.State.keyValueType] = type.wireValue
+        }
 
         // Internal spans bypass the customer-facing per-span event limit (see
         // `StateRecorderLimitsTests`). The nil check covers the `EmbraceSpan` contract, which

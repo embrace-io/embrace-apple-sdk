@@ -64,10 +64,24 @@ final class ScreenStateReporterTests: XCTestCase {
         XCTAssertEqual(Screen.backgrounded.stateDescription, "Backgrounded")
     }
 
+    /// Only the SDK's own values are typed. A screen that came from the app is identified by its
+    /// name alone, whatever that name happens to be.
+    func testOnlyTheSentinelsAreSystemValues() {
+        XCTAssertEqual(Screen.initializing.stateValueType, .system)
+        XCTAssertEqual(Screen.backgrounded.stateValueType, .system)
+        XCTAssertNil(Screen("Home").stateValueType)
+        XCTAssertNil(Screen("Backgrounded").stateValueType)
+    }
+
+    func testTheSpanRecordsTheInitialValuesTypeAlongsideIt() throws {
+        let span = try XCTUnwrap(stateSpan)
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyValueType]?.description, "system")
+    }
+
     // MARK: - Recording
 
     func testScreenLoadRecordsATransitionAtTheObservedTime() throws {
-        reporter.onScreenLoad(at: time(5), name: "Home")
+        reporter.onScreenLoad(at: time(5), screen: Screen("Home"))
 
         let span = try XCTUnwrap(stateSpan)
         let event = try XCTUnwrap(span.events.first)
@@ -77,17 +91,17 @@ final class ScreenStateReporterTests: XCTestCase {
     }
 
     func testCurrentValueIsExposedForLogStamping() {
-        reporter.onScreenLoad(at: time(1), name: "Home")
+        reporter.onScreenLoad(at: time(1), screen: Screen("Home"))
 
-        XCTAssertEqual(reporter.recorder.currentStateDescription, "Home")
+        XCTAssertEqual(reporter.recorder.currentSerializedValue?.description, "Home")
     }
 
     func testEqualConsecutiveScreensAreDroppedAndCounted() throws {
         // Two distinct containers resolving to the same name pass the broker's gate but are
         // value-deduped here — this is the second half of the two-stage dedup.
-        reporter.onScreenLoad(at: time(1), name: "Home")
-        reporter.onScreenLoad(at: time(2), name: "Home")
-        reporter.onScreenLoad(at: time(3), name: "Detail")
+        reporter.onScreenLoad(at: time(1), screen: Screen("Home"))
+        reporter.onScreenLoad(at: time(2), screen: Screen("Home"))
+        reporter.onScreenLoad(at: time(3), screen: Screen("Detail"))
 
         let span = try XCTUnwrap(stateSpan)
         XCTAssertEqual(span.events.count, 2)
@@ -95,6 +109,35 @@ final class ScreenStateReporterTests: XCTestCase {
 
         let detail = try XCTUnwrap(span.events.last)
         XCTAssertEqual(detail.attributes[SpanSemantics.State.keyDroppedByInstrumentation]?.description, "1")
+    }
+
+    // MARK: - Sentinel name collisions
+
+    /// The clash this feature exists to resolve. Duplicate suppression is by value, so without the
+    /// type these two would be one value: whichever came second would be dropped, and a session
+    /// that genuinely backgrounded would report that it never did.
+    func testAnAppScreenNamedLikeTheSentinelIsRecordedBesideIt() throws {
+        reporter.onScreenLoad(at: time(1), screen: Screen("Backgrounded"))
+        reporter.onScreenLoad(at: time(2), screen: .backgrounded)
+
+        let span = try XCTUnwrap(stateSpan)
+        XCTAssertEqual(span.events.count, 2)
+        XCTAssertEqual(span.events[0].attributes[SpanSemantics.State.keyNewValue]?.description, "Backgrounded")
+        XCTAssertNil(
+            span.events[0].attributes[SpanSemantics.State.keyValueType],
+            "the app's screen carries no type")
+        XCTAssertEqual(span.events[1].attributes[SpanSemantics.State.keyValueType]?.description, "system")
+    }
+
+    /// The same collision against the state's *default* value, which is already on the span as
+    /// `initial_value` before any screen appears.
+    func testAnAppScreenNamedLikeTheInitializingSentinelIsRecorded() throws {
+        reporter.onScreenLoad(at: time(1), screen: Screen("Initializing"))
+
+        let span = try XCTUnwrap(stateSpan)
+        let event = try XCTUnwrap(span.events.first)
+        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNewValue]?.description, "Initializing")
+        XCTAssertNil(event.attributes[SpanSemantics.State.keyValueType])
     }
 
     // MARK: - Broker integration
