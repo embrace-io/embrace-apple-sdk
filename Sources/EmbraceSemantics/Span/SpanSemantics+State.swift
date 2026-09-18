@@ -24,6 +24,12 @@ extension SpanSemantics {
             "\(keyPrefix)\(stateName)"
         }
 
+        /// Key stamped beside ``logAttributeKey(for:)`` carrying that value's type, e.g.
+        /// `emb.state.screen-automatic.value_type`. Omitted when the value has no type.
+        public static func logValueTypeAttributeKey(for stateName: String) -> String {
+            "\(logAttributeKey(for: stateName))\(valueTypeSuffix)"
+        }
+
         /// Value of the state when its span was opened, carried over from the previous session part.
         /// Written at span start.
         public static let keyInitialValue = "emb.state.initial_value"
@@ -34,6 +40,21 @@ extension SpanSemantics {
 
         /// The state's new value. Always present on a `transition` event.
         public static let keyNewValue = "emb.state.new_value"
+
+        /// The *type* of the value written beside it: ``keyInitialValue`` on the span,
+        /// ``keyNewValue`` on a `transition` event.
+        ///
+        /// A type names the domain a value belongs to, so two values spelled the same are only the
+        /// same value when their types match — an app screen named "Backgrounded" is not the
+        /// ``valueTypeSystem`` value of that name.
+        ///
+        /// **Omitted** when the value has no type, which is the common case: most values are
+        /// identified by their string alone.
+        public static let keyValueType = "emb.state.value_type"
+
+        /// Value of ``keyValueType`` for values the SDK itself sets, rather than ones derived from
+        /// the app.
+        public static let valueTypeSystem = "system"
 
         /// Changes that occurred while no session part existed. Written only when > 0.
         public static let keyNotInSession = "emb.state.not_in_session"
@@ -60,5 +81,9 @@ extension SpanSemantics {
         }
 
         private static let keyPrefix = "emb.state."
+
+        /// Turns the key a value is stored under into the key its type is stored under. Only the
+        /// log stamp needs it — on a span the value's key is fixed, so ``keyValueType`` is literal.
+        private static let valueTypeSuffix = ".value_type"
     }
 }

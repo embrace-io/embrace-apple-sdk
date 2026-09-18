@@ -4,32 +4,33 @@
 
 /// The screen the user is currently on, as recorded by the `screen-automatic` state.
 ///
-/// Equality is by name alone, which is what suppresses duplicate transitions downstream: two
-/// containers resolving to the same name are one screen, not two.
+/// Equality is by name **and** type, which is what suppresses duplicate transitions downstream: two
+/// containers resolving to the same name are one screen, not two — while an app screen named
+/// "Backgrounded" and the SDK's value of that name stay two.
 struct Screen: StateValue {
 
     /// The name written verbatim to `emb.state.new_value` / `emb.state.initial_value`.
     let name: String
 
+    /// `.system` for the two values below, `nil` for every screen that came from the app.
+    let stateValueType: StateValueType?
+
     var stateDescription: String { name }
 
+    /// A screen of the app's own: a name the developer chose or a view controller's class.
     init(_ name: String) {
         self.name = name
+        self.stateValueType = nil
     }
 
-    /// Value of the state before any screen has appeared
-    ///
-    /// TODO: figure out a better value or a better system for these cases. Align with other platforms.
-    static let initializing = Screen("Initializing")
-
-    /// Value of the state while the app is backgrounded, as above.
-    ///
-    /// TODO: figure out a better value or a better system for these cases. Align with other platforms.
-    static let backgrounded = Screen("Backgrounded")
-
-    /// User created screens named one of the above will be dropped.
-    /// This method serves as a check when a screen span is emited to make sure the screen isn't named a reserve word.
-    static func isReserved(_ name: String) -> Bool {
-        name == initializing.name || name == backgrounded.name
+    private init(system name: String) {
+        self.name = name
+        self.stateValueType = .system
     }
+
+    /// Value of the state before any screen has appeared.
+    static let initializing = Screen(system: "Initializing")
+
+    /// Value of the state while the app is backgrounded.
+    static let backgrounded = Screen(system: "Backgrounded")
 }

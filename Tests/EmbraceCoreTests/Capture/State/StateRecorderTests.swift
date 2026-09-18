@@ -62,6 +62,18 @@ private final class InterferingOTelHandler: MockOTelSignalsHandler {
     }
 }
 
+/// A state value whose string does not identify it on its own: the navigation state's problem in
+/// general form, without dragging the screen types into the primitive's tests.
+private struct TypedValue: StateValue {
+    let stateDescription: String
+    let stateValueType: StateValueType?
+
+    init(_ description: String, type: StateValueType? = nil) {
+        self.stateDescription = description
+        self.stateValueType = type
+    }
+}
+
 /// These assertions are the specification for the state primitive: they pin the payload the backend
 /// reads, so a change that breaks one is a wire-contract change and needs to be deliberate.
 final class StateRecorderTests: XCTestCase {
@@ -405,16 +417,114 @@ final class StateRecorderTests: XCTestCase {
         XCTAssertEqual(span.events.count, 1)
     }
 
+    // MARK: - Value types
+
+    /// The primitive is generic over the value, so a typed recorder is built by hand here.
+    private func startedTypedRecorder(defaultValue: TypedValue) -> StateRecorder<TypedValue> {
+        let recorder = StateRecorder(
+            stateName: stateName,
+            defaultValue: defaultValue,
+            otel: mockOTel
+        )
+        recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        recorder.activate(at: partStart)
+        return recorder
+    }
+
+    func testTheSpanRecordsTheTypeOfItsInitialValue() throws {
+        _ = startedTypedRecorder(defaultValue: TypedValue("Initializing", type: .system))
+
+        let span = try XCTUnwrap(stateSpans.first)
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyInitialValue]?.description, "Initializing")
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyValueType]?.description, "system")
+    }
+
+    func testAnUntypedInitialValueWritesNoTypeAtAll() throws {
+        _ = startedTypedRecorder(defaultValue: TypedValue("Home"))
+
+        let span = try XCTUnwrap(stateSpans.first)
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyInitialValue]?.description, "Home")
+        XCTAssertNil(
+            span.attributes[SpanSemantics.State.keyValueType],
+            "omitted, not empty — \"no type\" must stay distinguishable from a type")
+    }
+
+    /// The span attribute describes the value the part *began* with, so a later transition to a
+    /// differently-typed value must not rewrite it.
+    func testTransitionsDoNotRewriteTheSpansInitialValueType() throws {
+        let recorder = startedTypedRecorder(defaultValue: TypedValue("Initializing", type: .system))
+
+        recorder.onStateChange(to: TypedValue("Home"), at: time(1))
+
+        let span = try XCTUnwrap(stateSpans.first)
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyValueType]?.description, "system")
+    }
+
+    func testTransitionEventsRecordTheTypeOfTheNewValue() throws {
+        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+
+        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
+        recorder.onStateChange(to: TypedValue("Home"), at: time(2))
+
+        let span = try XCTUnwrap(stateSpans.first)
+        XCTAssertEqual(span.events.count, 2)
+        XCTAssertEqual(span.events[0].attributes[SpanSemantics.State.keyNewValue]?.description, "Backgrounded")
+        XCTAssertEqual(span.events[0].attributes[SpanSemantics.State.keyValueType]?.description, "system")
+        XCTAssertEqual(span.events[1].attributes[SpanSemantics.State.keyNewValue]?.description, "Home")
+        XCTAssertNil(span.events[1].attributes[SpanSemantics.State.keyValueType])
+    }
+
+    /// The reason value types exist: duplicate suppression is by value, so without the type the
+    /// two "Backgrounded"s below would be one value and the second change would be dropped.
+    func testSameStringDifferentTypeIsADifferentValue() throws {
+        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+
+        recorder.onStateChange(to: TypedValue("Backgrounded"), at: time(1))
+        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(2))
+
+        let span = try XCTUnwrap(stateSpans.first)
+        XCTAssertEqual(span.events.count, 2, "both were recorded")
+        XCTAssertNil(span.events[0].attributes[SpanSemantics.State.keyValueType])
+        XCTAssertEqual(span.events[1].attributes[SpanSemantics.State.keyValueType]?.description, "system")
+    }
+
+    /// Two equal typed values still dedupe — the type widens equality, it does not defeat it.
+    func testSameStringSameTypeIsStillADuplicate() throws {
+        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+
+        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
+        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(2))
+
+        let span = try XCTUnwrap(stateSpans.first)
+        XCTAssertEqual(span.events.count, 1)
+    }
+
+    func testAValueTypeIsNotSomethingACallerCanForge() throws {
+        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+
+        recorder.onStateChange(
+            to: TypedValue("Detail"),
+            at: time(1),
+            attributes: [SpanSemantics.State.keyValueType: "system"]
+        )
+
+        let span = try XCTUnwrap(stateSpans.first)
+        let event = try XCTUnwrap(span.events.first)
+        XCTAssertNil(
+            event.attributes[SpanSemantics.State.keyValueType],
+            "the key is in the reserved `emb.state.*` namespace, so a caller cannot introduce it")
+    }
+
     // MARK: - Log stamping
 
     func testLogAttributeIsAbsentUntilTheStateIsActive() {
         let recorder = makeRecorder(capturesOnCreation: false)
-        XCTAssertNil(recorder.currentStateDescription)
+        XCTAssertNil(recorder.currentSerializedValue)
 
         recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
         recorder.onStateChange(to: "second", at: time(1))
 
-        XCTAssertEqual(recorder.currentStateDescription, "second")
+        XCTAssertEqual(recorder.currentSerializedValue?.description, "second")
     }
 
     func testLogAttributeTracksTheCurrentValueEvenWithoutAPart() {
@@ -423,7 +533,7 @@ final class StateRecorderTests: XCTestCase {
 
         recorder.onStateChange(to: "offline-change", at: time(1))
 
-        XCTAssertEqual(recorder.currentStateDescription, "offline-change")
+        XCTAssertEqual(recorder.currentSerializedValue?.description, "offline-change")
     }
 
     // MARK: - Write failures (the paths the defensive code exists for)
@@ -741,6 +851,29 @@ final class StateRecorderTests: XCTestCase {
         )
     }
 
+    func testLogStampsCarryTheCurrentValuesType() throws {
+        let coordinator = StateCaptureCoordinator()
+        let screen = StateRecorder<TypedValue>(
+            stateName: "screen-automatic",
+            defaultValue: TypedValue("Initializing", type: .system),
+            otel: mockOTel
+        )
+        coordinator.register(screen, sessionSpan: sessionSpan, at: partStart)
+
+        // A log emitted while the app is backgrounded is stamped with an SDK-set value...
+        screen.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
+        var attributes = coordinator.logAttributes
+        XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "Backgrounded")
+        XCTAssertEqual(attributes["emb.state.screen-automatic.value_type"]?.description, "system")
+
+        // ...and one emitted on a screen of the app's own carries no type, even if the app named
+        // that screen exactly what the SDK calls the state above.
+        screen.onStateChange(to: TypedValue("Backgrounded"), at: time(2))
+        attributes = coordinator.logAttributes
+        XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "Backgrounded")
+        XCTAssertNil(attributes["emb.state.screen-automatic.value_type"])
+    }
+
     func testACallerCannotOverrideAStateStamp() throws {
         let coordinator = StateCaptureCoordinator()
         let screen = StateRecorder<String>(
@@ -759,6 +892,24 @@ final class StateRecorderTests: XCTestCase {
         let attributes = builder.addCurrentStates(coordinator).build()
 
         XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "HomeViewController")
+    }
+
+    func testAForgedValueTypeStampIsReplacedWhileTheStateHasOne() throws {
+        let coordinator = StateCaptureCoordinator()
+        let screen = StateRecorder<TypedValue>(
+            stateName: "screen-automatic",
+            defaultValue: TypedValue("Initializing", type: .system),
+            otel: mockOTel
+        )
+        coordinator.register(screen, sessionSpan: sessionSpan, at: partStart)
+
+        let builder = EmbraceLogAttributesBuilder(
+            session: nil,
+            initialAttributes: ["emb.state.screen-automatic.value_type": "forged"]
+        )
+        let attributes = builder.addCurrentStates(coordinator).build()
+
+        XCTAssertEqual(attributes["emb.state.screen-automatic.value_type"]?.description, "system")
     }
 
     func testLogStampingIsANoOpWithoutACoordinator() {

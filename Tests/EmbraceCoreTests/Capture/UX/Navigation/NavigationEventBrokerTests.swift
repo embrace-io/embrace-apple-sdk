@@ -18,15 +18,15 @@ final class NavigationEventBrokerTests: XCTestCase {
     private final class Container {}
 
     private var broker: NavigationEventBroker!
-    private var loads: [(time: Date, name: String, attributes: EmbraceAttributes)] = []
+    private var loads: [(time: Date, screen: Screen, attributes: EmbraceAttributes)] = []
 
     private let origin = Date(timeIntervalSince1970: 1_000)
 
     override func setUp() {
         super.setUp()
         loads = []
-        broker = NavigationEventBroker { [weak self] time, name, attributes in
-            self?.loads.append((time, name, attributes))
+        broker = NavigationEventBroker { [weak self] time, screen, attributes in
+            self?.loads.append((time, screen, attributes))
         }
     }
 
@@ -47,7 +47,12 @@ final class NavigationEventBrokerTests: XCTestCase {
     }
 
     private var names: [String] {
-        loads.map(\.name)
+        loads.map(\.screen.name)
+    }
+
+    /// The value type of each emission, `nil` for app screens and `.system` for the SDK's own.
+    private var valueTypes: [StateValueType?] {
+        loads.map(\.screen.stateValueType)
     }
 
     /// Drives a full appear cycle for one container.
@@ -442,8 +447,21 @@ final class NavigationEventBrokerTests: XCTestCase {
         broker.handle(.resumed(id(vc), name: "ProductDetail", at: time(1), attributes: ["product_id": "42"]))
         broker.handle(.backgrounded(at: time(2)))
 
-        XCTAssertEqual(loads[1].name, "Backgrounded")
+        XCTAssertEqual(loads[1].screen.name, "Backgrounded")
         XCTAssertTrue(loads[1].attributes.isEmpty, "the sentinel is not the declared screen")
+    }
+
+    /// The broker hands whole screens downstream, not names, so a screen the app calls
+    /// "Backgrounded" and the sentinel of that name arrive as the two different values they are.
+    /// Without the type the state primitive would dedupe the second against the first.
+    func testTheSentinelIsTypedAndAppScreensAreNot() {
+        let vc = Container()
+
+        appear(vc, named: "Backgrounded", startedAt: 0, resumedAt: 1)
+        broker.handle(.backgrounded(at: time(2)))
+
+        XCTAssertEqual(names, ["Backgrounded", "Backgrounded"])
+        XCTAssertEqual(valueTypes, [nil, .system])
     }
 
     // MARK: - Recovery at the background boundary
@@ -466,7 +484,7 @@ final class NavigationEventBrokerTests: XCTestCase {
         broker.handle(.resumed(id(next), name: "Home", at: time(20)))
 
         let home = try XCTUnwrap(loads.last)
-        XCTAssertEqual(home.name, "Home")
+        XCTAssertEqual(home.screen.name, "Home")
         XCTAssertEqual(home.time, time(10), "backdating must recover after a background")
     }
 
