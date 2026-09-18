@@ -103,10 +103,24 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             }
         }
 
+        // validate the parent
+        //
+        // A parent whose identifiers can't refer to a span is no parent at all: the OTel layer
+        // rejects it and starts a brand new trace for this span. Dropping it here as well keeps
+        // both sides in agreement, otherwise the span would be recorded with a `parentSpanId`
+        // that doesn't belong to the trace it ended up in.
+        var finalParent = parentSpan
+        if let parentSpan, !parentSpan.context.isValid {
+            Embrace.logger.warning(
+                "Ignoring invalid parent for span '\(finalName)': span id '\(parentSpan.context.spanId)', trace id '\(parentSpan.context.traceId)'. The span will start a new trace."
+            )
+            finalParent = nil
+        }
+
         // create span context
         let context = bridge.startSpan(
             name: finalName,
-            parentSpan: parentSpan,
+            parentSpan: finalParent,
             status: status,
             startTime: startTime,
             endTime: endTime,
@@ -117,14 +131,14 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
 
         // get auto termination code from parent if needed
         var code = autoTerminationCode
-        if let parentSpan, code == nil {
-            code = cache.safeValue.autoTerminationSpans[parentSpan.context.spanId]?.autoTerminationCode
+        if let finalParent, code == nil {
+            code = cache.safeValue.autoTerminationSpans[finalParent.context.spanId]?.autoTerminationCode
         }
 
         // create span
         let span = newSpan(
             context: context,
-            parentSpanId: parentSpan?.context.spanId,
+            parentSpanId: finalParent?.context.spanId,
             name: finalName,
             type: type,
             status: status,
@@ -363,14 +377,30 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         currentCount: Int
     ) throws -> EmbraceSpanLink {
 
+        // A link is nothing but a pair of identifiers pointing at another span, so identifiers that
+        // can't refer to one make the link meaningless: nothing downstream is able to resolve them.
+        // Rejecting here keeps the link out of the payload entirely, rather than recording one that
+        // only looks valid until something tries to follow it.
+        guard EmbraceSpanContext.isValidSpanId(spanId) else {
+            throw EmbraceOTelError.invalidSpanLinkIdentifiers(
+                "Invalid span id '\(spanId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.spanIdLength) hexadecimal characters that are not all zeros."
+            )
+        }
+
+        guard EmbraceSpanContext.isValidTraceId(traceId) else {
+            throw EmbraceOTelError.invalidSpanLinkIdentifiers(
+                "Invalid trace id '\(traceId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.traceIdLength) hexadecimal characters."
+            )
+        }
+
         // check limit
         guard limiter.shouldAddSpanLink(currentCount: currentCount) else {
             throw EmbraceOTelError.spanLinkLimitReached("Links limit reached for span \(spanName)")
         }
 
         return EmbraceSpanLink(
-            spanId: spanId,
-            traceId: traceId,
+            spanId: EmbraceSpanContext.normalize(spanId),
+            traceId: EmbraceSpanContext.normalize(traceId),
             attributes: sanitizer.sanitizeSpanLinkAttributes(attributes)
         )
     }

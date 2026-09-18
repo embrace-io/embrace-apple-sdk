@@ -65,8 +65,19 @@ public protocol EmbraceSpan {
     ///
     /// - Important: The returned link is **not** the same instance as the inputs you provided.
     ///   Sanitization may have truncated attribute keys/values or capped the attribute count.
-    /// - Returns: The sanitized link that was appended to the span, or `nil` if the per-span
-    ///   link limit was reached and the link was dropped (a warning is logged in that case).
+    /// - Parameters:
+    ///   - spanId: Identifier of the linked span. Must be 16 hexadecimal characters and not all zeros.
+    ///   - traceId: Identifier of the linked trace. Must be 32 hexadecimal characters and not all zeros.
+    ///   - attributes: Attributes to attach to the link.
+    /// - Returns: The sanitized link that was appended to the span, or `nil` if the link was dropped.
+    ///   The link is dropped when:
+    ///   - `spanId` or `traceId` is malformed, meaning it has the wrong length, contains non
+    ///     hexadecimal characters, or is entirely made of zeros. Such identifiers can't point at
+    ///     any span, so the link would be impossible to follow.
+    ///   - The per-span link limit was already reached.
+    ///   - The span can no longer record data, for example after the SDK has been stopped.
+    ///
+    ///   In all of these cases the reason is logged.
     @discardableResult
     func addLink(
         spanId: String,
@@ -120,8 +131,17 @@ extension EmbraceSpan {
     /// - Important: The returned link is **not** the same instance as `link`. Sanitization
     ///   may have truncated attribute keys/values or capped the attribute count. Inspect the
     ///   returned value to see what was actually recorded; your `link` is left untouched.
-    /// - Returns: The sanitized link that was appended to the span, or `nil` if the per-span
-    ///   link limit was reached and the link was dropped.
+    /// - Parameter link: The link to add. Its span identifier must be 16 hexadecimal characters
+    ///   and its trace identifier 32, and neither can be entirely made of zeros.
+    /// - Returns: The sanitized link that was appended to the span, or `nil` if the link was dropped.
+    ///   The link is dropped when:
+    ///   - The identifiers in `link.context` are malformed, meaning either has the wrong length,
+    ///     contains non hexadecimal characters, or is entirely made of zeros. Such identifiers
+    ///     can't point at any span, so the link would be impossible to follow.
+    ///   - The per-span link limit was already reached.
+    ///   - The span can no longer record data, for example after the SDK has been stopped.
+    ///
+    ///   In all of these cases the reason is logged.
     @discardableResult
     public func addLink(_ link: EmbraceSpanLink) -> EmbraceSpanLink? {
         return addLink(

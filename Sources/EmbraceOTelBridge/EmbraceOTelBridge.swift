@@ -121,25 +121,37 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
     ) -> EmbraceSpanContext {
         var builder = tracer.spanBuilder(spanName: name).setStartTime(time: startTime)
 
-        // Set parent via cached OTel span or reconstructed SpanContext.
+        // Parentage is always stated explicitly, never left to the builder's default.
+        //
+        // A span builder with no parent set resolves one from the currently active span, which
+        // lives in a process-wide store shared with every other OpenTelemetry user in the app.
+        // Leaving that to chance would let an unrelated span become the parent of a span that
+        // was meant to start its own trace, and the resulting trace id would not match the one
+        // recorded alongside it.
         if let parentSpan {
             let parentId = parentSpan.context.spanId
+
             if let otelParent = spanCache.withLock({ $0[parentId] }) {
                 builder = builder.setParent(otelParent)
+
+            } else {
+                if let parentContext = Self.otelContext(from: parentSpan.context) {
+                    builder = builder.setParent(parentContext)
+
+                } else {
+                    // The identifiers can't be honored, so start a new trace rather than falling
+                    // back to the active span.
+                    builder = builder.setNoParent()
+                }
             }
+
+        } else {
+            builder = builder.setNoParent()
         }
 
         // Set links before starting (only supported at creation time).
         for link in links {
-            let otelTraceId = TraceId(fromHexString: link.context.traceId)
-            let otelSpanId = SpanId(fromHexString: link.context.spanId)
-            if otelTraceId.isValid && otelSpanId.isValid {
-                let ctx = SpanContext.create(
-                    traceId: otelTraceId,
-                    spanId: otelSpanId,
-                    traceFlags: .init(fromByte: 1),
-                    traceState: .init()
-                )
+            if let ctx = Self.otelContext(from: link.context) {
                 builder = builder.addLink(spanContext: ctx, attributes: link.attributes.otelAttributes)
             }
         }
@@ -178,6 +190,27 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
         }
 
         return EmbraceSpanContext(spanId: spanId, traceId: traceId)
+    }
+
+    /// Converts an `EmbraceSpanContext` into the OTel equivalent, or returns `nil` when its
+    /// identifiers can't refer to a span.
+    ///
+    /// The identifiers are checked before being parsed: `SpanId(fromHexString:)` builds its string
+    /// indices before validating the length, so it traps on anything shorter than 16 characters.
+    private static func otelContext(from context: EmbraceSpanContext) -> SpanContext? {
+        guard context.isValid else {
+            return nil
+        }
+
+        let otelTraceId = TraceId(fromHexString: context.traceId)
+        let otelSpanId = SpanId(fromHexString: context.spanId)
+
+        return SpanContext.create(
+            traceId: otelTraceId,
+            spanId: otelSpanId,
+            traceFlags: .init(fromByte: 1),
+            traceState: .init()
+        )
     }
 
     package func updateSpanStatus(_ span: EmbraceSpan, status: EmbraceSpanStatus) {
