@@ -67,4 +67,22 @@ class EmbraceSpanEndErrorCodeTests: XCTestCase {
         XCTAssertEqual(span.status, .ok)
         XCTAssertNil(span.attributes["emb.error_code"])
     }
+
+    func test_end_withErrorCode_afterEnd_returnsEarlyWithoutAttemptingChanges() throws {
+        // given a span that already ended
+        let endTime = Date(timeIntervalSince1970: 50)
+        let span = MockSpan(name: "test", endTime: endTime)
+
+        // when ending it again with an error code
+        span.end(errorCode: .failure, endTime: Date(timeIntervalSince1970: 100))
+
+        // then it keeps the outcome it ended with
+        XCTAssertEqual(span.endTime, endTime)
+        XCTAssertEqual(span.status, .unset)
+        XCTAssertNil(span.attributes["emb.error_code"])
+
+        // and none of the individual steps was attempted, so a single call can't report the
+        // same thing once per step
+        XCTAssertEqual(span.ignoredMutationCount, 0)
+    }
 }
