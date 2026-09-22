@@ -67,6 +67,11 @@ package class Embrace {
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
+
+    /// Entered in `init` and left exactly once: from the startup-disabled guard or the success
+    /// path of `start()`. Both paths move `state` off `.initialized` before releasing, so later
+    /// `start()` calls fail the state guard and cannot `leave()` again.
+    /// Keep this invariant: `DispatchGroup` traps on an unbalanced `leave()`.
     package let captureServicesGroup: DispatchGroup
 
     let logController: LogController
@@ -212,7 +217,8 @@ package class Embrace {
             bridge: options.bridge ?? DefaultOTelSignalBridge()
         )
 
-        // Create a group for the services, this group leaves once the services are started.
+        // Create a group for the services. It leaves once the SDK startup gate is satisfied,
+        // either after services start or when startup is disabled for this process.
         self.captureServicesGroup = DispatchGroup()
         self.captureServicesGroup.enter()
 
@@ -307,6 +313,17 @@ package class Embrace {
 
             guard config.isSDKEnabled else {
                 Embrace.logger.warning("Embrace can't start when disabled!")
+
+                // Disabled at startup is terminal for this process. Keep lifecycle listeners
+                // inactive and make repeated `start()` calls a no-op.
+                state = .stopped
+                sessionLifecycle.stop()
+
+                // The SDK will not start this launch, so nothing will ever satisfy the capture
+                // services gate. Release it: the child processors and exporters behind it are
+                // user-supplied, and a remote kill-switch for Embrace must not silently starve
+                // a customer's own OpenTelemetry pipeline.
+                self.captureServicesGroup.leave()
                 return self
             }
 
