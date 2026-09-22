@@ -27,25 +27,25 @@ final package class EmbraceOTelBridge {
     weak var delegate: (any EmbraceOTelDelegate)?
     weak var metadataProvider: (any EmbraceMetadataProvider)?
 
-    private let tracerProvider: TracerProviderSdk
+    let tracerProvider: TracerProviderSdk
     private let loggerProvider: LoggerProviderSdk
     private let tracer: any Tracer
     private let logger: any OpenTelemetryApi.Logger
 
     // Cache mapping Embrace spanId (hex) → live OTel Span.
     // Populated on startSpan, cleared on endSpan.
-    private let spanCache = EmbraceMutex([String: any OpenTelemetryApi.Span]())
+    let spanCache = EmbraceMutex([String: any OpenTelemetryApi.Span]())
 
     // IDs pre-reserved by the bridge before calling builder.startSpan().
     // Covers the onStart window: the ID is inserted here before startSpan() is called, so
     // isInternalSpan correctly returns true when onStart fires synchronously during startSpan().
-    private let pendingSpanIds = EmbraceMutex(Set<String>())
+    let pendingSpanIds = EmbraceMutex(Set<String>())
 
-     // IDs of the logs the bridge is currently emitting, so `isInternalLog` can tell them apart from
-     // logs created by OTel code in the host app. `EmbraceLogProcessor` is the root processor
-     // registered on `loggerProvider`, and it consults `isInternalLog` at the top of its `onEmit`,
-     // which the OTel SDK calls synchronously from `emit()`. An ID therefore only has to be present
-     // across the `emit()` call in `createLog`, whatever the child processors do with the record.    
+    // IDs of the logs the bridge is currently emitting, so `isInternalLog` can tell them apart from
+    // logs created by OTel code in the host app. `EmbraceLogProcessor` is the root processor
+    // registered on `loggerProvider`, and it consults `isInternalLog` at the top of its `onEmit`,
+    // which the OTel SDK calls synchronously from `emit()`. An ID therefore only has to be present
+    // across the `emit()` call in `createLog`, whatever the child processors do with the record.
     private let internalLogIds = EmbraceMutex(Set<String>())
 
     /// Test-only view of the IDs of the logs currently being emitted outbound.
@@ -59,6 +59,20 @@ final package class EmbraceOTelBridge {
     private let idGenerator = EmbraceSpanIdGenerator()
     private let spanProcessor: EmbraceSpanProcessor
     private let logProcessor: EmbraceLogProcessor
+
+    // MARK: - Providers
+
+    /// The `TracerProvider` backing this bridge's pipeline.
+    ///
+    /// Exposed as the `TracerProvider` protocol rather than `TracerProviderSdk` so callers can
+    /// only obtain tracers from it — the processor chain and shutdown remain owned by the bridge.
+    package var otelTracerProvider: TracerProvider { tracerProvider }
+
+    /// The `LoggerProvider` backing this bridge's pipeline.
+    ///
+    /// Exposed as the `LoggerProvider` protocol rather than `LoggerProviderSdk` so callers can
+    /// only obtain loggers from it — the processor chain and shutdown remain owned by the bridge.
+    package var otelLoggerProvider: LoggerProvider { loggerProvider }
 
     // MARK: - Init
 
@@ -174,11 +188,24 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
         }
 
         // Pre-reserve the span ID so isInternalSpan returns true when onStart fires synchronously
-        // during startSpan(), before the span can be added to spanCache.
-        let reservedId = idGenerator.reserveNextSpanId().hexString
-        pendingSpanIds.withLock { $0.insert(reservedId) }
-        let otelSpan = builder.startSpan()
-        pendingSpanIds.withLock { $0.remove(reservedId) }
+        // during startSpan(), before the span can be added to spanCache. The reservation is held
+        // per thread, so concurrent span creation — here, or through any other tracer built on
+        // the same provider — can never consume another thread's ID.
+        let otelSpan = idGenerator.withReservation { reservedSpanId in
+            let reservedId = reservedSpanId.hexString
+            pendingSpanIds.withLock { $0.insert(reservedId) }
+
+            let span = builder.startSpan()
+
+            // Cache the span for future mutation callbacks. Caching before clearing the pending
+            // entry keeps the ID covered by isInternalSpan at every point in between.
+            spanCache.withLock { $0[span.context.spanId.hexString] = span }
+            pendingSpanIds.withLock { $0.remove(reservedId) }
+
+            assertReservationWasConsumed(reservedSpanId, by: span)
+
+            return span
+        }
 
         // Set status
         otelSpan.status = status.otelStatus
@@ -190,9 +217,6 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
 
         let spanId = otelSpan.context.spanId.hexString
         let traceId = otelSpan.context.traceId.hexString
-
-        // Cache the span for future mutation callbacks.
-        spanCache.withLock { $0[spanId] = otelSpan }
 
         // If endTime is provided, end the span immediately.
         // end() fires onEnd synchronously — the span must still be in the cache at that point.
@@ -284,6 +308,23 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
 
         builder = builder.setAttributes(otelAttributes)
         builder.emit()
+    }
+
+    /// Verifies that the OTel SDK assigned the span the ID that was reserved for it.
+    ///
+    /// The reservation protocol depends on `startSpan()` consuming the reserved ID synchronously,
+    /// on the calling thread. A mismatch means that assumption no longer holds, and spans created
+    /// here would be recorded twice: once directly, and once again as if they came from outside
+    /// the SDK.
+    ///
+    /// Non-recording spans are exempt. When a sampler drops a span the SDK discards the IDs it
+    /// generated and returns a non-recording span carrying an unrelated context, so a mismatch
+    /// there is expected rather than a broken assumption.
+    private func assertReservationWasConsumed(_ reserved: SpanId, by span: any OpenTelemetryApi.Span) {
+        assert(
+            !span.isRecording || span.context.spanId == reserved,
+            "OTel assigned span id \(span.context.spanId.hexString) but \(reserved.hexString) was reserved"
+        )
     }
 }
 
