@@ -13,7 +13,6 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceConfiguration
-    import EmbraceOTelInternal
     import EmbraceSemantics
     import EmbraceStorageInternal
 #endif
@@ -30,7 +29,8 @@ extension Notification.Name {
 /// callers that report it: the session span and every log. It is also mirrored into storage as a
 /// required resource, purely so a later process can read back the value of the process that produced
 /// it — which is what lets a recovered crash report carry the right one. That storage record is not
-/// meant to be reported as a resource, and the two resource consumers exclude it explicitly.
+/// meant to be reported as a resource, so `ResourcePayload` excludes the key when it builds the
+/// resource block of a payload.
 ///
 /// Reporting the value is debounced. Tracking a batch of flags one call at a time would otherwise
 /// mirror the value once per call, and each of those does a keyed CoreData fetch plus a session span
@@ -304,12 +304,12 @@ package class ExperimentsHandler {
             self?.persistCurrentValue()
         }
 
-        let delay: TimeInterval = state.withLock { state in
-            state.pendingPersist?.cancel()
-            state.pendingPersist = item
-
+        let delay: TimeInterval? = state.withLock { state in
             let now = Date()
+
             guard let firstChange = state.firstPendingChange else {
+                state.pendingPersist?.cancel()
+                state.pendingPersist = item
                 state.firstPendingChange = now
                 return persistDebounceInterval
             }
@@ -317,7 +317,21 @@ package class ExperimentsHandler {
             // Whatever is left of the max wait, so the deadline set by the first unreported change
             // survives every later change that pushes the debounce out.
             let remaining = maxPersistDelay - now.timeIntervalSince(firstChange)
+
+            // Once that deadline is up the item already waiting is due, and replacing it would
+            // defer a write that is owed — indefinitely, for as long as changes keep arriving.
+            // Leave it in place: it reads the value when it runs, so it reports this change too.
+            if remaining <= 0, state.pendingPersist != nil {
+                return nil
+            }
+
+            state.pendingPersist?.cancel()
+            state.pendingPersist = item
             return max(0, min(persistDebounceInterval, remaining))
+        }
+
+        guard let delay = delay else {
+            return
         }
 
         persistQueue.asyncAfter(deadline: .now() + delay, execute: item)
@@ -336,7 +350,7 @@ package class ExperimentsHandler {
     /// Persisting under the lock would invert that order and deadlock.
     ///
     /// The record exists so a later process can read back this process's value; it is deliberately
-    /// kept out of the reported resources by `ResourcePayload` and `ResourceStorageExporter`.
+    /// kept out of the reported resources by `ResourcePayload`.
     private func persistCurrentValue() {
         let value: String? = state.withLock { state in
             state.pendingPersist = nil

@@ -95,42 +95,37 @@ final class ExperimentsLimitsTests: XCTestCase {
         XCTAssertEqual(limits, ExperimentsLimits())
     }
 
-    // MARK: - Equality / hashing (NSObject contract)
+    // MARK: - Equality / hashing
 
-    func test_isEqual_isTrueWhenLimitsMatch() {
+    func test_equality_isTrueWhenLimitsMatch() {
         let limits1 = ExperimentsLimits(maxCount: 100, maxIdLength: 20, maxVariantLength: 30)
         let limits2 = ExperimentsLimits(maxCount: 100, maxIdLength: 20, maxVariantLength: 30)
         XCTAssertEqual(limits1, limits2)
     }
 
-    func test_isEqual_isFalseWhenMaxCountDiffers() {
+    func test_equality_isFalseWhenMaxCountDiffers() {
         let limits1 = ExperimentsLimits(maxCount: 100, maxIdLength: 20, maxVariantLength: 30)
         let limits2 = ExperimentsLimits(maxCount: 101, maxIdLength: 20, maxVariantLength: 30)
         XCTAssertNotEqual(limits1, limits2)
     }
 
-    func test_isEqual_isFalseWhenMaxIdLengthDiffers() {
+    func test_equality_isFalseWhenMaxIdLengthDiffers() {
         let limits1 = ExperimentsLimits(maxCount: 100, maxIdLength: 20, maxVariantLength: 30)
         let limits2 = ExperimentsLimits(maxCount: 100, maxIdLength: 21, maxVariantLength: 30)
         XCTAssertNotEqual(limits1, limits2)
     }
 
-    func test_isEqual_isFalseWhenMaxVariantLengthDiffers() {
+    func test_equality_isFalseWhenMaxVariantLengthDiffers() {
         let limits1 = ExperimentsLimits(maxCount: 100, maxIdLength: 20, maxVariantLength: 30)
         let limits2 = ExperimentsLimits(maxCount: 100, maxIdLength: 20, maxVariantLength: 31)
         XCTAssertNotEqual(limits1, limits2)
-    }
-
-    func test_isEqual_isFalseWhenDifferentTypes() {
-        let limits = ExperimentsLimits(maxCount: 100, maxIdLength: 20, maxVariantLength: 30)
-        XCTAssertFalse(limits.isEqual("ExperimentsLimits"))
     }
 
     func test_equalInstances_shareHash() {
         let limits1 = ExperimentsLimits(maxCount: 100, maxIdLength: 20, maxVariantLength: 30)
         let limits2 = ExperimentsLimits(maxCount: 100, maxIdLength: 20, maxVariantLength: 30)
         XCTAssertEqual(
-            limits1.hash, limits2.hash, "equal ExperimentsLimits must return the same hash (NSObject contract)")
+            limits1.hashValue, limits2.hashValue, "equal ExperimentsLimits must return the same hash value")
         XCTAssertEqual(Set([limits1, limits2]).count, 1, "equal instances should dedupe in a Set")
     }
 

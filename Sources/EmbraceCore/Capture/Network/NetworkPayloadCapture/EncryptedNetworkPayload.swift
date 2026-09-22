@@ -8,6 +8,7 @@ import Foundation
 import Security
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
 #endif
 

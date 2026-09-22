@@ -2,25 +2,19 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceIO
 import SwiftUI
-
-#if COCOAPODS
-    import EmbraceIO
-#else
-    import EmbraceCommonInternal
-    import EmbraceIO
-#endif
 
 struct LoggingView: View {
     @State private var logMessage: String = "This is the log message..."
-    @State private var severity: Int = LogSeverity.info.rawValue
+    @State private var severity: Int = EmbraceLogSeverity.info.rawValue
     @State private var behavior: Int = Behavior.default.rawValue
     @State private var key: String = ""
     @State private var value: String = ""
     @State private var attributes: [String: String] = [:]
     @State private var shouldCleanUp: Bool = false
 
-    private let severities: [LogSeverity] = {
+    private let severities: [EmbraceLogSeverity] = {
         [.info, .warn, .error]
     }()
 
@@ -39,7 +33,7 @@ struct LoggingView: View {
                         .bold()
                     Picker("Severity", selection: $severity) {
                         ForEach(severities, id: \.rawValue) {
-                            Text($0.text)
+                            Text($0.name)
                         }
                     }.pickerStyle(SegmentedPickerStyle())
                 }
@@ -87,7 +81,7 @@ extension LoggingView {
             print("Cant log empty message")
             return
         }
-        guard let severity = LogSeverity(rawValue: severity) else {
+        guard let severity = EmbraceLogSeverity(rawValue: severity) else {
             print("Wrong severity number")
             return
         }
@@ -95,16 +89,17 @@ extension LoggingView {
             print("Wrong stacktrace behavior")
             return
         }
-        Embrace.client?.log(
+        let attributeValues: EmbraceAttributes = attributes.mapValues { $0 as EmbraceAttributeValue }
+        EmbraceIO.shared.log(
             logMessage,
             severity: severity,
-            attributes: attributes,
+            attributes: attributeValues,
             stackTraceBehavior: stackTraceBehavior
         )
         cleanUpFields()
     }
 
-    fileprivate func getStackTraceBehavior() throws -> StackTraceBehavior {
+    fileprivate func getStackTraceBehavior() throws -> EmbraceStackTraceBehavior {
         switch Behavior(rawValue: behavior) {
         case .default:
             return .default
@@ -113,14 +108,17 @@ extension LoggingView {
         case .main:
             return .main
         case .custom:
-            return .custom(
-                try EmbraceStackTrace(
+            guard
+                let stackTrace = EmbraceStackTrace(
                     frames: [
                         "0 BrandGame 0x0000000005678def [SomeClass method] + 48",
                         "1 Random Library 0x0000000001234abc [Random init]",
                         "2 \(UUID().uuidString) 0x0000000001234abc [\(UUID().uuidString) \(UUID().uuidString))]"
                     ])
-            )
+            else {
+                throw NSError(domain: "BrandGame", code: -1, userInfo: [:])
+            }
+            return .custom(stackTrace)
         case .none:
             throw NSError(domain: "BrandGame", code: -1, userInfo: [:])
         }
@@ -144,7 +142,7 @@ extension LoggingView {
         case main
         case custom
 
-        static func from(_ stackTraceBehavior: StackTraceBehavior) -> Self {
+        static func from(_ stackTraceBehavior: EmbraceStackTraceBehavior) -> Self {
             switch stackTraceBehavior {
             case .notIncluded:
                 return .notIncluded

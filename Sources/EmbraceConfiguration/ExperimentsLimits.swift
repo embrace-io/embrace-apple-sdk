@@ -10,7 +10,7 @@ import Foundation
 /// The encoded value these limits protect is exempt from the standard attribute value length limit.
 /// Rather than capping the encoded string, the inputs are bounded: how many records a process may
 /// hold, and how long each identifier and variant may be.
-@objc public final class ExperimentsLimits: NSObject {
+public struct ExperimentsLimits: Equatable, Hashable {
 
     // MARK: - Defaults
 
@@ -78,22 +78,5 @@ import Foundation
     private static func clamped(_ value: Int, fallback: Int, max maximum: Int) -> Int {
         guard value >= 0 else { return fallback }
         return Swift.min(value, maximum)
-    }
-
-    public override var hash: Int {
-        var hasher = Hasher()
-        hasher.combine(maxCount)
-        hasher.combine(maxIdLength)
-        hasher.combine(maxVariantLength)
-        return hasher.finalize()
-    }
-
-    public override func isEqual(_ object: Any?) -> Bool {
-        guard let other = object as? Self else {
-            return false
-        }
-        return maxCount == other.maxCount
-            && maxIdLength == other.maxIdLength
-            && maxVariantLength == other.maxVariantLength
     }
 }

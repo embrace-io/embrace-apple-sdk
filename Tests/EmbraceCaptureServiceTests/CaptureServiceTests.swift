@@ -2,7 +2,6 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceOTelInternal
 import TestSupport
 import XCTest
 
@@ -94,77 +93,60 @@ class CaptureServiceTests: XCTestCase {
         XCTAssertTrue(service.stopCalled)
     }
 
-    func test_startSpan() throws {
-        // given a started capture service
-        let otel = MockEmbraceOpenTelemetry()
+    func test_startBeforeInstall_isNoOp() throws {
+        // given an uninstalled capture service
         let service = MockCaptureService()
-        service.install(otel: otel)
+
+        // when starting before installing
         service.start()
 
-        // when starting a span
-        let builder = service.buildSpan(name: "test", type: .performance, attributes: ["key": "value"])
-        _ = builder!.startSpan()
-
-        // then the span is correctly started
-        let span = otel.spanProcessor.startedSpans[0]
-        XCTAssertEqual(span.name, "test")
-        XCTAssertEqual(span.embType, .performance)
-        XCTAssertEqual(span.attributes["key"], .string("value"))
+        // then it stays uninstalled and onStart is not called
+        XCTAssertEqual(service.state.load(), .uninstalled)
+        XCTAssertFalse(service.startCalled)
     }
 
-    func test_endSpan() throws {
-        // given a started capture service
-        let otel = MockEmbraceOpenTelemetry()
+    func test_stopBeforeStart_isNoOp() throws {
+        // given an installed (but not started) capture service
         let service = MockCaptureService()
-        service.install(otel: otel)
-        service.start()
+        service.install(otel: nil)
 
-        // when starting and ending a span
-        let builder = service.buildSpan(name: "test", type: .performance, attributes: ["key": "value"])
-        let original = builder!.startSpan()
-        original.end()
+        // when stopping before starting
+        service.stop()
 
-        // then the span is correctly started
-        let span = otel.spanProcessor.endedSpans[0]
-        XCTAssertEqual(span.name, "test")
-        XCTAssertEqual(span.embType, .performance)
-        XCTAssertEqual(span.attributes["key"], .string("value"))
-        XCTAssertNotNil(span.endTime)
+        // then it stays installed and onStop is not called
+        XCTAssertEqual(service.state.load(), .installed)
+        XCTAssertFalse(service.stopCalled)
     }
 
-    func test_addEvent() throws {
-        // given a started capture service
-        let otel = MockEmbraceOpenTelemetry()
+    func test_install_isIdempotent() throws {
+        // given an installed capture service
         let service = MockCaptureService()
-        service.install(otel: otel)
-        service.start()
+        service.install(otel: nil)
+        XCTAssertTrue(service.installCalled)
 
-        // when adding an event
-        service.add(event: RecordingSpanEvent(name: "test", timestamp: Date()))
+        // when installing again
+        service.installCalled = false
+        service.install(otel: nil)
 
-        // then the event is correctly added
-        XCTAssertEqual(otel.events.count, 1)
-        XCTAssertEqual(otel.events[0].name, "test")
+        // then it remains installed and onInstall is not called a second time
+        XCTAssertEqual(service.state.load(), .installed)
+        XCTAssertFalse(service.installCalled)
     }
 
-    func test_addEvents() throws {
-        // given a started capture service
-        let otel = MockEmbraceOpenTelemetry()
+    func test_resumeFromPaused() throws {
+        // given a paused capture service
         let service = MockCaptureService()
-        service.install(otel: otel)
+        service.install(otel: nil)
+        service.start()
+        service.stop()
+        XCTAssertEqual(service.state.load(), .paused)
+
+        // when starting again from paused
+        service.startCalled = false
         service.start()
 
-        // when adding events
-        service.add(events: [
-            RecordingSpanEvent(name: "test1", timestamp: Date()),
-            RecordingSpanEvent(name: "test2", timestamp: Date()),
-            RecordingSpanEvent(name: "test3", timestamp: Date())
-        ])
-
-        // then the events are correctly added
-        XCTAssertEqual(otel.events.count, 3)
-        XCTAssertEqual(otel.events[0].name, "test1")
-        XCTAssertEqual(otel.events[1].name, "test2")
-        XCTAssertEqual(otel.events[2].name, "test3")
+        // then it becomes active again and onStart is called
+        XCTAssertEqual(service.state.load(), .active)
+        XCTAssertTrue(service.startCalled)
     }
 }

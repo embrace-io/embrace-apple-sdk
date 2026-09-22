@@ -22,7 +22,7 @@ class URLSessionDelegateProxySwizzleResistanceTests: XCTestCase {
 
     private var originalDelegate: FullyImplementedURLSessionDelegate!
     private var handler: MockURLSessionTaskHandler!
-    private var proxy: EMBURLSessionDelegateProxy!
+    private var proxy: EMBURLSessionDelegateProxyType!
     private var proxyClass: AnyClass!
 
     // A selector that no real delegate ever implements, standing in for the 3rd party generated prefix.

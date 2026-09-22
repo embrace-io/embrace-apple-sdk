@@ -17,7 +17,7 @@
 
 @end
 
-void EMBClearOriginalDelegate(id proxy) { [(id<EMBURLSessionDelegateProxy>)proxy setOriginalDelegate:nil]; }
+void EMBClearOriginalDelegate(id proxy) { [(id<EMBURLSessionDelegateProxyType>)proxy setOriginalDelegate:nil]; }
 
 void EMBRawInvoke(id target, SEL selector, Class signatureSource, NSArray *arguments)
 {

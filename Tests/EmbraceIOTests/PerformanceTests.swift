@@ -5,6 +5,7 @@
 import EmbraceCommonInternal
 import EmbraceCore
 import EmbraceCrash
+import EmbraceSemantics
 import Foundation
 import TestSupport
 import XCTest
@@ -73,7 +74,7 @@ class PerformanceTests: XCTestCase {
         runStartup(
             Embrace.Options(
                 appId: randomAppName(),
-                captureServices: .automatic,
+                captureServices: EmbraceIO.CaptureServicesOptions.default().list,
                 crashReporter: KSCrashReporter()
             )
         )
@@ -96,7 +97,9 @@ class PerformanceBacktraceTests: XCTestCase {
 
     override class func setUp() {
         super.setUp()
-        _ = try? Embrace.setup(options: Embrace.Options(appId: "myApp")).start()
+        _ = try? Embrace.setup(
+            options: Embrace.Options(appId: "myApp", captureServices: [], crashReporter: nil)
+        ).start()
     }
 
     override class func tearDown() {
@@ -121,100 +124,4 @@ class PerformanceBacktraceTests: XCTestCase {
             thread.callstack.frames(symbolicated: true)
         }
     }
-}
-
-class PerformanceLogicalWritesTests: XCTestCase {
-
-    struct TestEvent: EmbraceSpanEvent {
-        let name: String = EmbraceIdentifier.random.stringValue
-        let timestamp: Date
-        let attributes: [String: String]
-    }
-
-    private func randomString(_ length: Int) -> String {
-        let characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return String((0..<length).compactMap { _ in characters.randomElement() })
-    }
-
-    func test_measureLogicalWrites() throws {
-        // XCTStorageMetric teardown BUS-faults in objc_release under TSan, and perf
-        // measurements are meaningless under sanitizer instrumentation regardless.
-        try XCTSkipIfSanitizing("XCTStorageMetric is incompatible with sanitizer instrumentation")
-
-        let storage: EmbraceStorage! = try? EmbraceStorage.createInDiskDb(fileName: UUID().uuidString, journalMode: .wal)
-
-        measure(metrics: [XCTStorageMetric()]) {
-
-            let startDate = Date()
-
-            let sem = DispatchSemaphore(value: 0)
-            _ = storage.addSession(
-                id: TestConstants.sessionId,
-                processId: ProcessIdentifier.current,
-                state: .foreground,
-                traceId: TestConstants.traceId,
-                spanId: TestConstants.spanId,
-                startTime: startDate,
-            ) {
-                sem.signal()
-            }
-            sem.wait()
-
-            let span: EmbraceSpan! = storage.upsertSpan(
-                id: TestConstants.spanId,
-                name: "emb-session",
-                traceId: TestConstants.traceId,
-                type: SpanType.session,
-                data: Data(),
-                startTime: startDate
-            )
-
-            for index in (1...200) {
-                storage.addEventsToSpan(
-                    id: span.id,
-                    traceId: span.traceId,
-                    events: [
-                        TestEvent(
-                            timestamp: startDate.addingTimeInterval(Double(index)),
-                            attributes: [
-                                "attribute.1": randomString(Int.random(in: 100...1000)),
-                                "message": randomString(Int.random(in: 100...1000))
-                            ]
-                        )
-                    ]
-                )
-            }
-
-            storage.coreData.save()
-        }
-    }
-}
-
-extension EmbraceStorage {
-
-    @discardableResult
-    public func addSession(
-        id: EmbraceIdentifier,
-        processId: EmbraceIdentifier,
-        state: SessionState,
-        traceId: String,
-        spanId: String,
-        startTime: Date,
-        endTime: Date? = nil,
-        lastHeartbeatTime: Date? = nil,
-        crashReportId: String? = nil,
-        coldStart: Bool = false,
-        cleanExit: Bool = false,
-        appTerminated: Bool = false
-    ) async -> EmbraceSession? {
-        await withCheckedContinuation { continuation in
-            var session: EmbraceSession? = nil
-            session = addSession(
-                id: id, processId: processId, state: state, traceId: traceId, spanId: spanId, startTime: startTime
-            ) {
-                continuation.resume(returning: session)
-            }
-        }
-    }
-
 }

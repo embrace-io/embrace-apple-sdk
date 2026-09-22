@@ -14,11 +14,11 @@ class URLSessionCaptureServiceTests: XCTestCase {
     private var lock: DummyLock!
     private var provider: MockedURLSessionSwizzlerProvider!
     private var handler: MockURLSessionTaskHandler!
-    private var otel: MockEmbraceOpenTelemetry!
+    private var otel: MockOTelSignalsHandler!
 
     override func setUp() {
         lock = DummyLock()
-        otel = MockEmbraceOpenTelemetry()
+        otel = MockOTelSignalsHandler()
         givenURLSessionSwizzlerProvider()
     }
 

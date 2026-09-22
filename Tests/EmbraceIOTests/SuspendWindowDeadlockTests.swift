@@ -40,7 +40,7 @@
 
         override class func setUp() {
             super.setUp()
-            _ = try? Embrace.setup(options: Embrace.Options(appId: "myApp")).start()
+            _ = try? Embrace.setup(options: Embrace.Options(appId: "myApp", captureServices: [], crashReporter: nil)).start()
         }
 
         override class func tearDown() {

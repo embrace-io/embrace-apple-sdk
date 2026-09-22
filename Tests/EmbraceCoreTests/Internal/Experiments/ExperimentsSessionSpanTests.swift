@@ -5,14 +5,11 @@
 import EmbraceCommonInternal
 import EmbraceConfiguration
 import EmbraceSemantics
-import OpenTelemetryApi
+import EmbraceStorageInternal
 import TestSupport
 import XCTest
 
 @testable import EmbraceCore
-@testable import EmbraceOTelInternal
-@testable import EmbraceStorageInternal
-@testable import OpenTelemetrySdk
 
 /// Covers the live session span, which is what a customer's own span processor observes.
 /// The session *payload* is covered by `SessionPayloadBuilderTests`, and needs a separate path because
@@ -20,23 +17,34 @@ import XCTest
 final class ExperimentsSessionSpanTests: XCTestCase {
 
     var storage: EmbraceStorage!
+    var otel: MockOTelSignalsHandler!
     var controller: SessionController!
+    var userSessionController: UserSessionController!
+    var configurable: MockEmbraceConfigurable!
     var handler: ExperimentsHandler!
-    var spanProcessor: MockSpanProcessor!
-    var stateProvider: MockEmbraceSDKStateProvider!
+    // `SessionController` holds this weakly, so the test has to own it.
+    let sdkStateProvider = MockEmbraceSDKStateProvider()
 
     override func setUpWithError() throws {
-        // a real tracer provider, so the session span records attributes
-        spanProcessor = MockSpanProcessor()
-        EmbraceOTel.setup(spanProcessors: [spanProcessor])
-
         storage = try EmbraceStorage.createInMemoryDb()
+
+        otel = MockOTelSignalsHandler()
+
         controller = SessionController(storage: storage, upload: nil, config: nil)
-        stateProvider = MockEmbraceSDKStateProvider()
-        controller.sdkStateProvider = stateProvider
+        controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
+
+        // Every part-start routes through the user-session controller, and the default mock
+        // config keeps back-to-back parts inside the same user session.
+        configurable = MockEmbraceConfigurable()
+        userSessionController = UserSessionController(storage: storage, config: configurable)
+        userSessionController.sessionController = controller
+        controller.userSessionController = userSessionController
+
         handler = ExperimentsHandler(
             storage: storage,
             experimentsLimits: ExperimentsLimits(),
+            // The controller observes `Embrace.notificationCenter`, so the handler has to post there.
             configNotificationCenter: Embrace.notificationCenter,
             logger: MockLogger(),
             // These assert the span right after tracking, and the notification that updates it is
@@ -48,18 +56,20 @@ final class ExperimentsSessionSpanTests: XCTestCase {
 
     override func tearDownWithError() throws {
         controller = nil
+        userSessionController = nil
         handler = nil
+        otel = nil
         storage.coreData.destroy()
         storage = nil
     }
 
     /// Reads the attribute off the live session span, which is what a custom span processor sees.
     private func sessionSpanAttribute() -> String? {
-        guard let span = controller.currentSessionSpan as? ReadableSpan else {
-            XCTFail("the session span should be a recording span")
+        guard let span = controller.currentSessionSpan else {
+            XCTFail("there should be a live session span")
             return nil
         }
-        return span.toSpanData().attributes[SpanSemantics.keyExperiments]?.description
+        return span.attributes[SpanSemantics.keyExperiments]?.description
     }
 
     func test_sessionStartedAfterTracking_carriesWhatIsAlreadyTracked() {
@@ -91,7 +101,7 @@ final class ExperimentsSessionSpanTests: XCTestCase {
     func test_withNothingTracked_theAttributeIsAbsent() {
         controller.startSession(state: .foreground)
 
-        XCTAssertNotNil(controller.currentSessionSpan as? ReadableSpan, "guards against a vacuous pass")
+        XCTAssertNotNil(controller.currentSessionSpan, "guards against a vacuous pass")
         XCTAssertNil(sessionSpanAttribute())
     }
 
@@ -104,5 +114,22 @@ final class ExperimentsSessionSpanTests: XCTestCase {
         controller.startSession(state: .foreground)
 
         XCTAssertEqual(sessionSpanAttribute(), "e:exp::1000000")
+    }
+
+    /// The value is exempt from the attribute value length limit, so it must reach the span whole.
+    /// Length comes from the number of records, since `id` and `variant` are each capped at 128.
+    func test_longValue_isNotTruncatedOnTheSessionSpan() throws {
+        let variant = String(repeating: "a", count: 100)
+        handler.trackExperiments(
+            (0..<20).map {
+                .init(id: "exp\($0)", variant: variant, startedAt: Date(timeIntervalSince1970: 1000))
+            }
+        )
+
+        controller.startSession(state: .foreground)
+
+        let value = try XCTUnwrap(sessionSpanAttribute())
+        XCTAssertEqual(value, handler.encodedExperiments)
+        XCTAssertGreaterThan(value.count, 1024)
     }
 }

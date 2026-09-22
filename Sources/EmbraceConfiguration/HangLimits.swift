@@ -5,7 +5,7 @@
 import Foundation
 
 /// HangLimits manages limits for the app hangs generated through the SDK
-@objc public final class HangLimits: NSObject {
+public struct HangLimits: Equatable {
 
     // MARK: - Defaults
 
@@ -62,6 +62,15 @@ import Foundation
     /// `[minSamplePollInterval, maxSamplePollInterval]`.
     public let samplePollInterval: TimeInterval
 
+    /// Creates a new `HangLimits`.
+    /// - Parameters:
+    ///   - hangThreshold: Minimum duration (in seconds) a frame delay must exceed to be reported as a hang.
+    ///   - hangPerSession: Maximum number of captured hangs in a session.
+    ///   - reportsWatchdogEvents: Whether crash reports are collected for hangs that do not recover.
+    ///   - sampleTriggerThreshold: How long the main thread must be busy before the during-block
+    ///     sampler snapshots it. Clamped as described on the property.
+    ///   - samplePollInterval: How often the background sampler checks main-thread liveness. Clamped
+    ///     as described on the property.
     public init(
         hangThreshold: TimeInterval = HangLimits.defaultHangThreshold,
         hangPerSession: UInt = HangLimits.defaultHangPerSession,
@@ -116,26 +125,5 @@ import Foundation
     ) -> TimeInterval {
         guard value.isFinite else { return fallback }
         return Swift.min(Swift.max(value, minimum), maximum)
-    }
-
-    public override var hash: Int {
-        var hasher = Hasher()
-        hasher.combine(hangThreshold)
-        hasher.combine(hangPerSession)
-        hasher.combine(reportsWatchdogEvents)
-        hasher.combine(sampleTriggerThreshold)
-        hasher.combine(samplePollInterval)
-        return hasher.finalize()
-    }
-
-    public override func isEqual(_ object: Any?) -> Bool {
-        guard let other = object as? Self else {
-            return false
-        }
-        return hangThreshold == other.hangThreshold
-            && hangPerSession == other.hangPerSession
-            && reportsWatchdogEvents == other.reportsWatchdogEvents
-            && sampleTriggerThreshold == other.sampleTriggerThreshold
-            && samplePollInterval == other.samplePollInterval
     }
 }

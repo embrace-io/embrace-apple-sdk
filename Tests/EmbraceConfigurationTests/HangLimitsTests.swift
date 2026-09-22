@@ -108,14 +108,20 @@ final class HangLimitsTests: XCTestCase {
         XCTAssertEqual(HangLimits(hangThreshold: 0.5).hangThreshold, 0.5, accuracy: 1e-9)
     }
 
-    // MARK: - Equality / hashing (NSObject contract)
+    // MARK: - Equality
 
-    func test_equalInstances_shareHashAndAreEqual() {
+    // `HangLimits` is a struct with synthesized `Equatable`, so equality covers every stored
+    // property — including the clamped sampler values, which is what these assert.
+    func test_equalInstances_areEqual() {
         let a = HangLimits(hangThreshold: 0.3, hangPerSession: 5, samplePollInterval: 0.02)
         let b = HangLimits(hangThreshold: 0.3, hangPerSession: 5, samplePollInterval: 0.02)
         XCTAssertEqual(a, b)
-        XCTAssertEqual(a.hash, b.hash, "equal HangLimits must return the same hash (NSObject contract)")
-        XCTAssertEqual(Set([a, b]).count, 1, "equal instances should dedupe in a Set")
+    }
+
+    func test_instancesDifferingOnlyBySamplerValues_areNotEqual() {
+        let a = HangLimits(sampleTriggerThreshold: 0.1, samplePollInterval: 0.02)
+        let b = HangLimits(sampleTriggerThreshold: 0.12, samplePollInterval: 0.03)
+        XCTAssertNotEqual(a, b)
     }
 
     func test_differingInstances_areNotEqual() {

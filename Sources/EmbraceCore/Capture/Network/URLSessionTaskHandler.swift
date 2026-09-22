@@ -3,12 +3,10 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
-    import EmbraceOTelInternal
     import EmbraceObjCUtilsInternal
     import EmbraceSemantics
 #endif
@@ -19,7 +17,7 @@ extension Notification.Name {
 
 protocol URLSessionTaskHandlerDataSource: AnyObject {
     var serviceState: CaptureServiceState { get }
-    var otel: EmbraceOpenTelemetry? { get }
+    var otel: EmbraceOTelSignalsHandler? { get }
 
     func shouldInjectHeader(for request: URLRequest) -> Bool
     var isNSFEligible: Bool { get }
@@ -30,7 +28,7 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
 }
 
 final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
-    private var spans: [URLSessionTask: Span] = [:]
+    private var spans: [URLSessionTask: EmbraceSpan] = [:]
     private let queue: DispatchableQueue
     private let capturedDataQueue: DispatchableQueue
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
@@ -110,6 +108,11 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
                 attributes[SpanSemantics.NetworkRequest.keyMethod] = httpMethod
             }
 
+            // This should be modified if we start doing this for streaming tasks.
+            if let bodySize = request.httpBody {
+                attributes[SpanSemantics.NetworkRequest.keyBodySize] = String(bodySize.count)
+            }
+
             /*
              Note: According to the OpenTelemetry specification, the attribute name should be ' {method} {http.route}.
              The `{http.route}` corresponds to the template of the path so it's necessary to understand the templating system being employed.
@@ -126,26 +129,24 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
              - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
              */
             let name = httpMethod.isEmpty ? url.path : "\(httpMethod) \(url.path)"
-            let networkSpan = otel.buildSpan(
+            let span = try? otel.createInternalSpan(
                 name: name,
                 type: .networkRequest,
-                attributes: attributes,
-                autoTerminationCode: nil
+                attributes: attributes
             )
 
-            // This should be modified if we start doing this for streaming tasks.
-            if let bodySize = request.httpBody {
-                networkSpan.setAttribute(key: SpanSemantics.NetworkRequest.keyBodySize, value: bodySize.count)
-            }
+            if let span {
+                // tracing header
+                if let tracingHeader = self.addTracingHeader(task: task, span: span),
+                    self.dataSource?.isNSFEligible == true
+                {
+                    span.setInternalAttribute(
+                        key: SpanSemantics.NetworkRequest.keyTracingHeader,
+                        value: tracingHeader
+                    )
+                }
 
-            let span = networkSpan.startSpan()
-            self.spans[task] = span
-
-            // tracing header
-            if let traceparent = self.addTracingHeader(task: task, span: span),
-                self.dataSource?.isNSFEligible == true
-            {
-                span.setAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: .string(traceparent))
+                self.spans[task] = span
             }
 
             handled = true
@@ -217,31 +218,31 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
         // generate attributes from response
         if let response = task.response as? HTTPURLResponse {
-            span.setAttribute(
+            span.setInternalAttribute(
                 key: SpanSemantics.NetworkRequest.keyStatusCode,
-                value: response.statusCode
+                value: String(response.statusCode)
             )
         }
 
         if let bodySize {
-            span.setAttribute(
+            span.setInternalAttribute(
                 key: SpanSemantics.NetworkRequest.keyResponseSize,
-                value: bodySize
+                value: String(bodySize)
             )
         }
 
         if let error = error ?? task.error {
             // Should this be something else?
             let nsError = error as NSError
-            span.setAttribute(
+            span.setInternalAttribute(
                 key: SpanSemantics.NetworkRequest.keyErrorType,
                 value: nsError.domain
             )
-            span.setAttribute(
+            span.setInternalAttribute(
                 key: SpanSemantics.NetworkRequest.keyErrorCode,
-                value: nsError.code
+                value: String(nsError.code)
             )
-            span.setAttribute(
+            span.setInternalAttribute(
                 key: SpanSemantics.NetworkRequest.keyErrorMessage,
                 value: error.localizedDescription
             )
@@ -267,7 +268,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         }
     }
 
-    func addTracingHeader(task: URLSessionTask, span: Span) -> String? {
+    func addTracingHeader(task: URLSessionTask, span: EmbraceSpan) -> String? {
         guard let request = task.originalRequest else { return nil }
         guard dataSource?.shouldInjectHeader(for: request) == true else { return nil }
 

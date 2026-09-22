@@ -10,6 +10,6 @@ class EmbraceTestCrash: CRLCrash {
     override var desc: String { return "Trigger an Embrace test crash" }
 
     override func crash() {
-        Embrace.client?.crash()
+        EmbraceCrashHelper.crash()
     }
 }

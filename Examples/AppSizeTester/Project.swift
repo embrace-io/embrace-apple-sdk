@@ -47,11 +47,11 @@ let project = Project(
             dependencies: [
                 .external(name: "EmbraceIO"),
                 .external(name: "EmbraceCore"),
-                .external(name: "EmbraceSemantics"),
-                .external(name: "EmbraceCrash")
+                .external(name: "EmbraceSemantics")
             ],
             settings: .settings(
-                base: .init().automaticCodeSigning(devTeam: "L5RVT7J8CV"),
+                base: ["OTHER_LDFLAGS": "$(inherited) -ObjC -all_load"]
+                    .automaticCodeSigning(devTeam: "L5RVT7J8CV"),
                 configurations: [
                     .debug(name: "DebugWithSDK"),
                     .release(name: "ReleaseWithSDK")

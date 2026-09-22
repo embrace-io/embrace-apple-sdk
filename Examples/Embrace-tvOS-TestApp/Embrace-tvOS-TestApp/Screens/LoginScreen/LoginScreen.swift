@@ -42,16 +42,10 @@ struct LoginScreen: View {
                 frameWidth: 500)
 
             EmbraceButton(title: "\"Login\"", accessibilityLabel: "Login Button") {
-                Embrace.client?.metadata.userName = username
-                Embrace.client?.metadata.userIdentifier = userId
-                Embrace.client?.metadata.userEmail = userEmail
                 navigator.backToRoot()
             }
 
             EmbraceButton(title: "Skip", accessibilityLabel: "Skip Login Button") {
-                Embrace.client?.metadata.userName = nil
-                Embrace.client?.metadata.userIdentifier = nil
-                Embrace.client?.metadata.userEmail = nil
                 navigator.backToRoot()
             }
         }

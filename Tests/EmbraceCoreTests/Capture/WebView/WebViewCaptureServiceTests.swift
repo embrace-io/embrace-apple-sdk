@@ -10,15 +10,15 @@
     import TestSupport
     import EmbraceCommonInternal
 
-    @MainActor
     class WebViewCaptureServiceTests: SwizzlerTestCase {
 
-        let otel: MockEmbraceOpenTelemetry! = MockEmbraceOpenTelemetry()
+        var otel = MockOTelSignalsHandler()
         let service: WebViewCaptureService! = WebViewCaptureService()
         static let pids: EmbraceMutex<Set<Int32>> = EmbraceMutex(Set<Int32>())
 
         override func setUpWithError() throws {
             try super.setUpWithError()
+            otel = MockOTelSignalsHandler()
             service.install(otel: otel)
         }
 
@@ -116,7 +116,7 @@
 
             let event = otel.events[0]
             XCTAssertEqual(event.name, "emb-web-view")
-            XCTAssertEqual(event.attributes["emb.type"], .string("ux.webview"))
+            XCTAssertEqual(event.attributes["emb.type"] as! String, "ux.webview")
             XCTAssertEqual(event.attributes["webview.url"]!.description, url.absoluteString)
         }
     }
@@ -136,8 +136,62 @@
 
             let event = otel.events.last!
             XCTAssertEqual(event.name, "emb-web-view")
-            XCTAssertEqual(event.attributes["emb.type"], .string("ux.webview"))
-            XCTAssertEqual(event.attributes["webview.error_code"], .int(123))
+            XCTAssertEqual(event.attributes["emb.type"] as! String, "ux.webview")
+            XCTAssertEqual(event.attributes["webview.error_code"] as! String, "123")
+        }
+    }
+
+    class WebViewCaptureServiceTests_Five: WebViewCaptureServiceTests {
+
+        // `getUrlString` is private and swizzle-independent, so we verify it through the event that
+        // `didLoad` emits rather than the swizzle path — no `checkTestAllowed()` gating needed.
+        func test_didLoad_stripQueryParams_controlsQueryInCapturedURL() {
+            let url = URL(string: "https://example.com/path?token=secret&id=42")!
+
+            // stripQueryParams = true -> the query (which can carry auth tokens / PII) is removed
+            let stripping = WebViewCaptureService(options: .init(stripQueryParams: true))
+            let strippingOtel = MockOTelSignalsHandler()
+            stripping.install(otel: strippingOtel)
+            stripping.didLoad(url: url, statusCode: 200)
+            XCTAssertEqual(
+                strippingOtel.events.last!.attributes["webview.url"]!.description,
+                "https://example.com/path"
+            )
+
+            // stripQueryParams = false -> the full query string is preserved
+            let preserving = WebViewCaptureService(options: .init(stripQueryParams: false))
+            let preservingOtel = MockOTelSignalsHandler()
+            preserving.install(otel: preservingOtel)
+            preserving.didLoad(url: url, statusCode: 200)
+            XCTAssertEqual(
+                preservingOtel.events.last!.attributes["webview.url"]!.description,
+                url.absoluteString
+            )
+        }
+    }
+
+    class WebViewCaptureServiceTests_Six: WebViewCaptureServiceTests {
+
+        // Like the test above, this goes through `didLoad` rather than the swizzle path, so it needs no
+        // `checkTestAllowed()` gating. The exhaustive coverage of the redaction rules lives in
+        // `WebViewURLSanitizerTests`; this only proves the option reaches the captured attribute.
+        func test_didLoad_fragmentHandling_controlsFragmentInCapturedURL() {
+            let url = URL(string: "https://example.com/path?id=42#access_token=eyJhbGciOiJIUzI1NiJ9&/orders/123")!
+
+            let expected: [WebViewCaptureService.FragmentHandling: String] = [
+                .keep: url.absoluteString,
+                .redact: "https://example.com/path?id=42#access_token=&/orders/123",
+                .remove: "https://example.com/path?id=42"
+            ]
+
+            for (handling, expectedURL) in expected {
+                let service = WebViewCaptureService(options: .init(fragmentHandling: handling))
+                let otel = MockOTelSignalsHandler()
+                service.install(otel: otel)
+                service.didLoad(url: url, statusCode: 200)
+
+                XCTAssertEqual(otel.events.last!.attributes["webview.url"]!.description, expectedURL)
+            }
         }
     }
 

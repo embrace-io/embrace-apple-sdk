@@ -3,27 +3,53 @@
 //
 
 import Foundation
-import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCore
     import EmbraceCommonInternal
     import EmbraceConfiguration
     import EmbraceCrash
-    import EmbraceKSCrashBacktraceSupport
+    import EmbraceCrashlyticsSupport
+    import EmbraceOTelBridge
+    import EmbraceSemantics
 #endif
 
 extension EmbraceIO {
 
+    /// Selects which crash reporter the SDK should install.
+    public enum CrashReporter {
+        /// Use Embrace's bundled KSCrash-based reporter.
+        case embrace
+        /// Bridge crash data from Firebase Crashlytics.
+        case crashlytics
+        /// Do not install any crash reporter.
+        case none
+    }
+
     /// Class used to setup the Embrace SDK.
     public final class Options {
+        /// The `appId` of the project, if any.
         public let appId: String?
-        public let platform: Platform
-        public let endpoints: Embrace.Endpoints?
+
+        /// The platform in which the app is running.
+        public let platform: EmbracePlatform
+
+        /// The endpoints used to upload data. When `nil`, defaults to the standard Embrace endpoints for the given `appId`.
+        public let endpoints: EmbraceEndpoints?
+
+        /// Determines which `CaptureServices` are installed and how they behave.
         public let captureServices: EmbraceIO.CaptureServicesOptions
-        public let crashReporter: CrashReporter?
-        public let logLevel: LogLevel
+
+        /// The crash reporter installed by the SDK.
+        public let crashReporter: EmbraceIO.CrashReporter
+
+        /// The severity level used for the Embrace SDK console logs.
+        public let logLevel: EmbraceLogLevel
+
+        /// Configuration for the OpenTelemetry SDK through Embrace, if any.
         public let otel: EmbraceIO.OTelOptions?
+
+        /// Local configuration used when the SDK runs without an `appId`. Ignored when an `appId` is provided.
         public let runtimeConfiguration: EmbraceConfigurable?
 
         /// Default initializer for `EmbraceIO.Options` that requires an `appId`.
@@ -31,18 +57,18 @@ extension EmbraceIO {
         /// - Parameters:
         ///   - appId: The `appId` of the project, if any.
         ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
-        ///   - endpoints: `Embrace.Endpoints` to be used. Defaults to the normal Embrace based endpoints for the given `appId`.
+        ///   - endpoints: `EmbraceEndpoints` to be used. Defaults to the normal Embrace based endpoints for the given `appId`.
         ///   - captureServices: `EmbraceIO.CaptureServicesOptions` that determines which `CaptureServices` will be installed. Includes the default list of services by default. Refer to `EmbraceIO.CaptureServicesOptionsBuilder` to customize this.
-        ///   - crashReporter: The `CrashReporter` to be installed.
-        ///   - logLevel: The `LogLevel` to use for console logs.
+        ///   - crashReporter: The crash reporter to install. Defaults to `.embrace`.
+        ///   - logLevel: The `EmbraceLogLevel` to use for console logs.
         ///   - otel: `EmbraceIO.OTelOptions` used to setup the OpenTelemetry SDK through Embrace.
         public class func withAppId(
             _ appId: String?,
-            platform: Platform = .default,
-            endpoints: Embrace.Endpoints? = nil,
+            platform: EmbracePlatform = .default,
+            endpoints: EmbraceEndpoints? = nil,
             captureServices: EmbraceIO.CaptureServicesOptions = .default(),
-            crashReporter: CrashReporter? = KSCrashReporter(),
-            logLevel: LogLevel = .default,
+            crashReporter: EmbraceIO.CrashReporter = .embrace,
+            logLevel: EmbraceLogLevel = .default,
             otel: EmbraceIO.OTelOptions? = nil
         ) -> EmbraceIO.Options {
             return EmbraceIO.Options(
@@ -60,22 +86,22 @@ extension EmbraceIO {
         /// Default initializer for `EmbraceIO.Options` without using an `appId`.
         /// Note that to use the SDK in this mode, you'll need to define the local configuration by passing an object following
         /// the `EmbraceConfigurable` protocol.
-        /// On top of this, you should pass exportes in the `EmbraceIO.OTelOptions` to make sure the generated
+        /// On top of this, you should pass exporters in the `EmbraceIO.OTelOptions` to make sure the generated
         /// data is handled since it will not be uploaded to the Embrace servers.
         ///
         /// - Parameters:
         ///   - localConfiguration: `EmbraceConfigurable` instance.
         ///   - platform: `Platform` in which the app will run. Defaults to `.iOS`.
         ///   - captureServices: `EmbraceIO.CaptureServicesOptions` that determines which `CaptureServices` will be installed. Includes the default list of services by default. Refer to `EmbraceIO.CaptureServicesOptionsBuilder` to customize this.
-        ///   - crashReporter: The `CrashReporter` to be installed.
-        ///   - logLevel: The `LogLevel` to use for console logs.
+        ///   - crashReporter: The crash reporter to install. Defaults to `.embrace`.
+        ///   - logLevel: The `EmbraceLogLevel` to use for console logs.
         ///   - otel: `EmbraceIO.OTelOptions` used to setup the OpenTelemetry SDK through Embrace.
         public class func withLocalConfiguration(
             _ localConfiguration: EmbraceConfigurable = .default,
-            platform: Platform = .default,
+            platform: EmbracePlatform = .default,
             captureServices: EmbraceIO.CaptureServicesOptions = .default(),
-            crashReporter: CrashReporter? = KSCrashReporter(),
-            logLevel: LogLevel = .default,
+            crashReporter: EmbraceIO.CrashReporter = .embrace,
+            logLevel: EmbraceLogLevel = .default,
             otel: EmbraceIO.OTelOptions
         ) -> EmbraceIO.Options {
             return EmbraceIO.Options(
@@ -92,11 +118,11 @@ extension EmbraceIO {
 
         internal init(
             appId: String?,
-            platform: Platform,
-            endpoints: Embrace.Endpoints?,
+            platform: EmbracePlatform,
+            endpoints: EmbraceEndpoints?,
             captureServices: EmbraceIO.CaptureServicesOptions,
-            crashReporter: CrashReporter?,
-            logLevel: LogLevel,
+            crashReporter: EmbraceIO.CrashReporter,
+            logLevel: EmbraceLogLevel,
             otel: EmbraceIO.OTelOptions?,
             runtimeConfiguration: EmbraceConfigurable?
         ) {
@@ -106,11 +132,10 @@ extension EmbraceIO {
             if let endpoints {
                 self.endpoints = endpoints
             } else if let appId {
-                self.endpoints = Embrace.Endpoints(appId: appId)
+                self.endpoints = EmbraceEndpoints(appId: appId)
             } else {
                 self.endpoints = nil
             }
-
             self.captureServices = captureServices
             self.crashReporter = crashReporter
             self.logLevel = logLevel
@@ -126,39 +151,42 @@ extension EmbraceIO {
     }
 }
 
+extension EmbraceIO.CrashReporter {
+    var reporter: CrashReporter? {
+        switch self {
+        case .embrace: return KSCrashReporter()
+        case .crashlytics: return CrashlyticsReporter()
+        case .none: return nil
+        }
+    }
+}
+
 extension Embrace.Options {
-    static func from(options: EmbraceIO.Options) -> Embrace.Options? {
+    static func from(options: EmbraceIO.Options, bridge: EmbraceOTelSignalBridge? = nil) -> Embrace.Options? {
 
         if let appId = options.appId {
-            return Embrace.Options(
+            var result = Embrace.Options(
                 appId: appId,
-                appGroupId: nil,
                 platform: options.platform,
                 endpoints: options.endpoints,
                 captureServices: options.captureServices.list,
-                crashReporter: options.crashReporter,
-                logLevel: options.logLevel,
-                export: options.otel?.embraceOpenTelemetryExport(),
-                processors: options.otel?.embraceOpenTelemetryProcessors(),
-                backtracer: KSCrashBacktracing(),
-                symbolicator: KSCrashBacktracing()
+                crashReporter: options.crashReporter.reporter,
+                logLevel: options.logLevel
             )
+            result.bridge = bridge
+            return result
         }
 
-        if let otel = options.otel,
-            let config = options.runtimeConfiguration
-        {
-            return Embrace.Options(
-                export: otel.embraceOpenTelemetryExport(),
-                processors: otel.embraceOpenTelemetryProcessors(),
+        if let config = options.runtimeConfiguration {
+            var result = Embrace.Options(
                 platform: options.platform,
                 captureServices: options.captureServices.list,
-                crashReporter: options.crashReporter,
+                crashReporter: options.crashReporter.reporter,
                 logLevel: options.logLevel,
-                runtimeConfiguration: config,
-                backtracer: KSCrashBacktracing(),
-                symbolicator: KSCrashBacktracing()
+                runtimeConfiguration: config
             )
+            result.bridge = bridge
+            return result
         }
 
         return nil

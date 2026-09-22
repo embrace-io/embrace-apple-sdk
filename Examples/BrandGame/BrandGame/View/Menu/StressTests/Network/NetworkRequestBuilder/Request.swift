@@ -10,7 +10,7 @@ class Request: ObservableObject {
 
     func executeRequest(urlString: String, httpMethod: String, requestBody: String?) {
         guard let url = URL(string: urlString) else {
-            Embrace.client?.log("URL is not valid: \(urlString)", severity: .error)
+            EmbraceIO.shared.log("URL is not valid: \(urlString)", severity: .error)
             return
         }
         var request = URLRequest(url: url)

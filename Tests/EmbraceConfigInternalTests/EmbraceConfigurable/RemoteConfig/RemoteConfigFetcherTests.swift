@@ -3,6 +3,7 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import TestSupport
 import XCTest
 
@@ -24,7 +25,7 @@ class RemoteConfigFetcherTests: XCTestCase {
     }
 
     func fetcherOptions(
-        deviceId: DeviceIdentifier = TestConstants.deviceId,
+        deviceId: EmbraceIdentifier = TestConstants.deviceId,
         queue: DispatchQueue = DispatchQueue(label: "com.test.embrace.queue"),
         appId: String = TestConstants.appId,
         osVersion: String = TestConstants.osVersion,

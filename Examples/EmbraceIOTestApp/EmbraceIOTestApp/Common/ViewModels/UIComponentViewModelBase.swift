@@ -68,7 +68,7 @@ import SwiftUI
     }
 
     private func checkEmbraceStatus() {
-        guard Embrace.client?.state != .started else {
+        guard EmbraceIO.shared.state != .started else {
             self.state = .idle(true)
             return
         }

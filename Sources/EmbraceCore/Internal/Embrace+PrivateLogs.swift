@@ -49,12 +49,12 @@ extension Embrace: EmbracePrivateLogger {
                 body: message,
                 attributes: attributes,
                 storage: storage,
-                sessionId: session?.id,
+                userSessionId: session?.userSessionId,
                 processId: ProcessIdentifier.current
             )
             let payloadData = try JSONEncoder().encode(payload).gzipped()
 
-            upload.uploadLog(id: id, data: payloadData, payloadTypes: LogType.internal.rawValue) { result in
+            upload.uploadLog(id: id, data: payloadData, payloadTypes: EmbraceType.internal.rawValue) { result in
                 if case .failure(let error) = result {
                     Embrace.logger.warning("Error trying to upload private log:\n\(error.localizedDescription)")
                 }

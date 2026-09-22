@@ -15,7 +15,6 @@ enum StartupTestsDataModel: Int, TestScreenDataModel, CaseIterable {
     case processLaunch
     case appStartup
     case firstFrameCapture
-    case resourceMetadata
 
     var title: String {
         switch self {
@@ -35,8 +34,6 @@ enum StartupTestsDataModel: Int, TestScreenDataModel, CaseIterable {
             "App Startup Init Span"
         case .firstFrameCapture:
             "First Frame Capture Span"
-        case .resourceMetadata:
-            "Payload Resource Attributes"
         }
     }
 
@@ -58,8 +55,6 @@ enum StartupTestsDataModel: Int, TestScreenDataModel, CaseIterable {
             "appStartupInitSpanTestButton"
         case .firstFrameCapture:
             "firstFrameCaptureSpanTestButton"
-        case .resourceMetadata:
-            "payloadResourceAttributesTestButton"
         }
     }
 
@@ -84,8 +79,6 @@ enum StartupTestsDataModel: Int, TestScreenDataModel, CaseIterable {
                 viewModel: .init(dataModel: self, payloadTestObject: StartupAppStartupInitSpanTest()))
         case .firstFrameCapture:
             TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: StartupFirstFrameSpanTest()))
-        case .resourceMetadata:
-            TestSpanScreenButtonView(viewModel: .init(dataModel: self, payloadTestObject: MetadataResourceTest()))
         }
     }
 }

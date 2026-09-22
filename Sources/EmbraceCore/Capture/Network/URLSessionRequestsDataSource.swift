@@ -10,6 +10,6 @@ import Foundation
 /// Example:
 /// This could be useful if you need to obfuscate certain parts of a request path
 /// if it contains sensitive data.
-@objc public protocol URLSessionRequestsDataSource: NSObjectProtocol {
-    @objc func modifiedRequest(for request: URLRequest) -> URLRequest
+public protocol URLSessionRequestsDataSource: AnyObject {
+    func modifiedRequest(for request: URLRequest) -> URLRequest
 }

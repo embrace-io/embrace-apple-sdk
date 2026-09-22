@@ -5,6 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceCommonInternal
     import EmbraceStorageInternal
 #endif
@@ -14,12 +15,27 @@ import Foundation
 protocol SessionControllable: AnyObject {
 
     var currentSession: EmbraceSession? { get }
+    var currentSessionSpan: EmbraceSpan? { get }
+
+    /// The user session the current part belongs to, or the active snapshot when no part is open.
+    /// Owned by ``UserSessionController``; surfaced here so metadata scoping can resolve the active
+    /// user session id without taking a second dependency.
+    var currentUserSession: EmbraceUserSession? { get }
 
     @discardableResult
     func startSession(state: SessionState) -> EmbraceSession?
 
     @discardableResult
+    func startSession(state: SessionState, startTime: Date) -> EmbraceSession?
+
+    @discardableResult
     func endSession() -> Date
+
+    /// Ends the current part using the supplied timestamp. Used when splitting a background
+    /// part along a user-session cutoff — the part record must close exactly at the cutoff so
+    /// the synthetic follow-up part can begin from the same instant.
+    @discardableResult
+    func endSession(at endTime: Date) -> Date
 
     func update(state: SessionState)
     func update(appTerminated: Bool)
