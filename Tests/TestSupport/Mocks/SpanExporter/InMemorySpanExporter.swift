@@ -16,6 +16,13 @@ public class InMemorySpanExporter: SpanExporter {
         return _exportedSpans
     }
 
+    private var _exportCallCount = 0
+    public var exportCallCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return _exportCallCount
+    }
+
     private var _isShutdown = false
     public var isShutdown: Bool {
         lock.lock()
@@ -44,6 +51,8 @@ public class InMemorySpanExporter: SpanExporter {
     public func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
         lock.lock()
         defer { lock.unlock() }
+
+        _exportCallCount += 1
 
         spans.forEach { data in
             _exportedSpans[data.spanId] = data
