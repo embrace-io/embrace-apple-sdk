@@ -3,7 +3,6 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-import OpenTelemetryApi
 import SwiftUI
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
@@ -47,7 +46,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
 
     private let content: () -> Content
     private let name: String
-    private let attributes: [String: String]?
+    private let attributes: EmbraceAttributes?
     private let contentCompleteValue: Value?
 
     /// Creates a new `EmbraceTraceView` that wraps the given content for tracing.
@@ -59,7 +58,7 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
     ///   - content: A closure returning the view content to wrap.
     public init(
         _ viewName: String,
-        attributes: [String: String]? = nil,
+        attributes: EmbraceAttributes? = nil,
         contentComplete: Value? = nil,
         content: @escaping () -> Content
     ) {
@@ -80,9 +79,14 @@ public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
         }
     }
 
+    /// Creates a new `EmbraceTraceView` that traces its content without a content-complete trigger.
+    /// - Parameters:
+    ///   - viewName: Name used for the generated trace.
+    ///   - attributes: Attributes to set on the trace.
+    ///   - content: The content view to trace.
     public init(
         _ viewName: String,
-        attributes: [String: String]? = nil,
+        attributes: EmbraceAttributes? = nil,
         content: @escaping () -> Content
     ) where Value == Never {
         self.init(

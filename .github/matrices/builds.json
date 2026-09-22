@@ -66,5 +66,45 @@
         "sanitizer": "thread"
       }
     ]
+  },
+  "pr-sanitizers": {
+    "include": [
+      {
+        "platform": "iOS",
+        "xcode_version": "26.5",
+        "macos-version": "26",
+        "sanitizer": "none"
+      },
+      {
+        "platform": "tvOS",
+        "xcode_version": "26.5",
+        "macos-version": "26",
+        "sanitizer": "none"
+      },
+      {
+        "platform": "macOS",
+        "xcode_version": "26.5",
+        "macos-version": "26",
+        "sanitizer": "none"
+      },
+      {
+        "platform": "watchOS",
+        "xcode_version": "26.5",
+        "macos-version": "26",
+        "sanitizer": "none"
+      },
+      {
+        "platform": "iOS",
+        "xcode_version": "26.5",
+        "macos-version": "26",
+        "sanitizer": "address"
+      },
+      {
+        "platform": "iOS",
+        "xcode_version": "26.5",
+        "macos-version": "26",
+        "sanitizer": "thread"
+      }
+    ]
   }
 }

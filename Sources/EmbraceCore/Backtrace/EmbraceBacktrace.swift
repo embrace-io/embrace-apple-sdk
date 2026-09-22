@@ -9,7 +9,7 @@ import Foundation
 /// A frame optionally contains symbolication information (`symbol`) and the
 /// binary image that owns the address (`image`). When symbolication is not
 /// available (or deferred), only the raw `address` will be present.
-public struct EmbraceBacktraceFrame: Codable {
+struct EmbraceBacktraceFrame: Codable {
     /// The program counter (return address) captured for this frame.
     ///
     /// This is an absolute virtual address in the target process at the time of capture.
@@ -54,7 +54,7 @@ extension EmbraceBacktraceFrame.Symbol: Sendable {}
 extension EmbraceBacktraceFrame.Image: Sendable {}
 
 /// A single thread’s captured call stack.
-public struct EmbraceBacktraceThread: Codable {
+struct EmbraceBacktraceThread: Codable {
     /// The 0-based index of the thread in the capture.
     ///
     /// This is the index assigned during snapshotting and is not guaranteed
@@ -71,7 +71,7 @@ public struct EmbraceBacktraceThread: Codable {
     /// - Note: Symbolication requires image metadata and symbol tables to be present.
     ///   If symbolication is unavailable, `symbol`/`image` may remain `nil` even when
     ///   `symbolicated == true`.
-    public func frames(symbolicated: Bool) -> [EmbraceBacktraceFrame] {
+    func frames(symbolicated: Bool) -> [EmbraceBacktraceFrame] {
         callstack.frames(symbolicated: symbolicated)
     }
 
@@ -112,18 +112,18 @@ extension EmbraceBacktraceTimestampUnits: Sendable {}
 ///
 /// The snapshot includes the capture `timestamp` and its `timestampUnits` so
 /// that multiple captures can be ordered and correlated with other telemetry.
-public struct EmbraceBacktrace: Codable {
+struct EmbraceBacktrace: Codable {
     /// Units for `timestamp`.
-    public let timestampUnits: EmbraceBacktraceTimestampUnits
+    let timestampUnits: EmbraceBacktraceTimestampUnits
 
     /// The capture timestamp, measured using a monotonic clock.
     ///
     /// This value is intended for relative ordering and duration measurements.
     /// It is not wall-clock time.
-    public let timestamp: UInt64
+    let timestamp: UInt64
 
     /// The set of threads captured in this snapshot.
-    public let threads: [EmbraceBacktraceThread]
+    let threads: [EmbraceBacktraceThread]
 
     // MARK: - Capture
 
@@ -136,6 +136,9 @@ public struct EmbraceBacktrace: Codable {
     ///
     /// - Note: The `timestamp` is sourced from `CLOCK_MONOTONIC_RAW` via
     ///   `clock_gettime_nsec_np`, which is suitable for measuring intervals.
+    // `@inline(never)`: keeps this a stable frame in self-capture stacks so `selfCaptureFrameSkip`
+    // is optimization-independent. See that constant.
+    @inline(never)
     static func backtrace(of thread: pthread_t, threadIndex: Int = 0) -> EmbraceBacktrace {
         EmbraceBacktrace(
             timestampUnits: .nanoseconds,
@@ -143,35 +146,5 @@ public struct EmbraceBacktrace: Codable {
             threads: takeSnapshot(of: thread, threadIndex: threadIndex)
         )
     }
-
-    /// Captures a backtrace of the current thread using `Thread.callStackReturnAddresses`.
-    ///
-    /// This is the simplest capture path and does not require suspending any threads.
-    /// It’s useful for lightweight diagnostics or when called on the thread of interest.
-    ///
-    /// - Returns: A backtrace snapshot containing one `EmbraceBacktraceThread`
-    ///   derived from `Thread.callStackReturnAddresses`.
-    ///
-    /// - Note: The `timestamp` is sourced from `CLOCK_MONOTONIC_RAW` via
-    ///   `clock_gettime_nsec_np`, which is suitable for measuring intervals.
-    static func backtrace() -> EmbraceBacktrace {
-        EmbraceBacktrace(
-            timestampUnits: .nanoseconds,
-            timestamp: clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW),
-            threads: takeSnapshotApple()
-        )
-    }
 }
 extension EmbraceBacktrace: Sendable {}
-
-extension EmbraceBacktrace {
-    /// Indicates whether backtrace capture is available in the current client configuration.
-    ///
-    /// This returns `true` if a `Backtracer` instance has been provided in
-    /// `Embrace.client?.options`. Otherwise, it returns `false`, meaning
-    /// the SDK cannot capture custom stack traces and will rely solely on
-    /// system defaults.
-    static public var isAvailable: Bool {
-        Embrace.client?.options.backtracer != nil
-    }
-}

@@ -76,20 +76,6 @@ final class URLSessionCaptureServiceOptionsTests: XCTestCase {
         XCTAssertEqual(t.onlyAllowDomains, ["test.com", "api.test.com"])
     }
 
-    // MARK: - injectTracingHeader deprecation
-
-    func test_deprecatedGetter_AlwaysReturnsFalse() {
-        let options = URLSessionCaptureService.Options()
-        XCTAssertFalse(options.injectTracingHeader)
-    }
-
-    func test_deprecatedSetter_IsNoOp() {
-        let options = URLSessionCaptureService.Options()
-        options.injectTracingHeader = true
-        // Setter is a no-op — getter still returns false
-        XCTAssertFalse(options.injectTracingHeader)
-    }
-
     // MARK: - Options init
 
     func test_defaultInit_HasNilAllowedDomains() {

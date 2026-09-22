@@ -30,6 +30,8 @@ extension EmbraceIO {
         let hang: Bool
         let customServices: [CaptureService]
 
+        /// Returns a `CaptureServicesOptions` instance configured with the default set of `CaptureServices`.
+        /// - Note: The default services are `.urlSession`, `.tap`, `.view`, `.webView`, `.lowMemoryWarning` and `.lowPowerMode`.
         public class func `default`() -> EmbraceIO.CaptureServicesOptions {
             return CaptureServicesOptions()
         }

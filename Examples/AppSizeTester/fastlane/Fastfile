@@ -68,7 +68,7 @@ end
 def get_export_options
   # Run `xcodebuild -help` and look for the `exportOptionsPlist` avilable keys to see which are the correct values for this dictionary
   return {
-    method: "ad-hoc", # This value is deprecated in `xcodebuild` and should be replaced with `release-testing` when fastlane supports it [https://github.com/fastlane/fastlane/issues/22028]
+    method: "development",
     stripSwiftSymbols: true,
     thinning: "<thin-for-all-variants>"
   }

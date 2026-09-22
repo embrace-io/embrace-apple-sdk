@@ -10,10 +10,10 @@
     @testable import EmbraceCore
 
     class LowMemoryWarningCaptureServiceTests: XCTestCase {
-        private var otel: MockEmbraceOpenTelemetry!
+        private var otel: MockOTelSignalsHandler!
 
         override func setUpWithError() throws {
-            otel = MockEmbraceOpenTelemetry()
+            otel = MockOTelSignalsHandler()
         }
 
         override func tearDownWithError() throws {
@@ -26,16 +26,11 @@
             service.install(otel: otel)
             service.start()
 
-            let expectation = XCTestExpectation()
-            service.onWarningCaptured = {
-                expectation.fulfill()
-            }
-
             // when a memory warning notification is received
             NotificationCenter.default.post(Notification(name: UIApplication.didReceiveMemoryWarningNotification))
 
             // then a span event is recorded
-            wait(for: [expectation], timeout: .defaultTimeout)
+            XCTAssertEqual(otel.events.count, 1)
         }
 
         func test_notStarted() {
@@ -43,17 +38,11 @@
             let service = LowMemoryWarningCaptureService()
             service.install(otel: otel)
 
-            let expectation = XCTestExpectation()
-            expectation.isInverted = true
-            service.onWarningCaptured = {
-                expectation.fulfill()
-            }
-
             // when a memory warning notification is received
             NotificationCenter.default.post(Notification(name: UIApplication.didReceiveMemoryWarningNotification))
 
             // then a span event is not recorded
-            wait(for: [expectation], timeout: .defaultTimeout)
+            XCTAssertEqual(otel.events.count, 0)
         }
 
         func test_stopped() {
@@ -62,18 +51,12 @@
             service.install(otel: otel)
             service.start()
 
-            let expectation = XCTestExpectation()
-            expectation.isInverted = true
-            service.onWarningCaptured = {
-                expectation.fulfill()
-            }
-
             // when the service is stopped and a new notification is received
             service.stop()
             NotificationCenter.default.post(Notification(name: UIApplication.didReceiveMemoryWarningNotification))
 
             // then a span event is not recorded
-            wait(for: [expectation], timeout: .defaultTimeout)
+            XCTAssertEqual(otel.events.count, 0)
         }
     }
 #endif

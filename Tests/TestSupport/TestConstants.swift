@@ -3,10 +3,9 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 import OpenTelemetryApi
-
-// swiftlint:disable line_length
 
 public struct TestConstants {
     public static let domain = "com.test.embrace"
@@ -14,7 +13,11 @@ public struct TestConstants {
     public static let data = "test".data(using: .utf8)!
     public static let date = Date(timeIntervalSince1970: 0)
 
+    /// Identifier of a session part.
     public static let sessionId = EmbraceIdentifier(stringValue: "18EDB6CE-90C2-456B-97CB-91E0F5941CCA")
+    /// Identifier of the user session a session part belongs to. Deliberately different from
+    /// `sessionId` so tests can't pass by conflating the two scopes.
+    public static let userSessionId = EmbraceIdentifier(stringValue: "3E7C2E17-1F0A-4E8B-9C3D-5A6B7C8D9E0F")
     public static let processId = EmbraceIdentifier(stringValue: "12345678")
     public static let traceId = TraceId.random().hexString
     public static let spanId = SpanId.random().hexString
@@ -41,5 +44,3 @@ public struct TestConstants {
     public static let rsaSanitizedPublicKey =
         "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAn1Mbg+uF2GAZ2BZvFzKE2gyE6cQOESpWTAuzXp0u9jCMJO+/LcKv6d3oaP/vZRDTtGPAfxYgc0tBiAYdOtklhiNQvb4puA34ai7h3jbBWsZgA0P5UtYflhR79CCXHH/1SuzaX4G6YYDdfQKYxAF/vLNpi7q8LMt8iSGCFxsMyKs+gfMPqUQVy0At7LjGnrBMV50SRu0lCslbtb+LSb1vF5EEpmw3d8M58dZkPUwgN9XU/nbfQt2X1tPg8SvZGLBxZHqVzaIQLCZr9O/XUq33/TsOrZSTNdw/K6bs6nBzYnagbcoeHBVWYT8l1xvHE3b1Rnc3r5MCTaLUM7Tqb7anqwIDAQAB"
 }
-
-// swiftlint:enable line_length

@@ -3,7 +3,8 @@
 //
 
 import EmbraceCaptureService
-import EmbraceOTelInternal
+import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
 import OpenTelemetryApi
 
@@ -11,7 +12,7 @@ import OpenTelemetryApi
 
 class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
     var serviceState: CaptureServiceState = .uninstalled
-    var otel: EmbraceOpenTelemetry?
+    var otel: EmbraceOTelSignalsHandler?
 
     var stubbedShouldInjectHeader = false
     var isNSFEligible = false

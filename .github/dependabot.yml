@@ -13,6 +13,11 @@ updates:
       embrace-io:
         patterns:
           - "embrace-io/*"
+    ignore:
+      # run-danger.yml pins past the 3.22.1 tag: that image installs Node 18, which
+      # danger-js 14 cannot run on. Dependabot would pin back to the tag and break
+      # Danger again. Drop this entry once 3.22.2 ships with Node 24.
+      - dependency-name: "danger/swift"
 
   - package-ecosystem: "swift"
     directory: "/"

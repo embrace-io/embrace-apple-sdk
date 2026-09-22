@@ -8,7 +8,6 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceStorageInternal
     import EmbraceUploadInternal
-    import EmbraceOTelInternal
     import EmbraceSemantics
 #endif
 
@@ -19,9 +18,10 @@ class UnsentDataHandler {
     static func sendUnsentData(
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?,
-        logController: LogControllable? = nil,
+        otel: InternalOTelSignalsHandler?,
+        logController: LogController? = nil,
         currentSessionId: EmbraceIdentifier? = nil,
+        currentUserSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
@@ -58,6 +58,7 @@ class UnsentDataHandler {
                         upload: upload,
                         otel: otel,
                         currentSessionId: currentSessionId,
+                        currentUserSessionId: currentUserSessionId,
                         crashReporter: crashReporter,
                         crashReports: reports,
                         completion: {
@@ -71,6 +72,7 @@ class UnsentDataHandler {
                     storage: storage,
                     upload: upload,
                     currentSessionId: currentSessionId,
+                    currentUserSessionId: currentUserSessionId,
                     completion: {
                         group.leave()
                     }
@@ -88,8 +90,9 @@ class UnsentDataHandler {
     static private func sendCrashReports(
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?,
+        otel: InternalOTelSignalsHandler?,
         currentSessionId: EmbraceIdentifier?,
+        currentUserSessionId: EmbraceIdentifier?,
         crashReporter: EmbraceCrashReporter,
         crashReports: [EmbraceCrashReport],
         completion: UnsentDataHandlerCompletion? = nil
@@ -103,15 +106,31 @@ class UnsentDataHandler {
 
             var session: EmbraceSession?
 
-            // link session with crash report if possible
-            if let sessionId = report.sessionId {
-                if let fetchedSession = storage.fetchSession(id: EmbraceIdentifier(stringValue: sessionId)) {
+            // link session with crash report if possible. The linked part is, by construction,
+            // the last part of its user session — stamp `.crash` as the termination reason so
+            // the payload's `emb.user_session_termination_reason` reflects the crash. The
+            // stamp overrides any prior end-reason (e.g. `.maxDurationReached` set by the
+            // heartbeat detector) because the crash is the authoritative cause.
+            if let rawId = report.sessionId {
+                let sessionId = EmbraceIdentifier(stringValue: rawId)
+                if let fetchedSession = storage.fetchSession(id: sessionId) {
                     session = storage.updateSession(
                         session: fetchedSession,
                         endTime: report.timestamp,
-                        crashReportId: report.id.uuidString
+                        crashReportId: report.id.uuidString,
+                        userSessionTerminationReason: .crash
                     )
                 }
+            }
+
+            // Resolve the process the crash belongs to, so the log carries that process's experiments
+            // and not this one's. The session knows it; failing that the report may carry it; and if
+            // neither does, `nil` leaves the attribute off rather than guessing.
+            var processId: EmbraceIdentifier?
+            if let session = session {
+                processId = session.processId
+            } else if let reportProcessId = report.processId {
+                processId = EmbraceIdentifier(stringValue: reportProcessId)
             }
 
             // send crash log
@@ -122,7 +141,8 @@ class UnsentDataHandler {
                 session: session,
                 storage: storage,
                 upload: upload,
-                otel: otel
+                otel: otel,
+                processId: processId
             ) {
                 group.leave()
             }
@@ -141,7 +161,8 @@ class UnsentDataHandler {
         sendSessions(
             storage: storage,
             upload: upload,
-            currentSessionId: currentSessionId
+            currentSessionId: currentSessionId,
+            currentUserSessionId: currentUserSessionId
         ) {
             group.leave()
         }
@@ -152,24 +173,44 @@ class UnsentDataHandler {
         }
     }
 
-    static public func sendCrashLog(
+    static func sendCrashLog(
         report: EmbraceCrashReport,
         reporter: EmbraceCrashReporter?,
         session: EmbraceSession?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?,
+        otel: InternalOTelSignalsHandler?,
+        processId: EmbraceIdentifier? = nil,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
         let timestamp = (report.timestamp ?? session?.lastHeartbeatTime) ?? Date()
+        let finalProcessId = processId ?? session?.processId
 
-        // send otel log
         let attributes = createLogCrashAttributes(
-            otel: otel,
             storage: storage,
             report: report,
             session: session,
-            timestamp: timestamp
+            processId: finalProcessId
+        )
+
+        // Push the crash log through the OTel pipeline so processors and exporters set by the
+        // user get to see it. The log is handed over fully built: it describes the session and
+        // the process that crashed, both of which have already ended, so re-deriving any of its
+        // attributes from the current session would attribute the crash to the wrong one.
+        //
+        // The log id matches `LogSemantics.Crash.keyId` in the attributes, so the record and the
+        // crash report it carries are identified by the same value.
+        otel?.exportLog(
+            DefaultEmbraceLog(
+                id: report.id.withoutHyphen,
+                severity: .fatal,
+                type: .crash,
+                timestamp: timestamp,
+                body: "",
+                attributes: attributes,
+                sessionId: session?.id,
+                processId: finalProcessId ?? ProcessIdentifier.current
+            )
         )
 
         guard let upload = upload else {
@@ -182,15 +223,16 @@ class UnsentDataHandler {
         do {
             let payload = LogPayloadBuilder.build(
                 timestamp: timestamp,
-                severity: LogSeverity.fatal,
+                severity: EmbraceLogSeverity.fatal,
                 body: "",
                 attributes: attributes,
                 storage: storage,
-                sessionId: session?.id
+                userSessionId: session?.userSessionId,
+                processId: finalProcessId
             )
             let payloadData = try JSONEncoder().encode(payload).gzipped()
 
-            upload.uploadLog(id: report.id.uuidString, data: payloadData, payloadTypes: LogType.crash.rawValue) { result in
+            upload.uploadLog(id: report.id.uuidString, data: payloadData, payloadTypes: EmbraceType.crash.rawValue) { result in
                 switch result {
                 case .success:
                     // remove crash report
@@ -214,12 +256,11 @@ class UnsentDataHandler {
     }
 
     static private func createLogCrashAttributes(
-        otel: EmbraceOpenTelemetry?,
         storage: EmbraceStorage?,
         report: EmbraceCrashReport,
         session: EmbraceSession?,
-        timestamp: Date
-    ) -> [String: String] {
+        processId: EmbraceIdentifier?
+    ) -> EmbraceAttributes {
 
         let attributesBuilder = EmbraceLogAttributesBuilder(
             session: session,
@@ -228,31 +269,36 @@ class UnsentDataHandler {
             initialAttributes: [:]
         )
 
-        let attributes =
+        // The crash belongs to a process that has already ended, so its experiments come from
+        // storage rather than from the handler in memory. When the process can't be determined the
+        // attribute is left off entirely.
+        var experiments: String?
+        if let processId = processId {
+            experiments =
+                storage?.fetchMetadata(
+                    key: SpanSemantics.keyExperiments,
+                    type: .requiredResource,
+                    lifespan: .process,
+                    lifespanId: processId.stringValue
+                )?.value
+        }
+
+        return
             attributesBuilder
             .addLogType(.crash)
             .addApplicationProperties()
             .addApplicationState()
             .addSessionIdentifier()
             .addCrashReportProperties()
+            .addExperiments(experiments)
             .build()
-
-        otel?.log(
-            "",
-            severity: .fatal,
-            type: .crash,
-            timestamp: timestamp,
-            attributes: attributes,
-            stackTraceBehavior: .default
-        )
-
-        return attributes
     }
 
     static private func sendSessions(
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
         currentSessionId: EmbraceIdentifier?,
+        currentUserSessionId: EmbraceIdentifier?,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
 
@@ -287,7 +333,9 @@ class UnsentDataHandler {
         }
 
         // remove old metadata
-        cleanMetadata(storage: storage)
+        // the active user session is protected explicitly: the session parts that reference it are
+        // deleted as they're uploaded, so its metadata can't rely on a stored record to survive
+        cleanMetadata(storage: storage, currentUserSessionId: currentUserSessionId)
 
         group.leave()
         group.notify(queue: .global(qos: .utility)) {
@@ -295,7 +343,7 @@ class UnsentDataHandler {
         }
     }
 
-    static public func sendSession(
+    static func sendSession(
         _ session: EmbraceSession,
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
@@ -309,7 +357,7 @@ class UnsentDataHandler {
         do {
             payloadData = try JSONEncoder().encode(payload).gzipped()
         } catch {
-            Embrace.logger.warning("Error encoding session \(session.idRaw):\n" + error.localizedDescription)
+            Embrace.logger.warning("Error encoding session \(session.id.stringValue):\n" + error.localizedDescription)
             completion?()
             return
         }
@@ -326,24 +374,21 @@ class UnsentDataHandler {
 
         // upload session spans
         guard let upload = upload else {
-            if let sessionId = session.id {
-                storage.deleteSession(id: sessionId)
-            }
+            storage.deleteSession(id: session.id)
             completion?()
             return
         }
-        upload.uploadSpans(id: session.idRaw, data: payloadData) { result in
+
+        upload.uploadSpans(id: session.id.stringValue, data: payloadData) { result in
             switch result {
             case .success:
                 // remove session from storage
                 // we can remove this immediately because the upload module will cache it until the upload succeeds
-                if let sessionId = session.id {
-                    storage.deleteSession(id: sessionId)
-                }
+                storage.deleteSession(id: session.id)
 
             case .failure(let error):
                 Embrace.logger.warning(
-                    "Error trying to upload session \(session.idRaw):\n\(error.localizedDescription)")
+                    "Error trying to upload session \(session.id.stringValue):\n\(error.localizedDescription)")
             }
 
             completion?()
@@ -371,8 +416,8 @@ class UnsentDataHandler {
         storage.closeOpenSpans(endTime: endTime)
     }
 
-    static private func cleanMetadata(storage: EmbraceStorage) {
-        storage.cleanMetadata()
+    static private func cleanMetadata(storage: EmbraceStorage, currentUserSessionId: EmbraceIdentifier? = nil) {
+        storage.cleanMetadata(activeUserSessionId: currentUserSessionId)
     }
 
     static func sendCriticalLogs(
@@ -406,7 +451,7 @@ class UnsentDataHandler {
         let id = EmbraceIdentifier.random.stringValue
         let attributes: [String: String] = [
             LogSemantics.keyId: id,
-            LogSemantics.keyEmbraceType: LogType.internal.rawValue
+            LogSemantics.keyEmbraceType: EmbraceType.internal.rawValue
         ]
 
         let payload = LogPayloadBuilder.build(
@@ -415,13 +460,14 @@ class UnsentDataHandler {
             body: logs,
             attributes: attributes,
             storage: nil,
-            sessionId: nil
+            userSessionId: nil,
+            processId: ProcessIdentifier.current
         )
 
         // send log
         do {
             let payloadData = try JSONEncoder().encode(payload).gzipped()
-            upload.uploadLog(id: id, data: payloadData, payloadTypes: LogType.internal.rawValue) { _ in
+            upload.uploadLog(id: id, data: payloadData, payloadTypes: EmbraceType.internal.rawValue) { _ in
                 completion?()
             }
         } catch {
@@ -436,9 +482,10 @@ extension UnsentDataHandler {
     static func sendUnsentData(
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?,
-        logController: LogControllable? = nil,
+        otel: InternalOTelSignalsHandler?,
+        logController: LogController? = nil,
         currentSessionId: EmbraceIdentifier? = nil,
+        currentUserSessionId: EmbraceIdentifier? = nil,
         crashReporter: EmbraceCrashReporter? = nil
     ) async {
         await withCheckedContinuation { continuation in
@@ -448,6 +495,7 @@ extension UnsentDataHandler {
                 otel: otel,
                 logController: logController,
                 currentSessionId: currentSessionId,
+                currentUserSessionId: currentUserSessionId,
                 crashReporter: crashReporter
             ) {
                 continuation.resume()
@@ -463,7 +511,7 @@ extension UnsentDataHandler {
         }
     }
 
-    static public func sendSession(
+    static func sendSession(
         _ session: EmbraceSession,
         storage: EmbraceStorage,
         upload: EmbraceUpload,
@@ -476,17 +524,24 @@ extension UnsentDataHandler {
         }
     }
 
-    static public func sendCrashLog(
+    static func sendCrashLog(
         report: EmbraceCrashReport,
         reporter: EmbraceCrashReporter?,
         session: EmbraceSession?,
         storage: EmbraceStorage?,
         upload: EmbraceUpload?,
-        otel: EmbraceOpenTelemetry?
+        otel: InternalOTelSignalsHandler?,
+        processId: EmbraceIdentifier? = nil
     ) async {
         await withCheckedContinuation { continuation in
             sendCrashLog(
-                report: report, reporter: reporter, session: session, storage: storage, upload: upload, otel: otel
+                report: report,
+                reporter: reporter,
+                session: session,
+                storage: storage,
+                upload: upload,
+                otel: otel,
+                processId: processId
             ) {
                 continuation.resume()
             }

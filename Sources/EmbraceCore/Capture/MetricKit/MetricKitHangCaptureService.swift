@@ -46,7 +46,7 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
         let attributes =
             attributesBuilder
             .addLogType(.hang)
-            .addApplicationState(SessionState.unknown.rawValue)
+            .addApplicationState(SessionState.unknown)
             .addHangReportProperties(
                 id: UUID().withoutHyphen,
                 provider: LogSemantics.Hang.metrickitProvider,
@@ -56,7 +56,7 @@ class MetricKitHangCaptureService: CaptureService, MetricKitHangPayloadListener 
             )
             .build()
 
-        otel?.log(
+        try? otel?.internalLog(
             "",
             severity: .warn,
             type: .hang,

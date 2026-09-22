@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 extension Notification.Name {
@@ -16,16 +17,21 @@ extension Notification.Name {
 }
 
 /// Main Embrace system used to report crashes.
-public final class EmbraceCrashReporter: NSObject {
+final class EmbraceCrashReporter {
 
-    private let reporter: CrashReporter
+    private var reporter: CrashReporter
     private let logger: InternalLogger?
     internal let queue: DispatchQueue = DispatchQueue(
         label: "com.embrace.crashreporter", qos: .utility, autoreleaseFrequency: .workItem)
     private let signalsBlockList: [CrashSignal]
 
     struct MutableData {
-        let internalKeys: [String] = [CrashReporterInfoKey.sdkVersion, CrashReporterInfoKey.sessionId]
+        let internalKeys: [String] = [
+            CrashReporterInfoKey.sdkVersion,
+            CrashReporterInfoKey.sessionId,
+            CrashReporterInfoKey.userSessionId,
+            CrashReporterInfoKey.processId
+        ]
         var allowsInternalDataChange: Bool = false
     }
     private let data = EmbraceMutex(MutableData())
@@ -35,8 +41,8 @@ public final class EmbraceCrashReporter: NSObject {
         return reporter.basePath
     }
 
-    /// Sets the current session identifier that will be included in a crash report.
-    public var currentSessionId: String? {
+    /// Sets the current session-part identifier that will be included in a crash report (`emb-sid`).
+    var currentSessionId: String? {
         get {
             getCrashInfo(key: CrashReporterInfoKey.sessionId)
         }
@@ -46,6 +52,22 @@ public final class EmbraceCrashReporter: NSObject {
                 data.withLock { $0.allowsInternalDataChange = false }
             }
             appendCrashInfo(key: CrashReporterInfoKey.sessionId, value: newValue)
+        }
+    }
+
+    /// Sets the current user-session identifier that will be included in a crash report (`emb-usi`).
+    /// A user session groups one or more parts; the value is stable across foreground/background
+    /// transitions within a user session and rolls when a new user session begins.
+    var currentUserSessionId: String? {
+        get {
+            getCrashInfo(key: CrashReporterInfoKey.userSessionId)
+        }
+        set {
+            data.withLock { $0.allowsInternalDataChange = true }
+            defer {
+                data.withLock { $0.allowsInternalDataChange = false }
+            }
+            appendCrashInfo(key: CrashReporterInfoKey.userSessionId, value: newValue)
         }
     }
 
@@ -63,13 +85,31 @@ public final class EmbraceCrashReporter: NSObject {
         }
     }
 
+    /// Adds the current process identifier to the crash reports.
+    ///
+    /// Written once when the reporter is installed, since it doesn't change for the life of the
+    /// process. A report recovered by a later launch carries it, which is what lets that launch
+    /// attribute the crash to the right process even if the session it belonged to is already gone.
+    private(set) var processId: String? {
+        get {
+            getCrashInfo(key: CrashReporterInfoKey.processId)
+        }
+        set {
+            data.withLock { $0.allowsInternalDataChange = true }
+            defer {
+                data.withLock { $0.allowsInternalDataChange = false }
+            }
+            appendCrashInfo(key: CrashReporterInfoKey.processId, value: newValue)
+        }
+    }
+
     /// Use this to prevent MetricKit reports to be used along with this crash reporter
-    public var disableMetricKitReports: Bool {
+    var disableMetricKitReports: Bool {
         reporter.disableMetricKitReports
     }
 
     /// Unused in this KSCrash implementation
-    public var onNewReport: ((EmbraceCrashReport) -> Void)? {
+    var onNewReport: ((EmbraceCrashReport) -> Void)? {
         get {
             reporter.onNewReport
         }
@@ -78,7 +118,7 @@ public final class EmbraceCrashReporter: NSObject {
         }
     }
 
-    public init(
+    init(
         reporter: CrashReporter,
         logger: InternalLogger? = nil,
         signalsBlockList: [CrashSignal] = [.SIGTERM]
@@ -86,16 +126,16 @@ public final class EmbraceCrashReporter: NSObject {
         self.reporter = reporter
         self.logger = logger
         self.signalsBlockList = signalsBlockList
-        super.init()
     }
 
     /// Used to determine if the last session ended cleanly or in a crash.
-    public func getLastRunState() -> LastRunState {
+    func getLastRunState() -> LastRunState {
         reporter.getLastRunState()
     }
 
-    public func install(context: CrashReporterContext) {
+    func install(context: CrashReporterContext) {
         sdkVersion = context.sdkVersion
+        processId = ProcessIdentifier.current.stringValue
         do {
             try reporter.install(context: context)
         } catch {
@@ -105,7 +145,7 @@ public final class EmbraceCrashReporter: NSObject {
 
     /// Fetches all saved `EmbraceCrashReport`.
     /// - Parameter completion: Completion handler to be called with the fetched `CrashReports`
-    public func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
+    func fetchUnsentCrashReports(completion: @escaping ([EmbraceCrashReport]) -> Void) {
         queue.async { [self] in
             reporter.fetchUnsentCrashReports { [self] reports in
 
@@ -128,7 +168,7 @@ public final class EmbraceCrashReporter: NSObject {
 
     /// Permanently deletes a crash report for the given identifier.
     /// - Parameter id: Identifier of the report to delete
-    public func deleteCrashReport(_ report: EmbraceCrashReport) {
+    func deleteCrashReport(_ report: EmbraceCrashReport) {
         reporter.deleteCrashReport(report)
     }
 
@@ -137,7 +177,7 @@ public final class EmbraceCrashReporter: NSObject {
         signalsBlockList.contains(where: { $0 == signal })
     }
 
-    public func appendCrashInfo(key: String, value: String?) {
+    func appendCrashInfo(key: String, value: String?) {
         let allowed = data.withLock {
             if $0.internalKeys.contains(key) && !$0.allowsInternalDataChange {
                 return false
@@ -150,7 +190,7 @@ public final class EmbraceCrashReporter: NSObject {
         reporter.appendCrashInfo(key: key, value: value)
     }
 
-    public func getCrashInfo(key: String) -> String? {
+    func getCrashInfo(key: String) -> String? {
         reporter.getCrashInfo(key: key)
     }
 }

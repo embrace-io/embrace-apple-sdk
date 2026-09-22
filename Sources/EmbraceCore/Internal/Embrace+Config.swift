@@ -5,6 +5,7 @@
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
     import EmbraceObjCUtilsInternal
     import EmbraceConfigInternal
     import EmbraceCommonInternal
@@ -43,8 +44,7 @@ extension Embrace {
         }
 
         let cacheLocation = EmbraceFileSystem.configDirectoryURL(
-            partitionIdentifier: appId,
-            appGroupId: options.appGroupId
+            partitionIdentifier: appId
         )
 
         let options = RemoteConfig.Options(
@@ -52,9 +52,9 @@ extension Embrace {
             queue: DispatchQueue(label: "com.embrace.config"),
             appId: appId,
             deviceId: deviceId,
-            osVersion: EMBDevice.appVersion ?? "",
+            osVersion: EMBDevice.operatingSystemVersion,
             sdkVersion: EmbraceMeta.sdkVersion,
-            appVersion: EMBDevice.operatingSystemVersion,
+            appVersion: EMBDevice.appVersion ?? "",
             userAgent: EmbraceMeta.userAgent,
             cacheLocation: cacheLocation
         )

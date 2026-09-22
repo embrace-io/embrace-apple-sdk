@@ -1,0 +1,94 @@
+//
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
+//
+
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
+/// Reason a user session was terminated.
+/// Stored as a `String?` on the **last** part of a terminated user session
+/// (column `userSessionTerminationReason` on `SessionRecord`), and emitted on the wire
+/// as the value of `emb.user_session_termination_reason`.
+public enum TerminationReason: String {
+    case maxDurationReached = "max_duration_reached"
+    case inactivity
+    case manual
+    case clockAnomaly = "clock_anomaly"
+    case crash
+
+    /// A background-only user session that was created to hold the tail of a background part
+    /// after its parent user session expired, and is ended when a foreground part begins.
+    case backgroundUserSessionForegrounded = "background_only_user_session_foregrounded"
+}
+
+/// In-memory representation of a "user session" — a logical grouping of one or
+/// more session parts (`EmbraceSession`) that share an identifier and config snapshot.
+///
+/// User sessions are NEVER persisted as their own entity. The fields below are
+/// duplicated on every `SessionRecord` (the part record) that belongs to the same
+/// user session. On cold start, the controller reconstructs a snapshot from the
+/// latest `SessionRecord` and applies the expiry rules.
+public protocol EmbraceUserSession {
+    var id: EmbraceIdentifier { get }
+    var startTime: Date { get }
+    var maxDuration: TimeInterval { get }
+
+    /// Wall-clock instant at which this user session reaches its max-duration cutoff,
+    /// i.e. `startTime + maxDuration`. Stored once at construction so the comparison is a
+    /// single field read on every part-start / heartbeat check.
+    var maxEnd: Date { get }
+
+    var inactivityTimeout: TimeInterval { get }
+    var lastForegroundPartEnd: Date? { get }
+    var partIndex: EMBInt { get }
+    var endTime: Date? { get }
+    var terminationReason: TerminationReason? { get }
+
+    /// `true` while every part of this user session has been a background part. A user session is
+    /// created background-only when its first part is a background part, and stops being
+    /// background-only the moment it records a foreground part. A foreground part never *joins* a
+    /// background-only user session — it ends it whole and starts a new one — so this also marks the
+    /// sessions whose duration is allowed to exceed the configured max (they are only ever ended
+    /// whole, never sliced at their own cutoff).
+    var isBackgroundOnly: Bool { get }
+}
+
+/// Plain value-type `EmbraceUserSession` for in-memory use by `UserSessionController`.
+public struct ImmutableUserSession: EmbraceUserSession {
+    public let id: EmbraceIdentifier
+    public let startTime: Date
+    public let maxDuration: TimeInterval
+    public let maxEnd: Date
+    public let inactivityTimeout: TimeInterval
+    public let lastForegroundPartEnd: Date?
+    public let partIndex: EMBInt
+    public let endTime: Date?
+    public let terminationReason: TerminationReason?
+    public let isBackgroundOnly: Bool
+
+    public init(
+        id: EmbraceIdentifier,
+        startTime: Date,
+        maxDuration: TimeInterval,
+        inactivityTimeout: TimeInterval,
+        lastForegroundPartEnd: Date? = nil,
+        partIndex: EMBInt,
+        endTime: Date? = nil,
+        terminationReason: TerminationReason? = nil,
+        isBackgroundOnly: Bool
+    ) {
+        self.id = id
+        self.startTime = startTime
+        self.maxDuration = maxDuration
+        self.maxEnd = startTime.addingTimeInterval(maxDuration)
+        self.inactivityTimeout = inactivityTimeout
+        self.lastForegroundPartEnd = lastForegroundPartEnd
+        self.partIndex = partIndex
+        self.endTime = endTime
+        self.terminationReason = terminationReason
+        self.isBackgroundOnly = isBackgroundOnly
+    }
+}

@@ -83,12 +83,20 @@ extension OpenTelemetryView {
         }
     }
 
+    /// Spans from this tracer are captured by Embrace: it comes from the provider backing the
+    /// Embrace pipeline, so every span reaches the Embrace session as well as any exporters
+    /// configured through `EmbraceIO.OTelOptions`.
     fileprivate func getEmbraceTracer() throws -> Tracer {
-        guard let embrace = Embrace.client else { throw CreateTracerError.embraceClientDoesNotExist }
         guard !name.isEmpty else { throw CreateTracerError.nameCannotBeEmpty }
-        return embrace.tracer(instrumentationName: name)
+        guard let tracer = EmbraceIO.shared.tracer(instrumentationName: name) else {
+            throw CreateTracerError.embraceTracerUnavailable
+        }
+        return tracer
     }
 
+    /// Spans from this tracer are only captured by Embrace if the app enabled
+    /// `registersGlobalProviders` in its `EmbraceIO.OTelOptions`. Otherwise the process-wide
+    /// provider is whatever the app registered, defaulting to a no-op provider that drops them.
     fileprivate func getOTelSDKTracer() throws -> Tracer {
         guard !name.isEmpty else { throw CreateTracerError.nameCannotBeEmpty }
         guard !version.isEmpty else { throw CreateTracerError.versionCannotBeEmpty }
@@ -121,15 +129,15 @@ extension OpenTelemetryView {
 
 extension OpenTelemetryView {
     fileprivate enum CreateTracerError: LocalizedError {
-        case embraceClientDoesNotExist
+        case embraceTracerUnavailable
         case nameCannotBeEmpty
         case versionCannotBeEmpty
         case versionIsNotSemver
 
         var errorDescription: String? {
             switch self {
-            case .embraceClientDoesNotExist:
-                "Embrace.client returns `nil`; initialize Embrace before running this"
+            case .embraceTracerUnavailable:
+                "No Embrace tracer available; start the SDK with `OTelOptions` before running this"
             case .nameCannotBeEmpty:
                 "Name cannot be empty"
             case .versionCannotBeEmpty:

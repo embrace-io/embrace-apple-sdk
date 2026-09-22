@@ -3,13 +3,12 @@
 //
 
 import Foundation
-import OpenTelemetryApi
-import OpenTelemetrySdk
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceStorageInternal
     import EmbraceObjCUtilsInternal
     import EmbraceCommonInternal
+    import EmbraceSemantics
 #endif
 
 struct ResourcePayload: Codable {
@@ -39,11 +38,27 @@ struct ResourcePayload: Codable {
     var processPreWarm: Bool?
     var additionalResources: [String: String] = [:]
 
+    /// Indicates whether the payload carries the metadata required for the backend to accept it.
+    ///
+    /// Most of the fields in this payload come from resources persisted in storage. Those resources
+    /// can be missing by the time a payload is built, for instance when logs outlive the session
+    /// they belong to and their resources are already gone. Payloads built from missing resources
+    /// are rejected by the backend, so there's no point in uploading them.
+    var hasRequiredMetadata: Bool {
+        return
+            appVersion?.isEmpty == false && sdkVersion?.isEmpty == false && sdkPlatform?.isEmpty == false
+    }
+
     private let excludedKeys: Set<String> = [
         DeviceResourceKey.locale.rawValue,
         DeviceResourceKey.timezone.rawValue,
         DeviceResourceKey.osDescription.rawValue,
-        SessionController.sessionNumberKey
+        // Storage key for the permanent per-part counter. The value is emitted as a
+        // dedicated attribute on every part span rather than as a resource.
+        SessionController.sessionPartNumberKey,
+        // Stored as a required resource so a later process can read back the value of the process
+        // that produced it, but reported as an attribute of the session span and of each log.
+        SpanSemantics.keyExperiments
     ]
 
     enum CodingKeys: String, CodingKey, CaseIterable {
@@ -167,23 +182,11 @@ struct ResourcePayload: Codable {
                     self.osBuild = resource.value
                 case .osVariant:
                     self.osAlternateType = resource.value
-                default:
-                    break
-                }
-            } else if let key = SemanticConventions.Device(rawValue: resource.key) {
-                switch key {
-                case .modelIdentifier:
+                case .deviceModelIdentifier:
                     self.deviceModel = resource.value
-                case .manufacturer:
-                    self.deviceManufacturer = resource.value
-                default:
-                    break
-                }
-            } else if let key = SemanticConventions.Os(rawValue: resource.key) {
-                switch key {
-                case .version:
+                case .osVersion:
                     self.osVersion = resource.value
-                case .type:
+                case .osType:
                     self.osType = resource.value
                 default:
                     break

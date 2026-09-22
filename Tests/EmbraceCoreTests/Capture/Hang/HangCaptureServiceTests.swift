@@ -7,23 +7,20 @@
     import EmbraceCommonInternal
     import EmbraceConfiguration
     import EmbraceSemantics
-    import OpenTelemetryApi
-    import OpenTelemetrySdk
     import TestSupport
     import XCTest
 
     @testable import EmbraceCore
-    @testable import EmbraceOTelInternal
 
     // MARK: - HangCaptureService Tests
 
     final class HangCaptureServiceTests: XCTestCase {
 
-        private var otel: MockEmbraceOpenTelemetry!
+        private var otel: MockOTelSignalsHandler!
 
         override func setUp() {
             super.setUp()
-            otel = MockEmbraceOpenTelemetry()
+            otel = MockOTelSignalsHandler()
         }
 
         override func tearDown() {
@@ -58,10 +55,10 @@
             service.hangStarted(at: Date(), duration: 0.5)
 
             wait(timeout: .defaultTimeout) {
-                self.otel.spanProcessor.startedSpans.contains { $0.name == SpanSemantics.Hang.name }
+                self.otel.startedSpans.contains { $0.name == SpanSemantics.Hang.name }
             }
 
-            XCTAssertEqual(otel.spanProcessor.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 1)
+            XCTAssertEqual(otel.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 1)
         }
 
         func test_hangEnded_endsSpan() {
@@ -72,10 +69,10 @@
             service.hangEnded(at: start.addingTimeInterval(0.5), duration: 0.5)
 
             wait(timeout: .defaultTimeout) {
-                self.otel.spanProcessor.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
+                self.otel.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
             }
 
-            let span = otel.spanProcessor.endedSpans.first { $0.name == SpanSemantics.Hang.name }
+            let span = otel.endedSpans.first { $0.name == SpanSemantics.Hang.name }
             XCTAssertNotNil(span)
             XCTAssertEqual(span?.startTime, start)
             XCTAssertEqual(span?.endTime, start.addingTimeInterval(0.5))
@@ -90,7 +87,7 @@
         }
 
         func test_hangStarted_withoutOTel_doesNotCrash() {
-            // Service never installed — buildSpan returns nil, should not crash
+            // Service never installed — createInternalSpan returns nil, should not crash
             let service = HangCaptureService()
             service.hangStarted(at: Date(), duration: 0.5)
             wait(delay: 0.2)
@@ -112,38 +109,68 @@
             service.hangEnded(at: Date(), duration: 0.5)
 
             wait(timeout: .defaultTimeout) {
-                self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count >= 2
+                self.otel.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count >= 2
             }
 
             // Give extra time to ensure no third span appears
             wait(delay: 0.3)
-            XCTAssertEqual(otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
+            XCTAssertEqual(otel.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
         }
 
         func test_onSessionStart_resetsHangCount() {
             let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 1))
-            let mockSession = MockSession.with(id: .random, state: .foreground)
 
             // Use the one allowed hang
             service.hangStarted(at: Date(), duration: 0.5)
             service.hangEnded(at: Date(), duration: 0.5)
 
             wait(timeout: .defaultTimeout) {
-                self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 1
+                self.otel.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 1
             }
 
             // Reset via new session
-            service.onSessionStart(mockSession)
+            service.onSessionStart()
 
             // A new hang should now be captured
             service.hangStarted(at: Date(), duration: 0.5)
             service.hangEnded(at: Date(), duration: 0.5)
 
             wait(timeout: .defaultTimeout) {
-                self.otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 2
+                self.otel.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count == 2
             }
 
-            XCTAssertEqual(otel.spanProcessor.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
+            XCTAssertEqual(otel.endedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 2)
+        }
+
+        // MARK: - Lifecycle teardown
+
+        func test_onStop_tearsDownSamplerAndMonitor() {
+            let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 6))
+            let sampler = MockMainThreadStackSampler()
+            service.limitData.withLock {
+                $0.sampler?.stop()
+                $0.sampler = sampler
+            }
+
+            service.stop()
+
+            let (samplerAfter, watchdogAfter) = service.limitData.withLock { ($0.sampler, $0.watchdog) }
+            XCTAssertNil(samplerAfter, "onStop should clear the sampler")
+            XCTAssertNil(watchdogAfter, "onStop should clear the monitor")
+            XCTAssertTrue(sampler.stopCalled, "onStop should stop the sampler")
+        }
+
+        func test_onConfigUpdated_onInactiveService_storesLimitsButDoesNotActivateSampler() {
+            // Installed-but-never-started service is not active.
+            let service = HangCaptureService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 6))
+
+            let newLimits = HangLimits(hangThreshold: 0.5, hangPerSession: 6)
+            service.onConfigUpdated(MockEmbraceConfigurable(hangLimits: newLimits))
+
+            XCTAssertEqual(service.limits.hangThreshold, 0.5, "new limits should still be stored")
+            XCTAssertNil(
+                service.limitData.withLock { $0.sampler },
+                "a config update on an inactive service must not spin up a sampler")
         }
 
         // MARK: - Config disables monitor
@@ -162,7 +189,46 @@
             service.hangEnded(at: Date(), duration: 0.5)
 
             wait(delay: 0.3)
-            XCTAssertEqual(otel.spanProcessor.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 0)
+            XCTAssertEqual(otel.startedSpans.filter { $0.name == SpanSemantics.Hang.name }.count, 0)
+        }
+
+        // MARK: - During-block sampler wiring
+
+        func test_hangStarted_attachesNoStackEvent() {
+            let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 6))
+
+            service.hangStarted(at: Date(), duration: 0.5)
+
+            wait(timeout: .defaultTimeout) {
+                self.otel.startedSpans.contains { $0.name == SpanSemantics.Hang.name }
+            }
+            // The stack is attached at hangEnded from the sampler now; nothing is captured on-main here.
+            let span = otel.startedSpans.first { $0.name == SpanSemantics.Hang.name }
+            XCTAssertEqual(span?.events.filter { $0.name == SpanEventSemantics.Hang.name }.count, 0)
+        }
+
+        func test_hangEnded_queriesSamplerWithReconciledWindow() {
+            let service = makeInstalledService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 6))
+            let sampler = MockMainThreadStackSampler()
+            service.limitData.withLock {
+                $0.sampler?.stop()
+                $0.sampler = sampler
+            }
+
+            let start = Date()
+            service.hangStarted(at: start, duration: 0.5)
+            service.hangEnded(at: start.addingTimeInterval(0.5), duration: 0.5)
+
+            wait(timeout: .defaultTimeout) {
+                self.otel.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
+            }
+
+            // hangEnded reconciles a monotonic window ≈ duration + tolerance, then queries the sampler.
+            XCTAssertEqual(sampler.queriedRanges.count, 1)
+            if let range = sampler.queriedRanges.first {
+                let widthMs = Double(range.upperBound - range.lowerBound) / 1_000_000
+                XCTAssertEqual(widthMs, 520, accuracy: 80)  // 500 ms duration + 20 ms tolerance
+            }
         }
     }
 
@@ -295,6 +361,24 @@
             lock.unlock()
 
             callback?(at, duration)
+        }
+    }
+
+    /// Records the windows it is queried with and returns canned samples (optionally range-filtered).
+    final class MockMainThreadStackSampler: MainThreadStackSampler {
+        var cannedSamples: [MainThreadStackSample] = []
+        var respectRange = true
+        private(set) var queriedRanges: [ClosedRange<UInt64>] = []
+        private(set) var startCalled = false
+        private(set) var stopCalled = false
+
+        func start() { startCalled = true }
+        func stop() { stopCalled = true }
+        func pause() {}
+        func resume() {}
+        func samples(in range: ClosedRange<UInt64>) -> [MainThreadStackSample] {
+            queriedRanges.append(range)
+            return respectRange ? cannedSamples.filter { range.contains($0.timestamp) } : cannedSamples
         }
     }
 

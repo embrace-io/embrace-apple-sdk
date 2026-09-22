@@ -1,0 +1,563 @@
+//
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//
+
+import Foundation
+
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+    import EmbraceSemantics
+#endif
+
+// MARK: InternalOTelSignalsHandler
+extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
+    package func _createSpan(
+        name: String,
+        parentSpan: EmbraceSpan? = nil,
+        type: EmbraceType,
+        status: EmbraceSpanStatus = .unset,
+        startTime: Date = Date(),
+        endTime: Date? = nil,
+        events: [EmbraceSpanEvent] = [],
+        links: [EmbraceSpanLink] = [],
+        attributes: EmbraceAttributes = [:],
+        autoTerminationCode: EmbraceSpanErrorCode? = nil,
+        isInternal: Bool = true
+    ) throws -> EmbraceSpan {
+
+        guard isInternal || limiter.shouldCreateCustomSpan() else {
+            throw EmbraceOTelError.spanLimitReached
+        }
+
+        // sanitize name
+        let finalName = isInternal ? name : sanitizer.sanitizeSpanName(name)
+
+        // add embrace specific attributes
+        let sanitizedAttributes = isInternal ? attributes : sanitizer.sanitizeSpanAttributes(attributes)
+        var internalAttributes = [String: EmbraceAttributeValue]()
+        internalAttributes.setEmbraceType(type)
+
+        // Resolve the part id used for the spans-to-parts storage association. The session
+        // part span itself carries its id via `keyPartId` in `attributes` (set by
+        // `SessionSpanUtils.span`); every other span inherits the active part from the
+        // session controller.
+        var sessionId: EmbraceIdentifier?
+        if type == .session {
+            if let value = sanitizedAttributes[SpanSemantics.Session.keyPartId] as? String {
+                sessionId = EmbraceIdentifier(stringValue: value)
+            }
+        } else {
+            sessionId = sessionController?.currentSession?.id
+
+            // Cross-cutting attribute stamping. Every non-session-part span carries the three
+            // identity keys so backend correlation works even on spans that started before
+            // an active session existed .
+            internalAttributes.setSessionIdentity(
+                userSessionId: sessionController?.currentSession?.userSessionId?.stringValue ?? "",
+                partId: sessionId?.stringValue ?? ""
+            )
+        }
+
+        let finalAttributes = internalAttributes.merging(sanitizedAttributes) { (current, _) in current }
+
+        // sanitize initial events/links — only for non-internal spans, matching the
+        // `name`/`attributes` short-circuit above. Internal spans pass these through unchanged.
+        let finalEvents: [EmbraceSpanEvent]
+        let finalLinks: [EmbraceSpanLink]
+
+        if isInternal {
+            finalEvents = events
+            finalLinks = links
+        } else {
+            finalEvents = events.enumerated().compactMap { index, event in
+                do {
+                    return try createEvent(
+                        forSpanNamed: finalName,
+                        name: event.name,
+                        type: event.type,
+                        timestamp: event.timestamp,
+                        attributes: event.attributes,
+                        internalAttributes: [:],
+                        currentCount: index,
+                        isSessionEvent: false
+                    )
+                } catch {
+                    Embrace.logger.warning("Dropping initial span event '\(event.name)': \(error.localizedDescription)")
+                    return nil
+                }
+            }
+
+            finalLinks = links.enumerated().compactMap { index, link in
+                do {
+                    return try createLink(
+                        forSpanNamed: finalName,
+                        spanId: link.context.spanId,
+                        traceId: link.context.traceId,
+                        attributes: link.attributes,
+                        currentCount: index
+                    )
+                } catch {
+                    Embrace.logger.warning("Dropping initial span link: \(error.localizedDescription)")
+                    return nil
+                }
+            }
+        }
+
+        // validate the parent
+        //
+        // A parent whose identifiers can't refer to a span is no parent at all: the OTel layer
+        // rejects it and starts a brand new trace for this span. Dropping it here as well keeps
+        // both sides in agreement, otherwise the span would be recorded with a `parentSpanId`
+        // that doesn't belong to the trace it ended up in.
+        var finalParent = parentSpan
+        if let parentSpan, !parentSpan.context.isValid {
+            Embrace.logger.warning(
+                "Ignoring invalid parent for span '\(finalName)': span id '\(parentSpan.context.spanId)', trace id '\(parentSpan.context.traceId)'. The span will start a new trace."
+            )
+            finalParent = nil
+        }
+
+        // create span context
+        let context = bridge.startSpan(
+            name: finalName,
+            parentSpan: finalParent,
+            status: status,
+            startTime: startTime,
+            endTime: endTime,
+            events: finalEvents,
+            links: finalLinks,
+            attributes: finalAttributes
+        )
+
+        // get auto termination code from parent if needed
+        var code = autoTerminationCode
+        if let finalParent, code == nil {
+            code = cache.safeValue.autoTerminationCodes[finalParent.context.spanId]
+        }
+
+        // create span
+        let span = newSpan(
+            context: context,
+            parentSpanId: finalParent?.context.spanId,
+            name: finalName,
+            type: type,
+            status: status,
+            startTime: startTime,
+            endTime: endTime,
+            events: finalEvents,
+            links: finalLinks,
+            attributes: finalAttributes,
+            internalAttributeCount: internalAttributes.count,
+            sessionId: sessionId,
+            autoTerminationCode: code,
+            isInternal: isInternal
+        )
+
+        // cache auto termination spans
+        if let code {
+            cache.withLock {
+                // Only spans that are still open can be terminated later. One created already ended
+                // never fires `onSpanEnded`, so it would never be evicted and would sit here for the
+                // rest of the session without anything to do.
+                if endTime == nil {
+                    $0.autoTerminationSpans[context.spanId] = span
+                }
+
+                // The code is kept either way, so a span created afterwards can name this one as
+                // its parent and inherit from it.
+                $0.autoTerminationCodes[context.spanId] = code
+            }
+        }
+
+        // save span
+        storage?.upsertSpan(span)
+
+        return span
+    }
+
+    @discardableResult
+    package func _addSessionEvent(
+        name: String,
+        type: EmbraceType? = nil,
+        timestamp: Date = Date(),
+        attributes: EmbraceAttributes = [:],
+        isInternal: Bool = true
+    ) throws -> EmbraceSpanEvent? {
+
+        guard let span = sessionController?.currentSessionSpan else {
+            throw EmbraceOTelError.invalidSession
+        }
+
+        return try span.addSessionEvent(
+            name: name,
+            type: type,
+            timestamp: timestamp,
+            attributes: attributes,
+            isInternal: isInternal
+        )
+    }
+
+    package func _log(
+        _ message: String,
+        severity: EmbraceLogSeverity = .info,
+        type: EmbraceType,
+        timestamp: Date = Date(),
+        attachment: EmbraceLogAttachment? = nil,
+        attributes: EmbraceAttributes = [:],
+        stackTraceBehavior: EmbraceStackTraceBehavior = .default,
+        isInternal: Bool = true
+    ) throws {
+
+        guard isInternal || limiter.shouldCreateLog(type: type, severity: severity) else {
+            throw EmbraceOTelError.logLimitReached
+        }
+
+        logController?.createLog(
+            message,
+            severity: severity,
+            type: type,
+            timestamp: timestamp,
+            attachment: attachment,
+            attributes: isInternal ? attributes : sanitizer.sanitizeLogAttributes(attributes),
+            stackTraceBehavior: stackTraceBehavior
+        ) { [weak self] log in
+            if let log {
+                self?.bridge.createLog(log)
+            }
+        }
+    }
+
+    // ends all the cached auto-termination spans
+    func autoTerminateSpans() {
+        // The spans are taken out of the cache before being ended, not while holding the lock:
+        // ending one calls back into `onSpanEnded`, which needs the same lock to drop the span
+        // it just ended.
+        let spans = cache.withLock {
+            let spans = Array($0.autoTerminationSpans.values)
+            $0.autoTerminationSpans.removeAll()
+
+            // The codes go too: they exist to be inherited by spans created during the session
+            // that just ended, so nothing created afterwards should pick them up.
+            $0.autoTerminationCodes.removeAll()
+            return spans
+        }
+
+        let now = Date()
+        for span in spans {
+            let code = span.autoTerminationCode ?? .unknown
+            span.end(errorCode: code, endTime: now)
+        }
+
+        limiter.reset()
+    }
+
+    // forwards an already-built log to the OTel pipeline, without saving it nor adding it
+    // to the batch. Only used for logs that are handled in a special manner but still need
+    // to be exported externally (i.e crash logs).
+    //
+    // The log is passed through untouched on purpose: these logs can describe a session and a
+    // process that already ended, so the caller owns their attributes and nothing is derived
+    // from the current session here.
+    func exportLog(_ log: EmbraceLog) {
+        bridge.createLog(log)
+    }
+
+    // creates a new span
+    func newSpan(
+        context: EmbraceSpanContext,
+        parentSpanId: String?,
+        name: String,
+        type: EmbraceType,
+        status: EmbraceSpanStatus,
+        startTime: Date,
+        endTime: Date?,
+        events: [EmbraceSpanEvent],
+        links: [EmbraceSpanLink],
+        attributes: EmbraceAttributes,
+        internalAttributeCount: Int,
+        sessionId: EmbraceIdentifier?,
+        autoTerminationCode: EmbraceSpanErrorCode?,
+        isInternal: Bool
+    ) -> DefaultEmbraceSpan {
+
+        if isInternal {
+            return InternalEmbraceSpan(
+                context: context,
+                parentSpanId: parentSpanId,
+                name: name,
+                type: type,
+                status: status,
+                startTime: startTime,
+                endTime: endTime,
+                events: events,
+                links: links,
+                attributes: attributes,
+                internalAttributeCount: internalAttributeCount,
+                sessionId: sessionId,
+                processId: ProcessIdentifier.current,
+                autoTerminationCode: autoTerminationCode,
+                handler: self
+            )
+        }
+
+        return DefaultEmbraceSpan(
+            context: context,
+            parentSpanId: parentSpanId,
+            name: name,
+            type: type,
+            status: status,
+            startTime: startTime,
+            endTime: endTime,
+            events: events,
+            links: links,
+            attributes: attributes,
+            internalAttributeCount: internalAttributeCount,
+            sessionId: sessionId,
+            processId: ProcessIdentifier.current,
+            autoTerminationCode: autoTerminationCode,
+            handler: self
+        )
+    }
+}
+
+// MARK: EmbraceSpanDelegate
+extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
+    func onSpanStatusUpdated(_ span: EmbraceSpan, status: EmbraceSpanStatus) {
+        bridge.updateSpanStatus(span, status: status)
+        storage?.setSpanStatus(id: span.context.spanId, traceId: span.context.traceId, status: status)
+    }
+
+    func onSpanEventAdded(_ span: EmbraceSpan, event: EmbraceSpanEvent) {
+        bridge.addSpanEvent(span, event: event)
+        storage?.addSpanEvent(id: span.context.spanId, traceId: span.context.traceId, event: event)
+    }
+
+    func onSpanLinkAdded(_ span: EmbraceSpan, link: EmbraceSpanLink) {
+        bridge.addSpanLink(span, link: link)
+        storage?.addSpanLink(id: span.context.spanId, traceId: span.context.traceId, link: link)
+    }
+
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, key: String, value: EmbraceAttributeValue?, attributes: EmbraceAttributes) {
+        bridge.updateSpanAttribute(span, key: key, value: value)
+        storage?.setSpanAttributes(id: span.context.spanId, traceId: span.context.traceId, attributes: attributes)
+    }
+
+    func onSpanEnded(_ span: any EmbraceSpan, endTime: Date) {
+        // Auto-terminating spans are dropped from the cache when they end on their own, so the cache
+        // doesn't hold every one of them for the whole session. Their code is deliberately kept:
+        // a span created later can still name this one as its parent and inherit from it.
+        cache.withLock {
+            $0.autoTerminationSpans[span.context.spanId] = nil
+        }
+
+        bridge.endSpan(span, endTime: endTime)
+        storage?.endSpan(id: span.context.spanId, traceId: span.context.traceId, endTime: endTime)
+    }
+}
+
+// MARK: EmbraceSpanDataSource
+extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
+    func createEvent(
+        forSpanNamed spanName: String,
+        name: String,
+        type: EmbraceType?,
+        timestamp: Date,
+        attributes: EmbraceAttributes,
+        internalAttributes: EmbraceAttributes,
+        currentCount: Int,
+        isSessionEvent: Bool = false
+    ) throws -> EmbraceSpanEvent {
+
+        // check limit
+        if isSessionEvent {
+            guard limiter.shouldAddSessionEvent(ofType: type) else {
+                throw EmbraceOTelError.spanEventLimitReached("Events limit reached for session span!")
+            }
+        } else {
+            guard limiter.shouldAddSpanEvent(currentCount: currentCount) else {
+                throw EmbraceOTelError.spanEventLimitReached("Events limit reached for span \(spanName)")
+            }
+        }
+
+        let sanitizedAttributes = sanitizer.sanitizeSpanEventAttributes(
+            attributes,
+            protecting: [SpanEventSemantics.keyEmbraceType]
+        )
+        let finalAttributes = internalAttributes.merging(sanitizedAttributes) { (current, _) in current }
+
+        return EmbraceSpanEvent(
+            name: sanitizer.sanitizeSpanEventName(name),
+            type: type,
+            timestamp: timestamp,
+            attributes: finalAttributes
+        )
+    }
+
+    func createLink(
+        forSpanNamed spanName: String,
+        spanId: String,
+        traceId: String,
+        attributes: EmbraceAttributes,
+        currentCount: Int
+    ) throws -> EmbraceSpanLink {
+
+        // A link is nothing but a pair of identifiers pointing at another span, so identifiers that
+        // can't refer to one make the link meaningless: nothing downstream is able to resolve them.
+        // Rejecting here keeps the link out of the payload entirely, rather than recording one that
+        // only looks valid until something tries to follow it.
+        guard EmbraceSpanContext.isValidSpanId(spanId) else {
+            throw EmbraceOTelError.invalidSpanLinkIdentifiers(
+                "Invalid span id '\(spanId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.spanIdLength) hexadecimal characters that are not all zeros."
+            )
+        }
+
+        guard EmbraceSpanContext.isValidTraceId(traceId) else {
+            throw EmbraceOTelError.invalidSpanLinkIdentifiers(
+                "Invalid trace id '\(traceId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.traceIdLength) hexadecimal characters."
+            )
+        }
+
+        // check limit
+        guard limiter.shouldAddSpanLink(currentCount: currentCount) else {
+            throw EmbraceOTelError.spanLinkLimitReached("Links limit reached for span \(spanName)")
+        }
+
+        return EmbraceSpanLink(
+            spanId: EmbraceSpanContext.normalize(spanId),
+            traceId: EmbraceSpanContext.normalize(traceId),
+            attributes: sanitizer.sanitizeSpanLinkAttributes(attributes)
+        )
+    }
+
+    func validateAttribute(
+        for span: EmbraceSpan,
+        key: String,
+        value: EmbraceAttributeValue?,
+        currentCount: Int
+    ) throws -> (String, EmbraceAttributeValue?) {
+
+        // no limits when removing a key
+        guard let value else {
+            return (key, value)
+        }
+
+        // check limit
+        let finalKey = sanitizer.sanitizeAttributeKey(key)
+        guard span.attributes[finalKey] != nil || limiter.shouldAddSpanAttribute(currentCount: currentCount) else {
+            throw EmbraceOTelError.spanAttributeLimitReached("Attributes limit reached for span \(span.name)")
+        }
+
+        let finalValue = sanitizer.sanitizeAttributeValue(value)
+
+        return (finalKey, finalValue)
+    }
+}
+
+// MARK: EmbraceOTelDelegate
+extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
+
+    /// Attribute keys stamped by `EmbraceSpanProcessor.injectAttributes()` before the span
+    /// reaches the delegate. These must always be preserved in storage regardless of the
+    /// attribute count limit. The three identity keys (`session.id`, `emb.user_session_id`,
+    /// `emb.session_part_id`) are protected so the cross-cutting stamping survives sanitization.
+    static let bridgeProtectedKeys: Set<String> = [
+        SpanSemantics.keyEmbraceType,
+        SpanSemantics.Session.keyState,
+        SpanSemantics.keySessionId,
+        SpanSemantics.Session.keyUserSessionId,
+        SpanSemantics.Session.keyPartId
+    ]
+
+    public func onStartSpan(_ span: EmbraceSpan) {
+
+        // check limits
+        var onlyUpdate = false
+        if !limiter.shouldCreateCustomSpan() {
+            onlyUpdate = true
+            Embrace.logger.warning("Limit reached for spans on the current Embrace session!")
+        }
+
+        // sanitize and update db
+        storage?.upsertSpan(sanitizeExternalSpan(span), onlyUpdate: onlyUpdate)
+    }
+
+    public func onEndSpan(_ span: EmbraceSpan) {
+        // sanitize and update db
+        storage?.upsertSpan(sanitizeExternalSpan(span), onlyUpdate: true)
+    }
+
+    public func onEmitLog(_ log: EmbraceLog) {
+
+        guard limiter.shouldCreateLog(type: log.type, severity: log.severity) else {
+            Embrace.logger.warning("Limit reached for logs on the current Embrace session!")
+            return
+        }
+
+        // Logs coming in through the bridge don't go through `LogController.createLog`, which is
+        // where the experiments attribute is normally stamped, so it is added here instead. Applied
+        // after sanitization: the value is exempt from the attribute value length limit, and
+        // truncating it would corrupt the records it carries.
+        var attributes = sanitizer.sanitizeLogAttributes(log.attributes, protecting: Self.bridgeProtectedKeys)
+        if attributes[LogSemantics.keyExperiments] == nil,
+            let experiments = logController?.experiments?.encodedExperiments
+        {
+            attributes[LogSemantics.keyExperiments] = experiments
+        }
+
+        // sanitize and add log
+        let sanitizedLog = DefaultEmbraceLog(
+            id: log.id,
+            severity: log.severity,
+            type: log.type,
+            timestamp: log.timestamp,
+            body: log.body,
+            attributes: attributes,
+            sessionId: log.sessionId,
+            processId: log.processId
+        )
+        logController?.addLog(sanitizedLog)
+    }
+
+    private func sanitizeExternalSpan(_ span: EmbraceSpan) -> EmbraceSpan {
+        let name = sanitizer.sanitizeSpanName(span.name)
+
+        let events = span.events.enumerated().compactMap { index, event -> EmbraceSpanEvent? in
+            guard limiter.shouldAddSpanEvent(currentCount: index) else { return nil }
+            return EmbraceSpanEvent(
+                name: sanitizer.sanitizeSpanEventName(event.name),
+                type: event.type,
+                timestamp: event.timestamp,
+                attributes: sanitizer.sanitizeSpanEventAttributes(event.attributes)
+            )
+        }
+
+        let links = span.links.enumerated().compactMap { index, link -> EmbraceSpanLink? in
+            guard limiter.shouldAddSpanLink(currentCount: index) else { return nil }
+            return EmbraceSpanLink(
+                context: link.context,
+                attributes: sanitizer.sanitizeSpanLinkAttributes(link.attributes)
+            )
+        }
+
+        let attributes = sanitizer.sanitizeSpanAttributes(
+            span.attributes,
+            protecting: Self.bridgeProtectedKeys
+        )
+
+        return DefaultEmbraceSpan(
+            context: span.context,
+            parentSpanId: span.parentSpanId,
+            name: name,
+            type: span.type,
+            status: span.status,
+            startTime: span.startTime,
+            endTime: span.endTime,
+            events: events,
+            links: links,
+            attributes: attributes,
+            sessionId: span.sessionId,
+            processId: span.processId,
+            handler: nil
+        )
+    }
+}

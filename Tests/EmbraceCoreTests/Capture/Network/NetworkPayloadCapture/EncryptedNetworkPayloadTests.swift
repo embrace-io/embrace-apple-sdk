@@ -6,11 +6,9 @@ import EmbraceStorageInternal
 import TestSupport
 import XCTest
 
-@testable import EmbraceCommonInternal
 @testable import EmbraceConfigInternal
 @testable import EmbraceCore
-
-// swiftlint:disable force_cast
+@testable import EmbraceSemantics
 
 class EncryptedNetworkPayloadTests: XCTestCase {
 
@@ -139,5 +137,3 @@ class EncryptedNetworkPayloadTests: XCTestCase {
         XCTAssertNil(result)
     }
 }
-
-// swiftlint:enable force_cast

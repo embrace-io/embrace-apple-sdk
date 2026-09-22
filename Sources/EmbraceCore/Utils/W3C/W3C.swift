@@ -2,6 +2,44 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-public struct W3C {
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
+package struct W3C {
     private init() {}
+
+    package static let traceparentHeaderName = "traceparent"
+
+    /// Creates a W3C [traceparent](https://www.w3.org/TR/trace-context/#traceparent-header) header value.
+    /// - Parameters:
+    ///     - span: The span to create the traceparent header from
+    package static func traceparent(from span: EmbraceSpan) -> String {
+        return traceparent(from: span.context)
+    }
+
+    /// Creates a W3C [traceparent](https://www.w3.org/TR/trace-context/#traceparent-header) header value.
+    /// - Parameters:
+    ///    - context:   The span context to create the traceparent header from
+    package static func traceparent(from context: EmbraceSpanContext) -> String {
+        return traceparent(
+            traceId: context.traceId,
+            spanId: context.spanId
+        )
+    }
+
+    /// Creates a W3C [traceparent](https://www.w3.org/TR/trace-context/#traceparent-header) header value.
+    /// Will generate a version `00` traceparent.
+    ///  - Parameters:
+    ///     - traceId: The Span's traceId
+    ///     - spanId: The Span's spanId
+    ///     - sampled: Whether the trace is sampled
+    package static func traceparent(traceId: String, spanId: String, sampled: Bool = true) -> String {
+        return [
+            "00",
+            traceId,
+            spanId,
+            sampled ? "01" : "00"
+        ].joined(separator: "-")
+    }
 }

@@ -4,7 +4,7 @@
 //
 //
 
-import EmbraceCommonInternal
+import EmbraceSemantics
 import SwiftUI
 
 @Observable
@@ -15,13 +15,13 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
         }
     }
 
-    var logSeverity: LogSeverity = .info {
+    var logSeverity: EmbraceLogSeverity = .info {
         didSet {
             testObject.loggedMessageSeverity = logSeverity
         }
     }
 
-    var stacktraceBehavior: StackTraceBehavior = .default {
+    var stacktraceBehavior: EmbraceStackTraceBehavior = .default {
         didSet {
             testObject.stackTraceBehavior = stacktraceBehavior
         }
@@ -42,12 +42,12 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
         }
     }
 
-    var logSeverities: [LogSeverity] {
-        LogSeverity.allCases
+    var logSeverities: [EmbraceLogSeverity] {
+        EmbraceLogSeverity.allCases
     }
 
-    var stacktraceBehaviors: [StackTraceBehavior] {
-        StackTraceBehavior.allCases
+    var stacktraceBehaviors: [EmbraceStackTraceBehavior] {
+        EmbraceStackTraceBehavior.allCases
     }
 
     private var testObject: LoggingErrorMessageTest
@@ -64,14 +64,14 @@ class LoggingTestMessageViewModel: LogTestUIComponentViewModel {
     }
 }
 
-extension LogSeverity: @retroactive CaseIterable {
-    public static var allCases: [LogSeverity] {
-        [.trace, .debug, .info, .warn, .error, .fatal, .critical]
+extension EmbraceLogSeverity: @retroactive CaseIterable {
+    public static var allCases: [EmbraceLogSeverity] {
+        [.trace, .debug, .info, .warn, .error, .fatal]
     }
 }
 
-extension StackTraceBehavior: @retroactive CaseIterable {
-    public static var allCases: [StackTraceBehavior] {
+extension EmbraceStackTraceBehavior: @retroactive CaseIterable {
+    public static var allCases: [EmbraceStackTraceBehavior] {
         [.default, .notIncluded, .main, .custom(customStackTrace)]
     }
 
@@ -89,19 +89,19 @@ extension StackTraceBehavior: @retroactive CaseIterable {
     }
 
     private static var customStackTrace: EmbraceStackTrace {
-        do {
-            let stackTrace = try EmbraceStackTrace(frames: [
+        guard
+            let stackTrace = EmbraceStackTrace(frames: [
                 "0 EmbraceIOTestApp 0x0000000005678def [SomeClass method] + 48",
                 "1 Random Library 0x0000000001234abc [Random init]"
             ])
-            return stackTrace
-        } catch {
+        else {
             fatalError()
         }
+        return stackTrace
     }
 }
 
-extension StackTraceBehavior: @retroactive Hashable {
+extension EmbraceStackTraceBehavior: @retroactive Hashable {
     public func hash(into hasher: inout Hasher) {
         switch self {
         case .custom(let st):

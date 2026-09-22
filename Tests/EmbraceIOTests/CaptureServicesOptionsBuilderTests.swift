@@ -47,7 +47,6 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         builder.addUrlSessionCaptureService(
             withOptions:
                 .init(
-                    injectTracingHeader: false,
                     requestsDataSource: nil,
                     ignoredURLs: ["test"]
                 )
@@ -56,7 +55,6 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         // then the result contains the correct options
         let options = builder.build()
 
-        XCTAssertFalse(options.urlSession!.injectTracingHeader)
         XCTAssertNil(options.urlSession!.requestsDataSource)
         XCTAssertEqual(options.urlSession!.ignoredURLs, ["test"])
     }
@@ -161,13 +159,14 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
             // when adding custom webview options
             builder.addWebViewCaptureService(
                 withOptions:
-                    .init(stripQueryParams: true)
+                    .init(stripQueryParams: true, fragmentHandling: .redact)
             )
 
             // then the result contains the correct options
             let options = builder.build()
 
             XCTAssertTrue(options.webView!.stripQueryParams)
+            XCTAssertEqual(options.webView!.fragmentHandling, .redact)
         }
 
         func test_webView_remove() throws {

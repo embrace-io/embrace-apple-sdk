@@ -3,7 +3,6 @@
 //
 
 import Foundation
-import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
@@ -22,41 +21,29 @@ protocol URLSessionSwizzler: Swizzlable {
 class EmbraceDummyURLSessionDelegate: NSObject, URLSessionDelegate {}
 
 /// Service that generates OpenTelemetry spans for network requests that use `URLSession`.
-@objc(EMBURLSessionCaptureService)
 public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandlerDataSource {
 
+    /// The options used to configure this service.
     public let options: URLSessionCaptureService.Options
     private let lock: NSLocking
     private let swizzlerProvider: URLSessionSwizzlerProvider
     private(set) var swizzlers: [any URLSessionSwizzler] = []
     private var handler: URLSessionTaskHandler?
 
-    @objc public convenience init(options: URLSessionCaptureService.Options) {
-        self.init(options: options, lock: NSLock(), swizzlerProvider: DefaultURLSessionSwizzlerProvider())
-    }
-
-    public convenience override init() {
-        self.init(lock: NSLock(), swizzlerProvider: DefaultURLSessionSwizzlerProvider())
+    /// Creates a new `URLSessionCaptureService` with the given options.
+    /// - Parameter options: The options used to configure the service.
+    public convenience init(options: URLSessionCaptureService.Options = URLSessionCaptureService.Options()) {
+        self.init(options: options, lock: NSLock())
     }
 
     init(
         options: URLSessionCaptureService.Options = URLSessionCaptureService.Options(),
         lock: NSLocking,
-        swizzlerProvider: URLSessionSwizzlerProvider
+        swizzlerProvider: URLSessionSwizzlerProvider = DefaultURLSessionSwizzlerProvider()
     ) {
         self.options = options
         self.lock = lock
         self.swizzlerProvider = swizzlerProvider
-    }
-
-    public static let EMBUseLegacyURLSessionProxyKey = "EMBUseLegacyURLSessionProxy"
-
-    public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
-        // This key is used in EMBURLSessionDelegateProtocol.m in order to decide
-        // which url session proxy class to use. Depending on the situation,
-        // the change itself in the proxy will take place on the next restart
-        // since we don't want to have new and legacy proxies wunning at the same time.
-        UserDefaults.standard.set(config.useLegacyUrlSessionProxy, forKey: Self.EMBUseLegacyURLSessionProxyKey)
     }
 
     public override func onInstall() {
@@ -127,8 +114,6 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
     }
 }
 
-// swiftlint:disable line_length
-
 struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
     typealias ImplementationType =
         @convention(c) (
@@ -160,8 +145,8 @@ struct URLSessionInitWithDelegateSwizzler: URLSessionSwizzler {
                 }
 
                 // Add protection against re-proxying our own proxy
-                guard !(proxiedDelegate is EMBURLSessionDelegateProxy) else {
-                    if let newDelegate = proxiedDelegate as? EMBURLSessionDelegateProxy,
+                guard !(proxiedDelegate is EMBURLSessionDelegateProxyType) else {
+                    if let newDelegate = proxiedDelegate as? EMBURLSessionDelegateProxyType,
                         let originalDelegate = newDelegate.originalDelegate as? URLSessionDelegate
                     {
                         return originalImplementation(urlSession, Self.selector, configuration, originalDelegate, queue)
@@ -230,7 +215,6 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
 
     var baseClass: AnyClass
     private let handler: URLSessionTaskHandler
-    private var originalDelegate: URLSessionTaskDelegate?
 
     init(handler: URLSessionTaskHandler, baseClass: AnyClass = URLSessionTask.self) {
         self.handler = handler
@@ -657,5 +641,3 @@ struct UploadTaskWithStreamedRequestSwizzler: URLSessionSwizzler {
         }
     }
 }
-
-// swiftlint:enable line_length

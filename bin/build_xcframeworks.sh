@@ -19,7 +19,6 @@ PRODUCTS=(
     "EmbraceCaptureService"
     "EmbraceConfiguration"
     "EmbraceConfigInternal"
-    "EmbraceOTelInternal"
     "EmbraceStorageInternal"
     "EmbraceUploadInternal"
     "EmbraceCoreDataInternal"

@@ -4,7 +4,7 @@
 //
 //
 
-import EmbraceCore
+import EmbraceIO
 import SwiftUI
 
 struct EmbraceInitScreenFormSectionItem {
@@ -19,7 +19,7 @@ struct EmbraceInitScreenFormSection {
 
 struct EmbraceInitScreenViewModel {
     var embraceHasInitialized: Bool {
-        Embrace.client?.state == .started
+        EmbraceIO.shared.state == .started
     }
     var formDisabled: Bool {
         showProgressview || embraceHasInitialized

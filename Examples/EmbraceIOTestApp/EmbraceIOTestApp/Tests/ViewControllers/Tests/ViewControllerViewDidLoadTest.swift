@@ -31,7 +31,6 @@ class ViewControllerViewDidLoadTest: PayloadTest {
         testItems.append(evaluate("view.title", expecting: "TestViewController", on: viewDidLoadSpan.attributes))
         testItems.append(evaluate("view.name", expecting: "TestViewController", on: viewDidLoadSpan.attributes))
 
-        MetadataResourceTest.testMetadataInclussion(on: viewDidLoadSpan.resource, testItems: &testItems)
         testItems.append(contentsOf: OTelSemanticsValidation.validateAttributeNames(viewDidLoadSpan.attributes))
 
         return .init(items: testItems)

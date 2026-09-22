@@ -1,7 +1,7 @@
 # Acknowledgements
 This project makes use of the following third party libraries:
 
-## KSCrash (2.5.1)
+## KSCrash (2.6.0)
 
 MIT License
 

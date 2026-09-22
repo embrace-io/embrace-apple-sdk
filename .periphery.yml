@@ -1,0 +1,43 @@
+# Periphery configuration — unused (dead) code detection for the core SDK.
+#
+# Usage:
+#   periphery scan                 # single-platform (host) scan, uses this config
+#   bin/find-dead-code             # multi-platform scan + intersection (recommended)
+#
+# WHAT THIS CONFIG CAN AND CANNOT DO
+# Periphery analyzes one compiled product at a time, so two big false-positive
+# classes are handled OUTSIDE this file:
+#   - Platform-conditional code (#if os(...) / canImport(...)): a macOS-only scan
+#     reports iOS-only code as unused. Fixed by bin/find-dead-code, which scans every
+#     platform and keeps only declarations dead in the INTERSECTION.
+#   - Test-only-used code: code reached only from test targets looks unused when tests
+#     aren't indexed. That's arguably dead too (the test exercises unshipped code), so
+#     we deliberately surface it rather than hide it — decide case-by-case.
+#
+# The settings below suppress the false positives that ARE config-addressable.
+
+# The SDK's public API is consumed by external customers Periphery cannot see, so public
+# declarations must not be reported as unused. Narrows results to non-public dead code.
+retain_public: true
+
+# Retain anything reachable from the Objective-C runtime (selectors, KVO, NSObject
+# subclasses, system callbacks like MetricKit) — invoked dynamically, invisible to Periphery.
+retain_objc_accessible: true
+
+# SwiftUI #Preview / PreviewProvider are never referenced in code but must be kept.
+retain_swift_ui_previews: true
+
+# The SDK serializes many payload models via Codable; their properties are read
+# reflectively by the encoder, so they look unused. Retain them.
+retain_codable_properties: true
+
+# Files whose declarations are all retained (never reported as unused):
+retain_files:
+  # Vendored from GzipSwift (MIT) — keep verbatim to stay in sync with upstream.
+  - "**/Data+Gzip.swift"
+  # Public macros: Periphery does not track macro expansion sites, so the macro
+  # declarations are mis-reported as unused even with retain_public.
+  - "**/EmbraceMacros.swift"
+
+# Examples/ are separate Xcode projects (not part of this SPM package) and are already
+# excluded from the scan.

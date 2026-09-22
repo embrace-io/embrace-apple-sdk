@@ -18,33 +18,33 @@ class URLSessionDelegateProxyChallengeHandlingTests: XCTestCase {
         handler = .init()
     }
 
-    // MARK: - NewProxy (default proxy)
+    // MARK: - Proxy
 
-    func test_newProxy_respondsToSessionChallenge_returnsFalse_whenDelegateIsEmpty() {
+    func test_proxy_respondsToSessionChallenge_returnsFalse_whenDelegateIsEmpty() {
         let proxy = EmbraceMakeURLSessionDelegateProxy(EmbraceDummyURLSessionDelegate(), handler)
         let sel = NSSelectorFromString("URLSession:didReceiveChallenge:completionHandler:")
         XCTAssertFalse(proxy.responds(to: sel))
     }
 
-    func test_newProxy_respondsToTaskChallenge_returnsFalse_whenDelegateIsEmpty() {
+    func test_proxy_respondsToTaskChallenge_returnsFalse_whenDelegateIsEmpty() {
         let proxy = EmbraceMakeURLSessionDelegateProxy(EmbraceDummyURLSessionDelegate(), handler)
         let sel = NSSelectorFromString("URLSession:task:didReceiveChallenge:completionHandler:")
         XCTAssertFalse(proxy.responds(to: sel))
     }
 
-    func test_newProxy_respondsToSessionChallenge_returnsTrue_whenDelegateImplementsIt() {
+    func test_proxy_respondsToSessionChallenge_returnsTrue_whenDelegateImplementsIt() {
         let proxy = EmbraceMakeURLSessionDelegateProxy(FullyImplementedURLSessionDelegate(), handler)
         let sel = NSSelectorFromString("URLSession:didReceiveChallenge:completionHandler:")
         XCTAssertTrue(proxy.responds(to: sel))
     }
 
-    func test_newProxy_respondsToTaskChallenge_returnsTrue_whenDelegateImplementsIt() {
+    func test_proxy_respondsToTaskChallenge_returnsTrue_whenDelegateImplementsIt() {
         let proxy = EmbraceMakeURLSessionDelegateProxy(FullyImplementedURLSessionDelegate(), handler)
         let sel = NSSelectorFromString("URLSession:task:didReceiveChallenge:completionHandler:")
         XCTAssertTrue(proxy.responds(to: sel))
     }
 
-    func test_newProxy_sessionChallenge_isForwardedToDelegate() {
+    func test_proxy_sessionChallenge_isForwardedToDelegate() {
         let delegate = FullyImplementedURLSessionDelegate()
         let proxy = EmbraceMakeURLSessionDelegateProxy(delegate, handler)
 
@@ -66,7 +66,7 @@ class URLSessionDelegateProxyChallengeHandlingTests: XCTestCase {
         wait(for: [expectation])
     }
 
-    func test_newProxy_taskChallenge_isForwardedToDelegate() {
+    func test_proxy_taskChallenge_isForwardedToDelegate() {
         let delegate = FullyImplementedURLSessionDelegate()
         let proxy = EmbraceMakeURLSessionDelegateProxy(delegate, handler)
 
@@ -86,31 +86,5 @@ class URLSessionDelegateProxyChallengeHandlingTests: XCTestCase {
         )
 
         XCTAssertTrue(delegate.didCallTaskWithReceivedAuthenticationChallenge)
-    }
-
-    // MARK: - LegacyProxy
-
-    func test_legacyProxy_respondsToSessionChallenge_returnsFalse_whenDelegateIsEmpty() {
-        let proxy = MakeLegacyURLSessionDelegateProxy(EmbraceDummyURLSessionDelegate(), handler!) as AnyObject
-        let sel = NSSelectorFromString("URLSession:didReceiveChallenge:completionHandler:")
-        XCTAssertFalse(proxy.responds(to: sel))
-    }
-
-    func test_legacyProxy_respondsToTaskChallenge_returnsFalse_whenDelegateIsEmpty() {
-        let proxy = MakeLegacyURLSessionDelegateProxy(EmbraceDummyURLSessionDelegate(), handler!) as AnyObject
-        let sel = NSSelectorFromString("URLSession:task:didReceiveChallenge:completionHandler:")
-        XCTAssertFalse(proxy.responds(to: sel))
-    }
-
-    func test_legacyProxy_respondsToSessionChallenge_returnsTrue_whenDelegateImplementsIt() {
-        let proxy = MakeLegacyURLSessionDelegateProxy(FullyImplementedURLSessionDelegate(), handler!) as AnyObject
-        let sel = NSSelectorFromString("URLSession:didReceiveChallenge:completionHandler:")
-        XCTAssertTrue(proxy.responds(to: sel))
-    }
-
-    func test_legacyProxy_respondsToTaskChallenge_returnsTrue_whenDelegateImplementsIt() {
-        let proxy = MakeLegacyURLSessionDelegateProxy(FullyImplementedURLSessionDelegate(), handler!) as AnyObject
-        let sel = NSSelectorFromString("URLSession:task:didReceiveChallenge:completionHandler:")
-        XCTAssertTrue(proxy.responds(to: sel))
     }
 }

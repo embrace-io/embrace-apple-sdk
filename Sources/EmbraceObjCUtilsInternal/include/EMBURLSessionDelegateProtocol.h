@@ -20,11 +20,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
-@protocol EMBURLSessionDelegateProxy <NSObject,
-                                      NSURLSessionDelegate,
-                                      NSURLSessionTaskDelegate,
-                                      NSURLSessionDataDelegate,
-                                      NSURLSessionStreamDelegate>
+@protocol EMBURLSessionDelegateProxyType <NSObject,
+                                          NSURLSessionDelegate,
+                                          NSURLSessionTaskDelegate,
+                                          NSURLSessionDataDelegate,
+                                          NSURLSessionStreamDelegate>
 
 @property(atomic, strong, nullable) id originalDelegate;
 
@@ -43,7 +43,7 @@ NS_ASSUME_NONNULL_BEGIN
 // Returns YES on success.
 FOUNDATION_EXPORT BOOL EmbraceInvoke(id target, SEL aSelector, NSArray<id> *arguments);
 
-FOUNDATION_EXPORT id<EMBURLSessionDelegateProxy> EmbraceMakeURLSessionDelegateProxy(
+FOUNDATION_EXPORT id<EMBURLSessionDelegateProxyType> EmbraceMakeURLSessionDelegateProxy(
     id<NSURLSessionDelegate> _Nullable delegate, id<URLSessionTaskHandler> handler);
 
 NS_ASSUME_NONNULL_END

@@ -3,65 +3,40 @@
 //
 
 import EmbraceCommonInternal
+import EmbraceSemantics
 import Foundation
-import OpenTelemetryApi
 
 public class MockLog: EmbraceLog {
-    public var idRaw: String
-    public var processIdRaw: String
-    public var severityRaw: Int
-    public var body: String
+    public var id: String
+    public var severity: EmbraceLogSeverity
+    public var type: EmbraceType
     public var timestamp: Date
-    public var attributes: [MockLogAttribute]
+    public var body: String
+    public var attributes: EmbraceAttributes
+    public var sessionId: EmbraceIdentifier?
+    public var processId: EmbraceIdentifier
+
+    public func setAttribute(key: String, value: EmbraceAttributeValue?) {
+        attributes[key] = value
+    }
 
     public init(
-        id: EmbraceIdentifier,
-        processId: EmbraceIdentifier,
-        severity: LogSeverity,
-        body: String,
+        id: String = EmbraceIdentifier.random.stringValue,
+        severity: EmbraceLogSeverity = .info,
+        type: EmbraceType = .message,
         timestamp: Date = Date(),
-        attributes: [String: AttributeValue] = [:]
+        body: String = "Mock",
+        attributes: EmbraceAttributes = [:],
+        sessionId: EmbraceIdentifier? = nil,
+        processId: EmbraceIdentifier = .random
     ) {
-        self.idRaw = id.stringValue
-        self.processIdRaw = processId.stringValue
-        self.severityRaw = severity.rawValue
-        self.body = body
+        self.id = id
+        self.severity = severity
+        self.type = type
         self.timestamp = timestamp
-
-        var finalAttributes: [MockLogAttribute] = []
-        for (key, value) in attributes {
-            let attribute = MockLogAttribute(key: key, value: value)
-            finalAttributes.append(attribute)
-        }
-        self.attributes = finalAttributes
-    }
-
-    public func allAttributes() -> [any EmbraceLogAttribute] {
-        return attributes
-    }
-
-    public func attribute(forKey key: String) -> (any EmbraceLogAttribute)? {
-        return attributes.first(where: { $0.key == key })
-    }
-}
-
-public class MockLogAttribute: EmbraceLogAttribute {
-    public var key: String
-    public var valueRaw: String = ""
-    public var typeRaw: Int = 0
-
-    public init(key: String, value: AttributeValue) {
-        self.key = key
-        self.valueRaw = value.description
-        self.typeRaw = typeForValue(value).rawValue
-    }
-
-    func typeForValue(_ value: AttributeValue) -> EmbraceLogAttributeType {
-        switch value {
-        case .int: return .int
-        case .double: return .double
-        case .bool: return .bool
-        default: return .string
-        }
+        self.body = body
+        self.sessionId = sessionId
+        self.processId = processId
+        self.attributes = attributes
     }
 }

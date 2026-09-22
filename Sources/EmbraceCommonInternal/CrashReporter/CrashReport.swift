@@ -4,8 +4,12 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
 /// Representation of a crash that will be reported through Embrace.
-@objc public class EmbraceCrashReport: NSObject {
+public struct EmbraceCrashReport {
 
     /// Unique identifier of this crash.
     public private(set) var id: UUID
@@ -22,6 +26,9 @@ import Foundation
     /// If available, the session id that was ended by this crash.
     public private(set) var sessionId: String?
 
+    /// If available, the id of the process this crash happened in.
+    public private(set) var processId: String?
+
     /// The date when the crash occurred if available.
     public private(set) var timestamp: Date?
 
@@ -33,6 +40,7 @@ import Foundation
         provider: String,
         internalId: EMBInt? = nil,
         sessionId: String? = nil,
+        processId: String? = nil,
         timestamp: Date? = nil,
         signal: CrashSignal? = nil
     ) {
@@ -41,6 +49,7 @@ import Foundation
         self.provider = provider
         self.internalId = internalId
         self.sessionId = sessionId
+        self.processId = processId
         self.timestamp = timestamp
         self.signal = signal
     }

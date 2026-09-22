@@ -9,7 +9,7 @@ import Foundation
 #endif
 
 /// The state of a `CaptureService`
-@objc public enum CaptureServiceState: Int8, EmbraceAtomicType {
+public enum CaptureServiceState: Int8, EmbraceAtomicType {
     /// Indicates that the service has not been installed yet.
     case uninstalled
 

@@ -11,7 +11,7 @@ import XCTest
 
 class URLSessionDelegateProxyTests: XCTestCase {
     private var originalDelegate: FullyImplementedURLSessionDelegate!
-    private var sut: EMBURLSessionDelegateProxy!
+    private var sut: EMBURLSessionDelegateProxyType!
     private var handler: MockURLSessionTaskHandler!
 
     func test_onSessionInvalidated_shouldNilOutOriginalDelegateAndHandler() throws {
