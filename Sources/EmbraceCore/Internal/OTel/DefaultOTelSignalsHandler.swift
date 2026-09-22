@@ -153,7 +153,15 @@ package class DefaultOTelSignalsHandler {
         var externalSpanCount: Int = 0
         var internalSpanCount: Int = 0
         var spanCountByType: [String: Int] = [:]
+        /// The spans still waiting to be auto-terminated, by span id. A span is dropped from here
+        /// once it ends, so the cache doesn't hold every one of them for the whole session.
         var autoTerminationSpans: [String: DefaultEmbraceSpan] = [:]
+
+        /// The auto-termination code each span was created with, by span id. A child created with
+        /// no code of its own inherits from this, so it has to outlive the span itself: a parent
+        /// that already ended is gone from `autoTerminationSpans` but can still be named as the
+        /// parent of a span created afterwards. Holding only the code keeps that cheap.
+        var autoTerminationCodes: [String: EmbraceSpanErrorCode] = [:]
     }
     let cache = EmbraceMutex(Cache())
 
