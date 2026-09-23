@@ -39,14 +39,14 @@ extension EmbraceSpanContext {
         return isValidIdentifier(traceId, length: traceIdLength)
     }
 
-    /// Returns wether the given string can be used as a span identifier.
+    /// Returns whether the given string can be used as a span identifier.
     /// A valid span identifier is exactly 16 hexadecimal characters and is not entirely made of zeros.
     /// - Parameter spanId: The string to validate.
     public static func isValidSpanId(_ spanId: String) -> Bool {
         return isValidIdentifier(spanId, length: spanIdLength)
     }
 
-    /// Returns wether both identifiers in this context are well formed.
+    /// Returns whether both identifiers in this context are well-formed.
     public var isValid: Bool {
         return Self.isValidSpanId(spanId) && Self.isValidTraceId(traceId)
     }

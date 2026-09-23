@@ -413,7 +413,7 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
 
         guard EmbraceSpanContext.isValidTraceId(traceId) else {
             throw EmbraceOTelError.invalidSpanLinkIdentifiers(
-                "Invalid trace id '\(traceId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.traceIdLength) hexadecimal characters."
+                "Invalid trace id '\(traceId)' for a link on span \(spanName). Expected \(EmbraceSpanContext.traceIdLength) hexadecimal characters that are not all zeros."
             )
         }
 

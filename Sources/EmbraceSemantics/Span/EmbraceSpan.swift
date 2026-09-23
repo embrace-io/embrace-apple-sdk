@@ -75,9 +75,12 @@ public protocol EmbraceSpan {
     ///     hexadecimal characters, or is entirely made of zeros. Such identifiers can't point at
     ///     any span, so the link would be impossible to follow.
     ///   - The per-span link limit was already reached.
+    ///   - The span has already ended.
     ///   - The span can no longer record data, for example after the SDK has been stopped.
     ///
-    ///   In all of these cases the reason is logged.
+    ///   Malformed identifiers and a reached limit are logged as errors, and a link added after
+    ///   the span ended is logged as a warning. A span that can no longer record data drops the
+    ///   link without logging.
     @discardableResult
     func addLink(
         spanId: String,
@@ -139,9 +142,12 @@ extension EmbraceSpan {
     ///     contains non hexadecimal characters, or is entirely made of zeros. Such identifiers
     ///     can't point at any span, so the link would be impossible to follow.
     ///   - The per-span link limit was already reached.
+    ///   - The span has already ended.
     ///   - The span can no longer record data, for example after the SDK has been stopped.
     ///
-    ///   In all of these cases the reason is logged.
+    ///   Malformed identifiers and a reached limit are logged as errors, and a link added after
+    ///   the span ended is logged as a warning. A span that can no longer record data drops the
+    ///   link without logging.
     @discardableResult
     public func addLink(_ link: EmbraceSpanLink) -> EmbraceSpanLink? {
         return addLink(
