@@ -165,6 +165,23 @@ public class EmbraceUpload: EmbraceLogUploader {
         }
     }
 
+    /// Blocks until no upload is queued or in flight, including the operations the coordination
+    /// queue creates when it refills after an upload finishes. Tests use it to synchronize with
+    /// uploads before asserting.
+    ///
+    /// An operation that keeps retrying never finishes, so this does not return while one is
+    /// retrying. Must not be called on the coordination queue.
+    func waitForAllWork() {
+        // An operation calls its completion, which enqueues `handleOperationFinished` on the
+        // coordination queue, before it finishes. So once the operation queues are idle, the next
+        // `queue.sync` runs after every completion and any refill it triggered.
+        while !queue.sync(execute: { inFlightIDs.values.allSatisfy(\.isEmpty) }) {
+            spansQueue.waitUntilAllOperationsAreFinished()
+            logsQueue.waitUntilAllOperationsAreFinished()
+            attachmentsQueue.waitUntilAllOperationsAreFinished()
+        }
+    }
+
     // MARK: - Internal: Upload Data (Cache-First)
 
     /// Validates input, saves to cache synchronously, signals durability via completion,
