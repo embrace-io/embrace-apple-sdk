@@ -1,0 +1,98 @@
+//
+//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//
+
+#if canImport(UIKit) && !os(watchOS)
+    import Foundation
+    import UIKit
+
+    /// Which appearance callback a view controller is reporting.
+    enum ScreenAppearancePhase {
+        case willAppear
+        case didAppear
+        case didDisappear
+    }
+
+    /// Turns view controller appearance callbacks into the navigation timeline.
+    ///
+    /// Decides *which* controllers count as screens and what they are called; the broker decides
+    /// what the resulting timeline looks like.
+    ///
+    /// Main-thread only, and nothing is dispatched — that satisfies the broker's serialization
+    /// contract and keeps each transition on its originating callback's timestamp.
+    final class ScreenNavigationTracker {
+
+        /// Skipped: containers appear alongside the content they present, which would both put
+        /// "UINavigationController" in the timeline and keep two screens visible at once —
+        /// suppressing load-time backdating for the real one.
+        private static let containerClasses: [UIViewController.Type] = [
+            UINavigationController.self,
+            UITabBarController.self,
+            UISplitViewController.self,
+            UIPageViewController.self
+        ]
+
+        private let broker: NavigationEventBroker
+        private let reporter: ScreenStateReporter
+
+        /// Whether this controller is excluded by the customer's or the config's block list.
+        private let isBlocked: (UIViewController) -> Bool
+
+        init(
+            reporter: ScreenStateReporter,
+            isBlocked: @escaping (UIViewController) -> Bool
+        ) {
+            self.reporter = reporter
+            self.isBlocked = isBlocked
+            self.broker = NavigationEventBroker(onScreenLoad: reporter.onScreenLoad)
+        }
+
+        // MARK: - Input
+
+        func onAppearance(_ vc: UIViewController, phase: ScreenAppearancePhase, at time: Date) {
+            let componentId = ObjectIdentifier(vc)
+            let name = vc.emb_viewName
+
+            switch phase {
+            case .willAppear:
+                guard shouldTrack(vc) else { return }
+                broker.handle(.started(componentId, name: name, at: time))
+
+            case .didAppear:
+                guard shouldTrack(vc) else { return }
+                broker.handle(.resumed(componentId, name: name, at: time))
+
+            case .didDisappear:
+                broker.handle(.paused(componentId, name: name, at: time))
+            }
+        }
+
+        // MARK: - Filtering
+
+        private func shouldTrack(_ vc: UIViewController) -> Bool {
+            // A controller the customer has already opted out of stays out of both streams.
+            guard vc.emb_shouldCaptureView, !isBlocked(vc) else {
+                return false
+            }
+
+            // `isKind(of:)` rather than `isMember(of:)`: custom container subclasses are common,
+            // and a `MyNavigationController: UINavigationController` is just as much a container.
+            return !Self.containerClasses.contains { vc.isKind(of: $0) }
+        }
+    }
+
+    /// App-state transitions reach here from `iOSSessionLifecycle`'s `UIApplication` observers, by
+    /// way of `ViewCaptureService`. Delivery is synchronous the whole way, and UIKit posts those
+    /// notifications on the main thread, so this arrives on the thread the broker requires — the
+    /// same one the appearance callbacks come in on.
+    extension ScreenNavigationTracker: AppStateObserver {
+
+        func appWillBackground(at time: Date) {
+            broker.handle(.backgrounded(at: time))
+        }
+
+        func appDidForeground(at time: Date) {
+            broker.handle(.foregrounded(at: time))
+        }
+    }
+#endif
