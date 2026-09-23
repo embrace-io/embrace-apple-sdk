@@ -30,25 +30,27 @@ class DefaultEmbraceSpan: EmbraceSpan {
     }
 
     var endTime: Date? {
-        get { state.safeValue.endTime }
-        set { state.safeValue.endTime = newValue }
+        state.safeValue.endTime
     }
 
     var events: [EmbraceSpanEvent] {
-        get { state.safeValue.events }
-        set { state.safeValue.events = newValue }
+        state.safeValue.events
     }
 
     var links: [EmbraceSpanLink] {
-        get { state.safeValue.links }
-        set { state.safeValue.links = newValue }
+        state.safeValue.links
     }
 
     var attributes: EmbraceAttributes {
-        get { state.safeValue.attributes }
-        set { state.safeValue.attributes = newValue }
+        state.safeValue.attributes
     }
 
+    /// All mutable state of the span, guarded by `state`.
+    ///
+    /// Mutations must go through `state.withLock { }` so that the read and the write happen in a
+    /// single critical section. Mutating a single field through a get-then-set accessor would copy
+    /// the whole struct, mutate the copy, and write it back, allowing a concurrent mutation of any
+    /// other field to be silently lost.
     struct MutableData {
         var status: EmbraceSpanStatus = .unset
         var endTime: Date? = nil
@@ -99,8 +101,30 @@ class DefaultEmbraceSpan: EmbraceSpan {
         }
     }
 
+    /// Whether the span has ended. An ended span no longer accepts changes to its status,
+    /// attributes, events or links.
+    ///
+    /// A span exists in two places: the record Embrace stores and uploads, and the span the OTel
+    /// pipeline exports. Storage accepts any mutation it is handed. The OTel side accepts none once
+    /// the span has ended, because the bridge drops it from its span cache and the OTel SDK stops
+    /// recording. Refusing the change up front keeps a late write from landing in the Embrace instance
+    /// while being omitted from the OTel one.
+    var hasEnded: Bool {
+        state.safeValue.endTime != nil
+    }
+
+    /// Reports a change that was dropped because the span had already ended.
+    private func logIgnoredMutation(_ description: String) {
+        Embrace.logger.warning("Ignoring \(description) on span '\(self.name)': the span already ended.")
+    }
+
     func setStatus(_ status: EmbraceSpanStatus) {
-        state.safeValue.status = status
+        guard !hasEnded else {
+            logIgnoredMutation("status update")
+            return
+        }
+
+        state.withLock { $0.status = status }
         handler?.onSpanStatusUpdated(self, status: status)
     }
 
@@ -137,6 +161,11 @@ class DefaultEmbraceSpan: EmbraceSpan {
         isSessionEvent: Bool = false
     ) throws -> EmbraceSpanEvent? {
 
+        guard !hasEnded else {
+            logIgnoredMutation("event '\(name)'")
+            return nil
+        }
+
         let event: EmbraceSpanEvent
 
         if isInternal {
@@ -148,35 +177,38 @@ class DefaultEmbraceSpan: EmbraceSpan {
                 attributes: internalAttributes.merging(attributes) { (current, _) in current }
             )
 
+            state.withLock {
+                $0.events.append(event)
+                $0.internalEventCount += 1
+            }
+
         } else {
             // No handler means the span was constructed without one (e.g. read-only adapter / record).
             // Match today's silent skip — return nil.
             guard let handler else { return nil }
 
-            let currentCount = state.withLock {
-                $0.events.count - $0.internalEventCount
-            }
+            // The count the limit is checked against and the append that consumes a slot share a
+            // single critical section. Reading the count under its own lock would let two concurrent
+            // callers both pass the check and push the event count past the limit.
+            event = try state.withLock {
+                let currentCount = $0.events.count - $0.internalEventCount
 
-            event = try handler.createEvent(
-                forSpanNamed: self.name,
-                name: name,
-                type: type,
-                timestamp: timestamp,
-                attributes: attributes,
-                internalAttributes: internalAttributes,
-                currentCount: currentCount,
-                isSessionEvent: isSessionEvent
-            )
-        }
+                let event = try handler.createEvent(
+                    forSpanNamed: self.name,
+                    name: name,
+                    type: type,
+                    timestamp: timestamp,
+                    attributes: attributes,
+                    internalAttributes: internalAttributes,
+                    currentCount: currentCount,
+                    isSessionEvent: isSessionEvent
+                )
 
-        // add event
-        state.withLock {
-            $0.events.append(event)
-
-            if isInternal {
-                $0.internalEventCount += 1
+                $0.events.append(event)
+                return event
             }
         }
+
         handler?.onSpanEventAdded(self, event: event)
         return event
     }
@@ -195,7 +227,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
                 isInternal: false
             )
         } catch {
-            Embrace.logger.warning("Failed to add link to span '\(self.name)': \(error.localizedDescription)")
+            Embrace.logger.error("Failed to add link to span '\(self.name)': \(error.localizedDescription)")
             return nil
         }
     }
@@ -221,34 +253,44 @@ class DefaultEmbraceSpan: EmbraceSpan {
         // array while returning non-nil would tell them it succeeded.
         guard let handler else { return nil }
 
+        guard !hasEnded else {
+            logIgnoredMutation("link")
+            return nil
+        }
+
         let link: EmbraceSpanLink
 
         if isInternal {
             // Internal callers: skip the limiter and the sanitizer, as the internal event path does.
             link = EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes)
 
-        } else {
-            // Counted against the links already on this span, excluding the SDK's own.
-            let currentCount = state.withLock {
-                $0.links.count - $0.internalLinkCount
-            }
-
-            link = try handler.createLink(
-                forSpanNamed: self.name,
-                spanId: spanId,
-                traceId: traceId,
-                attributes: attributes,
-                currentCount: currentCount
-            )
-        }
-
-        state.withLock {
-            $0.links.append(link)
-
-            if isInternal {
+            state.withLock {
+                $0.links.append(link)
                 $0.internalLinkCount += 1
             }
+
+        } else {
+            // The count the limit is checked against and the append that consumes a slot share a
+            // single critical section. Reading the count under its own lock would let two concurrent
+            // callers both pass the check and push the link count past the limit, and appending
+            // through a get-then-set accessor would let one of the two links be lost entirely.
+            link = try state.withLock {
+                // Counted against the links already on this span, excluding the SDK's own.
+                let currentCount = $0.links.count - $0.internalLinkCount
+
+                let link = try handler.createLink(
+                    forSpanNamed: self.name,
+                    spanId: spanId,
+                    traceId: traceId,
+                    attributes: attributes,
+                    currentCount: currentCount
+                )
+
+                $0.links.append(link)
+                return link
+            }
         }
+
         handler.onSpanLinkAdded(self, link: link)
         return link
     }
@@ -271,46 +313,127 @@ class DefaultEmbraceSpan: EmbraceSpan {
             return
         }
 
-        var attribute: (String, EmbraceAttributeValue?) = (key, value)
-
-        // apply limits?
-        if !isInternal {
-            let currentCount = state.withLock {
-                $0.attributes.count - $0.internalAttributeCount
-            }
-
-            attribute = try handler.validateAttribute(
-                for: self,
-                key: key,
-                value: value,
-                currentCount: currentCount
-            )
+        guard !hasEnded else {
+            logIgnoredMutation("attribute '\(key)'")
+            return
         }
 
-        // update
-        state.withLock {
-            $0.attributes[attribute.0] = attribute.1
+        // The count the limit is checked against and the write that consumes a slot share a single
+        // critical section. Reading the count under its own lock would let two concurrent callers
+        // both pass the check and push the attribute count past the limit.
+        let attribute = try state.withLock { data -> (String, EmbraceAttributeValue?) in
+            var attribute: (String, EmbraceAttributeValue?) = (key, value)
 
-            if isInternal {
-                $0.internalAttributeCount += value != nil ? 1 : -1
+            // apply limits?
+            if !isInternal {
+                attribute = try handler.validateAttribute(
+                    forSpanNamed: self.name,
+                    key: key,
+                    value: value,
+                    currentAttributes: data.attributes,
+                    currentCount: data.attributes.count - data.internalAttributeCount
+                )
             }
+
+            // only count the attribute when its presence actually changes, otherwise
+            // overwriting an existing key or clearing an absent one skews the count
+            let existed = data.attributes[attribute.0] != nil
+            data.attributes[attribute.0] = attribute.1
+
+            if isInternal, existed != (attribute.1 != nil) {
+                data.internalAttributeCount += attribute.1 != nil ? 1 : -1
+            }
+
+            return attribute
         }
 
-        handler.onSpanAttributesUpdated(
-            self,
-            key: attribute.0,
-            value: attribute.1,
-            attributes: attributes
-        )
+        handler.onSpanAttributeUpdated(self, key: attribute.0, value: attribute.1)
     }
 
     func end(endTime: Date) {
-        self.endTime = endTime
+        // Claiming the end time and checking for a previous one happen together, so that two
+        // threads ending the same span concurrently can't both notify the handler.
+        let alreadyEnded = state.withLock { data -> Bool in
+            guard data.endTime == nil else {
+                return true
+            }
+
+            data.endTime = endTime
+            return false
+        }
+
+        guard !alreadyEnded else {
+            logIgnoredMutation("end")
+            return
+        }
+
         handler?.onSpanEnded(self, endTime: endTime)
     }
 
     func end() {
         end(endTime: Date())
+    }
+}
+
+// MARK: Ending With an Error Code
+
+/// Ends a span and records its outcome as one indivisible step.
+protocol EmbraceSpanErrorCodeEnd {
+    func _end(errorCode: EmbraceSpanErrorCode?, endTime: Date)
+}
+
+extension DefaultEmbraceSpan: EmbraceSpanErrorCodeEnd {
+
+    /// What a successful claim reports once the lock is released.
+    private struct EndOutcome {
+        let status: EmbraceSpanStatus
+        let errorCodeName: String?
+        let endTime: Date
+    }
+
+    func _end(errorCode: EmbraceSpanErrorCode?, endTime: Date) {
+        // The outcome and the end time are claimed together. Written one at a time, a span being
+        // ended concurrently could keep half of an outcome — the error code attribute without the
+        // error status that gives it meaning.
+        let outcome: EndOutcome? = state.withLock { data in
+            guard data.endTime == nil else {
+                return nil
+            }
+
+            if let errorCode {
+                data.attributes[SpanSemantics.keyErrorCode] = errorCode.name
+                data.internalAttributeCount += 1
+                data.status = .error
+            } else {
+                data.status = .ok
+            }
+
+            data.endTime = endTime
+
+            return EndOutcome(
+                status: data.status,
+                errorCodeName: errorCode?.name,
+                endTime: endTime
+            )
+        }
+
+        guard let outcome else {
+            logIgnoredMutation("end")
+            return
+        }
+
+        // Notifications happen after the lock is released: a handler is free to read back the
+        // span's state, and doing so takes this same non-recursive lock.
+        if let errorCodeName = outcome.errorCodeName {
+            handler?.onSpanAttributeUpdated(
+                self,
+                key: SpanSemantics.keyErrorCode,
+                value: errorCodeName
+            )
+        }
+
+        handler?.onSpanStatusUpdated(self, status: outcome.status)
+        handler?.onSpanEnded(self, endTime: outcome.endTime)
     }
 }
 

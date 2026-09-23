@@ -9,6 +9,7 @@ package enum EmbraceOTelError: Error, Equatable {
     case spanLimitReached
     case spanEventLimitReached(_ description: String)
     case spanLinkLimitReached(_ description: String)
+    case invalidSpanLinkIdentifiers(_ description: String)
     case spanAttributeLimitReached(_ description: String)
     case logLimitReached
 }
@@ -27,6 +28,7 @@ extension EmbraceOTelError: LocalizedError, CustomNSError {
         case .spanLinkLimitReached: -4
         case .spanAttributeLimitReached: -5
         case .logLimitReached: -6
+        case .invalidSpanLinkIdentifiers: -7
         }
     }
 
@@ -36,6 +38,7 @@ extension EmbraceOTelError: LocalizedError, CustomNSError {
         case .spanLimitReached: "Span limit reached for the current Embrace session!"
         case .spanEventLimitReached(let description): description
         case .spanLinkLimitReached(let description): description
+        case .invalidSpanLinkIdentifiers(let description): description
         case .spanAttributeLimitReached(let description): description
         case .logLimitReached: "Log limit reached for the current Embrace session!"
         }
