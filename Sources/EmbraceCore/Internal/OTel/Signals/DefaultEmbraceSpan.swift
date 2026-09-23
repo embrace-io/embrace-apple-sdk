@@ -101,7 +101,29 @@ class DefaultEmbraceSpan: EmbraceSpan {
         }
     }
 
+    /// Whether the span has ended. An ended span no longer accepts changes to its status,
+    /// attributes, events or links.
+    ///
+    /// A span exists in two places: the record Embrace stores and uploads, and the span the OTel
+    /// pipeline exports. Storage accepts any mutation it is handed. The OTel side accepts none once
+    /// the span has ended, because the bridge drops it from its span cache and the OTel SDK stops
+    /// recording. Refusing the change up front keeps a late write from landing in the Embrace instance
+    /// while being omitted from the OTel one.
+    var hasEnded: Bool {
+        state.safeValue.endTime != nil
+    }
+
+    /// Reports a change that was dropped because the span had already ended.
+    private func logIgnoredMutation(_ description: String) {
+        Embrace.logger.warning("Ignoring \(description) on span '\(self.name)': the span already ended.")
+    }
+
     func setStatus(_ status: EmbraceSpanStatus) {
+        guard !hasEnded else {
+            logIgnoredMutation("status update")
+            return
+        }
+
         state.withLock { $0.status = status }
         handler?.onSpanStatusUpdated(self, status: status)
     }
@@ -138,6 +160,11 @@ class DefaultEmbraceSpan: EmbraceSpan {
         isInternal: Bool,
         isSessionEvent: Bool = false
     ) throws -> EmbraceSpanEvent? {
+
+        guard !hasEnded else {
+            logIgnoredMutation("event '\(name)'")
+            return nil
+        }
 
         let event: EmbraceSpanEvent
 
@@ -196,6 +223,11 @@ class DefaultEmbraceSpan: EmbraceSpan {
             return nil
         }
 
+        guard !hasEnded else {
+            logIgnoredMutation("link")
+            return nil
+        }
+
         do {
             // The count the limit is checked against and the append that consumes a slot share a
             // single critical section. Reading the count under its own lock would let two concurrent
@@ -219,7 +251,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
             handler.onSpanLinkAdded(self, link: link)
             return link
         } catch {
-            Embrace.logger.warning("Failed to add link to span '\(self.name)': \(error.localizedDescription)")
+            Embrace.logger.error("Failed to add link to span '\(self.name)': \(error.localizedDescription)")
             return nil
         }
     }
@@ -239,6 +271,11 @@ class DefaultEmbraceSpan: EmbraceSpan {
     func _setAttribute(key: String, value: EmbraceAttributeValue?, isInternal: Bool) throws {
 
         guard let handler else {
+            return
+        }
+
+        guard !hasEnded else {
+            logIgnoredMutation("attribute '\(key)'")
             return
         }
 
@@ -275,12 +312,89 @@ class DefaultEmbraceSpan: EmbraceSpan {
     }
 
     func end(endTime: Date) {
-        state.withLock { $0.endTime = endTime }
+        // Claiming the end time and checking for a previous one happen together, so that two
+        // threads ending the same span concurrently can't both notify the handler.
+        let alreadyEnded = state.withLock { data -> Bool in
+            guard data.endTime == nil else {
+                return true
+            }
+
+            data.endTime = endTime
+            return false
+        }
+
+        guard !alreadyEnded else {
+            logIgnoredMutation("end")
+            return
+        }
+
         handler?.onSpanEnded(self, endTime: endTime)
     }
 
     func end() {
         end(endTime: Date())
+    }
+}
+
+// MARK: Ending With an Error Code
+
+/// Ends a span and records its outcome as one indivisible step.
+protocol EmbraceSpanErrorCodeEnd {
+    func _end(errorCode: EmbraceSpanErrorCode?, endTime: Date)
+}
+
+extension DefaultEmbraceSpan: EmbraceSpanErrorCodeEnd {
+
+    /// What a successful claim reports once the lock is released.
+    private struct EndOutcome {
+        let status: EmbraceSpanStatus
+        let errorCodeName: String?
+        let endTime: Date
+    }
+
+    func _end(errorCode: EmbraceSpanErrorCode?, endTime: Date) {
+        // The outcome and the end time are claimed together. Written one at a time, a span being
+        // ended concurrently could keep half of an outcome — the error code attribute without the
+        // error status that gives it meaning.
+        let outcome: EndOutcome? = state.withLock { data in
+            guard data.endTime == nil else {
+                return nil
+            }
+
+            if let errorCode {
+                data.attributes[SpanSemantics.keyErrorCode] = errorCode.name
+                data.internalAttributeCount += 1
+                data.status = .error
+            } else {
+                data.status = .ok
+            }
+
+            data.endTime = endTime
+
+            return EndOutcome(
+                status: data.status,
+                errorCodeName: errorCode?.name,
+                endTime: endTime
+            )
+        }
+
+        guard let outcome else {
+            logIgnoredMutation("end")
+            return
+        }
+
+        // Notifications happen after the lock is released: a handler is free to read back the
+        // span's state, and doing so takes this same non-recursive lock.
+        if let errorCodeName = outcome.errorCodeName {
+            handler?.onSpanAttributeUpdated(
+                self,
+                key: SpanSemantics.keyErrorCode,
+                value: errorCodeName
+            )
+        }
+
+        handler?.onSpanStatusUpdated(self, status: outcome.status)
+        handler?.onSpanEnded(self, endTime: outcome.endTime)
     }
 }
 

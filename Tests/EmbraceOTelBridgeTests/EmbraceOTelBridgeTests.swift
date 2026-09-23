@@ -189,6 +189,62 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         XCTAssertEqual(mockDelegate.emittedLogs.count, 0)
     }
 
+    // MARK: - createLog internal ID lifetime
+
+    func test_createLog_repeated_doesNotAccumulateInternalLogIds() {
+        for _ in 0..<1000 {
+            bridge.createLog(MockEmbraceLog())
+        }
+        XCTAssertTrue(bridge.inFlightInternalLogIds.isEmpty)
+    }
+
+    func test_createLog_repeated_stillSkipsDelegateAndExportsOnce() {
+        for _ in 0..<100 {
+            bridge.createLog(MockEmbraceLog())
+        }
+        // Each log reaches the exporter exactly once and none of them is treated as external.
+        XCTAssertEqual(logExporter.exportedLogs.count, 100)
+        XCTAssertEqual(mockDelegate.emittedLogs.count, 0)
+    }
+
+    func test_isInternalLog_logNotCreatedByBridge_isExternal() {
+        let external = makeReadableLogRecord(id: "not-created-by-the-bridge")
+        XCTAssertFalse(bridge.isInternalLog(external))
+    }
+
+    func test_isInternalLog_logWithoutIdAttribute_isExternal() {
+        let external = makeReadableLogRecord(id: nil)
+        XCTAssertFalse(bridge.isInternalLog(external))
+    }
+
+    func test_createLog_concurrent_allLogsAreInternalAndNoIdsAreRetained() {
+        let delegate = ThreadSafeMockOTelDelegate()
+        let exporter = ThreadSafeMockLogExporter()
+        let bridge = EmbraceOTelBridge(logExporters: [exporter])
+        bridge.setup(delegate: delegate, metadataProvider: mockMetadata)
+
+        DispatchQueue.concurrentPerform(iterations: 100) { _ in
+            bridge.createLog(MockEmbraceLog())
+        }
+
+        XCTAssertEqual(exporter.exportedLogs.count, 100)
+        XCTAssertEqual(delegate.emittedLogs.count, 0)
+        XCTAssertTrue(bridge.inFlightInternalLogIds.isEmpty)
+    }
+
+    private func makeReadableLogRecord(id: String?) -> ReadableLogRecord {
+        var attributes: [String: AttributeValue] = [:]
+        if let id {
+            attributes[LogSemantics.keyId] = .string(id)
+        }
+        return ReadableLogRecord(
+            resource: Resource(),
+            instrumentationScopeInfo: InstrumentationScopeInfo(name: "test"),
+            timestamp: Date(),
+            attributes: attributes
+        )
+    }
+
     // MARK: - updateSpanStatus
 
     func test_updateSpanStatus_changesUnderlyingOtelSpanStatus() {
@@ -297,6 +353,323 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 2 }
         let childData = spanProcessor.endedSpans.first { $0.name == "child" }
         XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
+    }
+
+    func test_startSpan_withEndedParent_stillInheritsTrace() {
+        let parentCtx = bridge.startSpan(
+            name: "parent",
+            parentSpan: nil,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+        let parentMock = MockEmbraceSpan(spanId: parentCtx.spanId, traceId: parentCtx.traceId)
+
+        // End the parent first, dropping it from the span cache.
+        bridge.endSpan(parentMock, endTime: Date())
+
+        let childCtx = bridge.startSpan(
+            name: "child",
+            parentSpan: parentMock,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        XCTAssertEqual(childCtx.traceId, parentCtx.traceId)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 2 }
+        let childData = spanProcessor.endedSpans.first { $0.name == "child" }
+        XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
+    }
+
+    func test_startSpan_withParentCreatedWithEndTime_stillInheritsTrace() {
+        let start = Date()
+
+        // A span created with an end time is ended — and uncached — before it can be used as a parent.
+        let parentCtx = bridge.startSpan(
+            name: "parent",
+            parentSpan: nil,
+            status: .unset,
+            startTime: start,
+            endTime: start.addingTimeInterval(1),
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+        let parentMock = MockEmbraceSpan(spanId: parentCtx.spanId, traceId: parentCtx.traceId)
+
+        let childCtx = bridge.startSpan(
+            name: "child",
+            parentSpan: parentMock,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        XCTAssertEqual(childCtx.traceId, parentCtx.traceId)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 2 }
+        let childData = spanProcessor.endedSpans.first { $0.name == "child" }
+        XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
+    }
+
+    func test_startSpan_withParentNeverCreatedByBridge_stillInheritsTrace() {
+        // Mirrors a parent that reached the bridge from outside, so it was never in the span cache.
+        let parentSpanId = "abcdef1234567890"
+        let parentTraceId = "abcdef1234567890abcdef1234567890"
+        let parentMock = MockEmbraceSpan(spanId: parentSpanId, traceId: parentTraceId)
+
+        let childCtx = bridge.startSpan(
+            name: "child",
+            parentSpan: parentMock,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        XCTAssertEqual(childCtx.traceId, parentTraceId)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertEqual(spanProcessor.endedSpans.first?.parentSpanId?.hexString, parentSpanId)
+    }
+
+    // MARK: - Ambient active span
+
+    func test_startSpan_withoutParent_ignoresTheActiveSpan() {
+        // given an unrelated span active on the shared OTel context, as any other OTel user in
+        // the app could have
+        let ambientTracer = TracerProviderSdk().get(instrumentationName: "ambient")
+        let ambientSpan = ambientTracer.spanBuilder(spanName: "ambient").startSpan()
+
+        let ctx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
+            // when creating a span with no parent
+            bridge.startSpan(
+                name: "root",
+                parentSpan: nil,
+                status: .unset,
+                startTime: Date(),
+                endTime: nil,
+                events: [],
+                links: [],
+                attributes: [:]
+            )
+        }
+        ambientSpan.end()
+
+        // then it starts its own trace instead of joining the active one
+        XCTAssertNotEqual(ctx.traceId, ambientSpan.context.traceId.hexString)
+
+        let mockSpan = MockEmbraceSpan(spanId: ctx.spanId, traceId: ctx.traceId)
+        bridge.endSpan(mockSpan, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.contains { $0.name == "root" } }
+        let spanData = spanProcessor.endedSpans.first { $0.name == "root" }
+        XCTAssertNil(spanData?.parentSpanId)
+    }
+
+    func test_startSpan_withExplicitParent_isUnaffectedByTheActiveSpan() {
+        let ambientTracer = TracerProviderSdk().get(instrumentationName: "ambient")
+        let ambientSpan = ambientTracer.spanBuilder(spanName: "ambient").startSpan()
+
+        let parentCtx = bridge.startSpan(
+            name: "parent",
+            parentSpan: nil,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+        let parentMock = MockEmbraceSpan(spanId: parentCtx.spanId, traceId: parentCtx.traceId)
+
+        // when creating a child while an unrelated span is active
+        let childCtx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
+            bridge.startSpan(
+                name: "child",
+                parentSpan: parentMock,
+                status: .unset,
+                startTime: Date(),
+                endTime: nil,
+                events: [],
+                links: [],
+                attributes: [:]
+            )
+        }
+        ambientSpan.end()
+
+        // then the requested parent still wins
+        XCTAssertEqual(childCtx.traceId, parentCtx.traceId)
+        XCTAssertNotEqual(childCtx.traceId, ambientSpan.context.traceId.hexString)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.contains { $0.name == "child" } }
+        let childData = spanProcessor.endedSpans.first { $0.name == "child" }
+        XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
+    }
+
+    func test_startSpan_withoutParent_outsideAnyScope_startsItsOwnTrace() {
+        let first = bridge.startSpan(
+            name: "first",
+            parentSpan: nil,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+        let second = bridge.startSpan(
+            name: "second",
+            parentSpan: nil,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        XCTAssertTrue(TraceId(fromHexString: first.traceId).isValid)
+        XCTAssertTrue(TraceId(fromHexString: second.traceId).isValid)
+        XCTAssertNotEqual(first.traceId, second.traceId)
+    }
+
+    func test_startSpan_withLinkShorterThanASpanId_doesNotTrap() {
+        // `SpanId(fromHexString:)` traps on strings shorter than 16 characters, so a link the
+        // bridge can't use has to be discarded before it reaches that initializer.
+        let link = EmbraceSpanLink(spanId: "abc", traceId: "def")
+
+        let ctx = bridge.startSpan(
+            name: "span",
+            parentSpan: nil,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [link],
+            attributes: [:]
+        )
+
+        let mockSpan = MockEmbraceSpan(spanId: ctx.spanId, traceId: ctx.traceId)
+        bridge.endSpan(mockSpan, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertEqual(spanProcessor.endedSpans.first?.links.count, 0)
+    }
+
+    func test_startSpan_withParentShorterThanASpanId_doesNotTrap() {
+        let parentMock = MockEmbraceSpan(spanId: "abc", traceId: "def")
+
+        let childCtx = bridge.startSpan(
+            name: "child",
+            parentSpan: parentMock,
+            status: .unset,
+            startTime: Date(),
+            endTime: nil,
+            events: [],
+            links: [],
+            attributes: [:]
+        )
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertNil(spanProcessor.endedSpans.first?.parentSpanId)
+    }
+
+    func test_startSpan_withUnusableParentIds_startsNewTrace() {
+        // given a parent whose identifiers can't refer to a span, and an unrelated span active
+        // on the shared OTel context. The active span is what makes this meaningful: a builder
+        // left to its own devices would adopt it, so the new trace has to be stated explicitly.
+        let parentMock = MockEmbraceSpan(spanId: "not-hex", traceId: "not-hex")
+        let ambientTracer = TracerProviderSdk().get(instrumentationName: "ambient")
+        let ambientSpan = ambientTracer.spanBuilder(spanName: "ambient").startSpan()
+
+        let childCtx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
+            bridge.startSpan(
+                name: "child",
+                parentSpan: parentMock,
+                status: .unset,
+                startTime: Date(),
+                endTime: nil,
+                events: [],
+                links: [],
+                attributes: [:]
+            )
+        }
+        ambientSpan.end()
+
+        // then the span starts its own trace instead of joining the active one
+        XCTAssertTrue(TraceId(fromHexString: childCtx.traceId).isValid)
+        XCTAssertNotEqual(childCtx.traceId, ambientSpan.context.traceId.hexString)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertNil(spanProcessor.endedSpans.first?.parentSpanId)
+    }
+
+    func test_startSpan_withAllZeroParentIds_startsNewTrace() {
+        // given a parent with identifiers of the right length that are entirely made of zeros.
+        // They parse without trapping, so only the validity check keeps them from being used.
+        let parentMock = MockEmbraceSpan(
+            spanId: String(repeating: "0", count: 16),
+            traceId: String(repeating: "0", count: 32)
+        )
+        let ambientTracer = TracerProviderSdk().get(instrumentationName: "ambient")
+        let ambientSpan = ambientTracer.spanBuilder(spanName: "ambient").startSpan()
+
+        let childCtx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
+            bridge.startSpan(
+                name: "child",
+                parentSpan: parentMock,
+                status: .unset,
+                startTime: Date(),
+                endTime: nil,
+                events: [],
+                links: [],
+                attributes: [:]
+            )
+        }
+        ambientSpan.end()
+
+        // then the zeroed identifiers are refused and the span starts its own trace
+        XCTAssertTrue(TraceId(fromHexString: childCtx.traceId).isValid)
+        XCTAssertNotEqual(childCtx.traceId, parentMock.context.traceId)
+        XCTAssertNotEqual(childCtx.traceId, ambientSpan.context.traceId.hexString)
+
+        let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
+        bridge.endSpan(childMock, endTime: Date())
+
+        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        XCTAssertNil(spanProcessor.endedSpans.first?.parentSpanId)
     }
 
     // MARK: - Links at creation time
@@ -435,19 +808,111 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         XCTAssertNil(isolatedBridge.currentSessionId)
     }
 
-    // MARK: - Inbound (via external tracer on shared provider)
+    // MARK: - Concurrent span creation
 
-    // NOTE: To test the full inbound path, an external tracer would need to use the same
-    // TracerProviderSdk that is owned by the bridge. Since the bridge's provider is not
-    // exposed publicly, inbound integration is covered by EmbraceSpanProcessorTests.
+    func test_concurrentStartSpan_classifiesEverySpanAsInternal() {
+        let iterations = 200
+        let contexts = EmbraceMutex([EmbraceSpanContext]())
+
+        DispatchQueue.concurrentPerform(iterations: iterations) { index in
+            let context = bridge.startSpan(
+                name: "concurrent-\(index)",
+                parentSpan: nil,
+                status: .unset,
+                startTime: Date(),
+                endTime: nil,
+                events: [],
+                links: [],
+                attributes: [SpanSemantics.keyEmbraceType: EmbraceType.session.rawValue]
+            )
+            contexts.withLock { $0.append(context) }
+        }
+
+        let created = contexts.safeValue
+        let createdIds = Set(created.map { $0.spanId })
+
+        XCTAssertEqual(created.count, iterations)
+        XCTAssertEqual(createdIds.count, iterations, "Every span must get its own id")
+
+        // No span created here may be mistaken for one coming from outside the SDK.
+        XCTAssertEqual(mockDelegate.startedSpans.count, 0)
+        XCTAssertEqual(mockDelegate.endedSpans.count, 0)
+
+        // Every id is tracked exactly once, and no reservation leaked into the pending set.
+        XCTAssertTrue(bridge.pendingSpanIds.safeValue.isEmpty)
+        XCTAssertEqual(Set(bridge.spanCache.safeValue.keys), createdIds)
+
+        // The type each span started with survived: none was stamped as an external span.
+        bridge.waitForAllWork()
+        let started = spanProcessor.startedSpans.filter { $0.name.hasPrefix("concurrent-") }
+        XCTAssertEqual(started.count, iterations)
+        for span in started {
+            XCTAssertEqual(span.attributes[SpanSemantics.keyEmbraceType], .string(EmbraceType.session.rawValue))
+        }
+    }
+
+    func test_concurrentStartSpan_withExternalCreator_classifiesBothCorrectly() {
+        let iterations = 200
+        let tracer = bridge.tracerProvider.get(instrumentationName: "ExternalTracer", instrumentationVersion: nil)
+        let internalIds = EmbraceMutex(Set<String>())
+        let externalIds = EmbraceMutex(Set<String>())
+
+        // Half the threads drive the bridge; the other half create spans straight off the
+        // provider, the way a host app would once the providers are reachable.
+        DispatchQueue.concurrentPerform(iterations: iterations) { index in
+            if index.isMultiple(of: 2) {
+                let context = bridge.startSpan(
+                    name: "internal-\(index)",
+                    parentSpan: nil,
+                    status: .unset,
+                    startTime: Date(),
+                    endTime: nil,
+                    events: [],
+                    links: [],
+                    attributes: [SpanSemantics.keyEmbraceType: EmbraceType.session.rawValue]
+                )
+                internalIds.withLock { $0.insert(context.spanId) }
+            } else {
+                let span = tracer.spanBuilder(spanName: "external-\(index)").startSpan()
+                externalIds.withLock { $0.insert(span.context.spanId.hexString) }
+                span.end()
+            }
+        }
+
+        let internalSpanIds = internalIds.safeValue
+        let externalSpanIds = externalIds.safeValue
+        XCTAssertEqual(internalSpanIds.count, iterations / 2)
+        XCTAssertEqual(externalSpanIds.count, iterations / 2)
+        XCTAssertTrue(internalSpanIds.isDisjoint(with: externalSpanIds))
+
+        // Every external span reached the delegate exactly once; no internal span did.
+        let forwardedIds = mockDelegate.startedSpans.map { $0.context.spanId }
+        XCTAssertEqual(forwardedIds.count, externalSpanIds.count, "External spans must not be dropped or duplicated")
+        XCTAssertEqual(Set(forwardedIds), externalSpanIds)
+
+        XCTAssertTrue(bridge.pendingSpanIds.safeValue.isEmpty)
+        XCTAssertEqual(Set(bridge.spanCache.safeValue.keys), internalSpanIds)
+
+        // Only the external spans were stamped with the external-span type.
+        bridge.waitForAllWork()
+        for span in spanProcessor.startedSpans {
+            let type = span.attributes[SpanSemantics.keyEmbraceType]
+            if span.name.hasPrefix("external-") {
+                XCTAssertEqual(type, .string(EmbraceType.performance.rawValue))
+            } else {
+                XCTAssertEqual(type, .string(EmbraceType.session.rawValue))
+            }
+        }
+    }
 }
 
 // MARK: - Mocks
 
 class MockOTelDelegate: EmbraceOTelDelegate {
-    var startedSpans: [EmbraceSpan] = []
-    var endedSpans: [EmbraceSpan] = []
-    var emittedLogs: [EmbraceLog] = []
+    // Appended from the threads that create spans while tests read them on the main thread.
+    @TestLocked var startedSpans: [EmbraceSpan] = []
+    @TestLocked var endedSpans: [EmbraceSpan] = []
+    @TestLocked var emittedLogs: [EmbraceLog] = []
 
     func onStartSpan(_ span: EmbraceSpan) { startedSpans.append(span) }
     func onEndSpan(_ span: EmbraceSpan) { endedSpans.append(span) }
@@ -459,6 +924,28 @@ class MockLogExporter: LogRecordExporter {
 
     func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
         exportedLogs.append(contentsOf: logRecords)
+        return .success
+    }
+
+    func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult { .success }
+    func shutdown(explicitTimeout: TimeInterval?) {}
+}
+
+class ThreadSafeMockOTelDelegate: EmbraceOTelDelegate {
+    private let logs = EmbraceMutex([EmbraceLog]())
+    var emittedLogs: [EmbraceLog] { logs.withLock { $0 } }
+
+    func onStartSpan(_ span: EmbraceSpan) {}
+    func onEndSpan(_ span: EmbraceSpan) {}
+    func onEmitLog(_ log: EmbraceLog) { logs.withLock { $0.append(log) } }
+}
+
+class ThreadSafeMockLogExporter: LogRecordExporter {
+    private let logs = EmbraceMutex([ReadableLogRecord]())
+    var exportedLogs: [ReadableLogRecord] { logs.withLock { $0 } }
+
+    func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
+        logs.withLock { $0.append(contentsOf: logRecords) }
         return .success
     }
 

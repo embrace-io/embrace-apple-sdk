@@ -32,7 +32,13 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         var onSpanEventAddedCallCount: Int = 0
         var onSpanLinkAddedCallCount: Int = 0
         var onSpanAttributeUpdatedCallCount: Int = 0
-        var onSpanEndedCallCount: Int = 0
+
+        /// The end times the handler was notified with, in the order they arrived.
+        ///
+        /// Storing the times instead of a counter keeps a double notification visible: several
+        /// threads can end the same span at once, and the lock around this state makes sure no
+        /// notification is lost to a concurrent one.
+        var onSpanEndedTimes: [Date] = []
     }
     private let state = EmbraceMutex(State())
 
@@ -225,11 +231,15 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         state.withLock { $0.onSpanAttributeUpdatedCallCount += 1 }
     }
 
+    var onSpanEndedTimes: [Date] {
+        state.safeValue.onSpanEndedTimes
+    }
+
     var onSpanEndedCallCount: Int {
-        state.safeValue.onSpanEndedCallCount
+        state.safeValue.onSpanEndedTimes.count
     }
 
     func onSpanEnded(_ span: EmbraceSpan, endTime: Date) {
-        state.withLock { $0.onSpanEndedCallCount += 1 }
+        state.withLock { $0.onSpanEndedTimes.append(endTime) }
     }
 }

@@ -577,6 +577,99 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         }
     }
 
+    func test_createLink_invalidSpanId() throws {
+        // when creating a link with a span id that can't refer to a span
+        let span = MockSpan(name: "test")
+
+        XCTAssertThrowsError(
+            try handler.createLink(
+                forSpanNamed: span.name,
+                spanId: "not-a-span-id",
+                traceId: TestConstants.traceId,
+                attributes: ["key": "value"],
+                currentCount: 0
+            )
+        ) { error in
+            // then the correct error is thrown and the link is never built
+            XCTAssertEqual((error as? EmbraceOTelError)?.errorCode, -7)
+            XCTAssertEqual(sanitizer.sanitizeSpanLinkAttributesCallCount, 0)
+        }
+    }
+
+    func test_createLink_invalidTraceId() throws {
+        // when creating a link with a trace id that can't refer to a trace
+        let span = MockSpan(name: "test")
+
+        XCTAssertThrowsError(
+            try handler.createLink(
+                forSpanNamed: span.name,
+                spanId: TestConstants.spanId,
+                traceId: "not-a-trace-id",
+                attributes: ["key": "value"],
+                currentCount: 0
+            )
+        ) { error in
+            // then the correct error is thrown and the link is never built
+            XCTAssertEqual((error as? EmbraceOTelError)?.errorCode, -7)
+            XCTAssertEqual(sanitizer.sanitizeSpanLinkAttributesCallCount, 0)
+        }
+    }
+
+    func test_createLink_allZeroIdentifiers() throws {
+        // when creating a link with identifiers that are well formed but refer to nothing
+        let span = MockSpan(name: "test")
+
+        XCTAssertThrowsError(
+            try handler.createLink(
+                forSpanNamed: span.name,
+                spanId: "0000000000000000",
+                traceId: "00000000000000000000000000000000",
+                attributes: [:],
+                currentCount: 0
+            )
+        ) { error in
+            XCTAssertEqual((error as? EmbraceOTelError)?.errorCode, -7)
+        }
+    }
+
+    func test_createLink_normalizesIdentifiers() throws {
+        // given identifiers written in uppercase
+        let spanId = "ABCDEF1234567890"
+        let traceId = "ABCDEF1234567890ABCDEF1234567890"
+
+        // when creating a link with them
+        let span = MockSpan(name: "test")
+        let link = try handler.createLink(
+            forSpanNamed: span.name,
+            spanId: spanId,
+            traceId: traceId,
+            attributes: [:],
+            currentCount: 0
+        )
+
+        // then the link stores them in lowercase
+        XCTAssertEqual(link.context.spanId, spanId.lowercased())
+        XCTAssertEqual(link.context.traceId, traceId.lowercased())
+    }
+
+    func test_createSpan_dropsInitialLinksWithInvalidIdentifiers() throws {
+        // given a span created with one usable link and one that can't be resolved
+        let validLink = EmbraceSpanLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
+        let invalidLink = EmbraceSpanLink(spanId: "nope", traceId: "nope")
+
+        // when creating the span
+        let span = try handler._createSpan(
+            name: "test",
+            type: .performance,
+            links: [validLink, invalidLink],
+            isInternal: false
+        )
+
+        // then only the usable one is kept
+        XCTAssertEqual(span.links.count, 1)
+        XCTAssertEqual(span.links[0].context.spanId, TestConstants.spanId)
+    }
+
     func test_validateAttribute_success() throws {
         // given a handler with limits
         sanitizer.sanitizeAttributeKeyReturnValue = "sanitizedKey"

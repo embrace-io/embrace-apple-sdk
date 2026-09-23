@@ -20,10 +20,20 @@ class DefaultEmbraceSpanTests: XCTestCase {
         handler = nil
     }
 
+    /// An open span. Spans stop accepting changes once they end, so the default fixture has to be
+    /// open for any test that mutates it.
     var testSpan: DefaultEmbraceSpan {
+        makeTestSpan()
+    }
+
+    /// A span that is already ended, for the tests that need one.
+    var endedTestSpan: DefaultEmbraceSpan {
+        makeTestSpan(endTime: Date(timeIntervalSince1970: 2))
+    }
+
+    func makeTestSpan(endTime: Date? = nil) -> DefaultEmbraceSpan {
         let context = EmbraceSpanContext(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
         let startTime = Date(timeIntervalSince1970: 1)
-        let endTime = Date(timeIntervalSince1970: 2)
         let event = EmbraceSpanEvent(name: "event")
         let link = EmbraceSpanLink(spanId: "spanId", traceId: "traceId")
 
@@ -59,7 +69,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
 
     func test_init() {
         // when initializing a span
-        let span = testSpan
+        let span = endedTestSpan
 
         // then the values are stored correctly
         XCTAssertEqual(span.context.spanId, TestConstants.spanId)
@@ -633,28 +643,30 @@ class DefaultEmbraceSpanTests: XCTestCase {
         let span = emptyTestSpan
         let endTime = Date(timeIntervalSince1970: 9)
 
-        // when every kind of mutation runs from multiple threads at once
+        // when every kind of mutation runs from multiple threads at once.
+        // Ending is left out of the mix: an ended span refuses further changes, so a concurrent
+        // end would make missing mutations indistinguishable from correctly refused ones.
         DispatchQueue.concurrentPerform(iterations: 1000) { index in
-            switch index % 5 {
+            switch index % 4 {
             case 0:
                 span.setStatus(.ok)
             case 1:
                 span.addEvent(name: "event\(index)")
             case 2:
                 span.addLink(spanId: "spanId\(index)", traceId: "traceId\(index)")
-            case 3:
-                span.setAttribute(key: "key\(index)", value: "value\(index)")
             default:
-                span.end(endTime: endTime)
+                span.setAttribute(key: "key\(index)", value: "value\(index)")
             }
         }
+
+        span.end(endTime: endTime)
 
         // then no mutation is lost to another one
         XCTAssertEqual(span.status, .ok)
         XCTAssertEqual(span.endTime, endTime)
-        XCTAssertEqual(span.events.count, 200)
-        XCTAssertEqual(span.links.count, 200)
-        XCTAssertEqual(span.attributes.count, 200)
+        XCTAssertEqual(span.events.count, 250)
+        XCTAssertEqual(span.links.count, 250)
+        XCTAssertEqual(span.attributes.count, 250)
     }
 
     func test_end() throws {
@@ -682,5 +694,179 @@ class DefaultEmbraceSpanTests: XCTestCase {
         // and the handler is notified
         XCTAssertNotNil(span.endTime)
         XCTAssertEqual(handler.onSpanEndedCallCount, 1)
+    }
+
+    // MARK: ended spans reject changes
+
+    func test_end_secondCallIsIgnored() throws {
+        // given a span that already ended
+        let span = testSpan
+        let endTime = Date(timeIntervalSince1970: 9)
+        span.end(endTime: endTime)
+
+        // when ending it again
+        span.end(endTime: Date(timeIntervalSince1970: 20))
+
+        // then the original end time is kept and the handler is not notified again
+        XCTAssertEqual(span.endTime, endTime)
+        XCTAssertEqual(handler.onSpanEndedCallCount, 1)
+    }
+
+    func test_setStatus_afterEnd_isIgnored() throws {
+        // given a span that ended with a status
+        let span = testSpan
+        span.setStatus(.ok)
+        span.end()
+
+        // when updating the status afterwards
+        span.setStatus(.error)
+
+        // then the status is unchanged and nothing is written through
+        XCTAssertEqual(span.status, .ok)
+        XCTAssertEqual(handler.onSpanStatusUpdatedCallCount, 1)
+    }
+
+    func test_setAttribute_afterEnd_isIgnored() throws {
+        // given a span that ended
+        let span = testSpan
+        span.end()
+
+        // when setting an attribute afterwards
+        span.setAttribute(key: "key", value: "value")
+
+        // then it isn't stored and nothing is written through
+        XCTAssertNil(span.attributes["key"])
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 0)
+    }
+
+    func test_addEvent_afterEnd_isIgnored() throws {
+        // given a span that ended
+        let span = testSpan
+        let eventCount = span.events.count
+        span.end()
+
+        // when adding an event afterwards
+        let result = span.addEvent(name: "newEvent")
+
+        // then nothing is added and nothing is written through
+        XCTAssertNil(result)
+        XCTAssertEqual(span.events.count, eventCount)
+        XCTAssertEqual(handler.onSpanEventAddedCallCount, 0)
+    }
+
+    func test_addLink_afterEnd_isIgnored() throws {
+        // given a span that ended
+        let span = testSpan
+        let linkCount = span.links.count
+        span.end()
+
+        // when adding a link afterwards
+        let result = span.addLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
+
+        // then nothing is added and nothing is written through
+        XCTAssertNil(result)
+        XCTAssertEqual(span.links.count, linkCount)
+        XCTAssertEqual(handler.onSpanLinkAddedCallCount, 0)
+    }
+
+    func test_endWithErrorCode_afterEnd_keepsTheOriginalOutcome() throws {
+        // given a span that ended successfully
+        let span = testSpan
+        span.end(errorCode: nil, endTime: Date(timeIntervalSince1970: 9))
+
+        // when ending it again with an error code, as auto termination would
+        span.end(errorCode: .userAbandon, endTime: Date(timeIntervalSince1970: 20))
+
+        // then the span is still reported as successful
+        XCTAssertEqual(span.status, .ok)
+        XCTAssertNil(span.attributes[SpanSemantics.keyErrorCode])
+        XCTAssertEqual(span.endTime, Date(timeIntervalSince1970: 9))
+        XCTAssertEqual(handler.onSpanEndedCallCount, 1)
+    }
+
+    func test_spanCreatedWithEndTime_rejectsChanges() throws {
+        // given a span created already ended
+        let span = endedTestSpan
+
+        // when trying to change it
+        span.setAttribute(key: "key", value: "value")
+        span.setStatus(.ok)
+
+        // then nothing is written through
+        XCTAssertNil(span.attributes["key"])
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 0)
+        XCTAssertEqual(handler.onSpanStatusUpdatedCallCount, 0)
+    }
+
+    func test_setInternalAttribute_afterEnd_isIgnored() throws {
+        // given a span that ended
+        let span = testSpan
+        span.end()
+
+        // when the SDK itself writes an attribute afterwards
+        span.setInternalAttribute(key: "internalKey", value: "value")
+
+        // then it isn't stored and nothing is written through
+        XCTAssertNil(span.attributes["internalKey"])
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 0)
+    }
+
+    func test_end_concurrent_onlyOneCallWinsAndTheHandlerIsNotifiedOnce() throws {
+        // given an open span
+        let span = testSpan
+
+        // when many threads end it at the same time, each with a different end time
+        let endTimes = (0..<100).map { Date(timeIntervalSince1970: Double(100 + $0)) }
+        DispatchQueue.concurrentPerform(iterations: endTimes.count) { index in
+            span.end(endTime: endTimes[index])
+        }
+
+        // then only one of them takes effect
+        XCTAssertEqual(handler.onSpanEndedCallCount, 1)
+
+        // and the span kept exactly the end time the handler was notified with,
+        // so the stored span and the exported one can't disagree
+        let reported = try XCTUnwrap(handler.onSpanEndedTimes.first)
+        XCTAssertEqual(span.endTime, reported)
+        XCTAssertTrue(endTimes.contains(reported))
+    }
+
+    func test_end_concurrent_withErrorCode_neverLeavesAPartialOutcome() throws {
+        for _ in 0..<2000 {
+            // given an open span with no outcome yet
+            let span = makeTestSpan()
+            span.setStatus(.unset)
+
+            // when it is ended with an error code and plainly at the same time
+            let group = DispatchGroup()
+            group.enter()
+            DispatchQueue.global().async {
+                span.end(errorCode: .userAbandon, endTime: Date(timeIntervalSince1970: 10))
+                group.leave()
+            }
+            span.end(endTime: Date(timeIntervalSince1970: 20))
+            group.wait()
+
+            // then either the error-code end won and the span is fully marked as failed, or the
+            // plain end won and none of that outcome is present. Never half of it.
+            if span.attributes[SpanSemantics.keyErrorCode] != nil {
+                XCTAssertEqual(span.status, .error)
+            }
+        }
+    }
+
+    func test_addSessionEvent_afterEnd_isIgnored() throws {
+        // given a span that ended
+        let span = testSpan
+        let eventCount = span.events.count
+        span.end()
+
+        // when the SDK itself adds a session event afterwards
+        let result = try span.addSessionEvent(name: "sessionEvent", isInternal: true)
+
+        // then nothing is added and nothing is written through
+        XCTAssertNil(result)
+        XCTAssertEqual(span.events.count, eventCount)
+        XCTAssertEqual(handler.onSpanEventAddedCallCount, 0)
     }
 }
