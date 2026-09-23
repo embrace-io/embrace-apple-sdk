@@ -275,8 +275,8 @@ jobs:
             fi
           done
 
-          rm -f result_bundle.xcresult.zip
-          echo "Warning: Result bundle not available after $MAX_ATTEMPTS attempts"
+          echo "::error::Result bundle not available after $MAX_ATTEMPTS attempts"
+          exit 1
 
       - name: Upload Result Bundle as Artifact
         if: always()
@@ -298,9 +298,6 @@ jobs:
     steps:
       - name: Download Result Bundle
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        # The test job uploads no artifact when the bundle was unavailable; the
-        # extract step handles the missing file.
-        continue-on-error: true
         with:
           name: browserstack-result-bundle-${{ needs.test.outputs.build_id }}-${{ needs.test.outputs.session_id }}
 
@@ -318,19 +315,6 @@ jobs:
           if [ ! -f result_bundle.xcresult.zip ]; then
             echo "Result bundle not found, skipping metrics extraction"
             echo "results={}" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          if ! unzip -tq result_bundle.xcresult.zip > /dev/null; then
-            echo "Result bundle is not a valid zip, skipping metrics extraction"
-            file result_bundle.xcresult.zip
-            case "$(file -b --mime-type result_bundle.xcresult.zip)" in
-              text/*|application/xml|application/json)
-                head -c 500 result_bundle.xcresult.zip
-                echo
-                ;;
-            esac
-            echo "results={}" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
