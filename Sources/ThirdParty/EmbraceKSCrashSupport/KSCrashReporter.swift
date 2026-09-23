@@ -54,8 +54,17 @@ package final class KSCrashReporter: CrashReporter {
     private var watchdogData: EmbraceMutex<WatchdogEventData> = EmbraceMutex(WatchdogEventData())
     private var hangObservers: [NSObjectProtocol] = []
 
+    /// Crash info values attached to the `user` section of crash reports.
+    ///
+    /// KSCrash's per-key user info API is write-only and ignores writes made before `install`,
+    /// so values are kept here to serve reads and are replayed into KSCrash once it's installed.
+    struct CrashInfoData {
+        var values: [String: String] = [:]
+        var installed: Bool = false
+    }
+    private let crashInfo: EmbraceMutex<CrashInfoData> = EmbraceMutex(CrashInfoData())
+
     public init() {
-        reporter.userInfo = [:]
         KSCrashReporter.shared = self
     }
 
@@ -99,6 +108,14 @@ package final class KSCrashReporter: CrashReporter {
         try KSCrashGlobalsLock.withLock {
             try reporter.install(with: config)
         }
+
+        crashInfo.withLock {
+            $0.installed = true
+            for (key, value) in $0.values {
+                reporter.setUserInfo(value, forKey: key)
+            }
+        }
+
         registerForHangs()
     }
 
@@ -231,11 +248,23 @@ package final class KSCrashReporter: CrashReporter {
     }
 
     public func appendCrashInfo(key: String, value: String?) {
-        reporter.userInfo?[key] = value
+        crashInfo.withLock {
+            $0.values[key] = value
+
+            guard $0.installed else {
+                return
+            }
+
+            if let value {
+                reporter.setUserInfo(value, forKey: key)
+            } else {
+                reporter.removeUserInfoValue(forKey: key)
+            }
+        }
     }
 
     public func getCrashInfo(key: String) -> String? {
-        reporter.userInfo?[key] as? String
+        crashInfo.withLock { $0.values[key] }
     }
 
 }
