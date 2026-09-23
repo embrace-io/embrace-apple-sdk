@@ -305,12 +305,16 @@ extension EmbraceStorage {
     /// that occur within the same process. For cold start sessions, will include spans that occur before the session starts.
     /// - Parameters:
     ///   - session: The session record to fetch spans for
-    ///   - ignoreSessionSpans: Whether to ignore the session's (or any other session's) own span
-    ///   - limit: Limit of the amount of spans to be retrieved
+    ///   - fetchOnly: When set, restricts the result to this one span type. Lets a caller fetch a
+    ///     low-volume type on its own so it can't be crowded out of the capped result.
+    ///     Defaults to `nil`, meaning all span types are considered.
+    ///   - excludedTypes: Span types to leave out. Empty by default, so every span for the session
+    ///     is returned; excluding is the caller's decision, not this method's.
     /// - Returns: Array containing the immutable copies of the spans.
     package func fetchSpans(
         for session: EmbraceSession,
-        ignoreSessionSpans: Bool = true
+        fetchOnly onlyType: EmbraceType? = nil,
+        excluding excludedTypes: [EmbraceType] = []
     ) -> [EmbraceSpan] {
 
         let request = SpanRecord.createFetchRequest()
@@ -357,13 +361,18 @@ extension EmbraceStorage {
             predicate = NSCompoundPredicate(type: .or, subpredicates: [sessionPredicate, predicate1, predicate2])
         }
 
-        // ignore session spans?
-        if ignoreSessionSpans {
-            let sessionTypePredicate = NSPredicate(format: "typeRaw != %@", EmbraceType.session.rawValue)
-            request.predicate = NSCompoundPredicate(type: .and, subpredicates: [sessionTypePredicate, predicate])
-        } else {
-            request.predicate = predicate
+        // filter by type?
+        var subpredicates: [NSPredicate] = [predicate]
+
+        if let type = onlyType {
+            subpredicates.append(NSPredicate(format: "typeRaw == %@", type.rawValue))
         }
+
+        for type in excludedTypes {
+            subpredicates.append(NSPredicate(format: "typeRaw != %@", type.rawValue))
+        }
+
+        request.predicate = NSCompoundPredicate(type: .and, subpredicates: subpredicates)
 
         // fetch
         var result: [EmbraceSpan] = []
@@ -380,27 +389,39 @@ extension EmbraceStorage {
 
 // MARK: - Database operations
 extension EmbraceStorage {
-    func limitByType(_ type: EmbraceType) -> Int {
+    /// Per-type storage cap, or `nil` for types that are never pruned by age.
+    ///
+    /// Deliberately optional rather than using a sentinel number: `spanLimits` is caller-supplied,
+    /// so any in-band value for "no limit" would also be a value a caller could configure, and the
+    /// same number would mean opposite things depending on where it came from.
+    func limitByType(_ type: EmbraceType) -> Int? {
         switch type.primary {
         case .performance,
             .system,
             .ux:
             return options.spanLimitDefault
+        case .state:
+            // State spans are internal and the per-part transition cap already bounds how many a
+            // session produces, so pruning them by age would only ever discard a timeline the
+            // backend still needs.
+            return nil
         }
     }
 
     var jsonSpansLimit: Int {
-        var total = 0
-        PrimaryType.allCases.forEach {
-            total += limitByType(EmbraceType(primary: $0))
-        }
-        return total
+        // `compactMap` rather than treating unlimited as zero: types with no cap are outside this
+        // budget, they do not contribute nothing to it.
+        PrimaryType.allCases
+            .compactMap { limitByType(EmbraceType(primary: $0)) }
+            .reduce(0, +)
     }
 
     fileprivate func removeOldSpanIfNeeded(forType type: EmbraceType) {
-        // check limit and delete if necessary
-        // default to 1500 if limit is not set
-        let limit = options.spanLimits[type, default: limitByType(type)]
+        // A caller-configured limit wins; otherwise the per-type default applies. Types with no
+        // limit are skipped entirely.
+        guard let limit = options.spanLimits[type] ?? limitByType(type) else {
+            return
+        }
 
         let request = SpanRecord.createFetchRequest()
         request.predicate = NSPredicate(format: "typeRaw == %@", type.rawValue)

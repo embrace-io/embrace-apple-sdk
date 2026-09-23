@@ -25,4 +25,22 @@ class EmbraceTypeTests: XCTestCase {
         XCTAssertEqual(type5.rawValue, "sys")
         XCTAssertEqual(type6.rawValue, "sys.test")
     }
+
+    /// State spans serialize to the bare `"state"` — deliberately not abbreviated like
+    /// `perf`/`ux`/`sys`, because that literal is the cross-platform wire contract.
+    func test_stateRawValue() {
+        XCTAssertEqual(EmbraceType.state.rawValue, "state")
+        XCTAssertEqual(EmbraceType(primary: .state, secondary: nil).rawValue, "state")
+    }
+
+    /// Guards the deserialization half. `PrimaryType.init(name:)` falls back to `.performance` for
+    /// unknown names, so a missing `"state"` case would silently read every persisted state span
+    /// back as `perf` instead of failing.
+    func test_stateRoundTrip() throws {
+        let restored = try XCTUnwrap(EmbraceType(rawValue: "state"))
+        XCTAssertEqual(restored.primary, .state)
+        XCTAssertNil(restored.secondary)
+        XCTAssertEqual(restored, EmbraceType.state)
+        XCTAssertEqual(restored.rawValue, "state")
+    }
 }
