@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceSemantics
+#endif
+
 /// Reconciles raw container lifecycle events into a single timeline of *distinct* screens, with
 /// load times attributed to when the user started navigating rather than when we heard about it.
 ///
@@ -19,20 +23,28 @@ import Foundation
 /// fed by a swizzle on every `UIViewController` in the host app. Losing a transition beats
 /// terminating a customer's process.
 ///
-/// ## Not handled yet
-/// Observing SwiftUI `NavigationStack` destinations will let a container's visible screen change
-/// with no appearance callback, needing two further rules on a resume. Both are additive; the maps
-/// and the emission funnel are shaped to take them.
+/// Observing SwiftUI `NavigationStack` destinations would let a container's visible screen change
+/// with no appearance callback, needing two further rules on a resume. The maps and the emission
+/// funnel are shaped to take them.
 final class NavigationEventBroker {
 
-    /// What was last handed downstream, for the dedup gate below.
+    /// What makes one screen different from another: the container it came from and its name.
     ///
-    /// Storing the *emission* rather than its triggering event is equivalent only while every
-    /// emission carries its own event's name — which stops holding once the destination rules
-    /// above arrive. Revisit it alongside them.
-    private struct Emission: Equatable {
+    /// Attributes are deliberately excluded — a view re-rendering with a changed value is not a
+    /// navigation.
+    private struct ScreenIdentity: Equatable {
         let name: String
         let componentId: ObjectIdentifier?
+    }
+
+    /// An emission is its identity plus the payload that rode along with it.
+    private struct Emission {
+        let identity: ScreenIdentity
+
+        /// The most recent *declaration*, not the most recent emission — `emit` records the attempt
+        /// even when the gate suppresses it. A restore therefore carries the screen's current
+        /// metadata rather than a stale copy from whenever it last passed.
+        let attributes: EmbraceAttributes
     }
 
     /// Containers that have started appearing but not yet finished. The value is what a resume
@@ -41,17 +53,24 @@ final class NavigationEventBroker {
 
     /// The screen currently visible per container. More than one entry means a transition is in
     /// flight, which is what suppresses backdating.
-    private var visibleScreens: [ObjectIdentifier: String] = [:]
+    private var visibleScreens: [ObjectIdentifier: Emission] = [:]
 
+    /// What was last handed downstream, for the dedup gate below.
+    ///
+    /// Storing what was *emitted* is only equivalent to storing the event that triggered it for as
+    /// long as every emission's value is its own event's name. That stops holding once the
+    /// destination rules above arrive — a background restore emits a destination name while its
+    /// triggering event carries the container's name — so revisit this alongside them.
     private var lastEmission: Emission?
 
     /// What was on screen when the app backgrounded, so foregrounding can restore it.
     private var screenBeforeBackground: Emission?
 
-    /// Called with `(loadTime, screenName)` for each *distinct* screen the timeline moves to.
-    private let onScreenLoad: (Date, String) -> Void
+    /// Called with `(loadTime, screenName, attributes)` for each *distinct* screen the timeline
+    /// moves to. Attributes are empty for every screen except those declared with their own.
+    private let onScreenLoad: (Date, String, EmbraceAttributes) -> Void
 
-    init(onScreenLoad: @escaping (Date, String) -> Void) {
+    init(onScreenLoad: @escaping (Date, String, EmbraceAttributes) -> Void) {
         self.onScreenLoad = onScreenLoad
     }
 
@@ -81,29 +100,44 @@ final class NavigationEventBroker {
             // there is nothing to attribute a load to.
             guard let startTime = startTimes.removeValue(forKey: componentId) else { return }
 
-            visibleScreens[componentId] = event.name
-            emit(name: event.name, componentId: componentId, at: loadTime(startTime, or: event.timestamp))
+            visibleScreens[componentId] = Emission(
+                identity: ScreenIdentity(name: event.name, componentId: componentId),
+                attributes: event.attributes)
+            emit(
+                ScreenIdentity(name: event.name, componentId: componentId),
+                attributes: event.attributes,
+                at: loadTime(startTime, or: event.timestamp))
 
         case .paused:
             guard let componentId = event.componentId else { return }
             visibleScreens.removeValue(forKey: componentId)
-            // Start time and restore point go too. `ObjectIdentifier` is a live object's address, so
-            // an entry left by a deallocated controller can be inherited by an unrelated one
-            // allocated there later — silently backdating its load, or restoring it as though the
-            // user were still on it.
+            // Start time and restore point go too: `ObjectIdentifier` is a live object's address, so
+            // an entry left behind can be inherited by an unrelated object allocated there later.
             startTimes.removeValue(forKey: componentId)
 
-            if screenBeforeBackground?.componentId == componentId {
+            if screenBeforeBackground?.identity.componentId == componentId {
                 screenBeforeBackground = nil
             }
+
+            revealScreenUncovered(by: componentId, at: event.timestamp)
 
         case .backgrounded:
             // Captured before the emission below overwrites `lastEmission`. Guarding on a non-nil
             // component id keeps a second background from "restoring" the Backgrounded sentinel.
-            if let lastEmission, lastEmission.componentId != nil {
+            if let lastEmission, lastEmission.identity.componentId != nil {
                 screenBeforeBackground = lastEmission
             }
-            emit(name: Screen.backgrounded.name, componentId: nil, at: event.timestamp)
+
+            // Nothing is visible or mid-appearance while backgrounded, so both maps can be emptied
+            // rather than waiting for a pause that may never come — one that never arrives would
+            // otherwise disable backdating for every later screen.
+            visibleScreens.removeAll()
+            startTimes.removeAll()
+
+            emit(
+                ScreenIdentity(name: Screen.backgrounded.name, componentId: nil),
+                attributes: [:],
+                at: event.timestamp)
 
         case .foregrounded:
             // UIKit does not re-fire appearance callbacks for the controller that stayed visible,
@@ -111,7 +145,9 @@ final class NavigationEventBroker {
             // Load time is the foreground time; no start time exists to backdate to.
             guard let restored = screenBeforeBackground else { return }
             screenBeforeBackground = nil
-            emit(name: restored.name, componentId: restored.componentId, at: event.timestamp)
+            // Replayed with the screen's metadata rather than stripped of it — see `Emission` for
+            // which declaration that is when the screen was re-declared while the user stayed on it.
+            emit(restored.identity, attributes: restored.attributes, at: event.timestamp)
         }
     }
 
@@ -126,17 +162,39 @@ final class NavigationEventBroker {
         visibleScreens.count > 1 ? eventTime : startTime
     }
 
+    /// Hands the timeline back to the screen left underneath the one that just went away.
+    ///
+    /// A sheet, popover or alert leaves the screen beneath it appeared, so nothing re-declares it on
+    /// dismissal and the timeline would sit on the dismissed screen until the user navigated.
+    ///
+    /// Requires that the paused screen is the one currently shown and exactly one remains; anything
+    /// else is a transition in flight, where the resume that follows will say what is frontmost.
+    private func revealScreenUncovered(by pausedId: ObjectIdentifier, at time: Date) {
+        guard lastEmission?.identity.componentId == pausedId,
+            visibleScreens.count == 1,
+            let revealed = visibleScreens.values.first
+        else {
+            return
+        }
+
+        // The load time is the dismissal: it did not load now, it became current now.
+        emit(revealed.identity, attributes: revealed.attributes, at: time)
+    }
+
     /// The dedup gate every emission funnels through: fire only if the container **or** the name
     /// differs from the last. The first always fires.
     ///
     /// Not the only dedup in the chain — the state primitive downstream drops *value*-equal
     /// consecutive transitions, so two containers resolving to the same name pass here and are
     /// dropped there.
-    private func emit(name: String, componentId: ObjectIdentifier?, at loadTime: Date) {
-        let emission = Emission(name: name, componentId: componentId)
-        defer { lastEmission = emission }
+    private func emit(
+        _ identity: ScreenIdentity,
+        attributes: EmbraceAttributes,
+        at loadTime: Date
+    ) {
+        defer { lastEmission = Emission(identity: identity, attributes: attributes) }
 
-        guard lastEmission != emission else { return }
-        onScreenLoad(loadTime, name)
+        guard lastEmission?.identity != identity else { return }
+        onScreenLoad(loadTime, identity.name, attributes)
     }
 }
