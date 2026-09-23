@@ -88,7 +88,9 @@ final class EmbraceOTelBridgeProvidersTests: XCTestCase {
 
         tracer.spanBuilder(spanName: "external-span").startSpan().end()
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         XCTAssertEqual(spanProcessor.endedSpans.first?.name, "external-span")
     }
 
