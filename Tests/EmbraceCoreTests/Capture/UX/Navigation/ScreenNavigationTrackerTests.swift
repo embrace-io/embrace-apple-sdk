@@ -493,12 +493,10 @@
             XCTAssertTrue(event.attributes.keys.contains(String(repeating: "k", count: 128)))
         }
 
-        /// Matches every other public attribute API in the SDK, which drops non-`String` values in
-        /// `DefaultOtelSignalsSanitizer.sanitizeAttributes`. `EmbraceAttributeValue` admits
-        /// `Int`/`Bool`/`Double` and the payload would serialize them, so this is arguably wrong —
-        /// but it is wrong *consistently*, and diverging here would mean the same call recorded on a
-        /// breadcrumb and on a screen behaved differently. Fix it in the sanitizer or not at all.
-        func testNonStringAttributeValuesAreDropped() throws {
+        /// Matches every other public attribute API in the SDK: `DefaultOtelSignalsSanitizer`
+        /// preserves the non-`String` cases of `EmbraceAttributeValue`, so the same call recorded on
+        /// a breadcrumb and on a screen behaves identically.
+        func testNonStringAttributeValuesArePreserved() throws {
             let tracker = makeTracker()
 
             declareAppearance(
@@ -506,8 +504,8 @@
                 attributes: ["items": 3, "flag": true, "sku": "abc"], at: 0)
 
             let event = try XCTUnwrap(try XCTUnwrap(stateSpan).events.last)
-            XCTAssertNil(event.attributes["items"])
-            XCTAssertNil(event.attributes["flag"])
+            XCTAssertEqual(event.attributes["items"]?.description, "3")
+            XCTAssertEqual(event.attributes["flag"]?.description, "true")
             XCTAssertEqual(event.attributes["sku"]?.description, "abc", "strings still get through")
         }
 

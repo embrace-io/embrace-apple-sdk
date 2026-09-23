@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     @_exported import EmbraceCore
@@ -27,6 +28,10 @@ public class EmbraceIO {
 
     /// The shared `EmbraceIO` instance used to access the SDK's instance-level APIs.
     public static let shared = EmbraceIO()
+
+    /// The OTel bridge created during `start(options:)`, or `nil` when the SDK was started
+    /// without `OTelOptions`.
+    let otelBridge = EmbraceMutex<EmbraceOTelBridge?>(nil)
 
     /// Returns the current state of the SDK.
     public var state: EmbraceSDKState {
@@ -76,12 +81,19 @@ public class EmbraceIO {
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     public static func start(options: EmbraceIO.Options) throws {
 
-        // Consturct OTel resources
+        // Construct OTel resources
         let otelResources = EmbraceDefaultResources.build(merging: options.otel?.resource)
 
         // Create the OTel bridge from the OTel options if provided.
+        //
+        // `Embrace.setup` keeps the client created by the first successful call and ignores the
+        // options — and therefore the bridge — passed to any later one. Building a bridge when a
+        // client already exists would produce a complete OTel pipeline that nothing ever emits
+        // through, so skip it and leave the existing one in place. Note this is about a client
+        // existing at all, not about it running: a client that failed to start, or was stopped,
+        // or was disabled remotely still owns the bridge the SDK emits through.
         var bridge: EmbraceOTelBridge?
-        if let otelOptions = options.otel {
+        if let otelOptions = options.otel, Embrace.client == nil {
             bridge = EmbraceOTelBridge(
                 resource: otelResources,
                 spanProcessors: [otelOptions.spanProcessor],
@@ -103,6 +115,20 @@ public class EmbraceIO {
                 metadataProvider: otel,
                 criticalResourceGroup: Embrace.client?.captureServicesGroup
             )
+
+            // Publish the bridge only now that it is fully wired. Everything reachable through
+            // the public provider accessors therefore always has a delegate attached, which
+            // closes the window in which a span could be created against a bridge that would
+            // silently drop it.
+            EmbraceIO.shared.otelBridge.safeValue = bridge
+
+            // Global registration is deliberately performed here rather than in the bridge's
+            // initializer: it must not be possible to resolve these providers through
+            // `OpenTelemetry.instance` before the delegate is attached above.
+            if options.otel?.registersGlobalProviders == true {
+                OpenTelemetry.registerTracerProvider(tracerProvider: bridge.otelTracerProvider)
+                OpenTelemetry.registerLoggerProvider(loggerProvider: bridge.otelLoggerProvider)
+            }
         }
 
         try EmbraceIO.shared._start()

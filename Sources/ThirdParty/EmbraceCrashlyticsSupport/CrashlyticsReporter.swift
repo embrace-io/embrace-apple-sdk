@@ -45,9 +45,8 @@ package final class CrashlyticsReporter: CrashReporter {
         nil
     }
 
-    /// We let Crashlytics handle MetricKit
     public var disableMetricKitReports: Bool {
-        true
+        false
     }
 
     /// Block called when there's a new report to upload

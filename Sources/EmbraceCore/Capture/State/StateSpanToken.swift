@@ -95,7 +95,8 @@ final class StateSpanToken {
     ///
     /// State spans are internal, and `isInternal` skips sanitization — an exemption written when
     /// every attribute here was the SDK's own. A public API taking caller attributes changes that,
-    /// so the sanitizer is applied by hand. Note it drops non-`String` values.
+    /// so the sanitizer is applied by hand. It bounds keys and values but preserves the
+    /// non-`String` cases of `EmbraceAttributeValue`.
     ///
     /// The reserved filter runs first rather than relying on the later merge to overwrite: the
     /// counter keys are omitted when zero, so a forged `emb.state.not_in_session` would survive on

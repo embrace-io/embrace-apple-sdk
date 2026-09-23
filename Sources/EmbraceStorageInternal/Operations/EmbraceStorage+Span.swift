@@ -167,16 +167,22 @@ extension EmbraceStorage {
         }
     }
 
-    /// Asynchronously updates the attributes of the stored span for the given identifiers
+    /// Asynchronously adds, updates or removes a single attribute of the stored span for the given identifiers.
+    /// The attribute is modified in place, leaving the rest of the span's attributes untouched, so concurrent
+    /// updates to different keys can't overwrite each other. Writing the whole attribute set instead would let
+    /// a stale write replace the record and drop the keys another write had already stored.
     /// - Parameters:
     ///   - id: Identifier of the span
     ///   - traceId: Trace identifier of the span
-    ///   - attributes: New span attributes
-    public func setSpanAttributes(id: String, traceId: String, attributes: EmbraceAttributes) {
+    ///   - key: Key of the attribute to update
+    ///   - value: New value for the attribute. Passing `nil` removes the attribute.
+    public func setSpanAttribute(id: String, traceId: String, key: String, value: EmbraceAttributeValue?) {
         coreData.performAsyncOperation(save: true) { context in
             do {
                 let request = self.fetchSpanRequest(id: id, traceId: traceId)
                 if let span = try context.fetch(request).first {
+                    var attributes: EmbraceAttributes = .keyValueDecode(span.attributes)
+                    attributes[key] = value
                     span.attributes = attributes.keyValueEncoded()
                 }
             } catch {}

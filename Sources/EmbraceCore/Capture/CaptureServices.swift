@@ -152,7 +152,7 @@ final class CaptureServices {
         metadataFetcher: EmbraceStorageMetadataFetcher?,
         stateProvider: EmbraceMetricKitStateProvider?
     ) {
-        guard crashReporter?.disableMetricKitReports == false else {
+        guard crashReporter?.disableMetricKitReports != true else {
             return
         }
 
