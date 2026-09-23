@@ -49,7 +49,8 @@ final class BridgeInternalLogIdsTests: XCTestCase {
             EmbraceIO.shared.log("bridge-log-\(i)", severity: .info)
         }
 
-        wait(timeout: .veryLongTimeout) { self.exportedBodies().count >= self.logCount }
+        // Each log is built on the processing queue and emitted and exported synchronously from there.
+        Embrace.client?.waitForAllWork()
 
         // Every log made it through the pipeline exactly once.
         let bodies = exportedBodies()

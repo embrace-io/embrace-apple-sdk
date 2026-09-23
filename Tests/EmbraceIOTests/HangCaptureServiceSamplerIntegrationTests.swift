@@ -31,14 +31,12 @@
             super.tearDown()
         }
 
+        /// Builds an installed but not started service, so no live frame-rate monitor or stall sampler
+        /// runs and only the hangs the test drives by hand reach the span logic.
         private func makeService(otel: MockOTelSignalsHandler, sampler: MainThreadStackSampler) -> HangCaptureService {
             let service = HangCaptureService(limits: HangLimits(hangThreshold: 0.249, hangPerSession: 6))
             service.install(otel: otel)
-            service.start()
-            service.limitData.withLock {
-                $0.sampler?.stop()
-                $0.sampler = sampler
-            }
+            service.limitData.withLock { $0.sampler = sampler }
             return service
         }
 
@@ -57,13 +55,10 @@
             let start = Date()
             service.hangStarted(at: start, duration: 0.5)
             service.hangEnded(at: start.addingTimeInterval(0.5), duration: 0.5)
+            service.waitForAllWork()
 
-            wait(timeout: .defaultTimeout) {
-                otel.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
-            }
-
-            let span = otel.endedSpans.first { $0.name == SpanSemantics.Hang.name }
-            let event = span?.events.first { $0.name == SpanEventSemantics.Hang.name }
+            let span = try XCTUnwrap(otel.endedSpans.first { $0.name == SpanSemantics.Hang.name })
+            let event = span.events.first { $0.name == SpanEventSemantics.Hang.name }
             XCTAssertNotNil(event, "hangEnded should attach a thread_blockage_sample event for an in-window sample")
 
             if let frameCount = event?.attributes[SpanEventSemantics.Hang.keyFrameCount] as? Int {
@@ -89,13 +84,10 @@
             let start = Date()
             service.hangStarted(at: start, duration: 0.5)
             service.hangEnded(at: start.addingTimeInterval(0.5), duration: 0.5)
+            service.waitForAllWork()
 
-            wait(timeout: .defaultTimeout) {
-                otel.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
-            }
-
-            let span = otel.endedSpans.first { $0.name == SpanSemantics.Hang.name }
-            let event = span?.events.first { $0.name == SpanEventSemantics.Hang.name }
+            let span = try XCTUnwrap(otel.endedSpans.first { $0.name == SpanSemantics.Hang.name })
+            let event = span.events.first { $0.name == SpanEventSemantics.Hang.name }
             XCTAssertNotNil(event)
             if let overhead = event?.attributes[SpanEventSemantics.Hang.keySampleOverhead] as? Int {
                 XCTAssertEqual(overhead, 1111, "should attach the earliest in-window sample, not the last")
@@ -104,22 +96,20 @@
             }
         }
 
-        func test_hangEnded_withNoSample_endsSpanWithoutEvent() {
+        func test_hangEnded_withNoSample_endsSpanWithoutEvent() throws {
             let otel = MockOTelSignalsHandler()
             let service = makeService(otel: otel, sampler: MockSampler())  // returns nothing
 
             let start = Date()
             service.hangStarted(at: start, duration: 0.5)
             service.hangEnded(at: start.addingTimeInterval(0.5), duration: 0.5)
+            service.waitForAllWork()
 
-            wait(timeout: .defaultTimeout) {
-                otel.endedSpans.contains { $0.name == SpanSemantics.Hang.name }
-            }
-
-            let span = otel.endedSpans.first { $0.name == SpanSemantics.Hang.name }
-            XCTAssertNotNil(span, "span should still end when no sample is available")
+            let span = try XCTUnwrap(
+                otel.endedSpans.first { $0.name == SpanSemantics.Hang.name },
+                "span should still end when no sample is available")
             XCTAssertNil(
-                span?.events.first { $0.name == SpanEventSemantics.Hang.name },
+                span.events.first { $0.name == SpanEventSemantics.Hang.name },
                 "no in-window sample → honest no-stack (no thread_blockage_sample event)"
             )
         }

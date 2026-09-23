@@ -21,8 +21,16 @@
 
         override func setUpWithError() throws {
             dataSource = MockUIViewControllerHandlerDataSource()
-            handler = UIViewControllerHandler(queue: DispatchQueue.main)
+            // runs the handler's work inline so every call has finished by the time it returns
+            handler = UIViewControllerHandler(queue: MockQueue())
             handler.dataSource = dataSource
+        }
+
+        override func tearDownWithError() throws {
+            // releasing the handler removes its `Embrace.notificationCenter` observer, so a later
+            // test's session-end notification doesn't run this handler's work on the posting thread
+            handler = nil
+            dataSource = nil
         }
 
         func test_parentSpan_validId() {
@@ -70,9 +78,7 @@
             handler.foregroundSessionDidEnd()
 
             // then the cache is cleared
-            wait {
-                return self.cacheIsEmpty(true)
-            }
+            XCTAssertTrue(cacheIsEmpty(true))
         }
 
         func test_foregroundSessionDidEnd_endsSpans() {
@@ -104,9 +110,7 @@
             handler.foregroundSessionDidEnd()
 
             // then all spans are ended
-            wait {
-                return self.otel.endedSpans.count == 7
-            }
+            XCTAssertEqual(otel.endedSpans.count, 7)
         }
 
         func test_onViewDidLoad_deactivatedService() {
@@ -118,9 +122,7 @@
             handler.onViewDidLoadStart(vc)
 
             // then no spans are created
-            wait {
-                return self.otel.startedSpans.count == 0
-            }
+            XCTAssertEqual(otel.startedSpans.count, 0)
         }
 
         func test_onViewDidLoad_instrumentationDisabled() {
@@ -132,9 +134,7 @@
             handler.onViewDidLoadStart(vc)
 
             // then no spans are created
-            wait {
-                return self.otel.startedSpans.count == 0
-            }
+            XCTAssertEqual(otel.startedSpans.count, 0)
         }
 
         func test_onViewDidLoad_captureDisabled() {
@@ -145,9 +145,7 @@
             handler.onViewDidLoadStart(vc)
 
             // then no spans are created
-            wait {
-                return self.otel.startedSpans.count == 0
-            }
+            XCTAssertEqual(otel.startedSpans.count, 0)
         }
 
         func test_onViewDidLoad_vcBlocked_byType() {
@@ -159,9 +157,7 @@
             handler.onViewDidLoadStart(vc)
 
             // then no spans are created
-            wait {
-                return self.otel.startedSpans.count == 0
-            }
+            XCTAssertEqual(otel.startedSpans.count, 0)
         }
 
         func test_onViewDidLoad_vcBlocked_byName() {
@@ -173,9 +169,7 @@
             handler.onViewDidLoadStart(vc)
 
             // then no spans are created
-            wait {
-                return self.otel.startedSpans.count == 0
-            }
+            XCTAssertEqual(otel.startedSpans.count, 0)
         }
 
         func test_onViewDidLoad_vcBlocked_hostingController() {
@@ -187,9 +181,7 @@
             handler.onViewDidLoadStart(vc)
 
             // then no spans are created
-            wait {
-                return self.otel.startedSpans.count == 0
-            }
+            XCTAssertEqual(otel.startedSpans.count, 0)
         }
 
         func test_onViewDidLoad_vcBlocked_hostingControllerChild() {
@@ -203,9 +195,7 @@
             handler.onViewDidLoadStart(vc)
 
             // then no spans are created
-            wait {
-                return self.otel.startedSpans.count == 0
-            }
+            XCTAssertEqual(otel.startedSpans.count, 0)
         }
 
         func test_onViewDidAppear_instrumentationDisabled() {
@@ -217,63 +207,57 @@
             handler.onViewDidAppearEnd(vc)
 
             // then no spans are created
-            wait {
-                return self.otel.startedSpans.count == 0
-            }
+            XCTAssertEqual(otel.startedSpans.count, 0)
         }
 
-        func test_timeToFirstRenderFlow() {
+        func test_timeToFirstRenderFlow() throws {
             // given a handler
             let vc = MockViewController()
 
             // when a view controller is loaded and shown
             let parentName = "time-to-first-render"
-            validateViewDidLoadSpans(vc: vc, parentName: parentName)
-            validateViewWillAppearSpans(vc: vc, parentName: parentName)
-            validateViewIsAppearingSpans(vc: vc, parentName: parentName)
-            validateViewDidAppearSpans(vc: vc, parentName: parentName)
+            try validateViewDidLoadSpans(vc: vc, parentName: parentName)
+            try validateViewWillAppearSpans(vc: vc, parentName: parentName)
+            try validateViewIsAppearingSpans(vc: vc, parentName: parentName)
+            try validateViewDidAppearSpans(vc: vc, parentName: parentName)
 
             // then all the spans are created and ended at the right times
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
-                return parent != nil && self.cacheIsEmpty()
-            }
+            XCTAssertNotNil(otel.endedSpans.first(where: { $0.name.contains(parentName) }))
+            XCTAssertTrue(cacheIsEmpty())
         }
 
-        func test_timeToFirstRenderFlow_interrupted() {
+        func test_timeToFirstRenderFlow_interrupted() throws {
             // given a handler
             let vc = MockViewController()
 
             // when a view controller is loaded but somehow disappears
             // before appearing, then the active spans are ended
             let parentName = "time-to-first-render"
-            validateViewDidLoadSpans(vc: vc, parentName: parentName)
-            validateViewWillAppearSpans(vc: vc, parentName: parentName)
+            try validateViewDidLoadSpans(vc: vc, parentName: parentName)
+            try validateViewWillAppearSpans(vc: vc, parentName: parentName)
 
             handler.onViewDidDisappear(vc)
 
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
-                return parent != nil && parent!.status == .error && self.cacheIsEmpty()
-            }
+            let parent = try XCTUnwrap(otel.endedSpans.first(where: { $0.name.contains(parentName) }))
+            XCTAssertEqual(parent.status, .error)
+            XCTAssertTrue(cacheIsEmpty())
         }
 
-        func test_timeToFirstRenderFlow_interrupted_background() {
+        func test_timeToFirstRenderFlow_interrupted_background() throws {
             // given a handler
             let vc = MockViewController()
 
             // when a view controller is loaded but somehow disappears
             // before appearing, then the active spans are ended
             let parentName = "time-to-first-render"
-            validateViewDidLoadSpans(vc: vc, parentName: parentName)
-            validateViewWillAppearSpans(vc: vc, parentName: parentName)
+            try validateViewDidLoadSpans(vc: vc, parentName: parentName)
+            try validateViewWillAppearSpans(vc: vc, parentName: parentName)
 
             handler.foregroundSessionDidEnd()
 
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
-                return parent != nil && parent!.status == .error && self.cacheIsEmpty()
-            }
+            let parent = try XCTUnwrap(otel.endedSpans.first(where: { $0.name.contains(parentName) }))
+            XCTAssertEqual(parent.status, .error)
+            XCTAssertTrue(cacheIsEmpty())
         }
 
         func test_timeToInteractiveFlow() throws {
@@ -283,31 +267,25 @@
             // when a view controller is loaded and shown
             // then all the spans are created and ended at the right times
             let parentName = "time-to-interactive"
-            validateViewDidLoadSpans(vc: vc, parentName: parentName)
-            validateViewWillAppearSpans(vc: vc, parentName: parentName)
-            validateViewIsAppearingSpans(vc: vc, parentName: parentName)
-            validateViewDidAppearSpans(vc: vc, parentName: parentName)
+            try validateViewDidLoadSpans(vc: vc, parentName: parentName)
+            try validateViewWillAppearSpans(vc: vc, parentName: parentName)
+            try validateViewIsAppearingSpans(vc: vc, parentName: parentName)
+            try validateViewDidAppearSpans(vc: vc, parentName: parentName)
 
             // when view did appear ends
             // then the ui ready span should start
-            wait {
-                let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
-                let child = self.otel.startedSpans.first(where: { $0.name == "ui-ready" })
-
-                guard let parent, let child else { return false }
-                return child.parentSpanId == parent.context.spanId
-            }
+            let parent = try XCTUnwrap(otel.startedSpans.first(where: { $0.name.contains(parentName) }))
+            let child = try XCTUnwrap(otel.startedSpans.first(where: { $0.name == "ui-ready" }))
+            XCTAssertEqual(child.parentSpanId, parent.context.spanId)
 
             // when the view controller becomes interactable
             handler.onViewBecameInteractive(vc)
 
             // then the spans are ended
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
-                let uiReady = self.otel.endedSpans.first(where: { $0.name == "ui-ready" })
-
-                return parent != nil && uiReady != nil && parent!.endTime == uiReady!.endTime && self.cacheIsEmpty()
-            }
+            let endedParent = try XCTUnwrap(otel.endedSpans.first(where: { $0.name.contains(parentName) }))
+            let uiReady = try XCTUnwrap(otel.endedSpans.first(where: { $0.name == "ui-ready" }))
+            XCTAssertEqual(endedParent.endTime, uiReady.endTime)
+            XCTAssertTrue(cacheIsEmpty())
         }
 
         func test_timeToInteractiveFlow_earlyInteraction() throws {
@@ -318,19 +296,17 @@
             // before it appears, then all spans are created correctly
             // and the parent span and ui-ready span are ended as soon as viewDidAppear ends
             let parentName = "time-to-interactive"
-            validateViewDidLoadSpans(vc: vc, parentName: parentName)
+            try validateViewDidLoadSpans(vc: vc, parentName: parentName)
             handler.onViewBecameInteractive(vc)
-            validateViewWillAppearSpans(vc: vc, parentName: parentName)
-            validateViewIsAppearingSpans(vc: vc, parentName: parentName)
-            validateViewDidAppearSpans(vc: vc, parentName: parentName)
+            try validateViewWillAppearSpans(vc: vc, parentName: parentName)
+            try validateViewIsAppearingSpans(vc: vc, parentName: parentName)
+            try validateViewDidAppearSpans(vc: vc, parentName: parentName)
 
             // then the spans are ended
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
-                let uiReady = self.otel.endedSpans.first(where: { $0.name == "ui-ready" })
-
-                return parent != nil && uiReady != nil && parent!.endTime == uiReady!.endTime && self.cacheIsEmpty()
-            }
+            let parent = try XCTUnwrap(otel.endedSpans.first(where: { $0.name.contains(parentName) }))
+            let uiReady = try XCTUnwrap(otel.endedSpans.first(where: { $0.name == "ui-ready" }))
+            XCTAssertEqual(parent.endTime, uiReady.endTime)
+            XCTAssertTrue(cacheIsEmpty())
         }
 
         func test_timeToInteractiveFlow_interrupted() throws {
@@ -340,15 +316,14 @@
             // when a view controller is loaded but somehow disappears
             // before appearing, then the active spans are ended
             let parentName = "time-to-interactive"
-            validateViewDidLoadSpans(vc: vc, parentName: parentName)
-            validateViewWillAppearSpans(vc: vc, parentName: parentName)
+            try validateViewDidLoadSpans(vc: vc, parentName: parentName)
+            try validateViewWillAppearSpans(vc: vc, parentName: parentName)
             handler.onViewDidDisappear(vc)
 
             // then the spans are ended
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
-                return parent != nil && parent!.status == .error && self.cacheIsEmpty()
-            }
+            let parent = try XCTUnwrap(otel.endedSpans.first(where: { $0.name.contains(parentName) }))
+            XCTAssertEqual(parent.status, .error)
+            XCTAssertTrue(cacheIsEmpty())
         }
 
         func test_timeToInteractiveFlow_interrupted_background() throws {
@@ -358,111 +333,90 @@
             // when a view controller is loaded but somehow disappears
             // before appearing, then the active spans are ended
             let parentName = "time-to-interactive"
-            validateViewDidLoadSpans(vc: vc, parentName: parentName)
-            validateViewWillAppearSpans(vc: vc, parentName: parentName)
+            try validateViewDidLoadSpans(vc: vc, parentName: parentName)
+            try validateViewWillAppearSpans(vc: vc, parentName: parentName)
 
             handler.foregroundSessionDidEnd()
 
             // then the spans are ended
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.endedSpans.first(where: { $0.name.contains(parentName) })
-                return parent != nil && parent!.status == .error && self.cacheIsEmpty()
-            }
+            let parent = try XCTUnwrap(otel.endedSpans.first(where: { $0.name.contains(parentName) }))
+            XCTAssertEqual(parent.status, .error)
+            XCTAssertTrue(cacheIsEmpty())
         }
 
-        func validateViewDidLoadSpans(vc: UIViewController, parentName: String) {
+        func validateViewDidLoadSpans(vc: UIViewController, parentName: String) throws {
             // when view did load starts
             handler.onViewDidLoadStart(vc)
 
             // then spans are created
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
-                let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-did-load" })
-
-                guard let parent, let child else { return false }
-                return child.parentSpanId == parent.context.spanId && child.type == .viewLoad
-            }
+            let parent = try XCTUnwrap(otel.startedSpans.first(where: { $0.name.contains(parentName) }))
+            let child = try XCTUnwrap(otel.startedSpans.first(where: { $0.name == "emb-view-did-load" }))
+            XCTAssertEqual(child.parentSpanId, parent.context.spanId)
+            XCTAssertEqual(child.type, .viewLoad)
 
             // when view did load ends
             handler.onViewDidLoadEnd(vc)
 
             // then the view did load span is ended
-            wait(timeout: .longTimeout) {
-                let span = self.otel.startedSpans.first(where: { $0.name == "emb-view-did-load" })
-                return span != nil && self.handler.data.safeValue.viewDidLoadSpans.isEmpty
-            }
+            XCTAssertNotNil(otel.startedSpans.first(where: { $0.name == "emb-view-did-load" }))
+            XCTAssertTrue(handler.data.safeValue.viewDidLoadSpans.isEmpty)
         }
 
-        func validateViewWillAppearSpans(vc: UIViewController, parentName: String) {
+        func validateViewWillAppearSpans(vc: UIViewController, parentName: String) throws {
             // when view will appear starts
             handler.onViewWillAppearStart(vc)
 
             // then a child span is created
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
-                let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-will-appear" })
-
-                guard let parent, let child else { return false }
-                return child.parentSpanId == parent.context.spanId && child.type == .viewLoad
-            }
+            let parent = try XCTUnwrap(otel.startedSpans.first(where: { $0.name.contains(parentName) }))
+            let child = try XCTUnwrap(otel.startedSpans.first(where: { $0.name == "emb-view-will-appear" }))
+            XCTAssertEqual(child.parentSpanId, parent.context.spanId)
+            XCTAssertEqual(child.type, .viewLoad)
 
             // when view will appear ends
             handler.onViewWillAppearEnd(vc)
 
             // then the view will appear span is ended
-            wait(timeout: .longTimeout) {
-                let span = self.otel.endedSpans.first(where: { $0.name == "emb-view-will-appear" })
-                return span != nil && self.handler.data.safeValue.viewWillAppearSpans.isEmpty
-            }
+            XCTAssertNotNil(otel.endedSpans.first(where: { $0.name == "emb-view-will-appear" }))
+            XCTAssertTrue(handler.data.safeValue.viewWillAppearSpans.isEmpty)
         }
 
-        func validateViewIsAppearingSpans(vc: UIViewController, parentName: String) {
+        func validateViewIsAppearingSpans(vc: UIViewController, parentName: String) throws {
             // when view is appearing starts
             handler.onViewIsAppearingStart(vc)
 
             // then a child span is created
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
-                let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-is-appearing" })
-
-                guard let parent, let child else { return false }
-                return child.parentSpanId == parent.context.spanId && child.type == .viewLoad
-            }
+            let parent = try XCTUnwrap(otel.startedSpans.first(where: { $0.name.contains(parentName) }))
+            let child = try XCTUnwrap(otel.startedSpans.first(where: { $0.name == "emb-view-is-appearing" }))
+            XCTAssertEqual(child.parentSpanId, parent.context.spanId)
+            XCTAssertEqual(child.type, .viewLoad)
 
             // when view is appearing ends
             handler.onViewIsAppearingEnd(vc)
 
             // then the view will appear span is ended
-            wait(timeout: .longTimeout) {
-                let span = self.otel.endedSpans.first(where: { $0.name == "emb-view-is-appearing" })
-                return span != nil && self.handler.data.safeValue.viewIsAppearingSpans.isEmpty
-            }
+            XCTAssertNotNil(otel.endedSpans.first(where: { $0.name == "emb-view-is-appearing" }))
+            XCTAssertTrue(handler.data.safeValue.viewIsAppearingSpans.isEmpty)
         }
 
-        func validateViewDidAppearSpans(vc: UIViewController, parentName: String) {
+        func validateViewDidAppearSpans(vc: UIViewController, parentName: String) throws {
             // when view did appear starts
             handler.onViewDidAppearStart(vc)
 
             // then a child span is created
-            wait(timeout: .longTimeout) {
-                let parent = self.otel.startedSpans.first(where: { $0.name.contains(parentName) })
-                let child = self.otel.startedSpans.first(where: { $0.name == "emb-view-did-appear" })
-
-                guard let parent, let child else { return false }
-                return child.parentSpanId == parent.context.spanId && child.type == .viewLoad
-            }
+            let parent = try XCTUnwrap(otel.startedSpans.first(where: { $0.name.contains(parentName) }))
+            let child = try XCTUnwrap(otel.startedSpans.first(where: { $0.name == "emb-view-did-appear" }))
+            XCTAssertEqual(child.parentSpanId, parent.context.spanId)
+            XCTAssertEqual(child.type, .viewLoad)
 
             // when view did appear ends
             handler.onViewDidAppearEnd(vc)
 
             // then the view did appear span is ended
-            wait(timeout: .longTimeout) {
-                let span1 = self.otel.endedSpans.first(where: { $0.name == "emb-view-did-appear" })
-                let span2 = self.otel.startedSpans.first(where: { $0.name == "emb-screen-view" })
-
-                return span1 != nil && span1!.type == .viewLoad && span2 != nil && span2!.type == .view
-                    && self.handler.data.safeValue.viewDidAppearSpans.isEmpty
-            }
+            let viewDidAppearSpan = try XCTUnwrap(otel.endedSpans.first(where: { $0.name == "emb-view-did-appear" }))
+            XCTAssertEqual(viewDidAppearSpan.type, .viewLoad)
+            let visibilitySpan = try XCTUnwrap(otel.startedSpans.first(where: { $0.name == "emb-screen-view" }))
+            XCTAssertEqual(visibilitySpan.type, .view)
+            XCTAssertTrue(handler.data.safeValue.viewDidAppearSpans.isEmpty)
         }
 
         func cacheIsEmpty(_ checkVisibilitySpans: Bool = false) -> Bool {

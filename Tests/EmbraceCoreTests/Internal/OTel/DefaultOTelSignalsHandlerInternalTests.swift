@@ -21,6 +21,11 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
     var storage: EmbraceStorage!
     var upload: SpyEmbraceLogUploader!
 
+    // `LogController.createLog` processes each log asynchronously on this queue, so `logQueue.sync {}`
+    // returns once every log requested before it has been built, saved and handed to the bridge.
+    // `currentBatch()` waits on the batcher's own queue.
+    let logQueue = DispatchQueue(label: "io.embrace.tests.otelSignalsHandlerInternal.logs")
+
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
         upload = SpyEmbraceLogUploader()
@@ -32,7 +37,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             storage: storage,
             upload: upload,
             sessionController: sessionController,
-            queue: .main
+            queue: logQueue
         )
 
         limiter = MockOTelSignalsLimiter()
@@ -197,23 +202,31 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(limiter.shouldCreateLogCallCount, 0)
         XCTAssertEqual(sanitizer.sanitizeLogAttributesCallCount, 0)
 
-        // then the log is created ignoring limits
-        wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.currentBatch()!.logs[0]
+        logQueue.sync {}
+        let sessionId = try XCTUnwrap(sessionController.currentSession?.id.stringValue)
+        XCTAssertEqual(bridge.createLogCallCount, 1)
 
-            return log.body == "test" && log.severity == .debug && log.type == .message && log.timestamp == timestamp && log.attributes["key"] as! String == "value"
-                && log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.state"] as! String == "foreground"
-                && log.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue && self.bridge.createLogCallCount == 1
-        }
+        // then the log is created ignoring limits
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertEqual(log.body, "test")
+        XCTAssertEqual(log.severity, .debug)
+        XCTAssertEqual(log.type, .message)
+        XCTAssertEqual(log.timestamp, timestamp)
+        XCTAssertEqual(log.attributes["key"] as? String, "value")
+        XCTAssertEqual(log.attributes["emb.type"] as? String, "sys.log")
+        XCTAssertEqual(log.attributes["emb.state"] as? String, "foreground")
+        XCTAssertEqual(log.attributes["emb.session_part_id"] as? String, sessionId)
 
         // then the log is saved correctly
-        wait(timeout: .defaultTimeout) {
-            let record = self.storage.fetchAllLogs()[0]
-
-            return record.body == "test" && record.severity == .debug && record.type == .message && record.timestamp == timestamp && record.attributes["key"] as! String == "value"
-                && record.attributes["emb.type"] as! String == "sys.log" && record.attributes["emb.state"] as! String == "foreground"
-                && record.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue
-        }
+        let record = try XCTUnwrap(storage.fetchAllLogs().first)
+        XCTAssertEqual(record.body, "test")
+        XCTAssertEqual(record.severity, .debug)
+        XCTAssertEqual(record.type, .message)
+        XCTAssertEqual(record.timestamp, timestamp)
+        XCTAssertEqual(record.attributes["key"] as? String, "value")
+        XCTAssertEqual(record.attributes["emb.type"] as? String, "sys.log")
+        XCTAssertEqual(record.attributes["emb.state"] as? String, "foreground")
+        XCTAssertEqual(record.attributes["emb.session_part_id"] as? String, sessionId)
     }
 
     func test_exportLog() throws {
@@ -254,7 +267,6 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(sanitizer.sanitizeLogAttributesCallCount, 0)
 
         // then the log is forwarded to the bridge untouched
-        wait(delay: .defaultTimeout)
         XCTAssertEqual(bridge.createLogCallCount, 1)
         let exported = try XCTUnwrap(bridge.createdLogs.first)
         XCTAssertEqual(exported.id, "test-id")
@@ -964,8 +976,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(limiter.shouldCreateLogCallCount, 1)
 
         // then the log is added to the batch and saved correctly
-        wait(delay: .defaultTimeout)
-        XCTAssertEqual(logController.batcher.currentBatch()!.logs.count, 1)
+        XCTAssertEqual(logController.batcher.currentBatch()?.logs.count, 1)
         XCTAssertEqual(storage.fetchAllLogs().count, 1)
     }
 
@@ -981,7 +992,6 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(limiter.shouldCreateLogCallCount, 1)
 
         // then the log is not added to the batch nor saved
-        wait(delay: .defaultTimeout)
         XCTAssertNil(logController.batcher.currentBatch())
         XCTAssertEqual(storage.fetchAllLogs().count, 0)
     }

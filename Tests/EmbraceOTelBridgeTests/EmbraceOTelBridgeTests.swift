@@ -63,7 +63,8 @@ final class EmbraceOTelBridgeTests: XCTestCase {
             attributes: [:]
         )
         // Span should have been exported since it was ended immediately.
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         XCTAssertEqual(spanProcessor.endedSpans.first?.name, "immediate")
     }
 
@@ -80,7 +81,8 @@ final class EmbraceOTelBridgeTests: XCTestCase {
             links: [],
             attributes: ["foo": "bar"]
         )
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         XCTAssertEqual(spanProcessor.endedSpans.first?.attributes["foo"], .string("bar"))
     }
 
@@ -99,7 +101,8 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         )
         let mockSpan = MockEmbraceSpan(spanId: ctx.spanId, traceId: ctx.traceId)
         bridge.endSpan(mockSpan, endTime: Date())
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
     }
 
     func test_endSpan_calledTwice_onlyExportsOnce() {
@@ -116,7 +119,8 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let mockSpan = MockEmbraceSpan(spanId: ctx.spanId, traceId: ctx.traceId)
         bridge.endSpan(mockSpan, endTime: Date())
         bridge.endSpan(mockSpan, endTime: Date())  // second call is no-op
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
     }
 
     // MARK: - Loop prevention
@@ -263,7 +267,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         bridge.updateSpanStatus(mockSpan, status: .ok)
         bridge.endSpan(mockSpan, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         let exported = spanProcessor.endedSpans.first
         XCTAssertEqual(exported?.status, .ok)
     }
@@ -286,7 +292,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         bridge.updateSpanAttribute(mockSpan, key: "my.key", value: "my-value")
         bridge.endSpan(mockSpan, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         XCTAssertEqual(spanProcessor.endedSpans.first?.attributes["my.key"], .string("my-value"))
     }
 
@@ -310,7 +318,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         bridge.addSpanEvent(mockSpan, event: event)
         bridge.endSpan(mockSpan, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         let exported = spanProcessor.endedSpans.first
         XCTAssertEqual(exported?.events.count, 1)
         XCTAssertEqual(exported?.events.first?.name, "test-event")
@@ -350,7 +360,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         bridge.endSpan(childMock, endTime: Date())
         bridge.endSpan(parentMock, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 2 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 2)
         let childData = spanProcessor.endedSpans.first { $0.name == "child" }
         XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
     }
@@ -387,7 +399,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
         bridge.endSpan(childMock, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 2 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 2)
         let childData = spanProcessor.endedSpans.first { $0.name == "child" }
         XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
     }
@@ -424,7 +438,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
         bridge.endSpan(childMock, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 2 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 2)
         let childData = spanProcessor.endedSpans.first { $0.name == "child" }
         XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
     }
@@ -451,7 +467,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
         bridge.endSpan(childMock, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         XCTAssertEqual(spanProcessor.endedSpans.first?.parentSpanId?.hexString, parentSpanId)
     }
 
@@ -484,7 +502,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let mockSpan = MockEmbraceSpan(spanId: ctx.spanId, traceId: ctx.traceId)
         bridge.endSpan(mockSpan, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.contains { $0.name == "root" } }
+        bridge.waitForAllWork()
+
+        XCTAssertTrue(spanProcessor.endedSpans.contains { $0.name == "root" })
         let spanData = spanProcessor.endedSpans.first { $0.name == "root" }
         XCTAssertNil(spanData?.parentSpanId)
     }
@@ -527,7 +547,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
         bridge.endSpan(childMock, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.contains { $0.name == "child" } }
+        bridge.waitForAllWork()
+
+        XCTAssertTrue(spanProcessor.endedSpans.contains { $0.name == "child" })
         let childData = spanProcessor.endedSpans.first { $0.name == "child" }
         XCTAssertEqual(childData?.parentSpanId?.hexString, parentCtx.spanId)
     }
@@ -578,7 +600,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let mockSpan = MockEmbraceSpan(spanId: ctx.spanId, traceId: ctx.traceId)
         bridge.endSpan(mockSpan, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         XCTAssertEqual(spanProcessor.endedSpans.first?.links.count, 0)
     }
 
@@ -599,7 +623,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
         bridge.endSpan(childMock, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         XCTAssertNil(spanProcessor.endedSpans.first?.parentSpanId)
     }
 
@@ -632,7 +658,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
         bridge.endSpan(childMock, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         XCTAssertNil(spanProcessor.endedSpans.first?.parentSpanId)
     }
 
@@ -668,7 +696,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let childMock = MockEmbraceSpan(spanId: childCtx.spanId, traceId: childCtx.traceId)
         bridge.endSpan(childMock, endTime: Date())
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         XCTAssertNil(spanProcessor.endedSpans.first?.parentSpanId)
     }
 
@@ -693,7 +723,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
             attributes: [:]
         )
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         let exported = spanProcessor.endedSpans.first
         XCTAssertEqual(exported?.links.count, 1)
         XCTAssertEqual(exported?.links.first?.context.spanId.hexString, linkedSpanId)
@@ -719,7 +751,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
             attributes: [:]
         )
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         let exported = spanProcessor.endedSpans.first
         XCTAssertEqual(exported?.events.count, 1)
         XCTAssertEqual(exported?.events.first?.name, "creation-event")
@@ -741,7 +775,9 @@ final class EmbraceOTelBridgeTests: XCTestCase {
             attributes: [:]
         )
 
-        wait(timeout: .defaultTimeout) { self.spanProcessor.endedSpans.count == 1 }
+        bridge.waitForAllWork()
+
+        XCTAssertEqual(spanProcessor.endedSpans.count, 1)
         XCTAssertEqual(spanProcessor.endedSpans.first?.status, .ok)
     }
 
