@@ -243,17 +243,40 @@ jobs:
 
           echo "Downloading result bundle for build $BUILD_ID, session $SESSION_ID..."
 
-          # Download result bundle using the proper API endpoint
-          curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
-            -X GET "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/builds/$BUILD_ID/sessions/$SESSION_ID/resultbundle" \
-            -o result_bundle.xcresult.zip
+          # BrowserStack can report the build as finished before the result bundle
+          # is available, and serves an XML error body in its place until then.
+          MAX_ATTEMPTS=6
+          retry_delay=2
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            rm -f result_bundle.xcresult.zip
+            if curl -fsS -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+                -X GET "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/builds/$BUILD_ID/sessions/$SESSION_ID/resultbundle" \
+                -o result_bundle.xcresult.zip \
+              && unzip -tq result_bundle.xcresult.zip > /dev/null; then
+              echo "Result bundle downloaded successfully"
+              ls -lh result_bundle.xcresult.zip
+              exit 0
+            fi
 
-          if [ -f result_bundle.xcresult.zip ]; then
-            echo "Result bundle downloaded successfully"
-            ls -lh result_bundle.xcresult.zip
-          else
-            echo "Warning: Result bundle file not created"
-          fi
+            echo "Result bundle not available yet (attempt $attempt/$MAX_ATTEMPTS)"
+            if [ -f result_bundle.xcresult.zip ]; then
+              file result_bundle.xcresult.zip
+              case "$(file -b --mime-type result_bundle.xcresult.zip)" in
+                text/*|application/xml|application/json)
+                  head -c 500 result_bundle.xcresult.zip
+                  echo
+                  ;;
+              esac
+            fi
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+              echo "Retrying in ${retry_delay}s"
+              sleep "$retry_delay"
+              retry_delay=$((retry_delay * 2))
+            fi
+          done
+
+          rm -f result_bundle.xcresult.zip
+          echo "Warning: Result bundle not available after $MAX_ATTEMPTS attempts"
 
       - name: Upload Result Bundle as Artifact
         if: always()
@@ -275,6 +298,9 @@ jobs:
     steps:
       - name: Download Result Bundle
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        # The test job uploads no artifact when the bundle was unavailable; the
+        # extract step handles the missing file.
+        continue-on-error: true
         with:
           name: browserstack-result-bundle-${{ needs.test.outputs.build_id }}-${{ needs.test.outputs.session_id }}
 
@@ -292,6 +318,19 @@ jobs:
           if [ ! -f result_bundle.xcresult.zip ]; then
             echo "Result bundle not found, skipping metrics extraction"
             echo "results={}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if ! unzip -tq result_bundle.xcresult.zip > /dev/null; then
+            echo "Result bundle is not a valid zip, skipping metrics extraction"
+            file result_bundle.xcresult.zip
+            case "$(file -b --mime-type result_bundle.xcresult.zip)" in
+              text/*|application/xml|application/json)
+                head -c 500 result_bundle.xcresult.zip
+                echo
+                ;;
+            esac
+            echo "results={}" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
