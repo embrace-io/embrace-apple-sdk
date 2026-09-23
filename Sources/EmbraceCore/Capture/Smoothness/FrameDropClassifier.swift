@@ -6,15 +6,18 @@
 
     import Foundation
 
-    /// Accumulates missed-vsync counts on behalf of the currently active accumulator.
+    /// Accumulates per-tick frame accounting on behalf of the currently active accumulator.
     ///
     /// `SmoothnessSessionTracker` implements this and plugs itself in as `FrameDropClassifier`'s
     /// `currentAccumulator` for as long as the app's foreground session is active.
     protocol FrameDropAccumulator: AnyObject {
 
-        /// Called at most once per tick with the number of vsyncs missed on that tick. Never
-        /// called with a non-positive count.
-        func addMissedVsyncs(_ count: Int)
+        /// Called exactly once per tick with the number of vsyncs missed on that tick (`0` for an
+        /// on-time frame, never negative) and the display's frame duration at the time of the tick.
+        ///
+        /// Called for every tick, not just late ones, so the accumulator can count expected frames
+        /// (`missedVsyncs + 1` per tick) as well as dropped ones.
+        func recordFrame(missedVsyncs: Int, frameDuration: TimeInterval)
     }
 
     /// Converts each `FrameTimingSource` tick into a missed-vsync count and forwards it to
@@ -26,7 +29,7 @@
     /// Must be used from the main thread.
     final class FrameDropClassifier {
 
-        /// The accumulator for the currently open focal moment, or `nil` when none is open.
+        /// The accumulator for the currently open foreground session, or `nil` when none is open.
         weak var currentAccumulator: FrameDropAccumulator?
 
         /// Feed this from `FrameTimingSource.onTick`.
@@ -34,10 +37,9 @@
             guard let currentAccumulator else { return }
             guard frameDuration > 0 else { return }
 
-            let missedVsyncs = Int((delay / frameDuration).rounded(.down))
-            guard missedVsyncs > 0 else { return }
+            let missedVsyncs = max(0, Int((delay / frameDuration).rounded(.down)))
 
-            currentAccumulator.addMissedVsyncs(missedVsyncs)
+            currentAccumulator.recordFrame(missedVsyncs: missedVsyncs, frameDuration: frameDuration)
         }
     }
 

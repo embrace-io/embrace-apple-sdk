@@ -34,18 +34,18 @@
             XCTAssertTrue(mockAccumulator.reportedCounts.isEmpty)
         }
 
-        func testNoOpForZeroDelay() {
+        func testOnTimeFrameReportsZero() {
             classifier.handle(delay: 0, frameDuration: 1.0 / 60.0)
 
-            XCTAssertTrue(mockAccumulator.reportedCounts.isEmpty)
+            XCTAssertEqual(mockAccumulator.reportedCounts, [0])
         }
 
-        func testNoOpForDelayUnderOneFrame() {
+        func testDelayUnderOneFrameReportsZero() {
             let frameDuration = 1.0 / 60.0
 
             classifier.handle(delay: frameDuration * 0.5, frameDuration: frameDuration)
 
-            XCTAssertTrue(mockAccumulator.reportedCounts.isEmpty)
+            XCTAssertEqual(mockAccumulator.reportedCounts, [0])
         }
 
         func testSingleMissedVsync() {
@@ -64,10 +64,18 @@
             XCTAssertEqual(mockAccumulator.reportedCounts, [3])
         }
 
-        func testNegativeDelayIsIgnored() {
+        func testNegativeDelayReportsZero() {
             classifier.handle(delay: -0.5, frameDuration: 1.0 / 60.0)
 
-            XCTAssertTrue(mockAccumulator.reportedCounts.isEmpty)
+            XCTAssertEqual(mockAccumulator.reportedCounts, [0])
+        }
+
+        func testForwardsFrameDuration() {
+            let frameDuration = 1.0 / 120.0
+
+            classifier.handle(delay: frameDuration * 2.2, frameDuration: frameDuration)
+
+            XCTAssertEqual(mockAccumulator.reportedFrameDurations, [frameDuration])
         }
 
         func testZeroFrameDurationIsIgnored() {
@@ -95,9 +103,11 @@
 
     private final class MockFrameDropAccumulator: FrameDropAccumulator {
         private(set) var reportedCounts: [Int] = []
+        private(set) var reportedFrameDurations: [TimeInterval] = []
 
-        func addMissedVsyncs(_ count: Int) {
-            reportedCounts.append(count)
+        func recordFrame(missedVsyncs: Int, frameDuration: TimeInterval) {
+            reportedCounts.append(missedVsyncs)
+            reportedFrameDurations.append(frameDuration)
         }
     }
 
