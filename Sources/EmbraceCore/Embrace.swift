@@ -67,7 +67,7 @@ package class Embrace {
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
-    
+
     /// Entered on init and left exactly once, when `start()` resolves (either by starting the
     /// SDK or by finding it disabled). OTel child span forwarding waits on this group, so it
     /// must never stay entered once `start()` has run, or forwarding would block forever.
