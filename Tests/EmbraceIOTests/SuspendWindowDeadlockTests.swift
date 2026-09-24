@@ -150,6 +150,58 @@
             )
         }
 
+        /// The victim hammers the ObjC runtime, so suspending it repeatedly catches it holding the
+        /// runtime lock. A walk that dispatches through the `@objc` `Backtracer` protocol needs that
+        /// same lock on a cold method cache, which wedges the whole process.
+        ///
+        /// The per-iteration cache flush is what makes this bite: a warm cache resolves the selector
+        /// without the lock, so without flushing a regressed build would usually pass.
+        func test_noDeadlock_victimHammersObjCRuntime() throws {
+            try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
+
+            let backtracer = try XCTUnwrap(Embrace.client?.options.backtracer, "no backtracer configured")
+            let backtracerClass: AnyClass = object_getClass(backtracer)!
+
+            let running = EmbraceAtomic<Bool>(true)
+            let ready = DispatchSemaphore(value: 0)
+            let box = PThreadBox()
+
+            // Each of these runtime mutations takes the runtime lock, so a suspend lands inside it
+            // often. Disposing keeps the class count bounded.
+            let victim = Thread {
+                box.value = pthread_self()
+                ready.signal()
+                var counter = 0
+                while running.load(order: .relaxed) {
+                    counter += 1
+                    if let cls = objc_allocateClassPair(NSObject.self, "EMBRuntimeLockProbe\(counter)", 0) {
+                        objc_registerClassPair(cls)
+                        objc_disposeClassPair(cls)
+                    }
+                }
+            }
+            victim.name = "emb.deadlock.objcruntime"
+            victim.start()
+            ready.wait()
+            defer { running.store(false, order: .relaxed) }
+
+            let target = try XCTUnwrap(box.value, "victim did not publish its pthread_t")
+
+            let noop: @convention(c) (AnyObject, Selector) -> Void = { _, _ in }
+            let noopImp = unsafeBitCast(noop, to: IMP.self)
+
+            for iteration in 0..<200 {
+                // Cold-cache the backtracer's class before each sample (see doc comment).
+                class_addMethod(backtracerClass, NSSelectorFromString("embCacheFlush\(iteration)"), noopImp, "v@:")
+
+                XCTAssertTrue(
+                    sampleCompletes(victim: target),
+                    "Sampling stalled on iteration \(iteration) while the victim hammered the ObjC "
+                        + "runtime — the suspend-window walk is taking the runtime lock (deadlock)."
+                )
+            }
+        }
+
         /// The load-bearing case: the victim continuously allocates/frees, so suspending it
         /// repeatedly catches it mid-`malloc` holding the allocator lock. If the alloc-free window
         /// regressed and started allocating, this would deadlock and time out.
