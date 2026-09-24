@@ -12,20 +12,27 @@
 
     /// Frame accounting for one completed foreground session.
     ///
-    /// Counts are in native vsyncs (i.e. at the display's own refresh rate, not normalized to a
-    /// 60fps baseline).
+    /// Matches Android's smoothness units: `frameCount` is the real (unnormalized) number of frames
+    /// rendered, and `normalizedDroppedFrames` is the total late time expressed in 60fps reference
+    /// frames, so it is refresh-rate independent (one dropped frame is 0.5 at 120Hz, 2.0 at 30Hz).
+    /// Expected frames are not stored; like Android, they are implied by the session's duration
+    /// (`duration * referenceFrameRate`).
     struct SmoothnessSessionStats: Equatable {
+
+        /// The fixed frame rate all dropped-frame counts are normalized to.
+        static let referenceFrameRate: Double = 60
+
         let startTime: Date
         let endTime: Date
 
-        /// Vsyncs the display was expected to present while the session was open: every delivered
-        /// frame plus every missed vsync, after the hang ceiling is applied.
-        let expectedFrames: Int
+        /// Frames rendered (display link ticks delivered) while the session was open.
+        let frameCount: Int
 
-        /// Missed vsyncs while the session was open, after the hang ceiling is applied.
-        let droppedFrames: Int
+        /// Total late time while the session was open, after the hang ceiling is applied, in 60fps
+        /// reference frames.
+        let normalizedDroppedFrames: Double
 
-        /// Ticks whose missed-vsync count exceeded the hang ceiling and were capped.
+        /// Ticks whose lateness exceeded the hang ceiling and were capped.
         let cappedTickCount: Int
     }
 
@@ -36,9 +43,12 @@
     /// `.embraceForegroundSessionDidEnd` fires, detaching from the classifier and reporting the
     /// session's totals through `onSessionEnded`.
     ///
-    /// A single tick whose missed vsyncs span more than `hangThreshold` (a main-thread hang) is capped
-    /// to `hangThreshold`'s worth of vsyncs, so one stall can't dominate an otherwise long session. The
-    /// session stays open across a hang.
+    /// A single tick that is later than `hangThreshold` (a main-thread hang) is capped to
+    /// `hangThreshold`, so one stall can't dominate an otherwise long session. The session stays open
+    /// across a hang.
+    ///
+    /// Late time is summed as a continuous duration and only normalized to 60fps reference frames
+    /// when the session closes, so no per-tick rounding accumulates over long sessions.
     ///
     /// All state is confined to the main thread.
     final class SmoothnessSessionTracker: FrameDropAccumulator {
@@ -47,7 +57,7 @@
         /// before doing any non-trivial work.
         var onSessionEnded: ((SmoothnessSessionStats) -> Void)?
 
-        /// Maximum delay a single tick can contribute to the session's dropped-frame count.
+        /// Maximum late time a single tick can contribute to the session's dropped frames.
         let hangThreshold: TimeInterval
 
         /// Whether a foreground session is currently being accumulated.
@@ -93,18 +103,17 @@
 
         // MARK: - FrameDropAccumulator
 
-        func recordFrame(missedVsyncs: Int, frameDuration: TimeInterval) {
-            guard openSession != nil, frameDuration > 0 else { return }
+        func recordFrame(lateBy: TimeInterval) {
+            guard openSession != nil else { return }
 
-            var missed = missedVsyncs
-            let ceiling = Int(hangThreshold / frameDuration)
-            if missed > ceiling {
-                missed = ceiling
+            var late = lateBy
+            if late > hangThreshold {
+                late = hangThreshold
                 openSession?.cappedTickCount += 1
             }
 
-            openSession?.expectedFrames += missed + 1
-            openSession?.droppedFrames += missed
+            openSession?.frameCount += 1
+            openSession?.droppedDuration += late
         }
 
         // MARK: - Session lifecycle
@@ -132,8 +141,8 @@
                 SmoothnessSessionStats(
                     startTime: session.startTime,
                     endTime: endTime,
-                    expectedFrames: session.expectedFrames,
-                    droppedFrames: session.droppedFrames,
+                    frameCount: session.frameCount,
+                    normalizedDroppedFrames: session.droppedDuration * SmoothnessSessionStats.referenceFrameRate,
                     cappedTickCount: session.cappedTickCount
                 )
             )
@@ -143,8 +152,8 @@
 
         private struct OpenSession {
             let startTime: Date
-            var expectedFrames = 0
-            var droppedFrames = 0
+            var frameCount = 0
+            var droppedDuration: TimeInterval = 0
             var cappedTickCount = 0
         }
 

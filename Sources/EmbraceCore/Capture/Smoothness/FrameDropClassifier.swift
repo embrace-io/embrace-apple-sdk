@@ -12,19 +12,23 @@
     /// `currentAccumulator` for as long as the app's foreground session is active.
     protocol FrameDropAccumulator: AnyObject {
 
-        /// Called exactly once per tick with the number of vsyncs missed on that tick (`0` for an
-        /// on-time frame, never negative) and the display's frame duration at the time of the tick.
+        /// Called exactly once per tick with how late that tick's frame arrived, in seconds (`0` for an
+        /// on-time frame, never negative).
         ///
-        /// Called for every tick, not just late ones, so the accumulator can count expected frames
-        /// (`missedVsyncs + 1` per tick) as well as dropped ones.
-        func recordFrame(missedVsyncs: Int, frameDuration: TimeInterval)
+        /// Called for every tick, not just late ones, so the accumulator can count rendered frames as
+        /// well as dropped time.
+        func recordFrame(lateBy: TimeInterval)
     }
 
-    /// Converts each `FrameTimingSource` tick into a missed-vsync count and forwards it to
-    /// whichever accumulator is current.
+    /// Converts each `FrameTimingSource` tick into a non-negative lateness and forwards it to whichever
+    /// accumulator is current.
+    ///
+    /// Lateness is passed through as a continuous duration rather than quantized into whole missed
+    /// vsyncs, so partial-frame drops aren't lost and the accumulator can normalize to any reference
+    /// frame rate without rounding drift.
     ///
     /// `FrameDropClassifier` has no notion of what owns the accumulator — it only knows about
-    /// `currentAccumulator`. While it is `nil`, `handle(delay:frameDuration:)` no-ops.
+    /// `currentAccumulator`. While it is `nil`, `handle(delay:)` no-ops.
     ///
     /// Must be used from the main thread.
     final class FrameDropClassifier {
@@ -33,13 +37,10 @@
         weak var currentAccumulator: FrameDropAccumulator?
 
         /// Feed this from `FrameTimingSource.onTick`.
-        func handle(delay: TimeInterval, frameDuration: TimeInterval) {
+        func handle(delay: TimeInterval) {
             guard let currentAccumulator else { return }
-            guard frameDuration > 0 else { return }
 
-            let missedVsyncs = max(0, Int((delay / frameDuration).rounded(.down)))
-
-            currentAccumulator.recordFrame(missedVsyncs: missedVsyncs, frameDuration: frameDuration)
+            currentAccumulator.recordFrame(lateBy: max(0, delay))
         }
     }
 

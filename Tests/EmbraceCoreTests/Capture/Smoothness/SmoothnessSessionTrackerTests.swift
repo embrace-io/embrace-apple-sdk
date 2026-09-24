@@ -13,6 +13,7 @@
     final class SmoothnessSessionTrackerTests: XCTestCase {
 
         private let frameDuration = 1.0 / 60.0
+        private let accuracy = 1e-9
 
         private var notificationCenter: NotificationCenter!
         private var embraceNotificationCenter: NotificationCenter!
@@ -54,7 +55,7 @@
         }
 
         private func tick(delayInFrames: Double) {
-            classifier.handle(delay: frameDuration * delayInFrames, frameDuration: frameDuration)
+            classifier.handle(delay: frameDuration * delayInFrames)
         }
 
         // MARK: - Lifecycle
@@ -108,7 +109,7 @@
 
             XCTAssertTrue(tracker.isSessionOpen)
             XCTAssertEqual(reported.count, 1)
-            XCTAssertEqual(reported.first?.droppedFrames, 2)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 2.5, accuracy: accuracy)
         }
 
         func testForegroundEndFromBackgroundThreadClosesOnMain() {
@@ -127,17 +128,28 @@
 
         // MARK: - Accounting
 
-        func testAccumulatesExpectedAndDroppedFrames() {
+        func testAccumulatesFrameCountAndNormalizedDroppedFrames() {
             postPartStart(.foreground)
 
-            tick(delayInFrames: 0)  // on time: expected 1, dropped 0
-            tick(delayInFrames: 1.2)  // 1 missed: expected 2, dropped 1
-            tick(delayInFrames: 3.9)  // 3 missed: expected 4, dropped 3
+            tick(delayInFrames: 0)
+            tick(delayInFrames: 1.2)
+            tick(delayInFrames: 3.9)
             postForegroundEnd()
 
-            XCTAssertEqual(reported.first?.expectedFrames, 7)
-            XCTAssertEqual(reported.first?.droppedFrames, 4)
+            XCTAssertEqual(reported.first?.frameCount, 3)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 5.1, accuracy: accuracy)
             XCTAssertEqual(reported.first?.cappedTickCount, 0)
+        }
+
+        func testPartialFrameDropsAreNotRoundedAway() {
+            postPartStart(.foreground)
+
+            tick(delayInFrames: 0.4)
+            tick(delayInFrames: 0.4)
+            tick(delayInFrames: 0.4)
+            postForegroundEnd()
+
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 1.2, accuracy: accuracy)
         }
 
         func testTicksOutsideOpenSessionAreIgnored() {
@@ -150,8 +162,8 @@
             tick(delayInFrames: 5.5)
 
             XCTAssertEqual(reported.count, 1)
-            XCTAssertEqual(reported.first?.droppedFrames, 1)
-            XCTAssertEqual(reported.first?.expectedFrames, 2)
+            XCTAssertEqual(reported.first?.frameCount, 1)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 1.5, accuracy: accuracy)
         }
 
         func testNewSessionStartsFromZero() {
@@ -163,8 +175,45 @@
             tick(delayInFrames: 0)
             postForegroundEnd()
 
-            XCTAssertEqual(reported.last?.expectedFrames, 1)
-            XCTAssertEqual(reported.last?.droppedFrames, 0)
+            XCTAssertEqual(reported.last?.frameCount, 1)
+            XCTAssertEqual(reported.last?.normalizedDroppedFrames, 0)
+        }
+
+        // MARK: - 60fps normalization
+
+        func testOneMissedVsyncAt120HzIsHalfAReferenceFrame() {
+            postPartStart(.foreground)
+
+            classifier.handle(delay: 1.0 / 120.0)
+            postForegroundEnd()
+
+            XCTAssertEqual(reported.first?.frameCount, 1)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 0.5, accuracy: accuracy)
+        }
+
+        func testOneMissedVsyncAt30HzIsTwoReferenceFrames() {
+            postPartStart(.foreground)
+
+            classifier.handle(delay: 1.0 / 30.0)
+            postForegroundEnd()
+
+            XCTAssertEqual(reported.first?.frameCount, 1)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 2.0, accuracy: accuracy)
+        }
+
+        func testLongSessionDoesNotDrift() {
+            postPartStart(.foreground)
+
+            // One hour at 120Hz, every frame 10% of a vsync late.
+            let ticks = 120 * 60 * 60
+            for _ in 0..<ticks {
+                classifier.handle(delay: (1.0 / 120.0) * 0.1)
+            }
+            postForegroundEnd()
+
+            // 432,000 ticks * 0.05 reference frames each.
+            XCTAssertEqual(reported.first?.frameCount, ticks)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 21_600, accuracy: 1e-6)
         }
 
         // MARK: - Hang ceiling
@@ -172,34 +221,32 @@
         func testTickPastHangThresholdIsCapped() {
             postPartStart(.foreground)
 
-            // 2s stall at 60Hz = 120 missed vsyncs; ceiling is Int(0.249 * 60) = 14.
             tick(delayInFrames: 120)
             postForegroundEnd()
 
-            XCTAssertEqual(reported.first?.droppedFrames, 14)
-            XCTAssertEqual(reported.first?.expectedFrames, 15)
+            // Capped to 0.249s = 14.94 reference frames.
+            XCTAssertEqual(reported.first?.frameCount, 1)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
             XCTAssertEqual(reported.first?.cappedTickCount, 1)
         }
 
         func testTickAtHangThresholdIsNotCapped() {
             postPartStart(.foreground)
 
-            tick(delayInFrames: 14.5)
+            classifier.handle(delay: 0.249)
             postForegroundEnd()
 
-            XCTAssertEqual(reported.first?.droppedFrames, 14)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
             XCTAssertEqual(reported.first?.cappedTickCount, 0)
         }
 
-        func testCeilingScalesWithRefreshRate() {
+        func testCeilingIsRefreshRateIndependent() {
             postPartStart(.foreground)
-            let proMotionFrameDuration = 1.0 / 120.0
 
-            classifier.handle(delay: 2.0, frameDuration: proMotionFrameDuration)
+            classifier.handle(delay: 2.0)
             postForegroundEnd()
 
-            // Int(0.249 * 120) = 29
-            XCTAssertEqual(reported.first?.droppedFrames, 29)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
             XCTAssertEqual(reported.first?.cappedTickCount, 1)
         }
 
