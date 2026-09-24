@@ -22,12 +22,11 @@
 
         override class func setUp() {
             super.setUp()
-            _ = try? Embrace.setup(options: Embrace.Options(appId: "myApp", captureServices: [], crashReporter: nil)).start()
+            Embrace.startWithoutNetwork()
         }
 
         override class func tearDown() {
-            _ = try? Embrace.client?.stop()
-            Embrace.client = nil
+            Embrace.stopAndClearClient()
             super.tearDown()
         }
 
