@@ -110,14 +110,9 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         let t = provider.get(instrumentationName: "test", instrumentationVersion: nil)
 
         let span = t.spanBuilder(spanName: "test-span").startSpan()
-        // Child forwarding is async on processorQueue
-        let expectation = expectation(description: "child processor receives onStart")
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-            if childProcessor.startedSpanNames.contains("test-span") {
-                expectation.fulfill()
-            }
-        }
-        wait(for: [expectation], timeout: .defaultTimeout)
+        processor.waitForAllWork()
+
+        XCTAssertEqual(childProcessor.startedSpanNames, ["test-span"])
         span.end()
     }
 
@@ -129,14 +124,9 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
         let span = t.spanBuilder(spanName: "test-span").startSpan()
         span.end()
+        processor.waitForAllWork()
 
-        let expectation = expectation(description: "child processor receives onEnd")
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-            if childProcessor.endedSpanNames.contains("test-span") {
-                expectation.fulfill()
-            }
-        }
-        wait(for: [expectation], timeout: .defaultTimeout)
+        XCTAssertEqual(childProcessor.endedSpanNames, ["test-span"])
     }
 
     // MARK: - Child exporter forwarding on onEnd
@@ -149,14 +139,9 @@ final class EmbraceSpanProcessorTests: XCTestCase {
 
         let span = t.spanBuilder(spanName: "exported-span").startSpan()
         span.end()
+        processor.waitForAllWork()
 
-        let expectation = expectation(description: "child exporter receives span data")
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-            if childExporter.exportedSpans.contains(where: { $0.name == "exported-span" }) {
-                expectation.fulfill()
-            }
-        }
-        wait(for: [expectation], timeout: .defaultTimeout)
+        XCTAssertEqual(childExporter.exportedSpans.map(\.name), ["exported-span"])
     }
 
     // MARK: - forceFlush propagation
@@ -201,23 +186,25 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         let provider = TracerProviderSdk(spanProcessors: [processor])
         let t = provider.get(instrumentationName: "test", instrumentationVersion: nil)
 
+        // Holding the critical resource group blocks processorQueue, so child forwarding cannot run
+        // until it is released.
+        let criticalResourceGroup = DispatchGroup()
+        criticalResourceGroup.enter()
+        processor.criticalResourceGroup = criticalResourceGroup
+
         let span = t.spanBuilder(spanName: "async-test").startSpan()
-
-        // Delegate call is synchronous — should be populated immediately after startSpan()
-        XCTAssertEqual(mockDelegate.startedSpans.count, 1)
-
-        // Child processor forwarding is async — should NOT be populated yet on the calling thread
-        // (though it may have been dispatched)
-        // We verify it eventually arrives
         span.end()
 
-        let expectation = expectation(description: "child processor eventually receives span")
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.5) {
-            if childProcessor.endedSpanNames.contains("async-test") {
-                expectation.fulfill()
-            }
-        }
-        wait(for: [expectation], timeout: .defaultTimeout)
+        XCTAssertEqual(mockDelegate.startedSpans.count, 1)
+        XCTAssertEqual(mockDelegate.endedSpans.count, 1)
+        XCTAssertTrue(childProcessor.startedSpanNames.isEmpty)
+        XCTAssertTrue(childProcessor.endedSpanNames.isEmpty)
+
+        criticalResourceGroup.leave()
+        processor.waitForAllWork()
+
+        XCTAssertEqual(childProcessor.startedSpanNames, ["async-test"])
+        XCTAssertEqual(childProcessor.endedSpanNames, ["async-test"])
     }
 }
 
