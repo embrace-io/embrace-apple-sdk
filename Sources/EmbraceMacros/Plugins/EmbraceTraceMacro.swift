@@ -36,6 +36,14 @@
     /// properties, types, and typealias needed to wrap and trace the original body.
     extension EmbraceTraceMacro: MemberMacro {
 
+        /// An error that fails the expansion with a single diagnostic on the macro attribute.
+        ///
+        /// SwiftSyntax reports the diagnostics inside a thrown `DiagnosticsError` as they are, rather than
+        /// adding a second diagnostic built from the error's description.
+        private static func expansionError(_ message: String, at node: AttributeSyntax) -> DiagnosticsError {
+            DiagnosticsError(diagnostics: [Diagnostic(node: node, message: EmbraceTraceDiagnostic(message: message))])
+        }
+
         public static func expansion(
             of node: AttributeSyntax,
             providingMembersOf declaration: some DeclGroupSyntax,
@@ -45,11 +53,7 @@
 
             // Validate that the macro is applied to a struct declaration
             guard let structDecl = declaration.as(StructDeclSyntax.self) else {
-                context.diagnose(
-                    Diagnostic(
-                        node: node, message: EmbraceTraceDiagnostic(message: "EmbraceTrace can only be applied to structs"))
-                )
-                throw EmbraceMacroError.notStruct
+                throw expansionError("EmbraceTrace can only be applied to structs", at: node)
             }
 
             // Check that the struct conforms to SwiftUI's View protocol
@@ -69,11 +73,7 @@
                     return false
                 } ?? false
             guard inheritsView else {
-                context.diagnose(
-                    Diagnostic(
-                        node: node,
-                        message: EmbraceTraceDiagnostic(message: "Struct must conform to View to use EmbraceTrace")))
-                throw EmbraceMacroError.notConformingToView
+                throw expansionError("Struct must conform to View to use EmbraceTrace", at: node)
             }
 
             // Find the 'body' property in the struct's members
@@ -88,26 +88,16 @@
                 .first
 
             guard let viewBodyVariable else {
-                context.diagnose(
-                    Diagnostic(
-                        node: node,
-                        message: EmbraceTraceDiagnostic(message: "Struct must have a `body` property to use EmbraceTrace")))
-                throw EmbraceMacroError.noBody
+                throw expansionError("Struct must have a `body` property to use EmbraceTrace", at: node)
             }
 
             // Ensure the 'body' property has an accessor block for computed body
             guard let declaration = viewBodyVariable.bindings.first?.accessorBlock?.accessors._syntaxNode else {
-                context.diagnose(
-                    Diagnostic(
-                        node: node,
-                        message: EmbraceTraceDiagnostic(
-                            message: "The `body` property must have an accessor block to use EmbraceTrace")))
-                throw EmbraceMacroError.noBody
+                throw expansionError("The `body` property must have an accessor block to use EmbraceTrace", at: node)
             }
 
-            // Construct the injected declarations: original body, container view, and traced body
-            let syntax = DeclSyntax(
-                """
+            // Each declaration is built on its own: a `DeclSyntax` parses as exactly one declaration.
+            let originalBody: DeclSyntax = """
 
                 // @EmbraceTrace
                 // This is your new `body`. It's the same as you declared above.
@@ -125,7 +115,9 @@
                     // `body`, so duplicate it here.
                 \(raw: declaration.description)
                 }
+                """
 
+            let bodyContainer: DeclSyntax = """
                 /// A container view that wraps the original body implementation.
                 ///
                 /// This internal container provides a clean way to reference the original
@@ -140,13 +132,17 @@
                         view._embraceOriginalBody
                     }
                 }
+                """
 
+            let bodyTypealias: DeclSyntax = """
                 /// Redefines the `Body` typealias to use the traced view wrapper.
                 ///
                 /// This is a key part of the macro, as it changes the view's body type
                 /// to be wrapped in the `EmbraceTraceView` performance monitoring wrapper.
                 typealias Body = EmbraceTraceView<_EmbraceBodyContainer, Never>
+                """
 
+            let tracedBody: DeclSyntax = """
                 /// Implementation of the `body` property for the `View` protocol.
                 ///
                 /// This property is marked with `@_implements` to indicate that it satisfies
@@ -160,14 +156,10 @@
                         _EmbraceBodyContainer(view: self)
                     }
                 }
-
                 """
-            )
 
             // Return the generated declarations to be injected into the user's struct
-            return [
-                DeclSyntax(syntax)
-            ]
+            return [originalBody, bodyContainer, bodyTypealias, tracedBody]
         }
     }
 
