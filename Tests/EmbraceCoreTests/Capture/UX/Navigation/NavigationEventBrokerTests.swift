@@ -468,15 +468,20 @@ final class NavigationEventBrokerTests: XCTestCase {
 
     /// A screen that never pauses would otherwise hold `visibleScreens` above one forever, silently
     /// disabling backdating for every later screen. Backgrounding is a point where we know nothing
-    /// is visible, so it recovers.
+    /// is visible, so it recovers. Only the screen the user was on comes back with the foreground.
     func testBackgroundingClearsAStrandedVisibleScreen() throws {
         let leaked = Container()
         broker.handle(.started(id(leaked), name: "Leaked", at: time(0)))
         broker.handle(.resumed(id(leaked), name: "Leaked", at: time(1)))
-        // no pause for `leaked` — it is stranded
+
+        // covered by another screen, but never pauses — it is stranded underneath
+        let top = Container()
+        broker.handle(.started(id(top), name: "Top", at: time(2)))
+        broker.handle(.resumed(id(top), name: "Top", at: time(3)))
 
         broker.handle(.backgrounded(at: time(5)))
         broker.handle(.foregrounded(at: time(6)))
+        broker.handle(.paused(id(top), name: "Top", at: time(8)))
 
         // A later screen must get its load backdated to when it started appearing.
         let next = Container()
@@ -520,6 +525,25 @@ final class NavigationEventBrokerTests: XCTestCase {
 
         XCTAssertEqual(names, ["Home", "Sheet", "Home"])
         XCTAssertEqual(loads.last?.time, time(10), "the reveal is timed at the dismissal")
+    }
+
+    /// Backgrounding empties the visible set and nothing re-reports the restored screen, so the
+    /// restore itself has to put it back — or a sheet dismissed over it has nothing to reveal.
+    func testDismissingASheetAfterAForegroundReturnsToTheRestoredScreen() throws {
+        let home = Container()
+        let sheet = Container()
+
+        broker.handle(.started(id(home), name: "Home", at: time(0)))
+        broker.handle(.resumed(id(home), name: "Home", at: time(1), attributes: ["tier": "gold"]))
+        broker.handle(.backgrounded(at: time(10)))
+        broker.handle(.foregrounded(at: time(20)))
+        broker.handle(.started(id(sheet), name: "Sheet", at: time(25)))
+        broker.handle(.resumed(id(sheet), name: "Sheet", at: time(26)))
+        broker.handle(.paused(id(sheet), name: "Sheet", at: time(30)))
+
+        XCTAssertEqual(names, ["Home", "Backgrounded", "Home", "Sheet", "Home"])
+        XCTAssertEqual(loads.last?.time, time(30), "the reveal is timed at the dismissal")
+        XCTAssertEqual(loads.last?.attributes["tier"]?.description, "gold")
     }
 
     /// The revealed screen keeps the metadata it was declared with.

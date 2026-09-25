@@ -552,6 +552,36 @@ final class SpansPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(closed.filter { $0.name == "emb-state-screen-automatic" }.count, 1)
     }
 
+    func test_stateSpans_fromThePreviousPartAreNotIncluded() throws {
+        // given the previous part's state span, which ends exactly when this part starts (50)
+        let previousPartStateSpanId = String.randomSpanId()
+        _ = try addSpan(
+            startTime: Date(timeIntervalSince1970: 20),
+            endTime: Date(timeIntervalSince1970: 50),
+            id: previousPartStateSpanId,
+            name: "emb-state-screen-automatic",
+            type: .state,
+            sessionId: .random
+        )
+
+        // and this part's own, opened at its start
+        let ownStateSpanId = String.randomSpanId()
+        _ = try addSpan(
+            startTime: Date(timeIntervalSince1970: 50),
+            endTime: Date(timeIntervalSince1970: 100),
+            id: ownStateSpanId,
+            name: "emb-state-screen-automatic",
+            type: .state
+        )
+
+        // when building the spans payload
+        let (closed, _) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then only this part's state span is present
+        let stateSpans = closed.filter { $0.name == "emb-state-screen-automatic" }
+        XCTAssertEqual(stateSpans.map(\.spanId), [ownStateSpanId])
+    }
+
     func test_multiple_session_spans() throws {
         // given multiple session spans
         _ = try addSpan(

@@ -32,7 +32,10 @@ class SpansPayloadBuilder {
         // unlimited one: the same row cap applies to each fetch. There are only a handful per
         // part, and losing one loses that part's whole state timeline plus the session span's
         // link target.
+        // Only this part's own: the previous part's span ends exactly when this part starts, so the
+        // overlap rule would otherwise ship it a second time, unlinked, in this payload.
         let stateRecords = storage.fetchSpans(for: session, fetchOnly: .state)
+            .filter { $0.sessionId == session.id }
 
         // processed identically from here on — the separate fetch is their only difference
         let records = cappedRecords + stateRecords

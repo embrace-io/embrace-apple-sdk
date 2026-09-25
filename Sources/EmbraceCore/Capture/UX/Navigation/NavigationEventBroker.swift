@@ -147,6 +147,11 @@ final class NavigationEventBroker {
             // Load time is the foreground time; no start time exists to backdate to.
             guard let restored = screenBeforeBackground else { return }
             screenBeforeBackground = nil
+            // Visible again, though nothing re-reports it: without this, a sheet dismissed over it
+            // would find no screen underneath to hand the timeline back to.
+            if let componentId = restored.identity.componentId {
+                visibleScreens[componentId] = restored
+            }
             // Replayed with the screen's metadata rather than stripped of it — see `Emission` for
             // which declaration that is when the screen was re-declared while the user stayed on it.
             emit(restored.identity, attributes: restored.attributes, at: event.timestamp)
