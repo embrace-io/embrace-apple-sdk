@@ -2,11 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import EmbraceConfiguration
 import TestSupport
 import XCTest
 
 @testable import EmbraceConfigInternal
+@testable import EmbraceConfiguration
 
 final class EmbraceConfigTests: XCTestCase {
 
@@ -112,47 +112,58 @@ final class EmbraceConfigTests: XCTestCase {
     // MARK: Configurable Delegation
 
     func test_isSDKEnabled_callsUnderlyingConfigurable() {
-        let mockConfig = MockEmbraceConfigurable()
+        let mockConfig = MockEmbraceConfigurable(isSDKEnabled: true)
         config = buildConfig(configurable: mockConfig)
+        let callsBefore = mockConfig.isSDKEnabledCallCount
 
-        let result = config.isSDKEnabled
-        XCTAssertEqual(result, mockConfig.isSDKEnabled)
-        wait(for: [mockConfig.isSDKEnabledExpectation])
+        XCTAssertTrue(config.isSDKEnabled)
+        XCTAssertEqual(mockConfig.isSDKEnabledCallCount, callsBefore + 1)
     }
 
     func test_isBackgroundSessionEnabled_callsUnderlyingConfigurable() {
-        let mockConfig = MockEmbraceConfigurable()
+        let mockConfig = MockEmbraceConfigurable(isBackgroundSessionEnabled: true)
         config = buildConfig(configurable: mockConfig)
+        let callsBefore = mockConfig.isBackgroundSessionEnabledCallCount
 
-        let result = config.isBackgroundSessionEnabled
-        XCTAssertEqual(result, mockConfig.isBackgroundSessionEnabled)
-        wait(for: [mockConfig.isBackgroundSessionEnabledExpectation])
+        XCTAssertTrue(config.isBackgroundSessionEnabled)
+        XCTAssertEqual(mockConfig.isBackgroundSessionEnabledCallCount, callsBefore + 1)
     }
 
     func test_isNetworkSpansForwardingEnabled_callsUnderlyingConfigurable() {
-        let mockConfig = MockEmbraceConfigurable()
+        let mockConfig = MockEmbraceConfigurable(isNetworkSpansForwardingEnabled: true)
         config = buildConfig(configurable: mockConfig)
+        let callsBefore = mockConfig.isNetworkSpansForwardingEnabledCallCount
 
-        let result = config.isNetworkSpansForwardingEnabled
-        XCTAssertEqual(result, mockConfig.isNetworkSpansForwardingEnabled)
-        wait(for: [mockConfig.isNetworkSpansForwardingEnabledExpectation])
+        XCTAssertTrue(config.isNetworkSpansForwardingEnabled)
+        XCTAssertEqual(mockConfig.isNetworkSpansForwardingEnabledCallCount, callsBefore + 1)
     }
 
     func test_internalLogLimits_callsUnderlyingConfigurable() {
-        let mockConfig = MockEmbraceConfigurable()
+        let limits = InternalLogLimits(trace: 1, debug: 2, info: 3, warning: 4, error: 5)
+        let mockConfig = MockEmbraceConfigurable(internalLogLimits: limits)
         config = buildConfig(configurable: mockConfig)
+        let callsBefore = mockConfig.internalLogLimitsCallCount
 
-        let result = config.internalLogLimits
-        XCTAssertEqual(result, mockConfig.internalLogLimits)
-        wait(for: [mockConfig.internalLogLimitsExpectation])
+        XCTAssertEqual(config.internalLogLimits, limits)
+        XCTAssertEqual(mockConfig.internalLogLimitsCallCount, callsBefore + 1)
     }
 
     func test_networkPayloadCaptureRules_callsUnderlyingConfigurable() {
-        let mockConfig = MockEmbraceConfigurable()
+        let rules = [
+            NetworkPayloadCaptureRule(
+                id: "rule",
+                urlRegex: "https://example.com/.*",
+                statusCodes: [500],
+                method: "POST",
+                expiration: 0,
+                publicKey: ""
+            )
+        ]
+        let mockConfig = MockEmbraceConfigurable(networkPayloadCaptureRules: rules)
         config = buildConfig(configurable: mockConfig)
+        let callsBefore = mockConfig.networkPayloadCaptureRulesCallCount
 
-        let result = config.networkPayloadCaptureRules
-        XCTAssertEqual(result, mockConfig.networkPayloadCaptureRules)
-        wait(for: [mockConfig.networkPayloadCaptureRulesExpectation])
+        XCTAssertEqual(config.networkPayloadCaptureRules, rules)
+        XCTAssertEqual(mockConfig.networkPayloadCaptureRulesCallCount, callsBefore + 1)
     }
 }

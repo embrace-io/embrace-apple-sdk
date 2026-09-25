@@ -62,10 +62,10 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _isSDKEnabled: Bool
-    public let isSDKEnabledExpectation = XCTestExpectation(description: "isSDKEnabled called")
+    public private(set) var isSDKEnabledCallCount = 0
     public var isSDKEnabled: Bool {
         get {
-            isSDKEnabledExpectation.fulfill()
+            isSDKEnabledCallCount += 1
             return _isSDKEnabled
         }
         set {
@@ -74,12 +74,10 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _isBackgroundSessionEnabled: Bool
-    public let isBackgroundSessionEnabledExpectation = XCTestExpectation(
-        description: "isBackgroundSessionEnabled called"
-    )
+    public private(set) var isBackgroundSessionEnabledCallCount = 0
     public var isBackgroundSessionEnabled: Bool {
         get {
-            isBackgroundSessionEnabledExpectation.fulfill()
+            isBackgroundSessionEnabledCallCount += 1
             return _isBackgroundSessionEnabled
         }
         set {
@@ -101,11 +99,10 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _isNetworkSpansForwardingEnabled: Bool
-    public let isNetworkSpansForwardingEnabledExpectation = XCTestExpectation(
-        description: "isNetworkSpansForwardingEnabled called")
+    public private(set) var isNetworkSpansForwardingEnabledCallCount = 0
     public var isNetworkSpansForwardingEnabled: Bool {
         get {
-            isNetworkSpansForwardingEnabledExpectation.fulfill()
+            isNetworkSpansForwardingEnabledCallCount += 1
             return _isNetworkSpansForwardingEnabled
         }
         set {
@@ -252,10 +249,10 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _internalLogLimits: InternalLogLimits
-    public let internalLogLimitsExpectation = XCTestExpectation(description: "internalLogLimits called")
+    public private(set) var internalLogLimitsCallCount = 0
     public var internalLogLimits: InternalLogLimits {
         get {
-            internalLogLimitsExpectation.fulfill()
+            internalLogLimitsCallCount += 1
             return _internalLogLimits
         }
         set {
@@ -288,12 +285,10 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     private var _networkPayloadCaptureRules: [NetworkPayloadCaptureRule]
-    public let networkPayloadCaptureRulesExpectation = XCTestExpectation(
-        description: "networkPayloadCaptureRules called"
-    )
+    public private(set) var networkPayloadCaptureRulesCallCount = 0
     public var networkPayloadCaptureRules: [NetworkPayloadCaptureRule] {
         get {
-            networkPayloadCaptureRulesExpectation.fulfill()
+            networkPayloadCaptureRulesCallCount += 1
             return _networkPayloadCaptureRules
         }
         set {
