@@ -56,16 +56,23 @@ class WorkTrackerTests: XCTestCase {
 
         let tracker = WorkTracker(name: "test", logger: MockLogger())
 
+        let ids = EmbraceMutex([WorkTrackerID]())
+        DispatchQueue.concurrentPerform(iterations: 100) { _ in
+            let id = tracker.increment()
+            ids.withLock { $0.append(id) }
+        }
+        let liveIDs = ids.safeValue
+        XCTAssertEqual(Set(liveIDs).count, 100)
+        XCTAssertTrue(tracker.busy)
+
         let expectation = XCTestExpectation()
         tracker.onIdle {
+            XCTAssertFalse(tracker.busy)
             expectation.fulfill()
         }
 
-        DispatchQueue.concurrentPerform(iterations: 100) { _ in
-            let id = tracker.increment()
-            DispatchQueue.global(qos: .default).async {
-                tracker.decrement(id: id, afterDebounce: true, debounceInterval: 0.1)
-            }
+        DispatchQueue.concurrentPerform(iterations: liveIDs.count) { index in
+            tracker.decrement(id: liveIDs[index], afterDebounce: true, debounceInterval: 0.1)
         }
 
         wait(for: [expectation], timeout: .longTimeout)

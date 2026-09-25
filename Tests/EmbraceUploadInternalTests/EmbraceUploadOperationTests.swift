@@ -232,6 +232,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         EmbraceHTTPMock.mock(url: TestConstants.url)
 
         let completionFired = XCTestExpectation(description: "completion fires once")
+        var completionCount = 0
 
         let operation = EmbraceUploadOperation(
             urlSession: urlSession,
@@ -245,19 +246,17 @@ class EmbraceUploadOperationTests: XCTestCase {
             attemptCount: 0
         ) { result, _ in
             XCTAssertEqual(result, .success)
+            completionCount += 1
             completionFired.fulfill()
         }
 
         operation.start()
         wait(for: [completionFired], timeout: .defaultTimeout)
 
-        // Cancelling after completion must not re-fire completion.
+        // Cancelling after completion must not re-fire completion. `cancel()` fires it synchronously
+        // when it fires at all, so the count is final once it returns.
         operation.cancel()
-
-        // Give any erroneous async re-fire a chance to land before the test ends.
-        let noSecondFire = XCTestExpectation(description: "no second completion")
-        noSecondFire.isInverted = true
-        wait(for: [noSecondFire], timeout: 0.1)
+        XCTAssertEqual(completionCount, 1)
     }
 
     func test_onExecuting_whenReceivingNonRetryableError_shouldntRetry() throws {
