@@ -39,12 +39,26 @@ class DefaultLogBatcher: LogBatcher {
     // `currentBatch()`, which hops onto that same queue so the read can't race these writes.
     private var batch: LogsBatch?
 
+    /// Schedules the work item that ends the current batch once it reaches its maximum age.
+    /// It's called on `processorQueue`, and the item must run there too.
+    typealias DeadlineScheduler = (_ delay: TimeInterval, _ item: DispatchWorkItem) -> Void
+    private let scheduleDeadline: DeadlineScheduler
+
+    /// - Parameters:
+    ///   - scheduleDeadline: Schedules the batch deadline. It defaults to `asyncAfter` on
+    ///     `processorQueue`; tests pass their own so they can fire the deadline themselves.
     init(
         logBatchLimits: LogBatchLimits = LogBatchLimits(),
-        processorQueue: DispatchQueue = .init(label: "io.embrace.logBatcher")
+        processorQueue: DispatchQueue = .init(label: "io.embrace.logBatcher"),
+        scheduleDeadline: DeadlineScheduler? = nil
     ) {
         self.logBatchLimits = logBatchLimits
         self.processorQueue = processorQueue
+        self.scheduleDeadline =
+            scheduleDeadline ?? { delay, item in
+                let milliseconds = DispatchTimeInterval.milliseconds(Int(delay * 1000))
+                processorQueue.asyncAfter(deadline: .now() + milliseconds, execute: item)
+            }
     }
 
     /// Test-only synchronized read of `batch`: hops onto `processorQueue` (which owns every `batch`
@@ -124,9 +138,7 @@ extension DefaultLogBatcher {
             self?.renewBatch()
         }
 
-        let lifespan = Int(logBatchLimits.maxBatchAge * 1000)
-        let lifeInSeconds = DispatchTimeInterval.milliseconds(lifespan)
-        processorQueue.asyncAfter(deadline: .now() + lifeInSeconds, execute: item)
+        scheduleDeadline(logBatchLimits.maxBatchAge, item)
 
         self.batchDeadlineWorkItem = item
     }

@@ -81,7 +81,7 @@ public class EmbraceIO {
     /// - Note: This method won't do anything if the Embrace SDK was already setup.
     public static func start(options: EmbraceIO.Options) throws {
 
-        // Consturct OTel resources
+        // Construct OTel resources
         let otelResources = EmbraceDefaultResources.build(merging: options.otel?.resource)
 
         // Create the OTel bridge from the OTel options if provided.

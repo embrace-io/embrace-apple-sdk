@@ -153,6 +153,33 @@
             XCTAssertNotNil(spanData)
             XCTAssertEqual(spanData!.parentSpanId, parent.context.spanId)
         }
+
+        func test_createChildSpan_withEndTime_endsTheSpan() throws {
+            // given capture services with a ViewCaptureService with an active span
+            let handler = MockUIViewControllerHandler()
+            let service = ViewCaptureService(options: enabledOptions, handler: handler, lock: NSLock())
+            let captureServices = CaptureServices(config: enabledConfig, services: [service], context: context)
+            let vc = MockViewController()
+
+            let otel = MockOTelSignalsHandler()
+            service.install(otel: otel)
+            service.start()
+
+            let parent = try otel.createInternalSpan(name: "test", type: .viewLoad)
+            handler.parentSpan = parent
+
+            // when creating a child span with an end time
+            let startTime = Date(timeIntervalSince1970: 10)
+            let endTime = Date(timeIntervalSince1970: 20)
+            let child = try XCTUnwrap(
+                captureServices.createChildSpan(for: vc, name: "child", startTime: startTime, endTime: endTime)
+            )
+
+            // then the span is created already ended at that time
+            XCTAssertEqual(child.startTime, startTime)
+            XCTAssertEqual(child.endTime, endTime)
+            XCTAssertTrue(otel.endedSpans.contains { $0.name == "child" })
+        }
     }
 
 #endif

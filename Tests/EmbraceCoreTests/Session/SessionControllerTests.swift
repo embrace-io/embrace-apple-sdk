@@ -48,7 +48,7 @@ final class SessionControllerTests: XCTestCase {
         )
 
         upload = try EmbraceUpload(
-            options: uploadTestOptions, logger: MockLogger(), queue: .main)
+            options: uploadTestOptions, logger: MockLogger(), queue: DispatchQueue(label: "io.embrace.tests.sessionController.upload"))
         storage = try EmbraceStorage.createInMemoryDb()
 
         sdkStateProvider.isEnabled = true
@@ -70,16 +70,16 @@ final class SessionControllerTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        // Stop any in-flight/retrying uploads so their async retries (the error
-        // test uses retryCount -1) don't outlive the test and land in another
-        // iteration's mock request counts.
-        upload.spansQueue.cancelAllOperations()
-        upload.logsQueue.cancelAllOperations()
-        upload.attachmentsQueue.cancelAllOperations()
+        // Stop any in-flight/retrying uploads so they don't outlive the test. `upload` is released
+        // first: a cancelled operation's completion refills the queue for its still-cached record,
+        // and that refill only runs while the upload is alive.
+        let uploadQueues = [upload.spansQueue, upload.logsQueue, upload.attachmentsQueue]
+        let uploadCache = upload.cache
+        upload = nil
+        uploadQueues.forEach { $0.cancelAllOperations() }
 
         storage.coreData.destroy()
-        upload.cache.coreData.destroy()
-        upload = nil
+        uploadCache.coreData.destroy()
         controller = nil
 
         // EmbraceHTTPMock state is process-wide; reset between methods.
@@ -359,9 +359,7 @@ final class SessionControllerTests: XCTestCase {
         controller.checkUserSessionMaxDurationExpiry(now: expired)
         controller.checkUserSessionMaxDurationExpiry(now: expired)
 
-        let drained = expectation(description: "controller queue drained")
-        controller.queue.async { drained.fulfill() }
-        wait(for: [drained], timeout: 2)
+        controller.queue.sync {}
 
         // One rotation: original part (closed) + new part (active). Two rotations would be 3.
         let stored: [SessionRecord] = storage.fetchAll()
@@ -391,11 +389,7 @@ final class SessionControllerTests: XCTestCase {
         }
 
         // Drain the controller queue.
-        let drained = expectation(description: "controller queue drained")
-        controller.queue.async {
-            drained.fulfill()
-        }
-        wait(for: [drained], timeout: 2)
+        controller.queue.sync {}
 
         // Three persisted parts (initial, post-roll-1, post-roll-2) — not four. A shadow part
         // from interleaving would inflate this count.
@@ -572,11 +566,7 @@ final class SessionControllerTests: XCTestCase {
         // when ending the session
         controller.endSession()
 
-        let expectation = expectation(description: "waiting for session to end")
-        controller.queue.async {
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: .defaultTimeout)
+        controller.queue.sync {}
 
         // then a session was sent with the corrent values
         XCTAssert(uploader.didCallUploadSession)
@@ -594,18 +584,6 @@ final class SessionControllerTests: XCTestCase {
         }
     }
 
-    func wait(_ until: @escaping () -> Bool) {
-        // Here, we end up having to wait for the DefaultSession uploader which
-        // isn't set up to give us a completion, so we'll fake it 'till we make it.
-        wait(timeout: 2, interval: 0.01) {
-            until()
-        }
-    }
-
-    // This test is crazy on the waiting,
-    // but  I want to wait as little time as possible without
-    // a full refactor that actually allows us to get
-    // completion on sessions.
     @MainActor
     func test_endSession_uploadsSession() throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
@@ -624,15 +602,10 @@ final class SessionControllerTests: XCTestCase {
         // when ending the session
         controller.endSession()
 
-        // Ending the session uploads it, removes it from storage, and clears its
-        // cached upload data — all asynchronous. Poll the observable end state
-        // rather than chaining onto the controller/storage/upload queues, which
-        // only approximates "settled" and races the mock's request bookkeeping.
-        wait(timeout: .longTimeout, interval: .shortInterval) { [self] in
-            EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count == 1
-                && storage.fetchSession(id: TestConstants.sessionId) == nil
-                && upload.cache.fetchAllUploadData().isEmpty
-        }
+        // Ending the session caches and uploads it, and the upload's completion deletes it from
+        // storage asynchronously. Wait for the upload, then for the storage delete.
+        upload.waitForAllWork()
+        storage.waitForPendingCoreDataOperations()
 
         // then a session request was sent
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 1)
@@ -649,6 +622,21 @@ final class SessionControllerTests: XCTestCase {
         // mock error requests
         EmbraceHTTPMock.mock(url: testSessionsUrl(), errorCode: 500)
 
+        // the upload keeps retrying on failure; a backoff longer than the test keeps it to one attempt
+        let longBackoff = EmbraceUpload.ExponentialBackoff(baseDelay: 3600, maxDelay: 3600)
+        let options = EmbraceUpload.Options(
+            endpoints: uploadTestOptions.endpoints,
+            cache: uploadTestOptions.cache,
+            metadata: uploadTestOptions.metadata,
+            redundancy: EmbraceUpload.RedundancyOptions(automaticRetryCount: -1, exponentialBackoffBehavior: longBackoff),
+            urlSessionConfiguration: uploadTestOptions.urlSessionConfiguration
+        )
+        upload = try EmbraceUpload(
+            options: options, logger: MockLogger(), queue: DispatchQueue(label: "io.embrace.tests.sessionController.upload"))
+
+        let requestSent = expectation(description: "session upload request sent")
+        EmbraceHTTPMock.onRequest(to: testSessionsUrl()) { requestSent.fulfill() }
+
         // given a started session. A synchronous upload queue keeps the end-session
         // upload dispatch on the calling thread instead of hopping through the shared
         // GCD pool, which can be starved under CI load and leave the request unsent.
@@ -661,21 +649,13 @@ final class SessionControllerTests: XCTestCase {
         // when ending the session and the upload fails
         controller.endSession()
 
-        // the request is attempted asynchronously; wait for it, then confirm
-        // exactly one was sent. The upload retries on failure (retryCount -1),
-        // so assert the count here — before a retry can fire — rather than after
-        // the later waits.
-        wait(timeout: .longTimeout, interval: .shortInterval) { [self] in
-            EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count > 0
-        }
-        XCTAssertGreaterThan(EmbraceHTTPMock.requestsForUrl(testSessionsUrl()).count, 0)
+        // The request goes out on URLSession's loading thread, and nothing else signals it: the
+        // operation stays in flight waiting to retry.
+        wait(for: [requestSent], timeout: .defaultTimeout)
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
 
-        // the session is removed from storage asynchronously; the failed
-        // upload's data stays cached for retry.
-        wait(timeout: .longTimeout, interval: .shortInterval) { [self] in
-            storage.fetchSession(id: TestConstants.sessionId) == nil
-        }
+        // the session is removed from storage asynchronously; the failed upload's data stays cached for retry.
+        storage.waitForPendingCoreDataOperations()
         XCTAssertNil(storage.fetchSession(id: TestConstants.sessionId))
         XCTAssertEqual(upload.cache.fetchAllUploadData().count, 1)
     }
@@ -696,7 +676,6 @@ final class SessionControllerTests: XCTestCase {
         let cutoff = fgEnd.addingTimeInterval(inactivity)  // inactivity cutoff (earlier than maxEnd)
         let userSessionId = EmbraceIdentifier.random
 
-        let exp = expectation(description: "seed prior part")
         storage.addSession(
             id: .random,
             processId: ProcessIdentifier.current,
@@ -712,15 +691,9 @@ final class SessionControllerTests: XCTestCase {
             userSessionInactivityTimeout: inactivity,
             userSessionLastForegroundEnd: fgEnd,
             userSessionPartIndex: 2
-        ) { exp.fulfill() }
-        wait(for: [exp], timeout: 1)
+        )
+        storage.waitForPendingCoreDataOperations()
         return (userSessionId, cutoff)
-    }
-
-    private func drainStorage() {
-        let drained = expectation(description: "storage drained")
-        storage.coreData.performAsyncOperation { _ in drained.fulfill() }
-        wait(for: [drained], timeout: 1)
     }
 
     // Case C: cold launch in foreground, background-only tail still within its max.
@@ -741,7 +714,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertFalse(active.isBackgroundOnly)
         XCTAssertEqual(active.partIndex, 1)
 
-        drainStorage()
+        storage.waitForPendingCoreDataOperations()
         let tail = try XCTUnwrap(storage.fetchAllSessions().first { $0.userSessionId == s2.id })
         XCTAssertEqual(tail.userSessionTerminationReason, .backgroundUserSessionForegrounded)
     }
@@ -761,7 +734,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNotEqual(active.id, s2.id)
         XCTAssertFalse(active.isBackgroundOnly)
 
-        drainStorage()
+        storage.waitForPendingCoreDataOperations()
         let tail = try XCTUnwrap(storage.fetchAllSessions().first { $0.userSessionId == s2.id })
         XCTAssertEqual(tail.userSessionTerminationReason, .backgroundUserSessionForegrounded)
         // The tail was never sliced at its own max: its duration exceeds the configured max.
@@ -786,7 +759,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertTrue(active.isBackgroundOnly)
         XCTAssertEqual(active.partIndex, 2)
 
-        drainStorage()
+        storage.waitForPendingCoreDataOperations()
         let joined = try XCTUnwrap(storage.fetchLatestSession())
         XCTAssertEqual(joined.userSessionId, s2.id)
         XCTAssertEqual(joined.userSessionPartIndex, 2)
@@ -809,7 +782,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertTrue(active.isBackgroundOnly)
         XCTAssertEqual(active.partIndex, 1)
 
-        drainStorage()
+        storage.waitForPendingCoreDataOperations()
         let tail = try XCTUnwrap(storage.fetchAllSessions().first { $0.userSessionId == s2.id })
         XCTAssertEqual(tail.userSessionTerminationReason, .maxDurationReached)
     }
