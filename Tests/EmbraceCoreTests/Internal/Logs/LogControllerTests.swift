@@ -111,9 +111,7 @@ class LogControllerTests: XCTestCase {
         sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
 
         // when uploading the persisted logs
-        let expectation = expectation(description: #function)
-        sut.uploadAllPersistedLogs { expectation.fulfill() }
-        wait(for: [expectation], timeout: .defaultTimeout)
+        sut.uploadAllPersistedLogs()
 
         // then the envelope carries the metadata of the user session
         let data = try XCTUnwrap(upload.logData)
@@ -334,13 +332,10 @@ class LogControllerTests: XCTestCase {
     func test_createLog() throws {
         givenLogController()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLog { log in
-            self.thenLogIsCreatedCorrectly(log!)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLog { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogIsCreatedCorrectly(try XCTUnwrap(createdLog))
     }
 
     /// The one place the state stamps are wired into a real log. Every other assertion about them
@@ -388,26 +383,20 @@ class LogControllerTests: XCTestCase {
         givenEmbraceLogUploader()
         givenLogController()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLogWithAttachment { log in
-            self.thenLogWithSuccessfulAttachmentIsCreatedCorrectly(log!)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLogWithAttachment { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogWithSuccessfulAttachmentIsCreatedCorrectly(try XCTUnwrap(createdLog))
     }
 
     func test_createLogWithAttachment_tooLarge() throws {
         givenEmbraceLogUploader()
         givenLogController()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLogWithBigAttachment { log in
-            self.thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(log!, errorCode: "ATTACHMENT_TOO_LARGE")
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLogWithBigAttachment { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(try XCTUnwrap(createdLog), errorCode: "ATTACHMENT_TOO_LARGE")
     }
 
     func test_createLogWithAttachment_limitReached() throws {
@@ -415,98 +404,74 @@ class LogControllerTests: XCTestCase {
         givenLogController()
         whenAttachmentLimitIsReached()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLogWithAttachment { log in
-            self.thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(log!, errorCode: "OVER_MAX_ATTACHMENTS")
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLogWithAttachment { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(try XCTUnwrap(createdLog), errorCode: "OVER_MAX_ATTACHMENTS")
     }
 
     func test_createLogWithAttachment_serverError() throws {
         givenFailingLogUploader()
         givenLogController()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLogWithAttachment { log in
-            self.thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(log!, errorCode: nil)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLogWithAttachment { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogWithUnsuccessfulAttachmentIsCreatedCorrectly(try XCTUnwrap(createdLog), errorCode: nil)
     }
 
     func test_createLogWithPreuploadedAttachment() throws {
         givenLogController()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLogWithPreUploadedAttachment { log in
-            self.thenLogWithPreuploadedAttachmentIsCreatedCorrectly(log!)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLogWithPreUploadedAttachment { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogWithPreuploadedAttachmentIsCreatedCorrectly(try XCTUnwrap(createdLog))
     }
 
     func testInfoLog_createLogByDefault_doesntAddStackTraceToAttributes() throws {
         givenLogController()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .info) { log in
-            self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLog(severity: .info) { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
     func testWarningLog_createLogByDefault_addsStackTraceToAttributes() throws {
         givenLogController()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .warn) { log in
-            self.thenLogHasAnEmbbededStackTraceInTheAttributes(log!)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLog(severity: .warn) { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
     func testErrorLog_createLogByDefault_addsStackTraceToAttributes() throws {
         givenLogController()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .error) { log in
-            self.thenLogHasAnEmbbededStackTraceInTheAttributes(log!)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLog(severity: .error) { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
     func testWarningLog_createLogByWithNotIncludedStacktrace_doesntAddStackTraceToAttributes() throws {
         givenLogController()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .warn, stackTraceBehavior: .notIncluded) { log in
-            self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLog(severity: .warn, stackTraceBehavior: .notIncluded) { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
     func testErrorLog_createLogByWithNotIncludedStacktrace_doesntAddStackTraceToAttributes() throws {
         givenLogController()
 
-        let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .error, stackTraceBehavior: .notIncluded) { log in
-            self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLog(severity: .error, stackTraceBehavior: .notIncluded) { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
     func testWarnAndErrorLogs_createLogByWithCustomStacktrace_alwaysAddStackTraceToAttributes() throws {
@@ -514,13 +479,10 @@ class LogControllerTests: XCTestCase {
 
         let customStackTrace = try XCTUnwrap(EmbraceStackTrace(frames: Thread.callStackSymbols))
 
-        let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .error, stackTraceBehavior: .custom(customStackTrace)) { log in
-            self.thenLogHasAnEmbbededStackTraceInTheAttributes(log!)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLog(severity: .error, stackTraceBehavior: .custom(customStackTrace)) { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
     func testInfoLogs_createLogByWithCustomStacktrace_wontAddStackTraceToAttributes() throws {
@@ -528,13 +490,10 @@ class LogControllerTests: XCTestCase {
 
         let customStackTrace = try XCTUnwrap(EmbraceStackTrace(frames: Thread.callStackSymbols))
 
-        let expectation = XCTestExpectation()
-        whenCreatingLog(severity: .info, stackTraceBehavior: .custom(customStackTrace)) { log in
-            self.thenLogHasntGotAnEmbbededStackTraceInTheAttributes(log!)
-            expectation.fulfill()
-        }
+        var createdLog: EmbraceLog?
+        whenCreatingLog(severity: .info, stackTraceBehavior: .custom(customStackTrace)) { createdLog = $0 }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 }
 
@@ -642,11 +601,7 @@ extension LogControllerTests {
     }
 
     fileprivate func waitForLoggingQueue() {
-        let expectation = XCTestExpectation()
-        loggingQueue.async {
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: .veryLongTimeout)
+        loggingQueue.sync {}
     }
 
     fileprivate func whenCreatingLog(
@@ -734,12 +689,8 @@ extension LogControllerTests {
 
     fileprivate func thenStorageShouldCallRemove(withLogs logs: [EmbraceLog]) throws {
         let unwrappedStorage = try XCTUnwrap(storage)
-        wait(timeout: 1.0) {
-            let expectedIds = logs.map { $0.id }
-            let ids = unwrappedStorage.removeLogsReceivedParameter.map { $0.id }
-
-            return unwrappedStorage.didCallRemoveLogs && expectedIds == ids
-        }
+        XCTAssertTrue(unwrappedStorage.didCallRemoveLogs)
+        XCTAssertEqual(unwrappedStorage.removeLogsReceivedParameter.map { $0.id }, logs.map { $0.id })
     }
 
     fileprivate func thenPrivateLogsSent(_ messages: [String]) {

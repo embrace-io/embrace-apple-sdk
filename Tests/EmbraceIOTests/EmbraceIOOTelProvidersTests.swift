@@ -184,8 +184,7 @@ final class EmbraceIOOTelProvidersTests: XCTestCase {
     /// published: what the accessors return always has to be the pipeline `EmbraceCore`
     /// actually emits through.
     func test_startTwice_keepsThePublishedBridgeTiedToTheClient() throws {
-        let options = EmbraceIO.Options.withAppId(
-            "myApp",
+        let options = EmbraceIO.Options.withLocalConfiguration(
             captureServices: CaptureServicesOptionsBuilder().build(),
             crashReporter: .none,
             otel: EmbraceIO.OTelOptions()
