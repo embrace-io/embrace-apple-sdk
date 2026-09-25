@@ -60,12 +60,11 @@ final class BacktraceFrameSkipTests: XCTestCase {
         super.setUp()
         // Exercises the frame skip against a started SDK, matching how capture runs in production.
         // Capture itself always uses `KSCrashBacktracing` — there is no backtracer to wire.
-        _ = try? Embrace.setup(options: Embrace.Options(appId: "myApp", captureServices: [], crashReporter: nil)).start()
+        Embrace.startWithoutNetwork()
     }
 
     override class func tearDown() {
-        _ = try? Embrace.client?.stop()
-        Embrace.client = nil
+        Embrace.stopAndClearClient()
         super.tearDown()
     }
 
@@ -159,12 +158,11 @@ final class BacktraceFrameSkipTests: XCTestCase {
 
         override class func setUp() {
             super.setUp()
-            _ = try? Embrace.setup(options: Embrace.Options(appId: "myApp", captureServices: [], crashReporter: nil)).start()
+            Embrace.startWithoutNetwork()
         }
 
         override class func tearDown() {
-            _ = try? Embrace.client?.stop()
-            Embrace.client = nil
+            Embrace.stopAndClearClient()
             super.tearDown()
         }
 

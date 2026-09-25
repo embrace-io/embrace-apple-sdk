@@ -10,8 +10,12 @@ import XCTest
 @testable import EmbraceCore
 
 class DefaultLogBatcherTests: XCTestCase {
+    private let processorQueue = DispatchQueue(label: "io.embrace.tests.logBatcher")
     private var sut: DefaultLogBatcher!
     private var delegate: SpyLogBatcherDelegate!
+
+    // Appended on `processorQueue`; read after `drainProcessorQueue()`.
+    private var scheduledDeadlines: [(delay: TimeInterval, item: DispatchWorkItem)] = []
 
     func testOnSuccessfulRepository_whenInvokingAddLog_thenBatchShouldntFinish() {
         givenDefaultLogBatcher()
@@ -29,16 +33,26 @@ class DefaultLogBatcherTests: XCTestCase {
     func testAutoEndBatchAfterLifespanExpired() {
         givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 10))
         whenInvokingAddLog(withLog: MockLog())
-        thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.5)
+        thenDeadlinesShouldBeScheduled(withDelays: [0.1])
+        thenDelegateShouldntInvokeBatchFinished()
+
+        whenLatestDeadlineFires()
+        thenDelegateShouldInvokeBatchFinished()
     }
 
     func testAutoEndBatchAfterLifespanExpired_TimerStartsAgainAfterNewLogAdded() {
         givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 10))
         whenInvokingAddLog(withLog: MockLog())
-        thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.5)
-        self.delegate.didCallBatchFinished = false
+        whenLatestDeadlineFires()
+        thenDelegateShouldInvokeBatchFinished()
+
+        delegate.didCallBatchFinished = false
         whenInvokingAddLog(withLog: MockLog())
-        thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(0.5)
+        thenDeadlinesShouldBeScheduled(withDelays: [0.1, 0.1])
+        thenDelegateShouldntInvokeBatchFinished()
+
+        whenLatestDeadlineFires()
+        thenDelegateShouldInvokeBatchFinished()
     }
 
     func testAutoEndBatchAfterLifespanExpired_CancelWhenBatchEndedPrematurely() {
@@ -47,15 +61,19 @@ class DefaultLogBatcherTests: XCTestCase {
         whenInvokingAddLog(withLog: MockLog())
         whenInvokingAddLog(withLog: MockLog())
         thenDelegateShouldInvokeBatchFinished()
-        self.delegate.didCallBatchFinished = false
-        thenDelegateShouldntInvokeBatchFinishedAfterBatchLifespan(0.5)
+
+        delegate.didCallBatchFinished = false
+        whenLatestDeadlineFires()
+        thenDelegateShouldntInvokeBatchFinished()
     }
 }
 
 extension DefaultLogBatcherTests {
     fileprivate func givenDefaultLogBatcher(limits: LogBatchLimits = .init()) {
         delegate = .init()
-        sut = .init(logBatchLimits: limits, processorQueue: .main)
+        sut = .init(logBatchLimits: limits, processorQueue: processorQueue) { delay, item in
+            self.scheduledDeadlines.append((delay, item))
+        }
         sut.delegate = delegate
     }
 
@@ -63,19 +81,34 @@ extension DefaultLogBatcherTests {
         sut.addLog(log)
     }
 
+    /// Runs the deadline on the processor queue the way `asyncAfter` would, so a canceled deadline
+    /// doesn't run.
+    fileprivate func whenLatestDeadlineFires() {
+        drainProcessorQueue()
+        guard let deadline = scheduledDeadlines.last else {
+            XCTFail("No batch deadline was scheduled")
+            return
+        }
+        processorQueue.async(execute: deadline.item)
+    }
+
+    fileprivate func thenDeadlinesShouldBeScheduled(withDelays delays: [TimeInterval]) {
+        drainProcessorQueue()
+        XCTAssertEqual(scheduledDeadlines.map(\.delay), delays)
+    }
+
     fileprivate func thenDelegateShouldntInvokeBatchFinished() {
-        wait(timeout: 1.0, until: { !self.delegate.didCallBatchFinished })
+        drainProcessorQueue()
+        XCTAssertFalse(delegate.didCallBatchFinished)
     }
 
     fileprivate func thenDelegateShouldInvokeBatchFinished() {
-        wait(timeout: 1.0, until: { self.delegate.didCallBatchFinished })
+        drainProcessorQueue()
+        XCTAssertTrue(delegate.didCallBatchFinished)
     }
 
-    fileprivate func thenDelegateShouldntInvokeBatchFinishedAfterBatchLifespan(_ lifespan: TimeInterval) {
-        wait(timeout: lifespan, until: { !self.delegate.didCallBatchFinished })
-    }
-
-    fileprivate func thenDelegateShouldInvokeBatchFinishedAfterBatchLifespan(_ lifespan: TimeInterval) {
-        wait(timeout: lifespan, until: { self.delegate.didCallBatchFinished })
+    /// Blocks until every block already queued on the batcher's processor queue has run.
+    fileprivate func drainProcessorQueue() {
+        processorQueue.sync {}
     }
 }

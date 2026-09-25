@@ -56,6 +56,17 @@ class DefaultEmbraceSpanTests: XCTestCase {
         )
     }
 
+    /// A span with no preexisting events, links or attributes, so limits can be
+    /// asserted against the number of calls made by the test.
+    var emptyTestSpan: DefaultEmbraceSpan {
+        DefaultEmbraceSpan(
+            context: EmbraceSpanContext(spanId: TestConstants.spanId, traceId: TestConstants.traceId),
+            name: "name",
+            startTime: Date(timeIntervalSince1970: 1),
+            handler: handler
+        )
+    }
+
     func test_init() {
         // when initializing a span
         let span = endedTestSpan
@@ -409,7 +420,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
         XCTAssertEqual(handler.validateAttributeCallCount, 1)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
     }
 
     func test_setAttribute_failure() throws {
@@ -437,7 +448,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertNil(span.attributes["myKey"])
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
         XCTAssertEqual(handler.validateAttributeCallCount, 1)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
     }
 
     func test_setInternalAttribute() throws {
@@ -453,7 +464,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 2)
         XCTAssertEqual(handler.validateAttributeCallCount, 0)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
     }
 
     func test_setInternalAttribute_delete() throws {
@@ -475,7 +486,187 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
 
         XCTAssertEqual(handler.validateAttributeCallCount, 0)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 2)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 2)
+    }
+
+    func test_setInternalAttribute_sameKeyTwice_doesNotInflateCount() throws {
+        // given a span
+        let span = testSpan
+
+        // when setting the same internal attribute twice
+        span.setInternalAttribute(key: "key", value: "value")
+        span.setInternalAttribute(key: "key", value: "otherValue")
+
+        // then the internal counter only counts the attribute once
+        XCTAssertEqual(span.attributes["key"] as! String, "otherValue")
+        XCTAssertEqual(span.state.safeValue.internalAttributeCount, 2)
+    }
+
+    func test_setInternalAttribute_deleteMissingKey_doesNotDecreaseCount() throws {
+        // given a span
+        let span = testSpan
+
+        // when deleting an internal attribute that was never set
+        span.setInternalAttribute(key: "missingKey", value: nil)
+
+        // then the internal counter is left alone
+        XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
+    }
+
+    // MARK: concurrency
+
+    func test_addLink_concurrent_keepsEveryLink() throws {
+        // given a span with nothing on it
+        let span = emptyTestSpan
+
+        // when adding links from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            span.addLink(spanId: "spanId\(index)", traceId: "traceId\(index)")
+        }
+
+        // then no link is lost
+        XCTAssertEqual(span.links.count, 1000)
+    }
+
+    func test_addLink_concurrent_withRaisedLimit_keepsEveryLink() throws {
+        // given a span with a link limit well above the number of links being added
+        let span = emptyTestSpan
+        handler.createLinkLimit = 5000
+
+        // when adding links from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            span.addLink(spanId: "spanId\(index)", traceId: "traceId\(index)")
+        }
+
+        // then every link is present, and none of them is a duplicate of another
+        XCTAssertEqual(span.links.count, 1000)
+
+        let spanIds = Set(span.links.map { $0.context.spanId })
+        XCTAssertEqual(spanIds.count, 1000)
+    }
+
+    func test_addLink_concurrent_stopsExactlyAtTheLimit() throws {
+        // given a span with a link limit below the number of links being added
+        let span = emptyTestSpan
+        handler.createLinkLimit = 50
+
+        // when adding links from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            span.addLink(spanId: "spanId\(index)", traceId: "traceId\(index)")
+        }
+
+        // then the limit is honored exactly, with no extra links slipping through
+        XCTAssertEqual(span.links.count, 50)
+    }
+
+    func test_addEvent_concurrent_keepsEveryEvent() throws {
+        // given a span with nothing on it
+        let span = emptyTestSpan
+
+        // when adding events from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            span.addEvent(name: "event\(index)")
+        }
+
+        // then no event is lost
+        XCTAssertEqual(span.events.count, 1000)
+    }
+
+    func test_addEvent_concurrent_stopsExactlyAtTheLimit() throws {
+        // given a span with an event limit below the number of events being added
+        let span = emptyTestSpan
+        handler.createEventLimit = 50
+
+        // when adding events from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            span.addEvent(name: "event\(index)")
+        }
+
+        // then the limit is honored exactly, with no extra events slipping through
+        XCTAssertEqual(span.events.count, 50)
+    }
+
+    func test_addEvent_concurrent_internalEventsIgnoreTheLimit() throws {
+        // given a span with an event limit below the number of events being added
+        let span = emptyTestSpan
+        handler.createEventLimit = 50
+
+        // when adding internal and non internal events from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            if index.isMultiple(of: 2) {
+                try? span._addEvent(name: "internal\(index)", isInternal: true)
+            } else {
+                span.addEvent(name: "event\(index)")
+            }
+        }
+
+        // then every internal event is kept, the limited ones stop at the limit,
+        // and the internal counter matches the internal events actually stored
+        XCTAssertEqual(span.state.safeValue.internalEventCount, 500)
+        XCTAssertEqual(span.events.count, 550)
+    }
+
+    func test_setAttribute_concurrent_keepsEveryAttribute() throws {
+        // given a span with nothing on it
+        let span = emptyTestSpan
+
+        // when setting different attributes from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            span.setAttribute(key: "key\(index)", value: "value\(index)")
+        }
+
+        // then no attribute is lost, and the handler is notified once per update
+        XCTAssertEqual(span.attributes.count, 1000)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1000)
+
+        for index in 0..<1000 {
+            XCTAssertEqual(span.attributes["key\(index)"] as? String, "value\(index)")
+        }
+    }
+
+    func test_setAttribute_concurrent_stopsExactlyAtTheLimit() throws {
+        // given a span with an attribute limit below the number of attributes being set
+        let span = emptyTestSpan
+        handler.validateAttributeLimit = 50
+
+        // when setting different attributes from multiple threads at once
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            span.setAttribute(key: "key\(index)", value: "value\(index)")
+        }
+
+        // then the limit is honored exactly, with no extra attributes slipping through
+        XCTAssertEqual(span.attributes.count, 50)
+    }
+
+    func test_concurrent_mixedMutations_doNotClobberEachOther() throws {
+        // given a span with nothing on it
+        let span = emptyTestSpan
+        let endTime = Date(timeIntervalSince1970: 9)
+
+        // when every kind of mutation runs from multiple threads at once.
+        // Ending is left out of the mix: an ended span refuses further changes, so a concurrent
+        // end would make missing mutations indistinguishable from correctly refused ones.
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            switch index % 4 {
+            case 0:
+                span.setStatus(.ok)
+            case 1:
+                span.addEvent(name: "event\(index)")
+            case 2:
+                span.addLink(spanId: "spanId\(index)", traceId: "traceId\(index)")
+            default:
+                span.setAttribute(key: "key\(index)", value: "value\(index)")
+            }
+        }
+
+        span.end(endTime: endTime)
+
+        // then no mutation is lost to another one
+        XCTAssertEqual(span.status, .ok)
+        XCTAssertEqual(span.endTime, endTime)
+        XCTAssertEqual(span.events.count, 250)
+        XCTAssertEqual(span.links.count, 250)
+        XCTAssertEqual(span.attributes.count, 250)
     }
 
     func test_end() throws {
@@ -545,7 +736,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
 
         // then it isn't stored and nothing is written through
         XCTAssertNil(span.attributes["key"])
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 0)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 0)
     }
 
     func test_addEvent_afterEnd_isIgnored() throws {
@@ -603,7 +794,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
 
         // then nothing is written through
         XCTAssertNil(span.attributes["key"])
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 0)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 0)
         XCTAssertEqual(handler.onSpanStatusUpdatedCallCount, 0)
     }
 
@@ -617,7 +808,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
 
         // then it isn't stored and nothing is written through
         XCTAssertNil(span.attributes["internalKey"])
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 0)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 0)
     }
 
     func test_end_concurrent_onlyOneCallWinsAndTheHandlerIsNotifiedOnce() throws {

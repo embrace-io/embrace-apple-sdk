@@ -20,8 +20,9 @@ jobs:
       fail-fast: false
       matrix:
         xcode_version: ["26.5"]
+        ios_version: ["26.5"]
         device:
-          - "iPhone 16 Pro"
+          - "iPhone 17 Pro"
         test_group:
           - name: startup
             filter: "EmbraceIOTestAppUITests/EmbraceIOTestWARMStartupUITests,EmbraceIOTestAppUITests/EmbraceIOTestCOLDStartupUITests"
@@ -85,7 +86,7 @@ jobs:
             -scheme "EmbraceIOTestApp" \
             -derivedDataPath "build/DerivedData" \
             -resultBundlePath ".build/test/output" \
-            -destination "platform=iOS Simulator,name=${{ matrix.device }}" \
+            -destination "platform=iOS Simulator,OS=${{ matrix.ios_version }},name=${{ matrix.device }}" \
             -parallel-testing-enabled NO \
             -test-timeouts-enabled YES \
             -default-test-execution-time-allowance 60 \

@@ -30,25 +30,27 @@ class DefaultEmbraceSpan: EmbraceSpan {
     }
 
     var endTime: Date? {
-        get { state.safeValue.endTime }
-        set { state.safeValue.endTime = newValue }
+        state.safeValue.endTime
     }
 
     var events: [EmbraceSpanEvent] {
-        get { state.safeValue.events }
-        set { state.safeValue.events = newValue }
+        state.safeValue.events
     }
 
     var links: [EmbraceSpanLink] {
-        get { state.safeValue.links }
-        set { state.safeValue.links = newValue }
+        state.safeValue.links
     }
 
     var attributes: EmbraceAttributes {
-        get { state.safeValue.attributes }
-        set { state.safeValue.attributes = newValue }
+        state.safeValue.attributes
     }
 
+    /// All mutable state of the span, guarded by `state`.
+    ///
+    /// Mutations must go through `state.withLock { }` so that the read and the write happen in a
+    /// single critical section. Mutating a single field through a get-then-set accessor would copy
+    /// the whole struct, mutate the copy, and write it back, allowing a concurrent mutation of any
+    /// other field to be silently lost.
     struct MutableData {
         var status: EmbraceSpanStatus = .unset
         var endTime: Date? = nil
@@ -122,7 +124,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
             return
         }
 
-        state.safeValue.status = status
+        state.withLock { $0.status = status }
         handler?.onSpanStatusUpdated(self, status: status)
     }
 
@@ -175,35 +177,38 @@ class DefaultEmbraceSpan: EmbraceSpan {
                 attributes: internalAttributes.merging(attributes) { (current, _) in current }
             )
 
+            state.withLock {
+                $0.events.append(event)
+                $0.internalEventCount += 1
+            }
+
         } else {
             // No handler means the span was constructed without one (e.g. read-only adapter / record).
             // Match today's silent skip — return nil.
             guard let handler else { return nil }
 
-            let currentCount = state.withLock {
-                $0.events.count - $0.internalEventCount
-            }
+            // The count the limit is checked against and the append that consumes a slot share a
+            // single critical section. Reading the count under its own lock would let two concurrent
+            // callers both pass the check and push the event count past the limit.
+            event = try state.withLock {
+                let currentCount = $0.events.count - $0.internalEventCount
 
-            event = try handler.createEvent(
-                forSpanNamed: self.name,
-                name: name,
-                type: type,
-                timestamp: timestamp,
-                attributes: attributes,
-                internalAttributes: internalAttributes,
-                currentCount: currentCount,
-                isSessionEvent: isSessionEvent
-            )
-        }
+                let event = try handler.createEvent(
+                    forSpanNamed: self.name,
+                    name: name,
+                    type: type,
+                    timestamp: timestamp,
+                    attributes: attributes,
+                    internalAttributes: internalAttributes,
+                    currentCount: currentCount,
+                    isSessionEvent: isSessionEvent
+                )
 
-        // add event
-        state.withLock {
-            $0.events.append(event)
-
-            if isInternal {
-                $0.internalEventCount += 1
+                $0.events.append(event)
+                return event
             }
         }
+
         handler?.onSpanEventAdded(self, event: event)
         return event
     }
@@ -223,20 +228,26 @@ class DefaultEmbraceSpan: EmbraceSpan {
             return nil
         }
 
-        let currentCount = state.withLock {
-            $0.links.count - $0.internalLinkCount
-        }
-
         do {
-            let link = try handler.createLink(
-                forSpanNamed: self.name,
-                spanId: spanId,
-                traceId: traceId,
-                attributes: attributes,
-                currentCount: currentCount
-            )
+            // The count the limit is checked against and the append that consumes a slot share a
+            // single critical section. Reading the count under its own lock would let two concurrent
+            // callers both pass the check and push the link count past the limit, and appending
+            // through a get-then-set accessor would let one of the two links be lost entirely.
+            let link = try state.withLock {
+                let currentCount = $0.links.count - $0.internalLinkCount
 
-            links.append(link)
+                let link = try handler.createLink(
+                    forSpanNamed: self.name,
+                    spanId: spanId,
+                    traceId: traceId,
+                    attributes: attributes,
+                    currentCount: currentCount
+                )
+
+                $0.links.append(link)
+                return link
+            }
+
             handler.onSpanLinkAdded(self, link: link)
             return link
         } catch {
@@ -268,37 +279,36 @@ class DefaultEmbraceSpan: EmbraceSpan {
             return
         }
 
-        var attribute: (String, EmbraceAttributeValue?) = (key, value)
+        // The count the limit is checked against and the write that consumes a slot share a single
+        // critical section. Reading the count under its own lock would let two concurrent callers
+        // both pass the check and push the attribute count past the limit.
+        let attribute = try state.withLock { data -> (String, EmbraceAttributeValue?) in
+            var attribute: (String, EmbraceAttributeValue?) = (key, value)
 
-        // apply limits?
-        if !isInternal {
-            let currentCount = state.withLock {
-                $0.attributes.count - $0.internalAttributeCount
+            // apply limits?
+            if !isInternal {
+                attribute = try handler.validateAttribute(
+                    forSpanNamed: self.name,
+                    key: key,
+                    value: value,
+                    currentAttributes: data.attributes,
+                    currentCount: data.attributes.count - data.internalAttributeCount
+                )
             }
 
-            attribute = try handler.validateAttribute(
-                for: self,
-                key: key,
-                value: value,
-                currentCount: currentCount
-            )
-        }
+            // only count the attribute when its presence actually changes, otherwise
+            // overwriting an existing key or clearing an absent one skews the count
+            let existed = data.attributes[attribute.0] != nil
+            data.attributes[attribute.0] = attribute.1
 
-        // update
-        state.withLock {
-            $0.attributes[attribute.0] = attribute.1
-
-            if isInternal {
-                $0.internalAttributeCount += value != nil ? 1 : -1
+            if isInternal, existed != (attribute.1 != nil) {
+                data.internalAttributeCount += attribute.1 != nil ? 1 : -1
             }
+
+            return attribute
         }
 
-        handler.onSpanAttributesUpdated(
-            self,
-            key: attribute.0,
-            value: attribute.1,
-            attributes: attributes
-        )
+        handler.onSpanAttributeUpdated(self, key: attribute.0, value: attribute.1)
     }
 
     func end(endTime: Date) {
@@ -339,7 +349,6 @@ extension DefaultEmbraceSpan: EmbraceSpanErrorCodeEnd {
     private struct EndOutcome {
         let status: EmbraceSpanStatus
         let errorCodeName: String?
-        let attributes: EmbraceAttributes
         let endTime: Date
     }
 
@@ -365,7 +374,6 @@ extension DefaultEmbraceSpan: EmbraceSpanErrorCodeEnd {
             return EndOutcome(
                 status: data.status,
                 errorCodeName: errorCode?.name,
-                attributes: data.attributes,
                 endTime: endTime
             )
         }
@@ -375,14 +383,13 @@ extension DefaultEmbraceSpan: EmbraceSpanErrorCodeEnd {
             return
         }
 
-        // Notifications happen after the lock is released: `onSpanAttributesUpdated` is handed the
-        // span's attributes, and reading them takes this same non-recursive lock.
+        // Notifications happen after the lock is released: a handler is free to read back the
+        // span's state, and doing so takes this same non-recursive lock.
         if let errorCodeName = outcome.errorCodeName {
-            handler?.onSpanAttributesUpdated(
+            handler?.onSpanAttributeUpdated(
                 self,
                 key: SpanSemantics.keyErrorCode,
-                value: errorCodeName,
-                attributes: outcome.attributes
+                value: errorCodeName
             )
         }
 

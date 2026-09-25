@@ -243,17 +243,40 @@ jobs:
 
           echo "Downloading result bundle for build $BUILD_ID, session $SESSION_ID..."
 
-          # Download result bundle using the proper API endpoint
-          curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
-            -X GET "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/builds/$BUILD_ID/sessions/$SESSION_ID/resultbundle" \
-            -o result_bundle.xcresult.zip
+          # BrowserStack can report the build as finished before the result bundle
+          # is available, and serves an XML error body in its place until then.
+          MAX_ATTEMPTS=6
+          retry_delay=2
+          for attempt in $(seq 1 $MAX_ATTEMPTS); do
+            rm -f result_bundle.xcresult.zip
+            if curl -fsS -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+                -X GET "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/builds/$BUILD_ID/sessions/$SESSION_ID/resultbundle" \
+                -o result_bundle.xcresult.zip \
+              && unzip -tq result_bundle.xcresult.zip > /dev/null; then
+              echo "Result bundle downloaded successfully"
+              ls -lh result_bundle.xcresult.zip
+              exit 0
+            fi
 
-          if [ -f result_bundle.xcresult.zip ]; then
-            echo "Result bundle downloaded successfully"
-            ls -lh result_bundle.xcresult.zip
-          else
-            echo "Warning: Result bundle file not created"
-          fi
+            echo "Result bundle not available yet (attempt $attempt/$MAX_ATTEMPTS)"
+            if [ -f result_bundle.xcresult.zip ]; then
+              file result_bundle.xcresult.zip
+              case "$(file -b --mime-type result_bundle.xcresult.zip)" in
+                text/*|application/xml|application/json)
+                  head -c 500 result_bundle.xcresult.zip
+                  echo
+                  ;;
+              esac
+            fi
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+              echo "Retrying in ${retry_delay}s"
+              sleep "$retry_delay"
+              retry_delay=$((retry_delay * 2))
+            fi
+          done
+
+          echo "::error::Result bundle not available after $MAX_ATTEMPTS attempts"
+          exit 1
 
       - name: Upload Result Bundle as Artifact
         if: always()

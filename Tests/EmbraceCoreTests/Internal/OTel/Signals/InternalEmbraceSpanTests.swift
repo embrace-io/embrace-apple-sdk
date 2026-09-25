@@ -91,6 +91,6 @@ class InternalEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 2)
         XCTAssertEqual(handler.validateAttributeCallCount, 0)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
     }
 }

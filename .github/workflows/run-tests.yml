@@ -120,8 +120,8 @@ jobs:
 
       # Dumps the human-readable failure summary and per-test failure tree
       # (with file:line) into the job log so a failure can be diagnosed
-      # without downloading the ~75 MB xcresult artifact — especially
-      # relevant for TSan aborts.
+      # without downloading the ~75 MB xcresult artifact. Sanitizer and
+      # crash reports are printed by the run-xcodebuild action.
       - name: Surface failure summary from xcresult
         if: failure() || cancelled()
         run: |

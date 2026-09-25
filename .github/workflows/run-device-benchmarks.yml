@@ -27,6 +27,9 @@ env:
 jobs:
   browserstack-pr:
     name: Run BrowserStack Tests on PR
+    # Dependabot runs get no repository secrets, so the BrowserStack credentials would be empty.
+    # Check the PR author, not github.actor: a person re-running the checks becomes the actor.
+    if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
     uses: ./.github/workflows/browserstack.yml
     secrets:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
