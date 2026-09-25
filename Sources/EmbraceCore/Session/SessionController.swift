@@ -431,6 +431,9 @@ class SessionController: SessionControllable {
         // auto terminate spans
         otel?.autoTerminateSpans()
 
+        // post synchronous internal notification while the part is still current
+        Embrace.notificationCenter.post(name: .embraceSessionPartWillEndSync, object: inProgressSession)
+
         // post public notification
         let mainQueueSession = inProgressSession
         DispatchQueue.main.async {
@@ -652,4 +655,22 @@ extension SessionController {
 // internal use
 extension Notification.Name {
     static let embraceForegroundSessionDidEnd = Notification.Name("embrace.session.foreground.end")
+
+    /// Posted synchronously on `Embrace.notificationCenter` just before a session part ends, for every
+    /// part state. The `object` is the `EmbraceSession` (the part) that is about to end.
+    ///
+    /// Unlike `embraceSessionPartWillEnd`, this is posted before the session span ends and before the
+    /// part's payload is queued for upload, while `currentSession` still returns the ending part. Spans
+    /// ended from an observer are attributed to the ending part. Prefer spans opened earlier in the part:
+    /// cold-start parts match spans by start time only, so a span *started* in the observer is dropped
+    /// from a cold-start part's payload.
+    ///
+    /// Contract for observers:
+    /// - Called with the `SessionController` lock held, so do minimal work.
+    /// - May be called on the main thread or on `SessionController.queue` (e.g. max-duration expiry,
+    ///   `endUserSession()`). Never `DispatchQueue.main.sync` from the observer.
+    /// - Also posted when `startSession` ends a part that is still in progress.
+    /// - Never start or end a session from the observer; the lock is not reentrant.
+    /// - Filter on `session.state` if only foreground or background parts are relevant.
+    static let embraceSessionPartWillEndSync = Notification.Name("embrace.session.part.will_end.sync")
 }
