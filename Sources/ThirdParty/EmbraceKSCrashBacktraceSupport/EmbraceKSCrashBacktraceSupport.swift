@@ -42,12 +42,20 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
         into buffer: UnsafeMutablePointer<FrameAddress>,
         capacity: Int
     ) -> Int {
-        // Alloc-free / async-signal-safe: `ksbt_captureBacktrace` fills the caller's buffer in place
-        // using stack-allocated machine context + stack cursor (no malloc, no runtime calls), so it
-        // is safe to run while `thread` is suspended. The `pthread_self()` workaround in
-        // `backtrace(of:)` is intentionally NOT replicated here: this entry point is only used to walk
-        // a *suspended* thread, which is never the caller.
-        return Int(captureBacktrace(thread: thread, addresses: buffer, count: Int32(capacity)))
+        // Fills the caller's buffer from a stack-allocated context and cursor: no malloc, no runtime
+        // work. The `pthread_self()` workaround in `backtrace(of:)` is intentionally not repeated —
+        // this entry point only walks a suspended thread, never the caller.
+        //
+        // Use the already-suspended entry point: `captureBacktrace(thread:…)` is the running-thread
+        // API, which re-suspends the target and logs via `fprintf` on error paths, both unsafe here.
+        return Int(
+            captureBacktraceFromSuspended(
+                machThread: pthread_mach_thread_np(thread),
+                addresses: buffer,
+                count: Int32(capacity),
+                isTruncated: nil
+            )
+        )
     }
 
     public func resolve(address: UInt) -> SymbolicatedFrame? {

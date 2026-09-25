@@ -130,6 +130,11 @@ public typealias FrameAddress = UInt
     /// - Important: The implementation MUST be allocation-free and async-signal-safe: no `malloc`,
     ///   no Obj-C/Swift runtime work, no lock acquisition. It is called between `thread_suspend` and
     ///   `thread_resume` of a thread that is not the caller.
+    /// - Note: Following the rule above is not sufficient for a *custom* implementation. Because this
+    ///   protocol is `@objc`, the SDK reaches a custom backtracer through `objc_msgSend`, and that
+    ///   dispatch itself takes the ObjC runtime lock when the method cache is cold — inside the
+    ///   suspend window. If the suspended thread holds that lock, the process deadlocks regardless of
+    ///   what the implementation does. The built-in backtracer is called directly and is not affected.
     /// - Parameters:
     ///   - thread: The target `pthread_t`. Must not be the calling thread (it is expected to be
     ///     suspended by the caller for the duration of the call).

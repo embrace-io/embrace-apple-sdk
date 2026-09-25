@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
+    import EmbraceKSCrashBacktraceSupport
 #endif
 
 private class EmbraceThreadList {
@@ -242,6 +243,12 @@ extension EmbraceBacktrace {
             return []
         }
 
+        // Resolve the concrete type before suspending. `Backtracer` is an `@objc` protocol, so a
+        // call through the existential is an `objc_msgSend`, which on a cold method cache takes the
+        // ObjC runtime lock. If the suspended thread holds that lock, the walk never returns and the
+        // process deadlocks. Calling the concrete type is a vtable dispatch instead: no locks.
+        let ksBacktracer = backtracer as? KSCrashBacktracing
+
         // get the mach thread to take the snapshot of
         let machThread = pthread_mach_thread_np(thread)
         let canSuspend = pthread_self() != thread
@@ -267,7 +274,14 @@ extension EmbraceBacktrace {
             #if DEBUG
                 EmbraceBacktraceSuspendWindowProbe.willEnter?()
             #endif
-            let count = backtracer.backtrace(of: thread, into: buffer, capacity: entries)
+            let count: Int
+            if let ksBacktracer {
+                count = ksBacktracer.backtrace(of: thread, into: buffer, capacity: entries)
+            } else {
+                // Custom `Backtracer`: still an `objc_msgSend`, with the risk described above. It
+                // can't be made safe while `Backtracer` is `@objc`.
+                count = backtracer.backtrace(of: thread, into: buffer, capacity: entries)
+            }
             #if DEBUG
                 EmbraceBacktraceSuspendWindowProbe.didExit?()
             #endif
