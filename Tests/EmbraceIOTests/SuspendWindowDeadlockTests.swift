@@ -154,8 +154,10 @@
         /// runtime lock. A walk that dispatches through the `@objc` `Backtracer` protocol needs that
         /// same lock on a cold method cache, which wedges the whole process.
         ///
-        /// The per-iteration cache flush is what makes this bite: a warm cache resolves the selector
-        /// without the lock, so without flushing a regressed build would usually pass.
+        /// A warm method cache resolves the selector without taking the lock, so the cache has to be
+        /// cold for this to bite. The victim's own class churn already keeps it cold — verified by
+        /// reproducing the deadlock with the explicit flush below removed — so that flush is only
+        /// belt-and-braces, not the mechanism.
         func test_noDeadlock_victimHammersObjCRuntime() throws {
             try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
 
@@ -190,9 +192,12 @@
             let noop: @convention(c) (AnyObject, Selector) -> Void = { _, _ in }
             let noopImp = unsafeBitCast(noop, to: IMP.self)
 
+            let flushSelector = NSSelectorFromString("embCacheFlush")
             for iteration in 0..<200 {
-                // Cold-cache the backtracer's class before each sample (see doc comment).
-                class_addMethod(backtracerClass, NSSelectorFromString("embCacheFlush\(iteration)"), noopImp, "v@:")
+                // Cold-cache the backtracer's class before each sample (see doc comment). Replacing
+                // one selector rather than adding a new one each time keeps the class from
+                // accumulating 200 methods that outlive this test.
+                class_replaceMethod(backtracerClass, flushSelector, noopImp, "v@:")
 
                 XCTAssertTrue(
                     sampleCompletes(victim: target),
