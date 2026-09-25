@@ -14,9 +14,10 @@ import SwiftUI
 /// UIKit screens are detected automatically; SwiftUI has no reliable equivalent, so this is how you
 /// say a view is a screen.
 ///
-/// The screen is recorded when the view appears. Nothing is recorded when it disappears: the next
-/// screen's appearance is what ends this one, the same way it works for automatically detected
-/// screens.
+/// The screen is recorded when the view appears, and ends when the next screen appears — the same
+/// way it works for automatically detected screens. Disappearing only records something when it
+/// uncovers a screen that stayed visible underneath: dismissing a sheet returns the timeline to the
+/// screen it was presented over.
 ///
 /// Declared and automatic screens share one timeline, so navigating from a UIKit screen to a SwiftUI
 /// one reads as a single continuous journey.
@@ -47,21 +48,21 @@ import SwiftUI
 /// - Note: Does nothing when screen tracking is disabled, when the SDK has not started, or on
 ///   platforms where the feature does not run. It is always safe to leave in place.
 ///
-/// - Note: This is the only way a SwiftUI screen is named. The `UIHostingController` presenting it
-///   is not recorded as a screen on its own, unless it names itself through
-///   `EmbraceViewControllerCustomization`.
+/// - Note: This is the only way a SwiftUI screen is recorded. Hosting controllers, and view
+///   controllers inside them, are not recorded as screens by default.
 ///
 /// - Parameters:
 ///   - name: The screen's name. Surrounding whitespace is trimmed and long names are truncated; a
 ///     name that is blank once trimmed is ignored.
-///   - attributes: Optional metadata recorded on this screen's transition. Values must be strings,
-///     and the same count and length limits apply as to attributes anywhere else in the SDK — past
-///     the count limit, the ones kept are chosen in sorted key order. Keys in the reserved
-///     `emb.state.*` namespace are ignored.
+///   - attributes: Optional metadata recorded on this screen's transitions. The same count and
+///     length limits apply as to attributes anywhere else in the SDK — past the count limit, the
+///     ones kept are chosen in sorted key order, and long string values are truncated. Keys in the
+///     reserved `emb.state.*` namespace are ignored.
 ///
-///     Recorded once, when the screen appears. Re-declaring the same screen with changed values
-///     does not record them again — that is not a navigation — so avoid values that track live data
-///     and expect them to update.
+///     Recorded each time the timeline moves to this screen, not each time the view re-renders.
+///     Re-declaring the same screen with changed values records nothing new on its own; the latest
+///     values are what a later return to this screen carries (after backgrounding, or when a sheet
+///     over it is dismissed). Avoid values that track live data and expect them to update.
 /// - Returns: The view, marked as a screen.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension View {
@@ -97,9 +98,9 @@ struct EmbraceScreenModifier: ViewModifier {
                 )
             }
             .onDisappear {
-                // Records nothing, but the pipeline tracks which screens are visible: one that
-                // never reports going away stays counted forever, and later screens silently stop
-                // having their load times backdated.
+                // Keeps the visible set accurate: this is what lets a dismissed sheet hand the
+                // timeline back, and a screen that never reports going away stays counted
+                // forever, silently stopping later screens' load times from being backdated.
                 ManualScreenRegistry.reporter?.onManualScreenDisappear(
                     id: ObjectIdentifier(token),
                     name: name,

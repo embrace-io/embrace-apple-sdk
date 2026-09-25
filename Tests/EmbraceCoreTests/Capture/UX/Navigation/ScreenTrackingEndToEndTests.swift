@@ -198,6 +198,24 @@
             XCTAssertEqual(stateLinks.first?.spanId, state.spanId)
         }
 
+        /// The log stamp depends on the client handing its coordinator to the log controller, which
+        /// no lower-level test exercises: they all inject the coordinator themselves.
+        func testALogIsStampedWithTheCurrentScreen() throws {
+            visit(HomeViewController())
+
+            let client = try XCTUnwrap(Embrace.client)
+            let logged = expectation(description: "log created")
+            var log: EmbraceLog?
+            client.logController.createLog("probe", severity: .info) {
+                log = $0
+                logged.fulfill()
+            }
+            wait(for: [logged], timeout: .defaultTimeout)
+
+            let key = SpanSemantics.State.logAttributeKey(for: "screen-automatic")
+            XCTAssertEqual(try XCTUnwrap(log).attributes[key]?.description, "HomeViewController")
+        }
+
         /// Backgrounding is what makes the timeline readable as a session, so it has to survive the
         /// whole pipeline rather than only existing in the broker.
         /// Backgrounding ends the session part, so the timeline spans two payloads — and this is

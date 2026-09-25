@@ -487,11 +487,12 @@ final class SpansPayloadBuilderTests: XCTestCase {
     }
 
     func test_stateSpans_areNotSubjectToTheFetchLimit() throws {
-        // given a limit of 10 spans of type performance
+        // given a fetch budget of 30 (3 capped types x a default of 10), with performance spans
+        // exempt from insert-time pruning so the budget itself is what gets exhausted
         let oldLimits = storage.options.spanLimits
         let oldLimitDefault = storage.options.spanLimitDefault
         storage.options.spanLimits = [
-            .performance: 10
+            .performance: 1000
         ]
         storage.options.spanLimitDefault = 10
 
@@ -500,8 +501,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
             storage.options.spanLimitDefault = oldLimitDefault
         }
 
-        // when setting up 20 performance spans
-        for i in 1...20 {
+        // when setting up more performance spans than the budget holds
+        for i in 1...40 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -521,19 +522,19 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // when building the spans payload
         let (closed, _) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
-        // then the capped pool was indeed exhausted...
-        XCTAssertEqual(closed.filter { $0.name.hasPrefix("perf-") }.count, 10)
+        // then the capped pool is full...
+        XCTAssertEqual(closed.filter { $0.name.hasPrefix("perf-") }.count, 30)
 
-        // ...but the state span is present regardless, because it is fetched separately.
+        // ...and the state span is present on top of it, because it is fetched separately.
         XCTAssertEqual(
             closed.filter { $0.name == "emb-state-screen-automatic" }.count,
             1,
             "state spans must not compete with telemetry for the capped budget")
-        // session is there
         XCTAssertEqual(closed[0].name, "emb-session")
 
-        // Giving a total of 12 spans... 10 capped spans, 1 session, 1 state.
-        XCTAssertEqual(closed.count, 12)
+        // 30 capped + 1 state + 1 session. A single shared fetch could return at most 30 + session,
+        // so this holds regardless of which rows an unsorted fetch happens to pick.
+        XCTAssertEqual(closed.count, 32)
     }
 
     func test_stateSpans_areNotDuplicatedInThePayload() throws {
