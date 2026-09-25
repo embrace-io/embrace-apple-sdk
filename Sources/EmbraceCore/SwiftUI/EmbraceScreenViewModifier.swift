@@ -53,7 +53,7 @@ import SwiftUI
 ///
 /// - Parameters:
 ///   - name: The screen's name. Surrounding whitespace is trimmed and long names are truncated; a
-///     name that is blank once trimmed, or one the SDK reserves for its own use, is ignored.
+///     name that is blank once trimmed is ignored.
 ///   - attributes: Optional metadata recorded on this screen's transition. Values must be strings,
 ///     and the same count and length limits apply as to attributes anywhere else in the SDK — past
 ///     the count limit, the ones kept are chosen in sorted key order. Keys in the reserved
