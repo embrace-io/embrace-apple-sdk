@@ -104,10 +104,11 @@ jobs:
             -destination "id=$UDID" \
             | xcbeautify --renderer github-actions
 
-      # The first launch of the app on a freshly erased simulator spends about a minute in dyld,
-      # which is longer than the 60 s per-test allowance below. Launching it once here moves that
-      # cost out of the first test. The app does not start the Embrace SDK on launch, and it is
-      # uninstalled afterwards so the tests get a clean container.
+      # The first launch of the app on a freshly erased simulator spends about a minute in dyld.
+      # Launching it once here moves most of that cost out of the first test; the first test's
+      # launch still takes about 30 s, which is why the per-test allowance below is 120 s. The app
+      # does not start the Embrace SDK on launch, and it is uninstalled afterwards so the tests
+      # get a clean container.
       - name: Warm Up the App
         env:
           UDID: ${{ steps.sim.outputs.udid }}
@@ -135,7 +136,7 @@ jobs:
             -destination "id=$UDID" \
             -parallel-testing-enabled NO \
             -test-timeouts-enabled YES \
-            -default-test-execution-time-allowance 60 \
+            -default-test-execution-time-allowance 120 \
             -maximum-test-execution-time-allowance 180 \
             "${FILTERS[@]/#/-only-testing:}" 2>&1 \
             | tee build/xcodebuild.log \
