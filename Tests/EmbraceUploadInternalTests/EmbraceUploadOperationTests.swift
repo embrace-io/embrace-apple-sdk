@@ -479,7 +479,7 @@ class EmbraceUploadOperationTests: XCTestCase {
 
         operation.start()
 
-        wait(for: [expectation], timeout: .shortTimeout + Double(retryAfterDelay))
+        wait(for: [expectation], timeout: .defaultTimeout)
 
         // then the request should have the correct headers
         guard let request = EmbraceHTTPMock.requestsForUrl(TestConstants.url).last else {

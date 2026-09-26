@@ -54,7 +54,7 @@ class PerformanceTests: XCTestCase {
                 NotificationCenter.default.post(name: didFinishLaunchingNotif, object: nil)
                 NotificationCenter.default.post(name: didBecomeActiveNotif, object: nil)
 
-                wait(for: [expect])
+                wait(for: [expect], timeout: .defaultTimeout)
 
             } catch {
             }
