@@ -63,7 +63,7 @@ class URLSessionDelegateProxyChallengeHandlingTests: XCTestCase {
         )
 
         XCTAssertTrue(delegate.didCallDidReceiveChallenge)
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_proxy_taskChallenge_isForwardedToDelegate() {

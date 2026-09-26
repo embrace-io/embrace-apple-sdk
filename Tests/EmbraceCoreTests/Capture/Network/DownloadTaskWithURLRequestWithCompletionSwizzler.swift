@@ -30,7 +30,7 @@ class DownloadTaskWithURLWithCompletionSwizzlerTests: SwizzlerTestCase {
             self.thenHandlerShouldHaveInvokedCreateWithTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .longTimeout)
     }
 
     func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
@@ -43,7 +43,7 @@ class DownloadTaskWithURLWithCompletionSwizzlerTests: SwizzlerTestCase {
             self.thenHandlerShouldHaveInvokedFinishTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .longTimeout)
     }
 
     #if !os(watchOS)
@@ -57,33 +57,27 @@ class DownloadTaskWithURLWithCompletionSwizzlerTests: SwizzlerTestCase {
                 self.thenHandlerShouldHaveInvokedFinishTaskWithError()
                 expectation.fulfill()
             })
-            wait(for: [expectation])
+            wait(for: [expectation], timeout: .longTimeout)
         }
     #endif
 
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
-        let expectation = expectation(description: #function)
         givenDownloadTaskWithURLRequestAndCompletionSwizzler()
         try givenSwizzlingWasDone()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
-        whenInvokingDownloadTaskWithURLRequest(completionHandler: { _, _, _ in
-            try! self.thenDataTaskShouldHaveEmbraceHeaders()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        whenInvokingDownloadTaskWithURLRequest(completionHandler: { _, _, _ in })
+        try thenDataTaskShouldHaveEmbraceHeaders()
+        downloadTask.cancel()
     }
 
     func test_withoutInstall_taskWontBeCreatedInHandler() throws {
-        let expectation = expectation(description: #function)
         givenDownloadTaskWithURLRequestAndCompletionSwizzler()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
-        whenInvokingDownloadTaskWithURLRequest(completionHandler: { _, _, _ in
-            self.thenHandlerShouldntHaveInvokedCreate()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        whenInvokingDownloadTaskWithURLRequest(completionHandler: { _, _, _ in })
+        thenHandlerShouldntHaveInvokedCreate()
+        downloadTask.cancel()
     }
 }
 

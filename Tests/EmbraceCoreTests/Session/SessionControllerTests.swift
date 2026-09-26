@@ -127,7 +127,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNotNil(session.startTime)
         XCTAssertNotNil(controller.currentSessionSpan)
         XCTAssertEqual(controller.currentSession?.id, session.id)
-        wait(for: [notificationExpectation])
+        wait(for: [notificationExpectation], timeout: .defaultTimeout)
     }
 
     func test_startSession_ifStartAtIsSoonAfterProcessStart_marksSessionAsColdStartTrue() throws {
@@ -187,7 +187,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNil(controller.currentSession)
         XCTAssertNil(controller.currentSessionSpan)
 
-        wait(for: [notificationExpectation])
+        wait(for: [notificationExpectation], timeout: .defaultTimeout)
     }
 
     func test_endSession_foreground_writesUserSessionLastForegroundEndOnRecord() throws {
