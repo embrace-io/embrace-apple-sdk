@@ -39,7 +39,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/swiftlang/swift-syntax.git",
-            "509.0.0"..<"604.0.0"
+            "509.0.0"..<"605.0.0"
         )
     ],
     targets: [
