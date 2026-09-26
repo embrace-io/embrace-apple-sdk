@@ -13,9 +13,10 @@ import SwiftUI
 /// without changing your existing view hierarchy.
 ///
 /// By applying `.embraceTrace(_:)` to any view, you instruct the SDK to track:
-///  - When the view is initialized and its `body` evaluated
-///  - Each render cycle (including SwiftUI’s internal optimizations)
+///  - How long the view took to first render, from initialization to `onAppear`
 ///  - Lifecycle events such as `onAppear` and `onDisappear`
+///  - Optionally, each `body` evaluation and the render cycle grouping them
+///    (opt in with `trackBodyEvaluations`)
 ///
 /// When tracing is disabled, this modifier incurs almost zero overhead.
 ///
@@ -31,6 +32,10 @@ import SwiftUI
 ///         "user_type": user.type,
 ///         "is_premium": user.isPremium ? "true" : "false"
 ///     ])
+///
+/// // Opt in to body evaluation spans while debugging a specific view
+/// SlowListView()
+///     .embraceTrace("SlowList", trackBodyEvaluations: true)
 /// ```
 ///
 /// **Best Practices:**
@@ -38,21 +43,27 @@ import SwiftUI
 ///  - Avoid including PII or highly dynamic values in `viewName` or `attributes`.
 ///  - Focus on performance-sensitive screens and key user interactions.
 ///  - Skip trivial, static views or views that re-render extremely frequently.
+///  - Leave `trackBodyEvaluations` off outside of active investigation: SwiftUI evaluates `body`
+///    often enough that the spans crowd out the signal (an animation can emit thousands a minute).
 ///
 /// - Parameters:
 ///   - viewName: A stable identifier for this view (appears in Embrace trace dashboards).
 ///   - attributes: Optional metadata (key/value pairs) to enrich trace analysis.
+///   - trackBodyEvaluations: Whether to emit a span per `body` evaluation, plus the `render-loop`
+///     span grouping them. Defaults to `false`.
 ///   - contentComplete: A value that when changed, will flag the View as content complete.
 /// - Returns: A new `View` wrapped with Embrace tracing instrumentation.
 @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension View {
     public func embraceTrace(
         _ viewName: String,
-        attributes: EmbraceAttributes? = nil
+        attributes: EmbraceAttributes? = nil,
+        trackBodyEvaluations: Bool = false
     ) -> some View {
         EmbraceTraceView(
             viewName,
-            attributes: attributes
+            attributes: attributes,
+            trackBodyEvaluations: trackBodyEvaluations
         ) { self }
     }
 
@@ -60,15 +71,19 @@ extension View {
     /// - Parameters:
     ///   - viewName: Name used for the generated trace.
     ///   - attributes: Attributes to set on the trace.
+    ///   - trackBodyEvaluations: Whether to emit a span per `body` evaluation, plus the `render-loop`
+    ///     span grouping them. Defaults to `false`.
     ///   - contentComplete: Value whose change signals that the content has finished loading.
     public func embraceTrace<V: Equatable>(
         _ viewName: String,
         attributes: EmbraceAttributes? = nil,
+        trackBodyEvaluations: Bool = false,
         contentComplete: V
     ) -> some View {
         EmbraceTraceView(
             viewName,
             attributes: attributes,
+            trackBodyEvaluations: trackBodyEvaluations,
             contentComplete: contentComplete
         ) { self }
     }

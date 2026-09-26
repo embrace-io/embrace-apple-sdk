@@ -81,10 +81,26 @@ public protocol EmbraceConfigurable: AnyObject {
     /// Whether a `traceparent` header is injected into captured network requests.
     var traceparentInjectionEnabled: Bool { get }
 
+    /// Whether state spans are captured at all — the global gate for the state subsystem.
+    ///
+    /// AND-ed with ``isScreenTrackingEnabled``: if either is off, no screen state is recorded.
+    var isStateCaptureEnabled: Bool { get }
+
+    /// Whether the screen state is captured, gated separately from the subsystem as a whole.
+    var isScreenTrackingEnabled: Bool { get }
+
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:
     ///     - completion: A completion block that receives a `Result`. On success it carries `true`
     ///     if the configuration now has different values and `false` if not. On failure it carries an
     ///     `Error` describing the issue that prevented the update.
     func update(completion: @escaping (Result<Bool, Error>) -> Void)
+}
+
+extension EmbraceConfigurable {
+    /// Defaults so adding these is not source-breaking for external conformers. The requirements
+    /// stay declared in the protocol body: moving them here would make dispatch static and silently
+    /// ignore `RemoteConfig`'s overrides.
+    public var isStateCaptureEnabled: Bool { false }
+    public var isScreenTrackingEnabled: Bool { false }
 }

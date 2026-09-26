@@ -26,6 +26,8 @@ class LogController: LogBatcherDelegate {
     weak var experiments: ExperimentsHandler?
     weak var privateLogger: EmbracePrivateLogger?
 
+    weak var stateCoordinator: StateCaptureCoordinator?
+
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
     static let maxLogsPerBatch: Int = 20
@@ -123,6 +125,7 @@ class LogController: LogBatcherDelegate {
             .addApplicationState()
             .addSessionIdentifier()
             .addExperiments(experiments?.encodedExperiments)
+            .addCurrentStates(stateCoordinator)
 
         // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.

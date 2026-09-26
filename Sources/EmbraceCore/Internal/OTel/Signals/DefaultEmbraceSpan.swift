@@ -219,21 +219,63 @@ class DefaultEmbraceSpan: EmbraceSpan {
         traceId: String,
         attributes: EmbraceAttributes = [:]
     ) -> EmbraceSpanLink? {
-        guard let handler else {
+        do {
+            return try _addLink(
+                spanId: spanId,
+                traceId: traceId,
+                attributes: attributes,
+                isInternal: false
+            )
+        } catch {
+            Embrace.logger.error("Failed to add link to span '\(self.name)': \(error.localizedDescription)")
             return nil
         }
+    }
+
+    /// Adds a link, optionally bypassing the customer-facing link limit.
+    ///
+    /// Internal links are the SDK's own structural references between spans — the session part span
+    /// pointing at its state spans, for instance — and the backend needs them regardless of how much
+    /// customer telemetry the span is carrying. They are therefore exempt from the limit and counted
+    /// separately, exactly as internal events and attributes are, so they never consume the
+    /// customer's budget either.
+    @discardableResult
+    func _addLink(
+        spanId: String,
+        traceId: String,
+        attributes: EmbraceAttributes = [:],
+        isInternal: Bool
+    ) throws -> EmbraceSpanLink? {
+
+        // No handler means the span was constructed without one (e.g. read-only adapter / record),
+        // so nothing would persist the link. Reported as a failure for internal callers too: they
+        // rely on a nil return to detect a link that did not land, and appending to the in-memory
+        // array while returning non-nil would tell them it succeeded.
+        guard let handler else { return nil }
 
         guard !hasEnded else {
             logIgnoredMutation("link")
             return nil
         }
 
-        do {
+        let link: EmbraceSpanLink
+
+        if isInternal {
+            // Internal callers: skip the limiter and the sanitizer, as the internal event path does.
+            link = EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes)
+
+            state.withLock {
+                $0.links.append(link)
+                $0.internalLinkCount += 1
+            }
+
+        } else {
             // The count the limit is checked against and the append that consumes a slot share a
             // single critical section. Reading the count under its own lock would let two concurrent
             // callers both pass the check and push the link count past the limit, and appending
             // through a get-then-set accessor would let one of the two links be lost entirely.
-            let link = try state.withLock {
+            link = try state.withLock {
+                // Counted against the links already on this span, excluding the SDK's own.
                 let currentCount = $0.links.count - $0.internalLinkCount
 
                 let link = try handler.createLink(
@@ -247,13 +289,10 @@ class DefaultEmbraceSpan: EmbraceSpan {
                 $0.links.append(link)
                 return link
             }
-
-            handler.onSpanLinkAdded(self, link: link)
-            return link
-        } catch {
-            Embrace.logger.error("Failed to add link to span '\(self.name)': \(error.localizedDescription)")
-            return nil
         }
+
+        handler.onSpanLinkAdded(self, link: link)
+        return link
     }
 
     open func setAttribute(key: String, value: EmbraceAttributeValue?) {
@@ -416,6 +455,46 @@ extension EmbraceSpan {
         }
 
         span._setInternalAttribute(key: key, value: value)
+    }
+}
+
+// MARK: Internal Links
+
+/// The SDK-only way to add a link. Deliberately not `public`: customer code cannot reach this, so
+/// customer links always go through ``EmbraceSpan/addLink(spanId:traceId:attributes:)`` and remain
+/// subject to the per-span limit.
+protocol EmbraceSpanInternalLinks {
+    @discardableResult
+    func _addInternalLink(spanId: String, traceId: String, attributes: EmbraceAttributes) -> EmbraceSpanLink?
+}
+
+extension DefaultEmbraceSpan: EmbraceSpanInternalLinks {
+    @discardableResult
+    func _addInternalLink(
+        spanId: String,
+        traceId: String,
+        attributes: EmbraceAttributes
+    ) -> EmbraceSpanLink? {
+        try? _addLink(spanId: spanId, traceId: traceId, attributes: attributes, isInternal: true)
+    }
+}
+
+extension EmbraceSpan {
+    /// Adds a structural link the SDK itself needs, exempt from the customer-facing link limit.
+    ///
+    /// - Returns: The stored link, or `nil` if this span cannot record internal links (a read-only
+    ///   adapter, for instance).
+    @discardableResult
+    func addInternalLink(
+        spanId: String,
+        traceId: String,
+        attributes: EmbraceAttributes = [:]
+    ) -> EmbraceSpanLink? {
+        guard let span = self as? EmbraceSpanInternalLinks else {
+            return nil
+        }
+
+        return span._addInternalLink(spanId: spanId, traceId: traceId, attributes: attributes)
     }
 }
 
