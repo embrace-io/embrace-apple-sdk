@@ -8,6 +8,7 @@
 
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
+        import EmbraceSemantics
     #endif
 
     /// Frame accounting for one completed foreground session.
@@ -36,12 +37,20 @@
         let cappedTickCount: Int
     }
 
-    /// Owns the frame-drop accumulator for the app's current foreground session.
+    /// Owns the frame-drop accumulator for the app's current foreground session part.
     ///
-    /// Opens when `SessionController` posts `.embraceSessionPartDidStart` for a foreground part,
-    /// attaching itself as `FrameDropClassifier.currentAccumulator`. Closes when
-    /// `.embraceForegroundSessionDidEnd` fires, detaching from the classifier and reporting the
-    /// session's totals through `onSessionEnded`.
+    /// Opens for a foreground part when either:
+    /// - `SessionController` posts `.embraceSessionPartDidStart` for it, or
+    /// - the app becomes active while the current part is already foreground. This covers the
+    ///   cold-start swap, where `iOSSessionLifecycle` flips a background cold-start part to foreground
+    ///   in place and no `.embraceSessionPartDidStart` is posted.
+    ///
+    /// Both paths are keyed by part id, so they dedupe. A part is only opened while it is still the
+    /// current part and has not already ended, because `.embraceSessionPartDidStart` is delivered
+    /// asynchronously on main and can arrive after its part ended.
+    ///
+    /// Closes synchronously from `.embraceSessionPartWillEndSync`, which `SessionController` posts
+    /// before the ending part's payload is queued, on whichever thread is ending the part.
     ///
     /// A single tick that is later than `hangThreshold` (a main-thread hang) is capped to
     /// `hangThreshold`, so one stall can't dominate an otherwise long session. The session stays open
@@ -50,36 +59,60 @@
     /// Late time is summed as a continuous duration and only normalized to 60fps reference frames
     /// when the session closes, so no per-tick rounding accumulates over long sessions.
     ///
-    /// All state is confined to the main thread.
+    /// Must be created on the main thread. All state is guarded by a single unfair lock, since the
+    /// close can run off main.
     final class SmoothnessSessionTracker: FrameDropAccumulator {
 
-        /// Called on the main thread when a foreground session closes. Callers should hop off main
-        /// before doing any non-trivial work.
-        var onSessionEnded: ((SmoothnessSessionStats) -> Void)?
+        /// Called on the main thread when a foreground part opens.
+        ///
+        /// Invoked with the tracker's lock held, so a concurrent close waits until it returns. Must not
+        /// call back into the tracker.
+        var onSessionOpened: ((_ partId: EmbraceIdentifier, _ startTime: Date) -> Void)?
+
+        /// Called when a foreground part closes, on whichever thread closed it. When the close comes
+        /// from `.embraceSessionPartWillEndSync`, the `SessionController` lock is also held.
+        ///
+        /// Invoked with the tracker's lock held. Must do minimal work, must not call back into the
+        /// tracker, and must never `DispatchQueue.main.sync`.
+        var onSessionClosed: ((_ partId: EmbraceIdentifier, _ stats: SmoothnessSessionStats) -> Void)?
 
         /// Maximum late time a single tick can contribute to the session's dropped frames.
-        let hangThreshold: TimeInterval
+        var hangThreshold: TimeInterval {
+            get { lock.locked { state.hangThreshold } }
+            set { lock.locked { state.hangThreshold = newValue } }
+        }
 
         /// Whether a foreground session is currently being accumulated.
-        var isSessionOpen: Bool { openSession != nil }
+        var isSessionOpen: Bool { lock.locked { state.openSession != nil } }
+
+        /// The id of the part currently being accumulated, if any.
+        var openPartId: EmbraceIdentifier? { lock.locked { state.openSession?.partId } }
 
         /// Must be called on the main thread.
         ///
         /// - Parameters:
-        ///   - classifier: The classifier this tracker attaches to while a session is open.
+        ///   - classifier: The classifier this tracker attaches to for its whole lifetime.
         ///   - hangThreshold: Per-tick ceiling, shared with `HangCaptureService`.
-        ///   - notificationCenter: Where `.embraceSessionPartDidStart` is posted.
-        ///   - embraceNotificationCenter: Where `.embraceForegroundSessionDidEnd` is posted.
+        ///   - currentSession: Returns the current session part.
+        ///   - notificationCenter: Where `.embraceSessionPartDidStart` and the app's did-become-active
+        ///     notification are posted.
+        ///   - embraceNotificationCenter: Where `.embraceSessionPartWillEndSync` is posted.
         init(
             classifier: FrameDropClassifier,
             hangThreshold: TimeInterval = FrameRateMonitor.defaultAppleHangThreshold,
+            currentSession: @escaping () -> EmbraceSession? = { Embrace.client?.sessionController.currentSession },
             notificationCenter: NotificationCenter = .default,
             embraceNotificationCenter: NotificationCenter = Embrace.notificationCenter
         ) {
             self.classifier = classifier
-            self.hangThreshold = hangThreshold
+            self.state = State(hangThreshold: hangThreshold)
+            self.currentSession = currentSession
             self.notificationCenter = notificationCenter
             self.embraceNotificationCenter = embraceNotificationCenter
+
+            // Stay attached for the tracker's lifetime; `recordFrame` no-ops while no session is open.
+            // Detaching on close would mutate the main-only classifier from the closing thread.
+            classifier.currentAccumulator = self
 
             notificationCenter.addObserver(
                 self,
@@ -88,10 +121,17 @@
                 object: nil
             )
 
+            notificationCenter.addObserver(
+                self,
+                selector: #selector(appDidBecomeActive),
+                name: SmoothnessSessionTracker.didBecomeActiveNotification,
+                object: nil
+            )
+
             embraceNotificationCenter.addObserver(
                 self,
-                selector: #selector(foregroundSessionDidEnd),
-                name: .embraceForegroundSessionDidEnd,
+                selector: #selector(sessionPartWillEnd),
+                name: .embraceSessionPartWillEndSync,
                 object: nil
             )
         }
@@ -104,40 +144,97 @@
         // MARK: - FrameDropAccumulator
 
         func recordFrame(lateBy: TimeInterval) {
-            guard openSession != nil else { return }
+            lock.locked {
+                guard state.openSession != nil else { return }
 
-            var late = lateBy
-            if late > hangThreshold {
-                late = hangThreshold
-                openSession?.cappedTickCount += 1
+                var late = lateBy
+                if late > state.hangThreshold {
+                    late = state.hangThreshold
+                    state.openSession?.cappedTickCount += 1
+                }
+
+                state.openSession?.frameCount += 1
+                state.openSession?.droppedDuration += late
             }
-
-            openSession?.frameCount += 1
-            openSession?.droppedDuration += late
         }
 
         // MARK: - Session lifecycle
 
-        /// Opens a new accumulator, closing any session that was left open.
-        func open(at startTime: Date) {
-            if openSession != nil {
-                close(at: startTime)
-            }
+        /// Opens the current part if it is foreground and not already open. Call on the main thread.
+        func openCurrentForegroundPart(at startTime: Date = Date()) {
+            guard let session = currentSession(), session.state == .foreground else { return }
 
-            openSession = OpenSession(startTime: startTime)
-            classifier.currentAccumulator = self
+            open(partId: session.id, at: startTime)
         }
 
-        /// Closes the current accumulator and reports it. No-ops if no session is open.
-        func close(at endTime: Date) {
-            guard let session = openSession else { return }
+        /// Opens an accumulator for `partId`, closing any other part that was left open.
+        ///
+        /// No-ops if `partId` is already open or has already ended.
+        func open(partId: EmbraceIdentifier, at startTime: Date) {
+            lock.locked {
+                if let open = state.openSession {
+                    if open.partId == partId { return }
+                    closeLocked(at: startTime)
+                }
 
-            openSession = nil
-            if classifier.currentAccumulator === self {
-                classifier.currentAccumulator = nil
+                guard state.lastEndedPartId != partId else { return }
+
+                state.openSession = OpenSession(partId: partId, startTime: startTime)
+                onSessionOpened?(partId, startTime)
             }
+        }
 
-            onSessionEnded?(
+        /// Closes the accumulator for `partId` and reports it. No-ops if `partId` isn't open.
+        ///
+        /// Marks `partId` as ended either way, so a late open for it is ignored.
+        func close(partId: EmbraceIdentifier, at endTime: Date) {
+            lock.locked {
+                state.lastEndedPartId = partId
+                guard state.openSession?.partId == partId else { return }
+
+                closeLocked(at: endTime)
+            }
+        }
+
+        /// Closes whichever part is open and reports it. No-ops if none is.
+        func closeOpenSession(at endTime: Date) {
+            lock.locked { closeLocked(at: endTime) }
+        }
+
+        // MARK: - Private
+
+        private struct OpenSession {
+            let partId: EmbraceIdentifier
+            let startTime: Date
+            var frameCount = 0
+            var droppedDuration: TimeInterval = 0
+            var cappedTickCount = 0
+        }
+
+        private struct State {
+            var hangThreshold: TimeInterval
+            var openSession: OpenSession?
+            var lastEndedPartId: EmbraceIdentifier?
+        }
+
+        /// Raw notification name to avoid a direct UIKit dependency.
+        private static let didBecomeActiveNotification =
+            Notification.Name("UIApplicationDidBecomeActiveNotification")
+
+        private let classifier: FrameDropClassifier
+        private let currentSession: () -> EmbraceSession?
+        private let notificationCenter: NotificationCenter
+        private let embraceNotificationCenter: NotificationCenter
+        private let lock = UnfairLock()
+        private var state: State
+
+        /// Must be called with `lock` held.
+        private func closeLocked(at endTime: Date) {
+            guard let session = state.openSession else { return }
+
+            state.openSession = nil
+            onSessionClosed?(
+                session.partId,
                 SmoothnessSessionStats(
                     startTime: session.startTime,
                     endTime: endTime,
@@ -148,48 +245,34 @@
             )
         }
 
-        // MARK: - Private
-
-        private struct OpenSession {
-            let startTime: Date
-            var frameCount = 0
-            var droppedDuration: TimeInterval = 0
-            var cappedTickCount = 0
-        }
-
-        private let classifier: FrameDropClassifier
-        private let notificationCenter: NotificationCenter
-        private let embraceNotificationCenter: NotificationCenter
-        private var openSession: OpenSession?
-
-        /// `SessionController` posts this on the main thread.
+        /// `SessionController` posts this asynchronously on the main thread.
         @objc private func sessionPartDidStart(_ notification: Notification) {
             guard let session = notification.object as? EmbraceSession,
-                session.state == .foreground
+                session.state == .foreground,
+                currentSession()?.id == session.id
             else {
                 return
             }
 
-            let startTime = session.startTime
-            onMain { $0.open(at: startTime) }
+            open(partId: session.id, at: session.startTime)
         }
 
-        /// `SessionController` posts this on whichever thread ends the session, with the end `Date`
-        /// as the object.
-        @objc private func foregroundSessionDidEnd(_ notification: Notification) {
-            let endTime = notification.object as? Date ?? Date()
-            onMain { $0.close(at: endTime) }
-        }
-
-        private func onMain(_ block: @escaping (SmoothnessSessionTracker) -> Void) {
-            if Thread.isMainThread {
-                block(self)
-            } else {
-                DispatchQueue.main.async { [weak self] in
-                    guard let self else { return }
-                    block(self)
-                }
+        /// Catches the cold-start swap to foreground, which posts no `.embraceSessionPartDidStart`.
+        ///
+        /// Hops to the next main turn because observer order relative to `iOSSessionLifecycle`, which
+        /// performs the swap from the same notification, isn't guaranteed.
+        @objc private func appDidBecomeActive(_ notification: Notification) {
+            DispatchQueue.main.async { [weak self] in
+                self?.openCurrentForegroundPart()
             }
+        }
+
+        /// `SessionController` posts this synchronously with its lock held, on whichever thread is
+        /// ending the part. Matching on the open part id is enough to filter out background parts.
+        @objc private func sessionPartWillEnd(_ notification: Notification) {
+            guard let session = notification.object as? EmbraceSession else { return }
+
+            close(partId: session.id, at: Date())
         }
     }
 

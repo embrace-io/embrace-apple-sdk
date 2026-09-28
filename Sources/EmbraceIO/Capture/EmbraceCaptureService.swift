@@ -19,4 +19,5 @@ public enum EmbraceCaptureService {
     case lowMemoryWarning
     case lowPowerMode
     case hang
+    case smoothness
 }

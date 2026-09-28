@@ -5,6 +5,7 @@
 #if !os(watchOS) && !os(macOS)
 
     import EmbraceCommonInternal
+    import EmbraceSemantics
     import TestSupport
     import XCTest
 
@@ -19,21 +20,32 @@
         private var embraceNotificationCenter: NotificationCenter!
         private var classifier: FrameDropClassifier!
         private var tracker: SmoothnessSessionTracker!
+        private var currentSession: EmbraceSession?
+        private var opened: [EmbraceIdentifier] = []
         private var reported: [SmoothnessSessionStats] = []
+        private var reportedPartIds: [EmbraceIdentifier] = []
 
         override func setUp() {
             super.setUp()
             notificationCenter = NotificationCenter()
             embraceNotificationCenter = NotificationCenter()
             classifier = FrameDropClassifier()
+            currentSession = nil
             tracker = SmoothnessSessionTracker(
                 classifier: classifier,
                 hangThreshold: 0.249,
+                currentSession: { [unowned self] in self.currentSession },
                 notificationCenter: notificationCenter,
                 embraceNotificationCenter: embraceNotificationCenter
             )
+            opened = []
             reported = []
-            tracker.onSessionEnded = { [unowned self] in self.reported.append($0) }
+            reportedPartIds = []
+            tracker.onSessionOpened = { [unowned self] partId, _ in self.opened.append(partId) }
+            tracker.onSessionClosed = { [unowned self] partId, stats in
+                self.reportedPartIds.append(partId)
+                self.reported.append(stats)
+            }
         }
 
         override func tearDown() {
@@ -41,17 +53,35 @@
             classifier = nil
             notificationCenter = nil
             embraceNotificationCenter = nil
+            currentSession = nil
             super.tearDown()
         }
 
         // MARK: - Helpers
 
-        private func postPartStart(_ state: SessionState) {
-            notificationCenter.post(name: .embraceSessionPartDidStart, object: MockSession.with(id: .random, state: state))
+        /// Makes a new part current and posts its start, as `SessionController` does.
+        @discardableResult
+        private func startPart(_ state: SessionState) -> EmbraceSession {
+            let session = MockSession.with(id: .random, state: state)
+            currentSession = session
+            notificationCenter.post(name: .embraceSessionPartDidStart, object: session)
+            return session
         }
 
-        private func postForegroundEnd(_ date: Date = Date()) {
-            embraceNotificationCenter.post(name: .embraceForegroundSessionDidEnd, object: date)
+        /// Posts the synchronous will-end hook for `session`, defaulting to the current part.
+        private func endPart(_ session: EmbraceSession? = nil) {
+            embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: session ?? currentSession)
+        }
+
+        private func postDidBecomeActive() {
+            notificationCenter.post(name: Notification.Name("UIApplicationDidBecomeActiveNotification"), object: nil)
+        }
+
+        /// Runs the main queue past anything already enqueued on it.
+        private func drainMain() {
+            let drained = expectation(description: "main drained")
+            DispatchQueue.main.async { drained.fulfill() }
+            wait(for: [drained], timeout: 1)
         }
 
         private func tick(delayInFrames: Double) {
@@ -60,81 +90,191 @@
 
         // MARK: - Lifecycle
 
-        func testForegroundPartStartOpensAndAttaches() {
-            postPartStart(.foreground)
+        func testAttachesToClassifierForItsLifetime() {
+            XCTAssertTrue(classifier.currentAccumulator === tracker)
 
-            XCTAssertTrue(tracker.isSessionOpen)
+            startPart(.foreground)
+            endPart()
+
             XCTAssertTrue(classifier.currentAccumulator === tracker)
         }
 
+        func testForegroundPartStartOpens() {
+            let session = startPart(.foreground)
+
+            XCTAssertTrue(tracker.isSessionOpen)
+            XCTAssertEqual(tracker.openPartId, session.id)
+            XCTAssertEqual(opened, [session.id])
+        }
+
         func testBackgroundPartStartIsIgnored() {
-            postPartStart(.background)
+            startPart(.background)
 
             XCTAssertFalse(tracker.isSessionOpen)
-            XCTAssertNil(classifier.currentAccumulator)
+            XCTAssertTrue(opened.isEmpty)
         }
 
-        func testForegroundEndClosesDetachesAndReports() {
-            postPartStart(.foreground)
-            let endTime = Date(timeIntervalSince1970: 1000)
+        func testPartStartForNonCurrentPartIsIgnored() {
+            let stale = MockSession.with(id: .random, state: .foreground)
+            currentSession = MockSession.with(id: .random, state: .foreground)
 
-            postForegroundEnd(endTime)
+            notificationCenter.post(name: .embraceSessionPartDidStart, object: stale)
 
             XCTAssertFalse(tracker.isSessionOpen)
-            XCTAssertNil(classifier.currentAccumulator)
+        }
+
+        func testLatePartStartAfterPartEndedIsIgnored() {
+            let session = MockSession.with(id: .random, state: .foreground)
+            currentSession = session
+
+            // The part ends before its asynchronously delivered start arrives.
+            endPart(session)
+            notificationCenter.post(name: .embraceSessionPartDidStart, object: session)
+
+            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertTrue(opened.isEmpty)
+        }
+
+        func testPartEndClosesAndReports() {
+            let session = startPart(.foreground)
+            let before = Date()
+
+            endPart()
+
+            XCTAssertFalse(tracker.isSessionOpen)
             XCTAssertEqual(reported.count, 1)
-            XCTAssertEqual(reported.first?.endTime, endTime)
+            XCTAssertEqual(reportedPartIds, [session.id])
+            XCTAssertGreaterThanOrEqual(reported.first?.endTime ?? .distantPast, before)
+            XCTAssertLessThanOrEqual(reported.first?.endTime ?? .distantFuture, Date())
         }
 
-        func testForegroundEndWithoutOpenSessionIsNoOp() {
-            postForegroundEnd()
+        func testZeroFramePartStillReports() {
+            startPart(.foreground)
+
+            endPart()
+
+            XCTAssertEqual(reported.count, 1)
+            XCTAssertEqual(reported.first?.frameCount, 0)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames, 0)
+        }
+
+        func testEndForAnotherPartIsIgnored() {
+            startPart(.foreground)
+
+            endPart(MockSession.with(id: .random, state: .background))
+
+            XCTAssertTrue(tracker.isSessionOpen)
+            XCTAssertTrue(reported.isEmpty)
+        }
+
+        func testPartEndWithoutOpenSessionIsNoOp() {
+            endPart(MockSession.with(id: .random, state: .foreground))
 
             XCTAssertTrue(reported.isEmpty)
         }
 
         func testDoubleEndReportsOnce() {
-            postPartStart(.foreground)
+            startPart(.foreground)
 
-            postForegroundEnd()
-            postForegroundEnd()
+            endPart()
+            endPart()
 
             XCTAssertEqual(reported.count, 1)
         }
 
         func testStartWhileOpenClosesPreviousSession() {
-            postPartStart(.foreground)
+            let first = startPart(.foreground)
             tick(delayInFrames: 2.5)
 
-            postPartStart(.foreground)
+            let second = startPart(.foreground)
 
-            XCTAssertTrue(tracker.isSessionOpen)
-            XCTAssertEqual(reported.count, 1)
+            XCTAssertEqual(tracker.openPartId, second.id)
+            XCTAssertEqual(reportedPartIds, [first.id])
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 2.5, accuracy: accuracy)
         }
 
-        func testForegroundEndFromBackgroundThreadClosesOnMain() {
-            postPartStart(.foreground)
-            let reportedOnMain = expectation(description: "reported on main")
-            tracker.onSessionEnded = { _ in
-                XCTAssertTrue(Thread.isMainThread)
-                reportedOnMain.fulfill()
+        func testPartEndFromBackgroundThreadClosesSynchronously() {
+            startPart(.foreground)
+            var closedOnMain: Bool?
+            tracker.onSessionClosed = { _, _ in closedOnMain = Thread.isMainThread }
+
+            let posted = expectation(description: "posted off main")
+            var closedBeforePostReturned: Bool?
+            DispatchQueue.global().async {
+                self.endPart()
+                closedBeforePostReturned = !self.tracker.isSessionOpen
+                posted.fulfill()
             }
+            wait(for: [posted], timeout: 1)
 
-            DispatchQueue.global().async { self.postForegroundEnd() }
+            XCTAssertEqual(closedOnMain, false)
+            XCTAssertEqual(closedBeforePostReturned, true)
+        }
 
-            wait(for: [reportedOnMain], timeout: 1)
+        // MARK: - Cold-start swap
+
+        func testDidBecomeActiveOpensColdStartPartSwappedToForeground() {
+            let id = EmbraceIdentifier.random
+            currentSession = MockSession.with(id: id, state: .background)
+            postDidBecomeActive()
+            drainMain()
+            XCTAssertFalse(tracker.isSessionOpen)
+
+            // `iOSSessionLifecycle` flips the same part to foreground and posts no part start.
+            currentSession = MockSession.with(id: id, state: .foreground)
+            postDidBecomeActive()
+            drainMain()
+
+            XCTAssertEqual(tracker.openPartId, id)
+            XCTAssertEqual(opened, [id])
+        }
+
+        func testDidBecomeActiveAndPartStartOpenOnlyOnce() {
+            let session = startPart(.foreground)
+
+            postDidBecomeActive()
+            drainMain()
+
+            XCTAssertEqual(opened, [session.id])
+        }
+
+        func testColdStartPartClosesOnItsWillEnd() {
+            let id = EmbraceIdentifier.random
+            currentSession = MockSession.with(id: id, state: .foreground)
+            postDidBecomeActive()
+            drainMain()
+
+            endPart()
+
+            XCTAssertEqual(reportedPartIds, [id])
+        }
+
+        func testOpenCurrentForegroundPartIgnoresBackgroundPart() {
+            currentSession = MockSession.with(id: .random, state: .background)
+
+            tracker.openCurrentForegroundPart()
+
+            XCTAssertFalse(tracker.isSessionOpen)
+        }
+
+        func testCloseOpenSessionReportsWhicheverPartIsOpen() {
+            let session = startPart(.foreground)
+
+            tracker.closeOpenSession(at: Date())
+
+            XCTAssertEqual(reportedPartIds, [session.id])
             XCTAssertFalse(tracker.isSessionOpen)
         }
 
         // MARK: - Accounting
 
         func testAccumulatesFrameCountAndNormalizedDroppedFrames() {
-            postPartStart(.foreground)
+            startPart(.foreground)
 
             tick(delayInFrames: 0)
             tick(delayInFrames: 1.2)
             tick(delayInFrames: 3.9)
-            postForegroundEnd()
+            endPart()
 
             XCTAssertEqual(reported.first?.frameCount, 3)
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 5.1, accuracy: accuracy)
@@ -142,12 +282,12 @@
         }
 
         func testPartialFrameDropsAreNotRoundedAway() {
-            postPartStart(.foreground)
+            startPart(.foreground)
 
             tick(delayInFrames: 0.4)
             tick(delayInFrames: 0.4)
             tick(delayInFrames: 0.4)
-            postForegroundEnd()
+            endPart()
 
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 1.2, accuracy: accuracy)
         }
@@ -155,9 +295,9 @@
         func testTicksOutsideOpenSessionAreIgnored() {
             tick(delayInFrames: 5.5)
 
-            postPartStart(.foreground)
+            startPart(.foreground)
             tick(delayInFrames: 1.5)
-            postForegroundEnd()
+            endPart()
 
             tick(delayInFrames: 5.5)
 
@@ -167,13 +307,13 @@
         }
 
         func testNewSessionStartsFromZero() {
-            postPartStart(.foreground)
+            startPart(.foreground)
             tick(delayInFrames: 3.5)
-            postForegroundEnd()
+            endPart()
 
-            postPartStart(.foreground)
+            startPart(.foreground)
             tick(delayInFrames: 0)
-            postForegroundEnd()
+            endPart()
 
             XCTAssertEqual(reported.last?.frameCount, 1)
             XCTAssertEqual(reported.last?.normalizedDroppedFrames, 0)
@@ -182,34 +322,34 @@
         // MARK: - 60fps normalization
 
         func testOneMissedVsyncAt120HzIsHalfAReferenceFrame() {
-            postPartStart(.foreground)
+            startPart(.foreground)
 
             classifier.handle(delay: 1.0 / 120.0)
-            postForegroundEnd()
+            endPart()
 
             XCTAssertEqual(reported.first?.frameCount, 1)
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 0.5, accuracy: accuracy)
         }
 
         func testOneMissedVsyncAt30HzIsTwoReferenceFrames() {
-            postPartStart(.foreground)
+            startPart(.foreground)
 
             classifier.handle(delay: 1.0 / 30.0)
-            postForegroundEnd()
+            endPart()
 
             XCTAssertEqual(reported.first?.frameCount, 1)
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 2.0, accuracy: accuracy)
         }
 
         func testLongSessionDoesNotDrift() {
-            postPartStart(.foreground)
+            startPart(.foreground)
 
             // One hour at 120Hz, every frame 10% of a vsync late.
             let ticks = 120 * 60 * 60
             for _ in 0..<ticks {
                 classifier.handle(delay: (1.0 / 120.0) * 0.1)
             }
-            postForegroundEnd()
+            endPart()
 
             // 432,000 ticks * 0.05 reference frames each.
             XCTAssertEqual(reported.first?.frameCount, ticks)
@@ -219,10 +359,10 @@
         // MARK: - Hang ceiling
 
         func testTickPastHangThresholdIsCapped() {
-            postPartStart(.foreground)
+            startPart(.foreground)
 
             tick(delayInFrames: 120)
-            postForegroundEnd()
+            endPart()
 
             // Capped to 0.249s = 14.94 reference frames.
             XCTAssertEqual(reported.first?.frameCount, 1)
@@ -231,27 +371,38 @@
         }
 
         func testTickAtHangThresholdIsNotCapped() {
-            postPartStart(.foreground)
+            startPart(.foreground)
 
             classifier.handle(delay: 0.249)
-            postForegroundEnd()
+            endPart()
 
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
             XCTAssertEqual(reported.first?.cappedTickCount, 0)
         }
 
         func testCeilingIsRefreshRateIndependent() {
-            postPartStart(.foreground)
+            startPart(.foreground)
 
             classifier.handle(delay: 2.0)
-            postForegroundEnd()
+            endPart()
 
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
             XCTAssertEqual(reported.first?.cappedTickCount, 1)
         }
 
+        func testHangThresholdUpdateAppliesToOpenSession() {
+            startPart(.foreground)
+
+            tracker.hangThreshold = 0.5
+            classifier.handle(delay: 2.0)
+            endPart()
+
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 30, accuracy: accuracy)
+            XCTAssertEqual(reported.first?.cappedTickCount, 1)
+        }
+
         func testHangDoesNotCloseSession() {
-            postPartStart(.foreground)
+            startPart(.foreground)
 
             tick(delayInFrames: 120)
 

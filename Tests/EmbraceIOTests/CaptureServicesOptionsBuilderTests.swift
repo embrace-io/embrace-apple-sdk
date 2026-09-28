@@ -35,6 +35,7 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         XCTAssertTrue(options.lowPowerMode)
 
         XCTAssertFalse(options.hang)
+        XCTAssertFalse(options.smoothness)
 
         XCTAssertEqual(options.customServices.count, 0)
     }
@@ -326,6 +327,59 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
             let options = builder.build()
 
             XCTAssertFalse(options.hang)
+        }
+    #endif
+
+    #if !os(watchOS) && !os(macOS)
+        func test_smoothness() throws {
+            // given a builder
+            let builder = CaptureServicesOptionsBuilder()
+
+            // when adding smoothness
+            builder.addSmoothnessCaptureService()
+
+            // then the result contains the service
+            let options = builder.build()
+
+            XCTAssertTrue(options.smoothness)
+            XCTAssertTrue(options.list.contains { $0 is SmoothnessCaptureService })
+        }
+
+        func test_smoothness_notInDefaults() throws {
+            // given a builder with default services
+            let builder = CaptureServicesOptionsBuilder()
+            builder.addDefaults()
+
+            // then smoothness is off
+            let options = builder.build()
+
+            XCTAssertFalse(options.smoothness)
+            XCTAssertFalse(options.list.contains { $0 is SmoothnessCaptureService })
+            XCTAssertFalse(EmbraceIO.CaptureServicesOptions.default().list.contains { $0 is SmoothnessCaptureService })
+        }
+
+        func test_smoothness_remove() throws {
+            // given a builder with smoothness
+            let builder = CaptureServicesOptionsBuilder()
+            builder.addSmoothnessCaptureService()
+
+            // when removing it by case
+            builder.remove(embraceType: .smoothness)
+
+            // then it's removed
+            XCTAssertFalse(builder.build().smoothness)
+        }
+
+        func test_smoothness_removeOfType() throws {
+            // given a builder with smoothness
+            let builder = CaptureServicesOptionsBuilder()
+            builder.addSmoothnessCaptureService()
+
+            // when removing it by type
+            builder.remove(ofType: SmoothnessCaptureService.self)
+
+            // then it's removed
+            XCTAssertFalse(builder.build().smoothness)
         }
     #endif
 

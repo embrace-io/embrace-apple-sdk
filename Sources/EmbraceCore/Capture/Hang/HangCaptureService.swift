@@ -296,23 +296,4 @@ import Foundation
         }
     }
 
-    @inline(__always)
-    private func isDebuggerAttached() -> Bool {
-        var info = kinfo_proc()
-        var size = MemoryLayout<kinfo_proc>.stride
-        var name: [Int32] = [
-            CTL_KERN,
-            KERN_PROC,
-            KERN_PROC_PID,
-            getpid()
-        ]
-
-        let result = name.withUnsafeMutableBufferPointer { namePtr -> Bool in
-            return sysctl(namePtr.baseAddress, 4, &info, &size, nil, 0) == 0
-        }
-
-        guard result else { return false }
-        return (info.kp_proc.p_flag & P_TRACED) != 0
-    }
-
 #endif

@@ -9,7 +9,7 @@
     /// Accumulates per-tick frame accounting on behalf of the currently active accumulator.
     ///
     /// `SmoothnessSessionTracker` implements this and plugs itself in as `FrameDropClassifier`'s
-    /// `currentAccumulator` for as long as the app's foreground session is active.
+    /// `currentAccumulator` for its whole lifetime, ignoring ticks while no foreground session is open.
     protocol FrameDropAccumulator: AnyObject {
 
         /// Called exactly once per tick with how late that tick's frame arrived, in seconds (`0` for an
@@ -33,7 +33,7 @@
     /// Must be used from the main thread.
     final class FrameDropClassifier {
 
-        /// The accumulator for the currently open foreground session, or `nil` when none is open.
+        /// The accumulator ticks are forwarded to, or `nil` for none.
         weak var currentAccumulator: FrameDropAccumulator?
 
         /// Feed this from `FrameTimingSource.onTick`.

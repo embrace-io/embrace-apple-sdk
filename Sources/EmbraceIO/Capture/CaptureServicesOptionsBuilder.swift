@@ -34,6 +34,7 @@ public final class CaptureServicesOptionsBuilder {
         let lowMemoryWarning = (map[.lowMemoryWarning] as? Bool) ?? false
         let lowPowerMode = (map[.lowPowerMode] as? Bool) ?? false
         let hang = (map[.hang] as? Bool) ?? false
+        let smoothness = (map[.smoothness] as? Bool) ?? false
         #if os(watchOS)
             return EmbraceIO.CaptureServicesOptions(
                 urlSession: urlSession,
@@ -41,6 +42,7 @@ public final class CaptureServicesOptionsBuilder {
                 lowMemoryWarning: lowMemoryWarning,
                 lowPowerMode: lowPowerMode,
                 hang: hang,
+                smoothness: smoothness,
                 customServices: customServices
             )
         #else
@@ -55,6 +57,7 @@ public final class CaptureServicesOptionsBuilder {
                         lowMemoryWarning: lowMemoryWarning,
                         lowPowerMode: lowPowerMode,
                         hang: hang,
+                        smoothness: smoothness,
                         customServices: customServices
                     )
                 #else
@@ -66,6 +69,7 @@ public final class CaptureServicesOptionsBuilder {
                         lowMemoryWarning: lowMemoryWarning,
                         lowPowerMode: lowPowerMode,
                         hang: hang,
+                        smoothness: smoothness,
                         customServices: customServices
                     )
                 #endif
@@ -78,6 +82,7 @@ public final class CaptureServicesOptionsBuilder {
                     lowMemoryWarning: lowMemoryWarning,
                     lowPowerMode: lowPowerMode,
                     hang: hang,
+                    smoothness: smoothness,
                     customServices: customServices
                 )
             #endif
@@ -198,6 +203,18 @@ public final class CaptureServicesOptionsBuilder {
             map[.hang] = true
             return self
         }
+
+        /// Adds a new `SmoothnessCaptureService`.
+        /// - Note: Experimental and opt-in; it is not part of the default capture services.
+        /// - Note: Available on iOS and tvOS only. Frame timing relies on
+        ///   `CADisplayLink`, which has no standalone initializer on macOS and
+        ///   is not available on watchOS.
+        /// - Note: If there was another `SmoothnessCaptureService` previously added, it will be replaced with the new one.
+        @discardableResult
+        public func addSmoothnessCaptureService() -> Self {
+            map[.smoothness] = true
+            return self
+        }
     #endif
 
     /// Adds the given custom `CaptureService`.
@@ -250,6 +267,10 @@ public final class CaptureServicesOptionsBuilder {
         #if !os(watchOS) && !os(macOS)
             if ofType == HangCaptureService.self {
                 map[.hang] = nil
+            }
+
+            if ofType == SmoothnessCaptureService.self {
+                map[.smoothness] = nil
             }
         #endif
 
