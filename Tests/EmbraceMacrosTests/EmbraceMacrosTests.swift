@@ -2,7 +2,10 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
-#if canImport(EmbraceMacroPlugin)
+// The macro plugin is built for the host, so these tests can only run on macOS. `canImport` alone
+// isn't enough: Xcode 27 reports the plugin as importable in simulator builds even though its types
+// aren't available there.
+#if os(macOS) && canImport(EmbraceMacroPlugin)
     import EmbraceIO
     import SwiftSyntax
     import SwiftSyntaxBuilder
