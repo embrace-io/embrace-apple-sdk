@@ -66,9 +66,9 @@ extension XCTestCase {
     }
 
     func evaluateTestResults(_ app: XCUIApplication) {
-        XCTAssertTrue(app.staticTexts["TEST RESULT:"].waitForExistence(timeout: 20))
-        XCTAssertTrue(app.staticTexts["PASS"].exists)
-        XCTAssertFalse(app.staticTexts["FAIL"].exists)
+        XCTAssertTrue(app.staticTexts["TEST RESULT:"].waitForExistence(timeout: 20), "test result didn't appear in 20s")
+        XCTAssertTrue(app.staticTexts["PASS"].exists, "test result isn't PASS")
+        XCTAssertFalse(app.staticTexts["FAIL"].exists, "test result is FAIL")
     }
 }
 
@@ -80,23 +80,24 @@ extension XCUIApplication {
 
         if coldStart {
             let coldButton = self.buttons["EmbraceInitForceState_Cold"]
-            XCTAssertTrue(coldButton.waitForExistence(timeout: 10))
+            XCTAssertTrue(coldButton.waitForExistence(timeout: 10), "EmbraceInitForceState_Cold didn't appear in 10s")
             coldButton.tap()
         }
 
         let initButton = self.buttons["EmbraceInitButton"]
-        XCTAssertTrue(initButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(initButton.waitForExistence(timeout: 10), "EmbraceInitButton didn't appear in 10s")
         initButton.tap()
 
         XCTAssertNotNil(
-            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 10.0))
+            initButton.wait(attribute: \.label, is: .equalTo, value: "EmbraceIO has started!", timeout: 10.0),
+            "EmbraceIO didn't start in 10s")
 
         let sideMenuButton = self.buttons["SideMenuButton"]
-        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(sideMenuButton.waitForExistence(timeout: 10), "SideMenuButton didn't appear in 10s")
         sideMenuButton.tap()
 
         let testScreenButton = self.staticTexts[testTabName]
-        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(testScreenButton.waitForExistence(timeout: 10), "test tab \(testTabName) didn't appear in 10s")
         testScreenButton.tap()
     }
 
