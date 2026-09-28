@@ -63,12 +63,35 @@ public class MockSpan: EmbraceSpan {
         self.delegate = delegate
     }
 
+    /// Returns whether this span has already ended, and therefore no longer accepts changes.
+    ///
+    /// A span that ends becomes a completed record: its status, attributes, events and links are
+    /// fixed from that point on. This matches the behavior of the span implementation used in
+    /// production, so tests exercise the same rules the SDK applies at runtime.
+    public var hasEnded: Bool {
+        endTime != nil
+    }
+
+    /// Counts the changes that were dropped because the span had already ended.
+    /// Tests can assert on this to verify a late mutation was refused rather than applied.
+    public private(set) var ignoredMutationCount: Int = 0
+
     public func setStatus(_ status: EmbraceSpanStatus) {
+        guard !hasEnded else {
+            ignoredMutationCount += 1
+            return
+        }
+
         self._status = status
     }
 
     @discardableResult
     public func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: EmbraceAttributes) -> EmbraceSpanEvent? {
+        guard !hasEnded else {
+            ignoredMutationCount += 1
+            return nil
+        }
+
         let event = EmbraceSpanEvent(name: name, type: type, timestamp: timestamp, attributes: attributes)
         events.append(event)
         return event
@@ -76,12 +99,22 @@ public class MockSpan: EmbraceSpan {
 
     @discardableResult
     public func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) -> EmbraceSpanLink? {
+        guard !hasEnded else {
+            ignoredMutationCount += 1
+            return nil
+        }
+
         let link = EmbraceSpanLink(spanId: spanId, traceId: traceId, attributes: attributes)
         links.append(link)
         return link
     }
 
     public func end(endTime: Date) {
+        guard !hasEnded else {
+            ignoredMutationCount += 1
+            return
+        }
+
         self.endTime = endTime
 
         delegate?.onSpanEnded(self)
@@ -92,6 +125,11 @@ public class MockSpan: EmbraceSpan {
     }
 
     public func setAttribute(key: String, value: EmbraceAttributeValue?) {
+        guard !hasEnded else {
+            ignoredMutationCount += 1
+            return
+        }
+
         attributes[key] = value
     }
 }

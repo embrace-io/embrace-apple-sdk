@@ -27,4 +27,11 @@ extension EmbraceStorage {
 
         return storage
     }
+
+    /// Blocks until every operation already queued on the Core Data context, such as an async insert
+    /// or delete, has run. The context runs its blocks in order, so an empty synchronous block
+    /// finishes only after everything queued before it.
+    public func waitForPendingCoreDataOperations() {
+        coreData.performOperation(allowMainQueue: true) { _ in }
+    }
 }

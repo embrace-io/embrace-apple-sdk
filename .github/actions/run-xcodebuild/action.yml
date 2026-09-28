@@ -3,7 +3,7 @@ description: >
   Runs `xcodebuild build` or `xcodebuild test` against a workspace or project,
   with a destination resolved from `platform`+`platform-version`, optional
   sanitizer and code-coverage flags, output piped through xcbeautify, and an
-  inline xcresult summary on failure.
+  inline xcresult summary, sanitizer reports and crash reports on failure.
 
 inputs:
   workspace:
@@ -328,3 +328,12 @@ runs:
 
         # Emit ::error:: annotations so failures appear in the PR checks sidebar.
         jq -r '.testFailures[]? | "::error title=\(.testName // "unknown")::\(.testIdentifierString // "unknown") — \(.failureText // "(no message)")"' <<<"$SUMMARY"
+
+    # A crashed test shows up in the xcodebuild log only as "Test crashed with signal …". The
+    # sanitizer report and crash report that explain it are stored in the xcresult bundle.
+    - name: Print crash diagnostics from xcresult
+      if: ${{ (failure() || cancelled()) && inputs.action == 'test' }}
+      shell: bash
+      env:
+        RESULT_BUNDLE_PATH: ${{ inputs.result-bundle-path }}
+      run: '"$GITHUB_ACTION_PATH/print-crash-diagnostics.sh" "$RESULT_BUNDLE_PATH"'

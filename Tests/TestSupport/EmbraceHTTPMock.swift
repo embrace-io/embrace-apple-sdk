@@ -33,6 +33,7 @@ public class EmbraceHTTPMock: URLProtocol {
     private static var mockedResponses = [String: MockResponse]()
     private static var requests = [String: [URLRequest]]()
     private static var requestBodies = [String: [Data]]()
+    private static var requestHandlers = [String: [() -> Void]]()
 
     /// Adds a mocked response for a given url
     public class func mock(
@@ -88,6 +89,14 @@ public class EmbraceHTTPMock: URLProtocol {
         return key
     }
 
+    /// Calls `handler` each time a request for `url` is received, after the request is recorded.
+    ///
+    /// Use it to synchronize with a request whose upload never finishes, such as one that keeps
+    /// retrying. The handler runs on URLSession's loading thread.
+    public class func onRequest(to url: URL, _ handler: @escaping () -> Void) {
+        lock.withLock { requestHandlers[createKey(fromURL: url), default: []].append(handler) }
+    }
+
     /// Returns the executed requests for a given url, if any
     public class func requestsForUrl(_ url: URL) -> [URLRequest] {
         lock.withLock { requests[createKey(fromURL: url)] ?? [] }
@@ -113,6 +122,7 @@ public class EmbraceHTTPMock: URLProtocol {
         lock.withLock {
             requests.removeAll()
             requestBodies.removeAll()
+            requestHandlers.removeAll()
         }
     }
 
@@ -152,13 +162,14 @@ public class EmbraceHTTPMock: URLProtocol {
             bodyData = data
         }
 
-        let mockedResponse: MockResponse? = Self.lock.withLock {
+        let (mockedResponse, handlers): (MockResponse?, [() -> Void]) = Self.lock.withLock {
             EmbraceHTTPMock.requests[key, default: []].append(request)
             if let data = bodyData {
                 EmbraceHTTPMock.requestBodies[key, default: []].append(data)
             }
-            return EmbraceHTTPMock.mockedResponses[key]
+            return (EmbraceHTTPMock.mockedResponses[key], EmbraceHTTPMock.requestHandlers[key] ?? [])
         }
+        handlers.forEach { $0() }
 
         // CFNetwork callbacks outside the lock — they can re-enter or hop threads
         if let response = mockedResponse {

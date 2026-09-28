@@ -34,7 +34,11 @@ extension EmbraceIO {
     }
 
     /// Method used to add attributes to the startup instrumentation root span.
-    /// If the root span is not found or an attribute fails to be set, a warning is logged.
+    ///
+    /// The root span ends when the app renders its first frame, shortly after it becomes active.
+    /// Attributes added after that are ignored, so call this before the first frame, for example
+    /// in `application(_:didFinishLaunchingWithOptions:)`, rather than from work that completes
+    /// asynchronously. The call does nothing if there is no startup trace.
     /// - Parameters:
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     public func addAttributesToStartupTrace(_ attributes: EmbraceAttributes) {

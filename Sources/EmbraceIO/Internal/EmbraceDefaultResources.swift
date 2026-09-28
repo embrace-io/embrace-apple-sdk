@@ -13,7 +13,7 @@ enum EmbraceDefaultResources {
     ///
     /// User values are kept for any attribute they define, except for the default attributes listed
     /// below: those are always set by Embrace and take precedence over any colliding user value, so
-    /// they can't be overriden externally.
+    /// they can't be overridden externally.
     ///
     /// Default attributes set by Embrace:
     /// - `service.name`: `<bundleId>:<processName>` (or just `<processName>` if no bundle ID)

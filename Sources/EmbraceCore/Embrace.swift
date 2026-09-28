@@ -67,7 +67,14 @@ package class Embrace {
     let storage: EmbraceStorage
     let upload: EmbraceUpload?
     let captureServices: CaptureServices
+
+    /// Entered on init and left exactly once, when `start()` resolves (either by starting the
+    /// SDK or by finding it disabled). OTel child span forwarding waits on this group, so it
+    /// must never stay entered once `start()` has run, or forwarding would block forever.
     package let captureServicesGroup: DispatchGroup
+
+    /// Tracks whether `captureServicesGroup` was already left. Guarded by `_syncLock`.
+    private var captureServicesGroupReleased = false
 
     let logController: LogController
 
@@ -307,6 +314,9 @@ package class Embrace {
 
             guard config.isSDKEnabled else {
                 Embrace.logger.warning("Embrace can't start when disabled!")
+
+                // Nothing else will release the group, and OTel child span forwarding waits on it.
+                releaseCaptureServicesGroup()
                 return self
             }
 
@@ -340,7 +350,7 @@ package class Embrace {
 
             // now that services are started, and critical pieces are in place,
             // notify anyone who cares.
-            self.captureServicesGroup.leave()
+            releaseCaptureServicesGroup()
 
             self.processingQueue.async { [weak self] in
                 // fetch crash reports and link them to sessions
@@ -470,6 +480,17 @@ package class Embrace {
     }
 
     /// Called every time the remote config changes
+    /// Leaves `captureServicesGroup` the first time it is called and does nothing afterwards,
+    /// since leaving a `DispatchGroup` more times than it was entered crashes.
+    /// Must be called while holding `_syncLock` for writing.
+    private func releaseCaptureServicesGroup() {
+        guard !captureServicesGroupReleased else {
+            return
+        }
+        captureServicesGroupReleased = true
+        captureServicesGroup.leave()
+    }
+
     @objc private func onConfigUpdated() {
         Embrace.logger.limits = config.internalLogLimits
 

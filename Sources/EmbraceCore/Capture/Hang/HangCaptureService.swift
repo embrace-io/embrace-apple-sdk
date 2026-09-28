@@ -134,6 +134,12 @@ import Foundation
         private let spanQueue = DispatchQueue(label: "io.embrace.hang.service")
         private var span: EmbraceSpan?
 
+        /// Blocks until every span operation already queued by `hangStarted`/`hangEnded` has run.
+        /// Tests use it to synchronize with the span work before asserting.
+        func waitForAllWork() {
+            spanQueue.sync {}
+        }
+
         /// The hang detection limits currently applied by the service.
         public var limits: HangLimits {
             get {

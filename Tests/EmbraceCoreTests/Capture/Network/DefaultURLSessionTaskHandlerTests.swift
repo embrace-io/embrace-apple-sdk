@@ -36,7 +36,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         givenTaskHandler()
         givenStateChanged(toState: .paused)
         givenAnURLSessionTask()
-        whenInvokingCreate(withoutWaiting: true)
+        whenInvokingCreate()
         thenNoSpanShouldBeCreated()
     }
 
@@ -96,22 +96,21 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
     func test_onFinishTaskWithHandlerNotListening_ShouldntEndSpan() {
         givenTaskHandler()
         givenHandlerCreatedASpan()
-        waitForCreationToEnd()
         givenStateChanged(toState: .paused)
-        whenInvokingFinish(withoutWaiting: true)
+        whenInvokingFinish()
         thenSpanShouldntEnd()
     }
 
     func test_onFinishWithoutHavingPreviousTasks_ShouldntEndAnySpan() {
         givenTaskHandler()
         givenAnURLSessionTask()
-        whenInvokingFinish(withoutWaiting: true)
+        whenInvokingFinish()
         thenSpanShouldntEnd()
     }
 
     func test_onFinishWithValidResponse_StatusCodeShouldSetOnSpanAsAttribute() {
         givenTaskHandler()
-        givenHandlerCreatedASpan(withResponse: aValidResponse(withStatusCode: 201))
+        givenHandlerCreatedASpanForACompletedRequest(withResponse: aValidResponse(withStatusCode: 201))
         whenInvokingFinish()
         thenSpanShouldHaveStatusCodeAttribute(withValue: 201)
     }
@@ -258,11 +257,8 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         givenTaskHandler()
         givenIgnoredURLs()
         givenAnURLSessionTask()
-        whenInvokingCreate(withoutWaiting: true)
-
-        wait {
-            return self.otel.startedSpans.count == 0
-        }
+        whenInvokingCreate()
+        thenNoSpanShouldBeCreated()
     }
 
     func test_ignoredURLs_no_match() {
@@ -277,7 +273,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         givenTaskHandler()
         givenIgnoredTaskTypes()
         givenAnURLSessionTask(urlString: "https://ThisIsAUrl/with/some/path")
-        whenInvokingCreate(withoutWaiting: true)
+        whenInvokingCreate()
         thenNoSpanShouldBeCreated()
     }
 
@@ -354,13 +350,27 @@ extension DefaultURLSessionTaskHandlerTests {
         dataSource.ignoredTaskTypes = [URLSessionTask.self]
     }
 
-    fileprivate func givenHandlerCreatedASpan(withResponse response: URLResponse? = nil) {
-        givenAnURLSessionTask(response: response)
+    fileprivate func givenHandlerCreatedASpan() {
+        givenAnURLSessionTask()
         sut.create(task: task)
     }
 
+    /// Creates a span for a task and runs the task until the proxied session delivers `response`,
+    /// so `task.response` is set before `finish` reads it.
+    fileprivate func givenHandlerCreatedASpanForACompletedRequest(withResponse response: URLResponse) {
+        let requestCompleted = expectation(description: "proxied request completed")
+        givenAnURLSessionTask(response: response) { requestCompleted.fulfill() }
+        sut.create(task: task)
+        task.resume()
+        wait(for: [requestCompleted], timeout: .defaultTimeout)
+    }
+
     fileprivate func givenAnURLSessionTask(
-        urlString: String = "https://embrace.io", method: String? = nil, body: Data? = nil, response: URLResponse? = nil
+        urlString: String = "https://embrace.io",
+        method: String? = nil,
+        body: Data? = nil,
+        response: URLResponse? = nil,
+        onCompletion: (() -> Void)? = nil
     ) {
         var url = URL(string: urlString.replacingOccurrences(of: "https://", with: "https://\(testName)."))!
         var request = URLRequest(url: url)
@@ -370,27 +380,23 @@ extension DefaultURLSessionTaskHandlerTests {
         }
         let urlResponse = response ?? aValidResponse()
         url.mockResponse = .successful(withData: UUID().uuidString.data(using: .utf8)!, response: urlResponse)
-        task = session.dataTask(with: request)
+        if let onCompletion {
+            task = session.dataTask(with: request) { _, _, _ in onCompletion() }
+        } else {
+            task = session.dataTask(with: request)
+        }
     }
 
-    fileprivate func whenInvokingCreate(withoutWaiting: Bool = false) {
+    fileprivate func whenInvokingCreate() {
         sut.create(task: task)
-        if !withoutWaiting {
-            waitForCreationToEnd()
-        }
     }
 
     fileprivate func whenInvokingAddData(_ data: Data = Data()) {
         sut.addData(data, dataTask: task)
     }
 
-    fileprivate func whenInvokingFinish(withData data: Data? = nil, error: Error? = nil, withoutWaiting: Bool = false) {
-        task.resume()
-        waitForRequestToFinish()
+    fileprivate func whenInvokingFinish(withData data: Data? = nil, error: Error? = nil) {
         sut.finish(task: task, data: data, error: error)
-        if !withoutWaiting {
-            waitForFinishMethodToEnd()
-        }
     }
 
     fileprivate func thenTaskHasNoAssociatedData() {
@@ -643,17 +649,5 @@ extension DefaultURLSessionTaskHandlerTests {
 extension DefaultURLSessionTaskHandlerTests {
     fileprivate func aValidResponse(withStatusCode statusCode: Int = 200) -> HTTPURLResponse {
         .init(url: URL(string: "https://embrace.io")!, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
-    }
-
-    fileprivate func waitForCreationToEnd() {
-        wait(timeout: 1.0, until: { self.otel.startedSpans.count > 0 })
-    }
-
-    fileprivate func waitForFinishMethodToEnd() {
-        wait(timeout: 1.0, until: { self.otel.endedSpans.count > 0 })
-    }
-
-    fileprivate func waitForRequestToFinish() {
-        wait(timeout: 1.0, until: { self.task.response != nil })
     }
 }

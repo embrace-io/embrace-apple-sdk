@@ -18,7 +18,10 @@ package class DefaultOTelSignalsHandler {
     /// Creates a new span to be included in the current Embrace session.
     /// - Parameters:
     ///   - name: Name of the span.
-    ///   - parentSpan: Parent of the span, if any.
+    ///   - parentSpan: Parent of the span, if any. The parent is ignored, and the span starts a new
+    ///     trace instead, if the parent's identifiers are not well formed: its span id must be 16
+    ///     hexadecimal characters, its trace id 32, and neither can be entirely made of zeros.
+    ///     A warning is logged when a parent is ignored.
     ///   - type: Embrace specific type of the span. Defaults to `.performance`.
     ///   - status: Initial status of the span. Defaults to `.unset`.
     ///   - startTime: Start time of the span. Defaults to the current time.
@@ -150,7 +153,15 @@ package class DefaultOTelSignalsHandler {
         var externalSpanCount: Int = 0
         var internalSpanCount: Int = 0
         var spanCountByType: [String: Int] = [:]
+        /// The spans still waiting to be auto-terminated, by span id. A span is dropped from here
+        /// once it ends, so the cache doesn't hold every one of them for the whole session.
         var autoTerminationSpans: [String: DefaultEmbraceSpan] = [:]
+
+        /// The auto-termination code each span was created with, by span id. A child created with
+        /// no code of its own inherits from this, so it has to outlive the span itself: a parent
+        /// that already ended is gone from `autoTerminationSpans` but can still be named as the
+        /// parent of a span created afterwards. Holding only the code keeps that cheap.
+        var autoTerminationCodes: [String: EmbraceSpanErrorCode] = [:]
     }
     let cache = EmbraceMutex(Cache())
 

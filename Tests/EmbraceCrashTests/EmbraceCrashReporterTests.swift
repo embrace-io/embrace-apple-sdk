@@ -88,16 +88,11 @@
             try copyReport(named: "crash_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
 
             // then the report is fetched
-            let expectation = XCTestExpectation()
-            crashReporter.fetchUnsentCrashReports { reports in
-                XCTAssertEqual(reports.count, 1)
-                XCTAssertEqual(reports[0].sessionId, TestConstants.sessionId.stringValue)
-                XCTAssertNotNil(reports[0].timestamp)
-
-                expectation.fulfill()
-            }
-
-            wait(for: [expectation], timeout: .veryLongTimeout)
+            let reports = fetchUnsentCrashReports()
+            XCTAssertEqual(reports.count, 1)
+            let report = try XCTUnwrap(reports.first)
+            XCTAssertEqual(report.sessionId, TestConstants.sessionId.stringValue)
+            XCTAssertNotNil(report.timestamp)
         }
 
         func test_fetchCrashReports_count() throws {
@@ -109,18 +104,7 @@
             }
 
             // then the report is fetched
-            let expectation = XCTestExpectation()
-            crashReporter.fetchUnsentCrashReports { reports in
-                XCTAssertEqual(reports.count, 9)
-
-                expectation.fulfill()
-            }
-
-            // The fetch itself is fast (tens of ms, even under the address sanitizer); the
-            // flake is scheduling starvation on a contended CI runner, where ASan's CPU
-            // overhead across parallel test processes can delay this completion well past the
-            // default timeout. Use a generous timeout so a contention spike doesn't flake.
-            wait(for: [expectation], timeout: .veryLongTimeout)
+            XCTAssertEqual(fetchUnsentCrashReports().count, 9)
         }
 
         func test_appendCrashInfo_addsKeyValuesInKSCrashUserInfo() throws {
@@ -210,21 +194,15 @@
             try copyReport(named: "sigabrt_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
             try copyReport(named: "sigterm_report", toFilePath: "/Reports/appId-report-0000000000000002.json")
 
-            let expectation = XCTestExpectation()
-
             // when fetching unsent crash reports
-            crashReporter.fetchUnsentCrashReports { reports in
-                // Then only one report should be present
-                XCTAssertEqual(reports.count, 1)
-                // and report shouldn't be the one with the SIGTERM signal
-                XCTAssertEqual(reports[0].internalId, 1)
-                // and dropped report should have been deleted
-                self.thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
+            let reports = fetchUnsentCrashReports()
 
-                expectation.fulfill()
-            }
-
-            wait(for: [expectation], timeout: .veryLongTimeout)
+            // Then only one report should be present
+            XCTAssertEqual(reports.count, 1)
+            // and report shouldn't be the one with the SIGTERM signal
+            XCTAssertEqual(try XCTUnwrap(reports.first).internalId, 1)
+            // and dropped report should have been deleted
+            thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
         }
 
         func testOnHavingEmptySignalBlockList_fetchUnsentCrashReports_SIGTERMshouldBeReported() throws {
@@ -236,19 +214,11 @@
             try copyReport(named: "sigabrt_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
             try copyReport(named: "sigterm_report", toFilePath: "/Reports/appId-report-0000000000000002.json")
 
-            let expectation = XCTestExpectation()
-
             // when fetching unsent crash reports
-            crashReporter.fetchUnsentCrashReports { reports in
-                // Then both reports should be present
-                XCTAssertEqual(reports.count, 2)
-                XCTAssertEqual(reports[0].internalId, 1)
-                XCTAssertEqual(reports[1].internalId, 2)
+            let reports = fetchUnsentCrashReports()
 
-                expectation.fulfill()
-            }
-
-            wait(for: [expectation], timeout: .veryLongTimeout)
+            // Then both reports should be present
+            XCTAssertEqual(reports.map(\.internalId), [1, 2])
         }
 
         func testOnModifyingSignalBlockList_fetchUnsentCrashReports_shouldAvoidReportingBlockedSignals() throws {
@@ -260,20 +230,15 @@
             try copyReport(named: "sigabrt_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
             try copyReport(named: "sigterm_report", toFilePath: "/Reports/appId-report-0000000000000002.json")
 
-            let expectation = XCTestExpectation()
-
             // when fetching unsent crash reports
-            crashReporter.fetchUnsentCrashReports { reports in
-                // Then only one report should be
-                XCTAssertEqual(reports.count, 1)
-                // and report shouldn't be the one with the SIGABRT signal
-                XCTAssertEqual(reports[0].internalId, 2)
-                // and dropped report should have been deleted
-                self.thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
-                expectation.fulfill()
-            }
+            let reports = fetchUnsentCrashReports()
 
-            wait(for: [expectation], timeout: .veryLongTimeout)
+            // Then only one report should be
+            XCTAssertEqual(reports.count, 1)
+            // and report shouldn't be the one with the SIGABRT signal
+            XCTAssertEqual(try XCTUnwrap(reports.first).internalId, 2)
+            // and dropped report should have been deleted
+            thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
         }
 
         // MARK: - Injected Termination Report Tests
@@ -290,22 +255,17 @@
                 toFilePath: "/Reports/appId-report-0000000000000001.json"
             )
 
-            let expectation = XCTestExpectation()
-            crashReporter.fetchUnsentCrashReports { reports in
-                XCTAssertEqual(reports.count, 1)
-                XCTAssertEqual(reports[0].internalId, 1)
-                // KSCrash fabricates a SIGKILL for these, matching what 2.5.1 stamped on a
-                // promoted OOM breadcrumb, so the default block list must not catch it.
-                XCTAssertEqual(reports[0].signal, .SIGKILL)
-                XCTAssertNotNil(reports[0].timestamp)
-                // Known gap versus 2.5.1: KSCrash hand-builds these reports with no `user`
-                // section, so there is no session to attribute them to.
-                XCTAssertNil(reports[0].sessionId)
-
-                expectation.fulfill()
-            }
-
-            wait(for: [expectation], timeout: .defaultTimeout)
+            let reports = fetchUnsentCrashReports()
+            XCTAssertEqual(reports.count, 1)
+            let report = try XCTUnwrap(reports.first)
+            XCTAssertEqual(report.internalId, 1)
+            // KSCrash fabricates a SIGKILL for these, matching what 2.5.1 stamped on a
+            // promoted OOM breadcrumb, so the default block list must not catch it.
+            XCTAssertEqual(report.signal, .SIGKILL)
+            XCTAssertNotNil(report.timestamp)
+            // Known gap versus 2.5.1: KSCrash hand-builds these reports with no `user`
+            // section, so there is no session to attribute them to.
+            XCTAssertNil(report.sessionId)
         }
 
         func testOnInjectedTerminationReport_fetchUnsentCrashReports_backgroundOOMshouldntBeReported() throws {
@@ -316,15 +276,8 @@
                 toFilePath: "/Reports/appId-report-0000000000000001.json"
             )
 
-            let expectation = XCTestExpectation()
-            crashReporter.fetchUnsentCrashReports { reports in
-                XCTAssertEqual(reports.count, 0)
-                self.thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
-
-                expectation.fulfill()
-            }
-
-            wait(for: [expectation], timeout: .defaultTimeout)
+            XCTAssertEqual(fetchUnsentCrashReports().count, 0)
+            thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
         }
 
         func testOnInjectedTerminationReport_fetchUnsentCrashReports_unexplainedShouldntBeReported() throws {
@@ -335,17 +288,10 @@
                 toFilePath: "/Reports/appId-report-0000000000000001.json"
             )
 
-            let expectation = XCTestExpectation()
-            crashReporter.fetchUnsentCrashReports { reports in
-                // A plain force-quit lands in `unexplained`; reporting it would turn every
-                // swipe-away in the app switcher into a crash.
-                XCTAssertEqual(reports.count, 0)
-                self.thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
-
-                expectation.fulfill()
-            }
-
-            wait(for: [expectation], timeout: .defaultTimeout)
+            // A plain force-quit lands in `unexplained`; reporting it would turn every
+            // swipe-away in the app switcher into a crash.
+            XCTAssertEqual(fetchUnsentCrashReports().count, 0)
+            thenShouldntExistReport(withName: "appId-report-0000000000000001.json")
         }
 
         func testOnInjectedTerminationReports_fetchUnsentCrashReports_shouldntAffectRealCrashes() throws {
@@ -362,18 +308,13 @@
                 toFilePath: "/Reports/appId-report-0000000000000003.json"
             )
 
-            let expectation = XCTestExpectation()
-            crashReporter.fetchUnsentCrashReports { reports in
-                XCTAssertEqual(reports.count, 1)
-                XCTAssertEqual(reports[0].internalId, 1)
-                XCTAssertEqual(reports[0].sessionId, TestConstants.sessionId.stringValue)
-                self.thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
-                self.thenShouldntExistReport(withName: "appId-report-0000000000000003.json")
-
-                expectation.fulfill()
-            }
-
-            wait(for: [expectation], timeout: .defaultTimeout)
+            let reports = fetchUnsentCrashReports()
+            XCTAssertEqual(reports.count, 1)
+            let report = try XCTUnwrap(reports.first)
+            XCTAssertEqual(report.internalId, 1)
+            XCTAssertEqual(report.sessionId, TestConstants.sessionId.stringValue)
+            thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
+            thenShouldntExistReport(withName: "appId-report-0000000000000003.json")
         }
     }
 
@@ -397,6 +338,19 @@
             } catch let ex {
                 XCTFail(ex.localizedDescription)
             }
+        }
+
+        /// Fetches the unsent reports and returns them once the fetch has completed.
+        ///
+        /// `fetchUnsentCrashReports` runs on the reporter's serial queue and calls its completion
+        /// before that block returns, so an empty `sync` on the same queue waits for the result.
+        fileprivate func fetchUnsentCrashReports() -> [EmbraceCrashReport] {
+            var fetched: [EmbraceCrashReport] = []
+            crashReporter.fetchUnsentCrashReports { reports in
+                fetched = reports
+            }
+            crashReporter.queue.sync {}
+            return fetched
         }
 
         fileprivate func givenCrashReporter() {

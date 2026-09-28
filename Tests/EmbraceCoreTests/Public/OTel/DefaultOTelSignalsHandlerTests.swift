@@ -20,6 +20,11 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
     var storage: EmbraceStorage!
     var upload: SpyEmbraceLogUploader!
 
+    // `LogController.createLog` processes each log asynchronously on this queue, so `logQueue.sync {}`
+    // returns once every log requested before it has been built, saved and handed to the bridge.
+    // `currentBatch()` waits on the batcher's own queue.
+    let logQueue = DispatchQueue(label: "io.embrace.tests.otelSignalsHandler.logs")
+
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()
         upload = SpyEmbraceLogUploader()
@@ -31,7 +36,7 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
             storage: storage,
             upload: upload,
             sessionController: sessionController,
-            queue: .main
+            queue: logQueue
         )
 
         limiter = MockOTelSignalsLimiter()
@@ -130,6 +135,27 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         )
     }
 
+    func test_createSpan_withInvalidParent_ignoresTheParent() throws {
+        // given a parent whose identifiers can't refer to a span
+        let parent = MockSpan(
+            id: String(repeating: "0", count: 16),
+            traceId: String(repeating: "0", count: 32),
+            name: "parent"
+        )
+
+        // when creating a span with it
+        let span = try XCTUnwrap(handler.createSpan(name: "test", parentSpan: parent))
+
+        // then the parent is dropped rather than recorded alongside a trace it doesn't belong to
+        XCTAssertNil(span.parentSpanId)
+        XCTAssertNotEqual(span.context.traceId, parent.context.traceId)
+
+        // and the stored span agrees with what was reported to the OTel layer
+        let record = storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId)
+        XCTAssertNotNil(record)
+        XCTAssertNil(record!.parentSpanId)
+    }
+
     func test_createSpan_failure() throws {
         // given a handler
         // when creating a span that would break the limit
@@ -207,6 +233,22 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(span.attributes["emb.error_code"] as! String, "user_abandon")
     }
 
+    func test_createSpan_autoTermination_parentCode_afterParentEnded() throws {
+        // given a parent with an auto termination code that ended on its own
+        let parentSpan = try XCTUnwrap(handler.createSpan(name: "parent", autoTerminationCode: .userAbandon))
+        parentSpan.end()
+
+        // when creating a child afterwards
+        let child = try XCTUnwrap(handler.createSpan(name: "child", parentSpan: parentSpan))
+
+        // and the session ends
+        handler.autoTerminateSpans()
+
+        // then the child inherits the parent's code
+        XCTAssertNotNil(child.endTime)
+        XCTAssertEqual(child.attributes["emb.error_code"] as? String, "user_abandon")
+    }
+
     func test_createSpan_autoTermination_parentCode() throws {
         // given a handler
         // when creating a parent span with an auto termination code
@@ -225,6 +267,89 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(span.status, .error)
         XCTAssertNotNil(span.endTime)
         XCTAssertEqual(span.attributes["emb.error_code"] as! String, "user_abandon")
+    }
+
+    func test_createSpan_autoTermination_spanCreatedAlreadyEnded_isNotTracked() throws {
+        // given a handler
+        // when creating a span that is already ended and carries an auto termination code
+        let endTime = Date(timeIntervalSince1970: 100)
+        let span = try XCTUnwrap(
+            handler.createSpan(name: "test", endTime: endTime, autoTerminationCode: .userAbandon)
+        )
+
+        // then it isn't tracked for auto termination: it can never be ended again, so it would
+        // never be evicted and would be held for the rest of the session with nothing to do
+        XCTAssertTrue(handler.cache.safeValue.autoTerminationSpans.isEmpty)
+
+        // and the session ending leaves it untouched
+        handler.autoTerminateSpans()
+
+        XCTAssertEqual(span.endTime, endTime)
+        XCTAssertNil(span.attributes["emb.error_code"])
+    }
+
+    func test_createSpan_autoTermination_parentCode_afterParentCreatedAlreadyEnded() throws {
+        // given a parent created already ended that carries an auto termination code
+        let parentSpan = try XCTUnwrap(
+            handler.createSpan(
+                name: "parent",
+                endTime: Date(timeIntervalSince1970: 100),
+                autoTerminationCode: .userAbandon
+            )
+        )
+
+        // when creating a child afterwards
+        let child = try XCTUnwrap(handler.createSpan(name: "child", parentSpan: parentSpan))
+
+        // and the session ends
+        handler.autoTerminateSpans()
+
+        // then the child still inherits the parent's code, even though the parent was never
+        // tracked for auto termination itself
+        XCTAssertNotNil(child.endTime)
+        XCTAssertEqual(child.attributes["emb.error_code"] as? String, "user_abandon")
+    }
+
+    func test_autoTermination_doesNotReEndASpanThatAlreadyEnded() throws {
+        // given a span with an auto termination code that ended normally and successfully
+        let span = try XCTUnwrap(handler.createSpan(name: "test", autoTerminationCode: .userAbandon))
+        let endTime = Date(timeIntervalSince1970: 100)
+        span.end(errorCode: nil, endTime: endTime)
+
+        // when the session ends and the auto termination is triggered
+        handler.autoTerminateSpans()
+
+        // then the span keeps the outcome it ended with, instead of being reported as failed
+        XCTAssertEqual(span.status, .ok)
+        XCTAssertEqual(span.endTime, endTime)
+        XCTAssertNil(span.attributes["emb.error_code"])
+    }
+
+    func test_setAttribute_afterEnd_doesNotReachStorage() throws {
+        // given a span with an attribute set before it ended
+        let span = try XCTUnwrap(handler.createSpan(name: "test"))
+        span.setAttribute(key: "early", value: "value")
+        span.end()
+
+        // when setting an attribute afterwards
+        span.setAttribute(key: "late", value: "value")
+
+        // then the stored record is unchanged
+        let record = try XCTUnwrap(storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId))
+        XCTAssertEqual(record.attributes["early"] as? String, "value")
+        XCTAssertNil(record.attributes["late"])
+    }
+
+    func test_autoTermination_stopsTrackingSpansOnceTheyEnd() throws {
+        // given a span with an auto termination code
+        let span = try XCTUnwrap(handler.createSpan(name: "test", autoTerminationCode: .userAbandon))
+        XCTAssertEqual(handler.cache.safeValue.autoTerminationSpans.count, 1)
+
+        // when it ends on its own
+        span.end()
+
+        // then it is no longer tracked for auto termination
+        XCTAssertEqual(handler.cache.safeValue.autoTerminationSpans.count, 0)
     }
 
     // MARK: createSpan — initial events/links sanitization (existing-bug fix)
@@ -295,21 +420,30 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // given a handler whose limiter rejects links past the second one
         limiter.shouldAddSpanLinkStub = { count in count < 2 }
 
+        // links need well formed identifiers to survive validation, so the trimming
+        // under test is the only reason any of them can be dropped
+        let spanIds = ["0000000000000001", "0000000000000002", "0000000000000003"]
+        let traceIds = [
+            "00000000000000000000000000000001",
+            "00000000000000000000000000000002",
+            "00000000000000000000000000000003"
+        ]
+
         // when creating a non-internal span with three initial links
         let span = try XCTUnwrap(
             handler.createSpan(
                 name: "test",
                 links: [
-                    EmbraceSpanLink(spanId: "s1", traceId: "t1"),
-                    EmbraceSpanLink(spanId: "s2", traceId: "t2"),
-                    EmbraceSpanLink(spanId: "s3", traceId: "t3")
+                    EmbraceSpanLink(spanId: spanIds[0], traceId: traceIds[0]),
+                    EmbraceSpanLink(spanId: spanIds[1], traceId: traceIds[1]),
+                    EmbraceSpanLink(spanId: spanIds[2], traceId: traceIds[2])
                 ]
             ))
 
         // then only the first two links are kept; the third is dropped
         XCTAssertEqual(span.links.count, 2)
-        XCTAssertEqual(span.links[0].context.spanId, "s1")
-        XCTAssertEqual(span.links[1].context.spanId, "s2")
+        XCTAssertEqual(span.links[0].context.spanId, spanIds[0])
+        XCTAssertEqual(span.links[1].context.spanId, spanIds[1])
     }
 
     func test_createSpan_initialEvents_areNotSanitized_forInternalSpan() throws {
@@ -478,23 +612,31 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         XCTAssertEqual(limiter.shouldCreateLogCallCount, 1)
         XCTAssertEqual(sanitizer.sanitizeLogAttributesCallCount, 1)
 
-        // then the log is created correctly
-        wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.currentBatch()!.logs[0]
+        logQueue.sync {}
+        let sessionId = try XCTUnwrap(sessionController.currentSession?.id.stringValue)
+        XCTAssertEqual(bridge.createLogCallCount, 1)
 
-            return log.body == "test" && log.severity == .debug && log.type == .message && log.timestamp == timestamp && log.attributes["key"] as! String == "value"
-                && log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.state"] as! String == "foreground"
-                && log.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue && self.bridge.createLogCallCount == 1
-        }
+        // then the log is created correctly
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertEqual(log.body, "test")
+        XCTAssertEqual(log.severity, .debug)
+        XCTAssertEqual(log.type, .message)
+        XCTAssertEqual(log.timestamp, timestamp)
+        XCTAssertEqual(log.attributes["key"] as? String, "value")
+        XCTAssertEqual(log.attributes["emb.type"] as? String, "sys.log")
+        XCTAssertEqual(log.attributes["emb.state"] as? String, "foreground")
+        XCTAssertEqual(log.attributes["emb.session_part_id"] as? String, sessionId)
 
         // then the log is saved correctly
-        wait(timeout: .defaultTimeout) {
-            let record = self.storage.fetchAllLogs()[0]
-
-            return record.body == "test" && record.severity == .debug && record.type == .message && record.timestamp == timestamp && record.attributes["key"] as! String == "value"
-                && record.attributes["emb.type"] as! String == "sys.log" && record.attributes["emb.state"] as! String == "foreground"
-                && record.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue
-        }
+        let record = try XCTUnwrap(storage.fetchAllLogs().first)
+        XCTAssertEqual(record.body, "test")
+        XCTAssertEqual(record.severity, .debug)
+        XCTAssertEqual(record.type, .message)
+        XCTAssertEqual(record.timestamp, timestamp)
+        XCTAssertEqual(record.attributes["key"] as? String, "value")
+        XCTAssertEqual(record.attributes["emb.type"] as? String, "sys.log")
+        XCTAssertEqual(record.attributes["emb.state"] as? String, "foreground")
+        XCTAssertEqual(record.attributes["emb.session_part_id"] as? String, sessionId)
     }
 
     func test_log_failure() throws {
@@ -507,13 +649,11 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // then the limit is checked but no work is performed
         XCTAssertEqual(limiter.shouldCreateLogCallCount, 1)
         XCTAssertEqual(sanitizer.sanitizeLogAttributesCallCount, 0)
-        XCTAssertEqual(bridge.createLogCallCount, 0)
 
         // and no log is created
-        wait(delay: .shortTimeout)
-        if let batch = logController.batcher.currentBatch() {
-            XCTAssertEqual(batch.logs.count, 0)
-        }
+        logQueue.sync {}
+        XCTAssertEqual(bridge.createLogCallCount, 0)
+        XCTAssertNil(logController.batcher.currentBatch())
         XCTAssertEqual(storage.fetchAllLogs().count, 0)
     }
 
@@ -525,11 +665,10 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
 
         // then the attributes are sanitized
         // then the log is created correctly
-        wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.currentBatch()!.logs[0]
-
-            return log.attributes["key"] == nil && log.attributes["sanitizedKey"] as! String == "sanitizedValue"
-        }
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNil(log.attributes["key"])
+        XCTAssertEqual(log.attributes["sanitizedKey"] as? String, "sanitizedValue")
     }
 
     func test_log_attributeCollision() throws {
@@ -545,12 +684,12 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
             ])
 
         // then the correct internal attributes are kept
-        wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.currentBatch()!.logs[0]
-
-            return log.attributes["emb.type"] as! String == "sys.log" && log.attributes["emb.session_part_id"] as! String == self.sessionController.currentSession!.id.stringValue
-                && log.attributes["emb.state"] as! String == "foreground"
-        }
+        logQueue.sync {}
+        let sessionId = try XCTUnwrap(sessionController.currentSession?.id.stringValue)
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertEqual(log.attributes["emb.type"] as? String, "sys.log")
+        XCTAssertEqual(log.attributes["emb.session_part_id"] as? String, sessionId)
+        XCTAssertEqual(log.attributes["emb.state"] as? String, "foreground")
     }
 
     // MARK: attachments
@@ -560,11 +699,11 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .info, attachment: EmbraceLogAttachment(data: TestConstants.data))
 
         // then the correct internal attributes are set
-        wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.currentBatch()!.logs[0]
-
-            return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] as! String == "4" && log.attributes["emb.attachment_error_code"] == nil
-        }
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNotNil(log.attributes["emb.attachment_id"])
+        XCTAssertEqual(log.attributes["emb.attachment_size"] as? String, "4")
+        XCTAssertNil(log.attributes["emb.attachment_error_code"])
     }
 
     func test_log_embraceHostedAttachment_limit() throws {
@@ -574,12 +713,11 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .info, attachment: EmbraceLogAttachment(data: TestConstants.data))
 
         // then the correct internal attributes are set
-        wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.currentBatch()!.logs[0]
-
-            return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] as! String == "4"
-                && log.attributes["emb.attachment_error_code"] as! String == "OVER_MAX_ATTACHMENTS"
-        }
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNotNil(log.attributes["emb.attachment_id"])
+        XCTAssertEqual(log.attributes["emb.attachment_size"] as? String, "4")
+        XCTAssertEqual(log.attributes["emb.attachment_error_code"] as? String, "OVER_MAX_ATTACHMENTS")
     }
 
     func test_log_embraceHostedAttachment_tooLarge() throws {
@@ -593,12 +731,11 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .info, attachment: EmbraceLogAttachment(data: str.data(using: .utf8)!))
 
         // then the correct internal attributes are set
-        wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.currentBatch()!.logs[0]
-
-            return log.attributes["emb.attachment_id"] != nil && log.attributes["emb.attachment_size"] as! String == "1048600"
-                && log.attributes["emb.attachment_error_code"] as! String == "ATTACHMENT_TOO_LARGE"
-        }
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNotNil(log.attributes["emb.attachment_id"])
+        XCTAssertEqual(log.attributes["emb.attachment_size"] as? String, "1048600")
+        XCTAssertEqual(log.attributes["emb.attachment_error_code"] as? String, "ATTACHMENT_TOO_LARGE")
     }
 
     func test_log_preHostedAttachment_success() throws {
@@ -608,12 +745,12 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .info, attachment: EmbraceLogAttachment(id: "test", url: url))
 
         // then the correct internal attributes are set
-        wait(timeout: .defaultTimeout) {
-            let log = self.logController.batcher.currentBatch()!.logs[0]
-
-            return log.attributes["emb.attachment_id"] as! String == "test" && log.attributes["emb.attachment_url"] as! String == url.absoluteString && log.attributes["emb.attachment_size"] == nil
-                && log.attributes["emb.attachment_error_code"] == nil
-        }
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertEqual(log.attributes["emb.attachment_id"] as? String, "test")
+        XCTAssertEqual(log.attributes["emb.attachment_url"] as? String, url.absoluteString)
+        XCTAssertNil(log.attributes["emb.attachment_size"])
+        XCTAssertNil(log.attributes["emb.attachment_error_code"])
     }
 
     // MARK: stack traces
@@ -623,8 +760,9 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .info, stackTraceBehavior: .default)
 
         // then the stack trace is not added
-        wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNil(log.attributes["emb.stacktrace.ios"])
     }
 
     func test_warnLog_defaultStackTrace() throws {
@@ -633,8 +771,9 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .warn, stackTraceBehavior: .default)
 
         // then the stack trace is added
-        wait(delay: .defaultTimeout)
-        XCTAssertNotNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNotNil(log.attributes["emb.stacktrace.ios"])
     }
 
     func test_errorLog_defaultStackTrace() throws {
@@ -643,8 +782,9 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .error, stackTraceBehavior: .default)
 
         // then the stack trace is added
-        wait(delay: .defaultTimeout)
-        XCTAssertNotNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNotNil(log.attributes["emb.stacktrace.ios"])
     }
 
     let customFrames = [
@@ -659,8 +799,9 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .info, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is not added
-        wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNil(log.attributes["emb.stacktrace.ios"])
     }
 
     func test_warnLog_customStackTrace() throws {
@@ -670,8 +811,9 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .warn, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is added
-        wait(delay: .defaultTimeout)
-        XCTAssertNotNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNotNil(log.attributes["emb.stacktrace.ios"])
     }
 
     func test_errorLog_customStackTrace() throws {
@@ -681,8 +823,9 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .error, stackTraceBehavior: .custom(stackTrace))
 
         // then the stack trace is added
-        wait(delay: .defaultTimeout)
-        XCTAssertNotNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNotNil(log.attributes["emb.stacktrace.ios"])
     }
 
     func test_log_noStackTrace() throws {
@@ -691,8 +834,9 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .info, stackTraceBehavior: .notIncluded)
 
         // then the stack trace is not added
-        wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNil(log.attributes["emb.stacktrace.ios"])
     }
 
     func test_warnLog_noStackTrace() throws {
@@ -701,8 +845,9 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .warn, stackTraceBehavior: .notIncluded)
 
         // then the stack trace is not added
-        wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNil(log.attributes["emb.stacktrace.ios"])
     }
 
     func test_errorLog_noStackTrace() throws {
@@ -711,7 +856,8 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         handler.log("test", severity: .error, stackTraceBehavior: .notIncluded)
 
         // then the stack trace is not added
-        wait(delay: .defaultTimeout)
-        XCTAssertNil(logController.batcher.currentBatch()!.logs[0].attributes["emb.stacktrace.ios"])
+        logQueue.sync {}
+        let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
+        XCTAssertNil(log.attributes["emb.stacktrace.ios"])
     }
 }

@@ -72,6 +72,7 @@
                 parentSpan: parentSpan,
                 type: type,
                 startTime: startTime,
+                endTime: endTime,
                 attributes: attributes
             )
         }

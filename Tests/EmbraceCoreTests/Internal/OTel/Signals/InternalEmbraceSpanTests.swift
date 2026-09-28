@@ -20,10 +20,15 @@ class InternalEmbraceSpanTests: XCTestCase {
         handler = nil
     }
 
+    /// An open span. Spans stop accepting changes once they end, so the fixture has to be open for
+    /// any test that mutates it.
     var testSpan: DefaultEmbraceSpan {
+        makeTestSpan()
+    }
+
+    func makeTestSpan(endTime: Date? = nil) -> DefaultEmbraceSpan {
         let context = EmbraceSpanContext(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
         let startTime = Date(timeIntervalSince1970: 1)
-        let endTime = Date(timeIntervalSince1970: 2)
         let event = EmbraceSpanEvent(name: "event")
         let link = EmbraceSpanLink(spanId: "spanId", traceId: "traceId")
 
@@ -86,6 +91,6 @@ class InternalEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(span.attributes["key"] as! String, "value")
         XCTAssertEqual(span.state.safeValue.internalAttributeCount, 2)
         XCTAssertEqual(handler.validateAttributeCallCount, 0)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
     }
 }

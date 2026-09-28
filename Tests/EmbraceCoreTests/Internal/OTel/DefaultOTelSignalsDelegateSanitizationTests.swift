@@ -10,9 +10,9 @@ import XCTest
 @testable import EmbraceCore
 
 /// Tests that the `EmbraceOTelDelegate` conformance (`onStartSpan`, `onEndSpan`, `onEmitLog`)
-/// applies the full sanitisation pipeline before persisting external signals to storage.
+/// applies the full sanitization pipeline before persisting external signals to storage.
 /// Uses the real `DefaultOtelSignalsSanitizer` and `DefaultOtelSignalsLimiter` with
-/// small custom limits so truncation and capping behaviour is deterministic.
+/// small custom limits so truncation and capping behavior is deterministic.
 class DefaultOTelSignalsDelegateSanitizationTests: XCTestCase {
 
     var handler: DefaultOTelSignalsHandler!
@@ -317,10 +317,9 @@ class DefaultOTelSignalsDelegateSanitizationTests: XCTestCase {
         handler.onEmitLog(log)
 
         // then only the first 2 attributes (sorted by key) are stored
-        wait(delay: .defaultTimeout)
-        let record = storage.fetchAllLogs()[0]
-        XCTAssertEqual(record.attributes["aaa"] as! String, "1")
-        XCTAssertEqual(record.attributes["bbb"] as! String, "2")
+        let record = try XCTUnwrap(storage.fetchAllLogs().first)
+        XCTAssertEqual(record.attributes["aaa"] as? String, "1")
+        XCTAssertEqual(record.attributes["bbb"] as? String, "2")
         XCTAssertNil(record.attributes["ccc"])
         XCTAssertNil(record.attributes["ddd"])
     }
@@ -333,8 +332,7 @@ class DefaultOTelSignalsDelegateSanitizationTests: XCTestCase {
         handler.onEmitLog(log)
 
         // then the key is truncated to 3 characters in storage
-        wait(delay: .defaultTimeout)
-        let record = storage.fetchAllLogs()[0]
+        let record = try XCTUnwrap(storage.fetchAllLogs().first)
         XCTAssertNotNil(record.attributes["lon"])
         XCTAssertNil(record.attributes["longkey"])
     }
@@ -347,9 +345,8 @@ class DefaultOTelSignalsDelegateSanitizationTests: XCTestCase {
         handler.onEmitLog(log)
 
         // then the value is truncated to 5 characters in storage
-        wait(delay: .defaultTimeout)
-        let record = storage.fetchAllLogs()[0]
-        XCTAssertEqual(record.attributes["key"] as! String, "longv")
+        let record = try XCTUnwrap(storage.fetchAllLogs().first)
+        XCTAssertEqual(record.attributes["key"] as? String, "longv")
     }
 
     func test_onEmitLog_preservesProtectedKeys() throws {
@@ -368,11 +365,10 @@ class DefaultOTelSignalsDelegateSanitizationTests: XCTestCase {
         handler.onEmitLog(log)
 
         // then all three protected keys are present regardless of the count limit
-        wait(delay: .defaultTimeout)
-        let record = storage.fetchAllLogs()[0]
-        XCTAssertEqual(record.attributes[LogSemantics.keyEmbraceType] as! String, "sys.log")
-        XCTAssertEqual(record.attributes[LogSemantics.keyState] as! String, "foreground")
-        XCTAssertEqual(record.attributes[LogSemantics.keySessionId] as! String, "sess123")
+        let record = try XCTUnwrap(storage.fetchAllLogs().first)
+        XCTAssertEqual(record.attributes[LogSemantics.keyEmbraceType] as? String, "sys.log")
+        XCTAssertEqual(record.attributes[LogSemantics.keyState] as? String, "foreground")
+        XCTAssertEqual(record.attributes[LogSemantics.keySessionId] as? String, "sess123")
         XCTAssertNil(record.attributes["ccc"])
     }
 }
