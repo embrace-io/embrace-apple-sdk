@@ -13,7 +13,10 @@ class EmbraceUploadTests: XCTestCase {
         userAgent: "userAgent",
         deviceId: "12345678"
     )
-    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(automaticRetryCount: 0)
+    static let testRedundancyOptions = EmbraceUpload.RedundancyOptions(
+        automaticRetryCount: 0,
+        retryOnInternetConnected: false
+    )
 
     var testOptions: EmbraceUpload.Options!
     var queue: DispatchQueue!
@@ -43,45 +46,37 @@ class EmbraceUploadTests: XCTestCase {
 
     override func tearDownWithError() throws {
         // prevents inconsistent errors due to the cache database being forcefully deleted on each test
-        module.spansQueue.waitUntilAllOperationsAreFinished()
-        module.logsQueue.waitUntilAllOperationsAreFinished()
-        module.attachmentsQueue.waitUntilAllOperationsAreFinished()
+        module.waitForAllWork()
     }
 
     func test_invalidId() throws {
         // given an invalid identifier
-        let expectation = XCTestExpectation()
+        var result: Result<(), Error>?
+        module.uploadSpans(id: "", data: Data()) { result = $0 }
 
-        module.uploadSpans(id: "", data: Data()) { result in
-            switch result {
-            case .failure(let error as NSError):
-                // then the upload should fail with the correct code
-                XCTAssertEqual(error.code, EmbraceUploadErrorCode.invalidMetadata.rawValue)
-                expectation.fulfill()
-            default:
-                XCTAssert(false, "Upload should've failed!")
-            }
+        // the completion runs on the coordination queue
+        queue.sync {}
+
+        // then the upload should fail with the correct code
+        guard case .failure(let error as NSError) = result else {
+            return XCTFail("Upload should've failed!")
         }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
+        XCTAssertEqual(error.code, EmbraceUploadErrorCode.invalidMetadata.rawValue)
     }
 
     func test_invalidData() throws {
         // given an invalid data
-        let expectation = XCTestExpectation()
+        var result: Result<(), Error>?
+        module.uploadSpans(id: "id", data: Data()) { result = $0 }
 
-        module.uploadSpans(id: "id", data: Data()) { result in
-            switch result {
-            case .failure(let error as NSError):
-                // then the upload should fail with the correct code
-                XCTAssertEqual(error.code, EmbraceUploadErrorCode.invalidData.rawValue)
-                expectation.fulfill()
-            default:
-                XCTAssert(false, "Upload should've failed!")
-            }
+        // the completion runs on the coordination queue
+        queue.sync {}
+
+        // then the upload should fail with the correct code
+        guard case .failure(let error as NSError) = result else {
+            return XCTFail("Upload should've failed!")
         }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
+        XCTAssertEqual(error.code, EmbraceUploadErrorCode.invalidData.rawValue)
     }
 
     func test_success() throws {
@@ -90,19 +85,16 @@ class EmbraceUploadTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testSpansUrl())
 
         // given valid values
-        let expectation = XCTestExpectation()
+        var result: Result<(), Error>?
+        module.uploadSpans(id: "id", data: TestConstants.data) { result = $0 }
 
-        module.uploadSpans(id: "id", data: TestConstants.data) { result in
-            switch result {
-            case .success:
-                // then the success completion callback is called without
-                expectation.fulfill()
-            default:
-                XCTAssert(false, "Upload should've succeeded!")
-            }
+        // the completion runs on the coordination queue
+        queue.sync {}
+
+        // then the success completion callback is called
+        guard case .success = result else {
+            return XCTFail("Upload should've succeeded!")
         }
-
-        wait(for: [expectation], timeout: .defaultTimeout)
     }
 
     func test_cacheFlowOnSuccess() throws {
@@ -110,96 +102,47 @@ class EmbraceUploadTests: XCTestCase {
 
         EmbraceHTTPMock.mock(url: testSpansUrl())
 
-        // given valid values
-        let expectation1 = XCTestExpectation(description: "1. Data should be cached in the database")
-        let expectation2 = XCTestExpectation(description: "2. Success completion callback should be called")
-        let expectation3 = XCTestExpectation(description: "3. Cache should be removed")
-        var dataCached = false
-
-        // then the data should be cached
-        let listener = CoreDataListener()
-
-        listener.onInsertedObjects = { objects in
-            guard let record = objects.first as? UploadDataRecord else {
-                return
-            }
-
-            XCTAssertEqual(record.id, "id")
-            XCTAssertEqual(record.type, EmbraceUploadType.spans.rawValue)
-            XCTAssertEqual(record.data, TestConstants.data)
-            dataCached = true
-            expectation1.fulfill()
-        }
-
-        listener.onDeletedObjects = { objects in
-            if dataCached {
-                expectation3.fulfill()
-            }
-        }
-
         // when uploading data
+        var completed = false
         module.uploadSpans(id: "id", data: TestConstants.data) { result in
-            switch result {
-            case .success:
-                // then the cache step succeeds
-                expectation2.fulfill()
-            default:
-                XCTAssert(false, "Upload should've succeeded!")
+            guard case .success = result else {
+                return XCTFail("Upload should've succeeded!")
             }
+
+            // then the data is cached before the completion fires
+            self.assertCachedRecord(id: "id")
+            completed = true
         }
 
-        // Note: we would like to enforce order for these but
-        // the observability on the database seems to be inconsistent timing wise
-        // so the first 2 steps are not always in the same order
-        wait(for: [expectation1, expectation2, expectation3], timeout: .veryLongTimeout)
+        module.waitForAllWork()
+        XCTAssertTrue(completed)
 
-        // Clean up listener to prevent callbacks from firing during subsequent tests
-        listener.onInsertedObjects = nil
-        listener.onDeletedObjects = nil
+        // then the cache is removed after the upload succeeds
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
+        XCTAssertNil(module.cache.fetchUploadData(id: "id", type: .spans))
     }
 
     func test_cacheFlowOnError() throws {
         // given valid values (no mock URL, so upload will fail)
-        let expectation1 = XCTestExpectation(description: "1. Data should be cached in the database")
-        let expectation2 = XCTestExpectation(description: "2. Success completion callback should be called")
-        let expectation3 = XCTestExpectation(description: "3. Cache should be removed after failed upload")
-
-        // then the data should be cached
-        let listener = CoreDataListener()
-
-        listener.onInsertedObjects = { objects in
-            guard let record = objects.first as? UploadDataRecord else {
-                return
-            }
-
-            XCTAssertEqual(record.id, "id")
-            XCTAssertEqual(record.type, EmbraceUploadType.spans.rawValue)
-            XCTAssertEqual(record.data, TestConstants.data)
-            expectation1.fulfill()
-        }
-
-        listener.onDeletedObjects = { _ in
-            expectation3.fulfill()
-        }
 
         // when uploading data
         // completion fires immediately after cache write (cache-first semantics)
+        var completed = false
         module.uploadSpans(id: "id", data: TestConstants.data) { result in
-            switch result {
-            case .success:
-                // then the cache step succeeds
-                expectation2.fulfill()
-            default:
-                XCTAssert(false, "Upload should've succeeded!")
+            guard case .success = result else {
+                return XCTFail("Upload should've succeeded!")
             }
+
+            // then the data is cached before the completion fires
+            self.assertCachedRecord(id: "id")
+            completed = true
         }
 
-        // With retryCount: 0, the failed upload operation deletes the record from cache
-        wait(for: [expectation1, expectation2, expectation3], timeout: .veryLongTimeout)
+        module.waitForAllWork()
+        XCTAssertTrue(completed)
 
-        // Clean up listener to prevent callbacks from firing during subsequent tests
-        listener.onInsertedObjects = nil
-        listener.onDeletedObjects = nil
+        // With retryCount: 0, the failed upload operation deletes the record from cache
+        XCTAssertNil(module.cache.fetchUploadData(id: "id", type: .spans))
     }
 
     func test_retryCachedData() throws {
@@ -213,15 +156,8 @@ class EmbraceUploadTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // when retrying to upload all cached data
-        let retryExpectation = XCTestExpectation(description: "retryCachedData completes")
-        module.retryCachedData {
-            retryExpectation.fulfill()
-        }
-        wait(for: [retryExpectation], timeout: .defaultTimeout)
-
-        // wait for upload operations to complete
-        module.spansQueue.waitUntilAllOperationsAreFinished()
-        module.logsQueue.waitUntilAllOperationsAreFinished()
+        module.retryCachedData()
+        module.waitForAllWork()
 
         // then requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
@@ -233,11 +169,10 @@ class EmbraceUploadTests: XCTestCase {
         // given an empty cache
 
         // when retrying to upload all cached data
-        let retryExpectation = XCTestExpectation(description: "retryCachedData completes")
-        module.retryCachedData {
-            retryExpectation.fulfill()
-        }
-        wait(for: [retryExpectation], timeout: .defaultTimeout)
+        module.retryCachedData()
+
+        // an operation created by mistake would be waited on here, so its request is counted below
+        module.waitForAllWork()
 
         // then no requests are made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -251,16 +186,13 @@ class EmbraceUploadTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testSpansUrl())
 
         // when uploading session data
-        let expectation = XCTestExpectation()
+        var completed = false
         module.uploadSpans(id: "id", data: TestConstants.data) { _ in
-            expectation.fulfill()
+            completed = true
         }
-        wait(for: [expectation], timeout: .defaultTimeout)
 
-        // ensure fillQueue has completed on the coordination queue
-        module.queue.sync {}
-        // wait for the upload operation to complete
-        module.spansQueue.waitUntilAllOperationsAreFinished()
+        module.waitForAllWork()
+        XCTAssertTrue(completed)
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
@@ -274,16 +206,13 @@ class EmbraceUploadTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // when uploading log data
-        let expectation = XCTestExpectation()
+        var completed = false
         module.uploadLog(id: "id", data: TestConstants.data) { _ in
-            expectation.fulfill()
+            completed = true
         }
-        wait(for: [expectation], timeout: .defaultTimeout)
 
-        // ensure fillQueue has completed on the coordination queue
-        module.queue.sync {}
-        // wait for the upload operation to complete
-        module.logsQueue.waitUntilAllOperationsAreFinished()
+        module.waitForAllWork()
+        XCTAssertTrue(completed)
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -297,17 +226,13 @@ class EmbraceUploadTests: XCTestCase {
         EmbraceHTTPMock.mock(url: testAttachmentsUrl())
 
         // when uploading attachment data
-        let expectation = XCTestExpectation()
+        var completed = false
         module.uploadAttachment(id: "id", data: TestConstants.data) { _ in
-            expectation.fulfill()
+            completed = true
         }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
-
-        // ensure fillQueue has completed on the coordination queue
-        module.queue.sync {}
-        // wait for the upload operation to complete
-        module.attachmentsQueue.waitUntilAllOperationsAreFinished()
+        module.waitForAllWork()
+        XCTAssertTrue(completed)
 
         // then a request to the right endpoint is made
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 0)
@@ -317,6 +242,16 @@ class EmbraceUploadTests: XCTestCase {
 }
 
 extension EmbraceUploadTests {
+    fileprivate func assertCachedRecord(id: String, file: StaticString = #filePath, line: UInt = #line) {
+        let request = module.cache.fetchUploadDataRequest(id: id, type: .spans)
+        module.cache.coreData.fetchAndPerform(withRequest: request) { records, _ in
+            guard let record = records.first else {
+                return XCTFail("Data should be cached in the database", file: file, line: line)
+            }
+            XCTAssertEqual(record.data, TestConstants.data, file: file, line: line)
+        }
+    }
+
     fileprivate func testSpansUrl(testName: String = #function) -> URL {
         URL(string: "https://embrace.\(testName).com/upload/sessions")!
     }
