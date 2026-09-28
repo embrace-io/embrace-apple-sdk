@@ -64,8 +64,9 @@ public class KSCrashBacktracing {
     ///   `malloc`, no Obj-C/Swift runtime work, no lock acquisition. It is called between
     ///   `thread_suspend` and `thread_resume` of a thread that is not the caller. In particular it
     ///   must NOT take `KSCrashGlobalsLock` — doing so in-window would deadlock. That is safe here
-    ///   because `ksbt_captureBacktrace` never reaches the binary-image cache (`ksbic_init` is only
-    ///   reached via `ksbt_symbolicateAddress`), unlike ``backtrace(of:)`` and ``resolve(address:)``.
+    ///   because `ksbt_captureBacktraceFromSuspendedMachThread` never reaches the binary-image cache
+    ///   (`ksbic_init` is only reached via `ksbt_symbolicateAddress`), unlike ``backtrace(of:)`` and
+    ///   ``resolve(address:)``.
     /// - Parameters:
     ///   - thread: The target `pthread_t`. Must not be the calling thread (it is expected to be
     ///     suspended by the caller for the duration of the call). The `pthread_self()` workaround in
@@ -78,9 +79,19 @@ public class KSCrashBacktracing {
         into buffer: UnsafeMutablePointer<UInt>,
         capacity: Int
     ) -> Int {
-        // Alloc-free: `ksbt_captureBacktrace` fills the caller's buffer in place using a
-        // stack-allocated machine context + stack cursor (no malloc, no runtime calls).
-        return Int(captureBacktrace(thread: thread, addresses: buffer, count: Int32(capacity)))
+        // Fills the caller's buffer from a stack-allocated context and cursor: no malloc, no runtime
+        // work.
+        //
+        // Use the already-suspended entry point: `captureBacktrace(thread:…)` is the running-thread
+        // API, which re-suspends the target and logs via `fprintf` on error paths, both unsafe here.
+        return Int(
+            captureBacktraceFromSuspended(
+                machThread: pthread_mach_thread_np(thread),
+                addresses: buffer,
+                count: Int32(capacity),
+                isTruncated: nil
+            )
+        )
     }
 
     package func resolve(address: UInt) -> SymbolicatedFrame? {

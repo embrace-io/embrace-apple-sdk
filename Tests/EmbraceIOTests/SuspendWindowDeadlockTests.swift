@@ -149,6 +149,46 @@
             )
         }
 
+        /// The victim hammers the ObjC runtime, so suspending it repeatedly catches it holding the
+        /// runtime lock. A walk that does any ObjC dispatch in the suspend window (e.g. an
+        /// `objc_msgSend` on a cold method cache) needs that same lock, which wedges the whole process.
+        func test_noDeadlock_victimHammersObjCRuntime() throws {
+            try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
+
+            let running = EmbraceAtomic<Bool>(true)
+            let ready = DispatchSemaphore(value: 0)
+            let box = PThreadBox()
+
+            // Each of these runtime mutations takes the runtime lock, so a suspend lands inside it
+            // often. Disposing keeps the class count bounded.
+            let victim = Thread {
+                box.value = pthread_self()
+                ready.signal()
+                var counter = 0
+                while running.load(order: .relaxed) {
+                    counter += 1
+                    if let cls = objc_allocateClassPair(NSObject.self, "EMBRuntimeLockProbe\(counter)", 0) {
+                        objc_registerClassPair(cls)
+                        objc_disposeClassPair(cls)
+                    }
+                }
+            }
+            victim.name = "emb.deadlock.objcruntime"
+            victim.start()
+            ready.wait()
+            defer { running.store(false, order: .relaxed) }
+
+            let target = try XCTUnwrap(box.value, "victim did not publish its pthread_t")
+
+            for iteration in 0..<200 {
+                XCTAssertTrue(
+                    sampleCompletes(victim: target),
+                    "Sampling stalled on iteration \(iteration) while the victim hammered the ObjC "
+                        + "runtime — the suspend-window walk is taking the runtime lock (deadlock)."
+                )
+            }
+        }
+
         /// The load-bearing case: the victim continuously allocates/frees, so suspending it
         /// repeatedly catches it mid-`malloc` holding the allocator lock. If the alloc-free window
         /// regressed and started allocating, this would deadlock and time out.
