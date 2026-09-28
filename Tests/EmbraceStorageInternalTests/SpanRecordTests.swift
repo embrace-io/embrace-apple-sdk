@@ -343,7 +343,7 @@ class SpanRecordTests: XCTestCase {
             ))
 
         // when queueing async writes and then saving synchronously on main, as a terminate flush does
-        storage.setSpanAttributes(id: "id", traceId: TestConstants.traceId, attributes: ["key": "value"])
+        storage.setSpanAttribute(id: "id", traceId: TestConstants.traceId, key: "key", value: "value")
         storage.endSpan(id: "id", traceId: TestConstants.traceId, endTime: Date())
         XCTAssertTrue(Thread.isMainThread)
         storage.coreData.save(allowMainQueue: true)
