@@ -19,6 +19,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The Dangerfile diffs the merge commit against its first parent, the base branch tip.
+          fetch-depth: 2
 
       # Pinned past the 3.22.1 tag, whose image installs Node 18. The action's Dockerfile
       # installs danger-js unpinned, and danger-js 14 needs Node 20.18.1+: its undici 7
