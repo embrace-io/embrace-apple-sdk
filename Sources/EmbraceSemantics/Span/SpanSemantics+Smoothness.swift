@@ -16,5 +16,18 @@ extension SpanSemantics {
 
         /// Total late time while the span was open, in 60fps reference frames.
         public static let keyNormalizedDroppedFrames = "smoothness.normalized_dropped_frames"
+
+        /// Most severe device thermal state observed while the span was open. iOS-only; one of the
+        /// `ThermalState` values.
+        public static let keyPeakThermalState = "smoothness.peak_thermal_state"
+
+        /// Values for `keyPeakThermalState`, mirroring `ProcessInfo.ThermalState`.
+        public struct ThermalState {
+            public static let nominal = "nominal"
+            public static let fair = "fair"
+            public static let serious = "serious"
+            public static let critical = "critical"
+            public static let unknown = "unknown"
+        }
     }
 }

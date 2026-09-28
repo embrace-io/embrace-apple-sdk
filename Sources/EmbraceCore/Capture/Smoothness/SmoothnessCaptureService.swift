@@ -20,8 +20,8 @@ import Foundation
     /// part.
     ///
     /// The span opens when the foreground part starts, so it is persisted with that part's id right
-    /// away, and ends just before the part's payload is built, carrying the part's frame count and
-    /// dropped frames normalized to 60fps.
+    /// away, and ends just before the part's payload is built, carrying the part's frame count,
+    /// dropped frames normalized to 60fps, and the most severe thermal state seen while it was open.
     ///
     /// When the app is terminated while a foreground part is open (e.g. swiped away from the app
     /// switcher), the part is never ended, so the span is ended on `willTerminate` instead and flushed
@@ -40,24 +40,33 @@ import Foundation
             )
         }
 
-        /// - Parameter flushStorage: Blocks until pending storage writes, including the span's end, are
-        ///   on disk.
+        /// - Parameters:
+        ///   - flushStorage: Blocks until pending storage writes, including the span's end, are on disk.
+        ///   - thermalState: Reads the device's current thermal state.
         init(
             currentSession: @escaping () -> EmbraceSession?,
             notificationCenter: NotificationCenter,
             embraceNotificationCenter: NotificationCenter,
-            flushStorage: @escaping () -> Void
+            flushStorage: @escaping () -> Void,
+            thermalState: @escaping () -> ProcessInfo.ThermalState = { ProcessInfo.processInfo.thermalState }
         ) {
             self.currentSession = currentSession
             self.notificationCenter = notificationCenter
             self.embraceNotificationCenter = embraceNotificationCenter
             self.flushStorage = flushStorage
+            self.thermalState = thermalState
             super.init()
 
             notificationCenter.addObserver(
                 self,
                 selector: #selector(appWillTerminate),
                 name: SmoothnessCaptureService.willTerminateNotification,
+                object: nil
+            )
+            notificationCenter.addObserver(
+                self,
+                selector: #selector(thermalStateDidChange),
+                name: ProcessInfo.thermalStateDidChangeNotification,
                 object: nil
             )
         }
@@ -162,6 +171,7 @@ import Foundation
         private struct OpenSpan {
             let partId: EmbraceIdentifier
             let span: EmbraceSpan
+            var peakThermalState: ProcessInfo.ThermalState
         }
 
         private struct MutableData {
@@ -174,6 +184,7 @@ import Foundation
         private let notificationCenter: NotificationCenter
         private let embraceNotificationCenter: NotificationCenter
         private let flushStorage: () -> Void
+        private let thermalState: () -> ProcessInfo.ThermalState
 
         /// Raw notification name to avoid a direct UIKit dependency.
         private static let willTerminateNotification =
@@ -193,6 +204,14 @@ import Foundation
             flushStorage()
         }
 
+        /// Posted on an arbitrary thread. Only raises the open span's peak; never touches the tracker.
+        @objc private func thermalStateDidChange() {
+            let state = thermalState()
+            data.withLock { data in
+                data.openSpan?.peakThermalState.raise(to: state)
+            }
+        }
+
         /// Called on main with the tracker's lock held, so a concurrent close waits for the span.
         ///
         /// Created synchronously so the span is stamped with the part that is current right now. No
@@ -209,9 +228,11 @@ import Foundation
                 return
             }
 
+            // Seeded here since the change notification only fires on transitions.
+            let initialThermalState = thermalState()
             let previous = data.withLock { data -> EmbraceSpan? in
                 let previous = data.openSpan?.span
-                data.openSpan = OpenSpan(partId: partId, span: span)
+                data.openSpan = OpenSpan(partId: partId, span: span, peakThermalState: initialThermalState)
                 return previous
             }
             // The tracker closes a part before opening the next, so this only fires if a span leaked.
@@ -221,17 +242,41 @@ import Foundation
         /// Called with the tracker's lock held, and usually the `SessionController` lock too. Keep it
         /// to one span end.
         private func endSpan(partId: EmbraceIdentifier, stats: SmoothnessSessionStats) {
-            let span = data.withLock { data -> EmbraceSpan? in
-                guard let open = data.openSpan, open.partId == partId else { return nil }
+            let currentThermalState = thermalState()
+            let closed = data.withLock { data -> OpenSpan? in
+                guard var open = data.openSpan, open.partId == partId else { return nil }
                 data.openSpan = nil
-                return open.span
+                // Covers a change whose notification hasn't been delivered yet.
+                open.peakThermalState.raise(to: currentThermalState)
+                return open
             }
-            guard let span else { return }
+            guard let closed else { return }
+            let span = closed.span
 
             // Always ended, including with zero frames: the span is already persisted and zero is valid.
             span.setAttribute(key: SpanSemantics.Smoothness.keyFrameCount, value: stats.frameCount)
             span.setAttribute(key: SpanSemantics.Smoothness.keyNormalizedDroppedFrames, value: stats.normalizedDroppedFrames)
+            span.setAttribute(key: SpanSemantics.Smoothness.keyPeakThermalState, value: closed.peakThermalState.semanticValue)
             span.end(endTime: stats.endTime)
+        }
+    }
+
+    extension ProcessInfo.ThermalState {
+        /// Raises `self` to `other` if `other` is more severe.
+        fileprivate mutating func raise(to other: ProcessInfo.ThermalState) {
+            if other.rawValue > rawValue {
+                self = other
+            }
+        }
+
+        fileprivate var semanticValue: String {
+            switch self {
+            case .nominal: return SpanSemantics.Smoothness.ThermalState.nominal
+            case .fair: return SpanSemantics.Smoothness.ThermalState.fair
+            case .serious: return SpanSemantics.Smoothness.ThermalState.serious
+            case .critical: return SpanSemantics.Smoothness.ThermalState.critical
+            @unknown default: return SpanSemantics.Smoothness.ThermalState.unknown
+            }
         }
     }
 

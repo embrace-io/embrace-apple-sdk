@@ -21,6 +21,7 @@
         private var notificationCenter: NotificationCenter!
         private var embraceNotificationCenter: NotificationCenter!
         private var currentSession: EmbraceSession?
+        private var thermalState: ProcessInfo.ThermalState = .nominal
         private var service: SmoothnessCaptureService!
         /// Ended smoothness span count at each storage flush.
         private var flushes: [Int] = []
@@ -35,12 +36,14 @@
             notificationCenter = NotificationCenter()
             embraceNotificationCenter = NotificationCenter()
             currentSession = nil
+            thermalState = .nominal
             flushes = []
             service = SmoothnessCaptureService(
                 currentSession: { [unowned self] in self.currentSession },
                 notificationCenter: notificationCenter,
                 embraceNotificationCenter: embraceNotificationCenter,
-                flushStorage: { [unowned self] in self.flushes.append(self.endedSmoothnessSpans.count) }
+                flushStorage: { [unowned self] in self.flushes.append(self.endedSmoothnessSpans.count) },
+                thermalState: { [unowned self] in self.thermalState }
             )
         }
 
@@ -75,6 +78,15 @@
 
         private func postWillTerminate() {
             notificationCenter.post(name: Notification.Name("UIApplicationWillTerminateNotification"), object: nil)
+        }
+
+        private func changeThermalState(to state: ProcessInfo.ThermalState) {
+            thermalState = state
+            notificationCenter.post(name: ProcessInfo.thermalStateDidChangeNotification, object: nil)
+        }
+
+        private func peakThermalState(of span: EmbraceSpan?) -> String? {
+            span?.attributes[SpanSemantics.Smoothness.keyPeakThermalState] as? String
         }
 
         private func postDidBecomeActive() {
@@ -251,6 +263,92 @@
             XCTAssertFalse(tracker.isSessionOpen)
         }
 
+        // MARK: - Thermal state
+
+        func test_peakThermalState_isStateAtOpenWhenUnchanged() {
+            thermalState = .fair
+            startService()
+            startPart(.foreground)
+
+            endPart()
+
+            XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.first), SpanSemantics.Smoothness.ThermalState.fair)
+        }
+
+        func test_peakThermalState_keepsMostSevereStateSeen() {
+            startService()
+            startPart(.foreground)
+
+            changeThermalState(to: .critical)
+            changeThermalState(to: .fair)
+            changeThermalState(to: .nominal)
+            endPart()
+
+            XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.first), SpanSemantics.Smoothness.ThermalState.critical)
+        }
+
+        func test_peakThermalState_includesStateAtCloseWithoutNotification() {
+            startService()
+            startPart(.foreground)
+
+            thermalState = .serious
+            endPart()
+
+            XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.first), SpanSemantics.Smoothness.ThermalState.serious)
+        }
+
+        func test_peakThermalState_offMainNotification_isApplied() {
+            startService()
+            startPart(.foreground)
+
+            let posted = expectation(description: "posted off main")
+            DispatchQueue.global().async {
+                self.changeThermalState(to: .serious)
+                self.thermalState = .nominal
+                posted.fulfill()
+            }
+            wait(for: [posted], timeout: 1)
+            endPart()
+
+            XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.first), SpanSemantics.Smoothness.ThermalState.serious)
+        }
+
+        func test_peakThermalState_doesNotCarryIntoNextPart() {
+            startService()
+            startPart(.foreground)
+            changeThermalState(to: .critical)
+            endPart()
+
+            thermalState = .nominal
+            startPart(.foreground)
+            endPart()
+
+            XCTAssertEqual(endedSmoothnessSpans.count, 2)
+            XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.last), SpanSemantics.Smoothness.ThermalState.nominal)
+        }
+
+        func test_peakThermalState_changeWithNoOpenPart_isIgnored() {
+            startService()
+            startPart(.background)
+
+            changeThermalState(to: .critical)
+            thermalState = .nominal
+            startPart(.foreground)
+            endPart()
+
+            XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.first), SpanSemantics.Smoothness.ThermalState.nominal)
+        }
+
+        func test_peakThermalState_isSetOnStop() {
+            startService()
+            startPart(.foreground)
+            changeThermalState(to: .serious)
+
+            service.stop()
+
+            XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.first), SpanSemantics.Smoothness.ThermalState.serious)
+        }
+
         // MARK: - Termination
 
         func test_willTerminate_endsOpenSpanWithFrameAttributes() throws {
@@ -272,6 +370,7 @@
                 1,
                 accuracy: accuracy
             )
+            XCTAssertEqual(peakThermalState(of: span), SpanSemantics.Smoothness.ThermalState.nominal)
             XCTAssertFalse(tracker.isSessionOpen)
         }
 
@@ -442,6 +541,7 @@
             // No waiting: the span must be closed by the synchronous will-end hook.
             XCTAssertNotNil(span.endTime)
             XCTAssertNotNil(span.attributes[SpanSemantics.Smoothness.keyFrameCount])
+            XCTAssertNotNil(span.attributes[SpanSemantics.Smoothness.keyPeakThermalState])
         }
 
         func test_foregroundPartEndedOffMain_spanIsEndedBeforeEndSessionReturns() throws {
