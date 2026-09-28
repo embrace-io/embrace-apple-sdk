@@ -87,6 +87,8 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           ALPHA: ${{ env.ALPHA }}
           DEVICE: ${{ inputs.device || 'iPhone 17 Pro-26' }}
+          # Overrides the workflow-level TITLE, which is also perfcomp's comment marker.
+          TITLE: "🎞️ Smoothness Overhead (on vs off)"
         run: |
           python bin/smoothness_overhead.py
 
