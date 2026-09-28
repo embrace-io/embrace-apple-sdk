@@ -39,9 +39,24 @@ These tests use `XCTApplicationLaunchMetric()` to accurately measure the time it
     + U (or Product > Test)
    ```
 
+### Smoothness Overhead Tests (release gate)
+
+`SmoothnessOverheadUITests` measures what `SmoothnessCaptureService` costs the host app. Each scenario runs twice against the same build, as `_smoothnessOff` and `_smoothnessOn`, with `HangCaptureService` on in both:
+
+- **testScrolling**: fast swipes through a long list, measured with `XCTOSSignpostMetric.scrollingAndDecelerationMetric` (Apple's own hitch time ratio, independent of the SDK's accounting) and CPU.
+- **testAnimation**: a 10s window over a screen that animates every frame, measured with CPU and clock time to get steady-state CPU utilization.
+
+In CI, `bin/smoothness_overhead.py` pairs the results and posts a PR comment against the pass criteria: no significant hitch time ratio regression (≥5% and ≥1 ms/s, α = 0.05), and less than 1 percentage point of added CPU utilization. The comment doesn't fail the job, because release sign-off is manual. To run on another device (e.g. a 60Hz model), trigger **On Device Benchmarks** manually with the `device` input.
+
+For the per-tick cost, launch a debug build with `EMBSmoothnessSignposts=1` and record with the Instruments **os_signpost** instrument (subsystem `io.embrace.sdk`, category `Smoothness`, interval `Tick`). `SmoothnessOverheadTests` in `EmbraceCoreTests` covers the same path as a simulator microbenchmark.
+
 ### Environment Variables
 
 - `noop`: When set to any value, disables Embrace SDK initialization for baseline performance measurement
+- `EMBHang=1`: Adds `HangCaptureService`
+- `EMBSmoothness=1`: Adds `SmoothnessCaptureService`
+- `EMBBenchmarkScreen`: Launches into `smoothness-scroll` or `smoothness-animation` instead of the default screen
+- `EMBSmoothnessSignposts=1`: Debug builds only. Wraps each Smoothness tick in an `os_signpost` interval
 
 ## Interpreting Results
 

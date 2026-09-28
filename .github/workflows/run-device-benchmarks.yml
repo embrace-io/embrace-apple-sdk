@@ -3,11 +3,18 @@ name: On Device Benchmarks
 on:
   workflow_call:
   workflow_dispatch:
+    inputs:
+      device:
+        description: 'BrowserStack device, as <model>-<iOS version>. Use a 60Hz device for the Smoothness overhead sign-off.'
+        required: false
+        type: string
+        default: 'iPhone 17 Pro-26'
   pull_request:
     paths:
       - '.github/workflows/run-device-benchmarks.yml'
       - '.github/workflows/browserstack.yml'
       - 'bin/perfcomp.py'
+      - 'bin/smoothness_overhead.py'
       - 'Package.swift'
       - 'Sources/**'
       - 'Examples/Benchmarks/**'
@@ -34,6 +41,8 @@ jobs:
     secrets:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+    with:
+      device: ${{ inputs.device || 'iPhone 17 Pro-26' }}
 
   browserstack-main:
     name: Run BrowserStack Tests on Main
@@ -45,6 +54,7 @@ jobs:
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
     with:
       ref: main
+      device: ${{ inputs.device || 'iPhone 17 Pro-26' }}
 
   compare-results:
     name: Compare Performance Results
@@ -69,7 +79,20 @@ jobs:
         run: |
           pip install scipy pygithub
 
+      - name: Run Smoothness Overhead Comparison
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PERF_PR: ${{ needs.browserstack-pr.outputs.results }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ALPHA: ${{ env.ALPHA }}
+          DEVICE: ${{ inputs.device || 'iPhone 17 Pro-26' }}
+        run: |
+          python bin/smoothness_overhead.py
+
       - name: Run Performance Comparison
+        # Posts to the PR, so it needs one.
+        if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PERF_PR: ${{ needs.browserstack-pr.outputs.results }}

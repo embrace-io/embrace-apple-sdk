@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if DEBUG
+    import os.signpost
+#endif
+
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCaptureService
     import EmbraceCommonInternal
@@ -124,6 +128,33 @@ import Foundation
             data.withLock { $0.pipeline?.tracker }
         }
 
+        /// Builds the closure `FrameTimingSource` calls on every tick.
+        ///
+        /// In debug builds, `EMBSmoothnessSignposts=1` wraps each tick in an `os_signpost` interval
+        /// (subsystem `io.embrace.sdk`, category `Smoothness`, name `Tick`) so its cost can be profiled
+        /// in Instruments. The choice is made once here, so the per-tick path never branches on it.
+        static func makeTickHandler(
+            classifier: FrameDropClassifier,
+            environment: [String: String] = ProcessInfo.processInfo.environment
+        ) -> (TimeInterval) -> Void {
+            let handler: (TimeInterval) -> Void = { [weak classifier] delay in
+                classifier?.handle(delay: delay)
+            }
+
+            #if DEBUG
+                if environment["EMBSmoothnessSignposts"] == "1" {
+                    let log = OSLog(subsystem: "io.embrace.sdk", category: "Smoothness")
+                    return { delay in
+                        os_signpost(.begin, log: log, name: "Tick")
+                        handler(delay)
+                        os_signpost(.end, log: log, name: "Tick")
+                    }
+                }
+            #endif
+
+            return handler
+        }
+
         // MARK: - Private
 
         /// Builds the timing source → classifier → tracker pipeline and swaps it in, but only if the
@@ -146,9 +177,7 @@ import Foundation
             }
 
             let source = FrameTimingSource()
-            source.onTick = { [weak classifier] delay in
-                classifier?.handle(delay: delay)
-            }
+            source.onTick = Self.makeTickHandler(classifier: classifier)
 
             let stored = data.withLock { data -> Bool in
                 guard state.load(order: .acquire) == .active else { return false }
