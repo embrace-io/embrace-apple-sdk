@@ -22,6 +22,8 @@
         private var embraceNotificationCenter: NotificationCenter!
         private var currentSession: EmbraceSession?
         private var service: SmoothnessCaptureService!
+        /// Ended smoothness span count at each storage flush.
+        private var flushes: [Int] = []
 
         override func setUpWithError() throws {
             try super.setUpWithError()
@@ -33,10 +35,12 @@
             notificationCenter = NotificationCenter()
             embraceNotificationCenter = NotificationCenter()
             currentSession = nil
+            flushes = []
             service = SmoothnessCaptureService(
                 currentSession: { [unowned self] in self.currentSession },
                 notificationCenter: notificationCenter,
-                embraceNotificationCenter: embraceNotificationCenter
+                embraceNotificationCenter: embraceNotificationCenter,
+                flushStorage: { [unowned self] in self.flushes.append(self.endedSmoothnessSpans.count) }
             )
         }
 
@@ -67,6 +71,21 @@
 
         private func endPart(_ session: EmbraceSession? = nil) {
             embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: session ?? currentSession)
+        }
+
+        private func postWillTerminate() {
+            notificationCenter.post(name: Notification.Name("UIApplicationWillTerminateNotification"), object: nil)
+        }
+
+        private func postDidBecomeActive() {
+            notificationCenter.post(name: Notification.Name("UIApplicationDidBecomeActiveNotification"), object: nil)
+        }
+
+        /// Runs the main queue past anything already enqueued on it.
+        private func drainMain() {
+            let drained = expectation(description: "main drained")
+            DispatchQueue.main.async { drained.fulfill() }
+            wait(for: [drained], timeout: 1)
         }
 
         private var smoothnessSpans: [EmbraceSpan] {
@@ -232,6 +251,106 @@
             XCTAssertFalse(tracker.isSessionOpen)
         }
 
+        // MARK: - Termination
+
+        func test_willTerminate_endsOpenSpanWithFrameAttributes() throws {
+            startService()
+            startPart(.foreground)
+            let tracker = try XCTUnwrap(service.tracker)
+
+            tracker.recordFrame(lateBy: 0)
+            tracker.recordFrame(lateBy: 1.0 / 60.0)
+            postWillTerminate()
+
+            let span = try XCTUnwrap(endedSmoothnessSpans.first)
+            XCTAssertEqual(endedSmoothnessSpans.count, 1)
+            XCTAssertNotNil(span.endTime)
+            XCTAssertNotEqual(span.status, .error)
+            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 2)
+            XCTAssertEqual(
+                span.attributes[SpanSemantics.Smoothness.keyNormalizedDroppedFrames] as? Double ?? 0,
+                1,
+                accuracy: accuracy
+            )
+            XCTAssertFalse(tracker.isSessionOpen)
+        }
+
+        func test_willTerminate_flushesStorageAfterEndingSpan() {
+            startService()
+            startPart(.foreground)
+
+            postWillTerminate()
+
+            XCTAssertEqual(flushes, [1])
+        }
+
+        func test_willTerminate_withNoOpenPart_isNoOp() {
+            startService()
+            startPart(.foreground)
+            endPart()
+
+            postWillTerminate()
+
+            XCTAssertEqual(endedSmoothnessSpans.count, 1)
+            XCTAssertTrue(flushes.isEmpty)
+        }
+
+        func test_willTerminate_inBackgroundPart_isNoOp() {
+            startService()
+            startPart(.background)
+
+            postWillTerminate()
+
+            XCTAssertTrue(smoothnessSpans.isEmpty)
+            XCTAssertTrue(flushes.isEmpty)
+        }
+
+        func test_willTerminate_beforeStart_isNoOp() {
+            service.install(otel: otel)
+
+            postWillTerminate()
+
+            XCTAssertTrue(flushes.isEmpty)
+        }
+
+        func test_willTerminate_thenPartWillEnd_endsSpanOnce() throws {
+            startService()
+            startPart(.foreground)
+            let tracker = try XCTUnwrap(service.tracker)
+            tracker.recordFrame(lateBy: 0)
+
+            postWillTerminate()
+            tracker.recordFrame(lateBy: 0)
+            endPart()
+
+            XCTAssertEqual(smoothnessSpans.count, 1)
+            XCTAssertEqual(endedSmoothnessSpans.count, 1)
+            XCTAssertEqual(endedSmoothnessSpans.first?.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 1)
+        }
+
+        func test_willTerminate_thenDidBecomeActive_doesNotReopenPart() throws {
+            startService()
+            startPart(.foreground)
+
+            postWillTerminate()
+            postDidBecomeActive()
+            drainMain()
+
+            XCTAssertEqual(smoothnessSpans.count, 1)
+            XCTAssertFalse(try XCTUnwrap(service.tracker).isSessionOpen)
+        }
+
+        func test_willTerminate_twice_flushesOnce() {
+            startService()
+            startPart(.foreground)
+
+            postWillTerminate()
+            postWillTerminate()
+
+            XCTAssertEqual(endedSmoothnessSpans.count, 1)
+            XCTAssertEqual(flushes, [1])
+        }
+
         // MARK: - Config
 
         func test_onConfigUpdated_appliesHangThreshold() throws {
@@ -283,7 +402,8 @@
             service = SmoothnessCaptureService(
                 currentSession: { [unowned self] in self.controller.currentSession },
                 notificationCenter: .default,
-                embraceNotificationCenter: Embrace.notificationCenter
+                embraceNotificationCenter: Embrace.notificationCenter,
+                flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) }
             )
             service.install(otel: otel)
             service.start()

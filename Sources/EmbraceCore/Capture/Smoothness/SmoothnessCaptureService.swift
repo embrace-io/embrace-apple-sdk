@@ -9,6 +9,7 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceSemantics
     import EmbraceConfiguration
+    import EmbraceStorageInternal
 #endif
 
 // Frame timing relies on `CADisplayLink`, which is unavailable on watchOS and can't be constructed
@@ -20,8 +21,12 @@ import Foundation
     ///
     /// The span opens when the foreground part starts, so it is persisted with that part's id right
     /// away, and ends just before the part's payload is built, carrying the part's frame count and
-    /// dropped frames normalized to 60fps. A part that never ends cleanly (crash, kill) surfaces as a
-    /// failed span.
+    /// dropped frames normalized to 60fps.
+    ///
+    /// When the app is terminated while a foreground part is open (e.g. swiped away from the app
+    /// switcher), the part is never ended, so the span is ended on `willTerminate` instead and flushed
+    /// to storage before the notification returns. A part that never ends cleanly otherwise (crash,
+    /// kill while suspended) surfaces as a failed span.
     ///
     /// - Note: Experimental and opt-in. Not part of the default capture services.
     public final class SmoothnessCaptureService: CaptureService {
@@ -30,19 +35,35 @@ import Foundation
             self.init(
                 currentSession: { Embrace.client?.sessionController.currentSession },
                 notificationCenter: .default,
-                embraceNotificationCenter: Embrace.notificationCenter
+                embraceNotificationCenter: Embrace.notificationCenter,
+                flushStorage: { Embrace.client?.storage.coreData.save(allowMainQueue: true) }
             )
         }
 
+        /// - Parameter flushStorage: Blocks until pending storage writes, including the span's end, are
+        ///   on disk.
         init(
             currentSession: @escaping () -> EmbraceSession?,
             notificationCenter: NotificationCenter,
-            embraceNotificationCenter: NotificationCenter
+            embraceNotificationCenter: NotificationCenter,
+            flushStorage: @escaping () -> Void
         ) {
             self.currentSession = currentSession
             self.notificationCenter = notificationCenter
             self.embraceNotificationCenter = embraceNotificationCenter
+            self.flushStorage = flushStorage
             super.init()
+
+            notificationCenter.addObserver(
+                self,
+                selector: #selector(appWillTerminate),
+                name: SmoothnessCaptureService.willTerminateNotification,
+                object: nil
+            )
+        }
+
+        deinit {
+            notificationCenter.removeObserver(self)
         }
 
         public override func onStart() {
@@ -152,9 +173,25 @@ import Foundation
         private let currentSession: () -> EmbraceSession?
         private let notificationCenter: NotificationCenter
         private let embraceNotificationCenter: NotificationCenter
+        private let flushStorage: () -> Void
+
+        /// Raw notification name to avoid a direct UIKit dependency.
+        private static let willTerminateNotification =
+            Notification.Name("UIApplicationWillTerminateNotification")
 
         /// Lock order: the tracker's lock, then this one. Never call into the tracker while holding it.
         private let data = EmbraceMutex(MutableData())
+
+        /// `SessionController` doesn't end the session on terminate, so neither the part-will-end hook
+        /// nor the payload build runs. End the span here with the frames counted so far.
+        ///
+        /// Span storage writes are queued asynchronously, and the process can be killed as soon as
+        /// this returns, so they are flushed synchronously. A later will-end for the same part no-ops.
+        @objc private func appWillTerminate() {
+            guard let tracker, tracker.closeOpenSession(at: Date()) else { return }
+
+            flushStorage()
+        }
 
         /// Called on main with the tracker's lock held, so a concurrent close waits for the span.
         ///

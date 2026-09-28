@@ -197,8 +197,19 @@
         }
 
         /// Closes whichever part is open and reports it. No-ops if none is.
-        func closeOpenSession(at endTime: Date) {
-            lock.locked { closeLocked(at: endTime) }
+        ///
+        /// Marks the closed part as ended, so a later open or will-end for it is ignored.
+        ///
+        /// - Returns: Whether a part was open and has now been reported.
+        @discardableResult
+        func closeOpenSession(at endTime: Date) -> Bool {
+            lock.locked {
+                guard let partId = state.openSession?.partId else { return false }
+
+                state.lastEndedPartId = partId
+                closeLocked(at: endTime)
+                return true
+            }
         }
 
         // MARK: - Private

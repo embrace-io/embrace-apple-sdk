@@ -2,6 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import CoreData
 import EmbraceCommonInternal
 import EmbraceSemantics
 import TestSupport
@@ -284,6 +285,34 @@ class SpanRecordTests: XCTestCase {
         XCTAssertEqual(spans.count, 1)
         XCTAssertEqual(spans[0].id, "id")
         XCTAssertEqual(spans[0].attributes, "")
+    }
+
+    func test_saveOnMain_persistsQueuedSpanAttributesAndEnd() throws {
+        // given inserted span
+        storage.upsertSpan(
+            MockSpan(
+                id: "id",
+                name: "a name",
+            ))
+
+        // when queueing async writes and then saving synchronously on main, as a terminate flush does
+        storage.setSpanAttributes(id: "id", traceId: TestConstants.traceId, attributes: ["key": "value"])
+        storage.endSpan(id: "id", traceId: TestConstants.traceId, endTime: Date())
+        XCTAssertTrue(Thread.isMainThread)
+        storage.coreData.save(allowMainQueue: true)
+
+        // then both writes are in the persistent store, read without draining the storage context
+        let reader = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        reader.persistentStoreCoordinator = storage.coreData.context.persistentStoreCoordinator
+        var endTime: Date?
+        var attributes: String?
+        reader.performAndWait {
+            let record = try? reader.fetch(storage.fetchSpanRequest(id: "id", traceId: TestConstants.traceId)).first
+            endTime = record?.endTime
+            attributes = record?.attributes
+        }
+        XCTAssertNotNil(endTime)
+        XCTAssertEqual(attributes, "key,value")
     }
 
     // MARK: Events

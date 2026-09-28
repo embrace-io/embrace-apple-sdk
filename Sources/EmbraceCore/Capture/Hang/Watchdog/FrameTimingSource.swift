@@ -75,8 +75,14 @@
     extension FrameTimingSource {
 
         fileprivate func tick(_ currentTick: CADisplayLink) {
+            handleTick(timestamp: currentTick.timestamp, targetTimestamp: currentTick.targetTimestamp)
+        }
+
+        /// Compares a tick's `timestamp` against the previous tick's `targetTimestamp`. Must be called
+        /// on the main thread.
+        func handleTick(timestamp: CFTimeInterval, targetTimestamp: CFTimeInterval) {
             defer {
-                previousTickExpectedTimestamp = currentTick.targetTimestamp
+                previousTickExpectedTimestamp = targetTimestamp
             }
 
             guard let expectedTimestamp = previousTickExpectedTimestamp else {
@@ -84,7 +90,7 @@
                 return
             }
 
-            let delay = currentTick.timestamp - expectedTimestamp
+            let delay = timestamp - expectedTimestamp
             onTick?(delay)
         }
     }

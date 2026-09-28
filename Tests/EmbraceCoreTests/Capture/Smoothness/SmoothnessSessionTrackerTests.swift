@@ -266,6 +266,39 @@
             XCTAssertFalse(tracker.isSessionOpen)
         }
 
+        func testCloseOpenSessionReturnsWhetherItClosed() {
+            XCTAssertFalse(tracker.closeOpenSession(at: Date()))
+
+            startPart(.foreground)
+
+            XCTAssertTrue(tracker.closeOpenSession(at: Date()))
+            XCTAssertFalse(tracker.closeOpenSession(at: Date()))
+            XCTAssertEqual(reported.count, 1)
+        }
+
+        func testCloseOpenSessionThenWillEndReportsOnce() {
+            startPart(.foreground)
+            tick(delayInFrames: 0)
+
+            tracker.closeOpenSession(at: Date())
+            tick(delayInFrames: 0)
+            endPart()
+
+            XCTAssertEqual(reported.count, 1)
+            XCTAssertEqual(reported.first?.frameCount, 1)
+        }
+
+        func testCloseOpenSessionPreventsReopeningSamePart() {
+            let session = startPart(.foreground)
+
+            tracker.closeOpenSession(at: Date())
+            tracker.openCurrentForegroundPart()
+            tracker.open(partId: session.id, at: Date())
+
+            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertEqual(opened, [session.id])
+        }
+
         // MARK: - Accounting
 
         func testAccumulatesFrameCountAndNormalizedDroppedFrames() {
