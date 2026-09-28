@@ -69,7 +69,11 @@ final class SmoothnessOverheadUITests: XCTestCase {
         options.iterationCount = 20
 
         measure(
-            metrics: [XCTOSSignpostMetric.scrollingAndDecelerationMetric, XCTCPUMetric(application: app)],
+            metrics: [
+                XCTOSSignpostMetric.scrollingAndDecelerationMetric,
+                XCTCPUMetric(application: app),
+                DisplayLinkRateMetric(app: app)
+            ],
             options: options
         ) {
             list.swipeUp(velocity: .fast)
@@ -88,8 +92,46 @@ final class SmoothnessOverheadUITests: XCTestCase {
         let options = XCTMeasureOptions()
         options.iterationCount = 5
 
-        measure(metrics: [XCTCPUMetric(application: app), XCTClockMetric()], options: options) {
+        measure(
+            metrics: [XCTCPUMetric(application: app), XCTClockMetric(), DisplayLinkRateMetric(app: app)],
+            options: options
+        ) {
             Thread.sleep(forTimeInterval: animationWindow)
         }
+    }
+}
+
+/// Reports the rate a display link configured like the SDK's actually ran at, read from the
+/// benchmark screen's `display-link-rate` label (its rate over the last second) when each
+/// iteration stops. Confirms whether a scenario really ran at 120Hz.
+private final class DisplayLinkRateMetric: NSObject, XCTMetric {
+
+    private let app: XCUIApplication
+    private var rate: Double = 0
+
+    init(app: XCUIApplication) {
+        self.app = app
+    }
+
+    func copy(with zone: NSZone? = nil) -> Any {
+        DisplayLinkRateMetric(app: app)
+    }
+
+    func didStopMeasuring() {
+        rate = Double(app.staticTexts["display-link-rate"].label) ?? 0
+    }
+
+    func reportMeasurements(
+        from startTime: XCTPerformanceMeasurementTimestamp,
+        to endTime: XCTPerformanceMeasurementTimestamp
+    ) throws -> [XCTPerformanceMeasurement] {
+        [
+            XCTPerformanceMeasurement(
+                identifier: "io.embrace.benchmarks.displayLinkRate",
+                displayName: "Display Link Rate",
+                doubleValue: rate,
+                unitSymbol: "Hz"
+            )
+        ]
     }
 }

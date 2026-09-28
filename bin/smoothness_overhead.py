@@ -83,6 +83,7 @@ def evaluate(pairs):
             continue
 
         gated = set()
+        shown = set()
 
         hitch_on, hitch_off = find(on, "Hitch Time Ratio"), find(off, "Hitch Time Ratio")
         if hitch_on and hitch_off:
@@ -121,13 +122,27 @@ def evaluate(pairs):
                 fmtp(one_sided_p(util_on, util_off)),
             ))
 
+        # Context only: shows whether the scenario really ran at the intended refresh rate.
+        rate_on, rate_off = find(on, "Display Link Rate"), find(off, "Display Link Rate")
+        if rate_on and rate_off:
+            shown.add(rate_on["displayName"])
+            gates.append((
+                scenario,
+                f"{rate_on['displayName']} ({rate_on['unitOfMeasurement']})",
+                "ℹ️ context",
+                fmt(rate_off["avg"], 1),
+                fmt(rate_on["avg"], 1),
+                "",
+                "",
+            ))
+
         # e.g. the simulator emits scroll duration but no hitch metrics.
         if not gated:
             gates.append((scenario, "gated metrics", "⚠️ missing", "no hitch or CPU utilization metric", "", "", ""))
             passed = False
 
         for display_name in sorted(on):
-            if display_name in gated or display_name not in off:
+            if display_name in gated or display_name in shown or display_name not in off:
                 continue
             a, b = on[display_name], off[display_name]
             relative = (a["avg"] - b["avg"]) / b["avg"] if b["avg"] else math.nan
