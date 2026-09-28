@@ -65,7 +65,8 @@ final class SmoothnessOverheadUITests: XCTestCase {
 
         let options = XCTMeasureOptions()
         options.invocationOptions = [.manuallyStop]
-        options.iterationCount = 10
+        // The loaded baseline hitches, which is noisier than a baseline that never does.
+        options.iterationCount = 20
 
         measure(
             metrics: [XCTOSSignpostMetric.scrollingAndDecelerationMetric, XCTCPUMetric(application: app)],

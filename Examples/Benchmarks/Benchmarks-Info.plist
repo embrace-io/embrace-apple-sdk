@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Lets display links and animations run above 60Hz on ProMotion iPhones, so the
+	     Smoothness overhead benchmarks cover the 120Hz worst case. Merged with the
+	     generated Info.plist; kept outside the synchronized Benchmarks/ folder so it
+	     isn't also copied as a resource. -->
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+</dict>
+</plist>
