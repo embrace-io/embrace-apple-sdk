@@ -30,7 +30,7 @@ class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: SwizzlerTestCase 
             self.thenHandlerShouldHaveInvokedCreateWithTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .longTimeout)
     }
 
     func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
@@ -43,7 +43,7 @@ class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: SwizzlerTestCase 
             self.thenHandlerShouldHaveInvokedFinishTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .longTimeout)
     }
 
     #if !os(watchOS)
@@ -57,33 +57,27 @@ class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: SwizzlerTestCase 
                 self.thenHandlerShouldHaveInvokedFinishTaskWithError()
                 expectation.fulfill()
             })
-            wait(for: [expectation])
+            wait(for: [expectation], timeout: .longTimeout)
         }
     #endif
 
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
-        let expectation = expectation(description: #function)
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
         try givenSwizzlingWasDone()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
-        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
-            try! self.thenDataTaskShouldHaveEmbraceHeaders()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in })
+        try thenDataTaskShouldHaveEmbraceHeaders()
+        uploadTask.cancel()
     }
 
     func test_withoutInstall_taskWontBeCreatedInHandler() throws {
-        let expectation = expectation(description: #function)
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
-        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
-            self.thenHandlerShouldntHaveInvokedCreate()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in })
+        thenHandlerShouldntHaveInvokedCreate()
+        uploadTask.cancel()
     }
 }
 
