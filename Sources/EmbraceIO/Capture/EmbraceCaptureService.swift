@@ -19,5 +19,6 @@ public enum EmbraceCaptureService {
     case lowMemoryWarning
     case lowPowerMode
     case hang
+    /// Available on iOS and tvOS only; has no effect on watchOS and macOS.
     case smoothness
 }

@@ -381,6 +381,14 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
             // then it's removed
             XCTAssertFalse(builder.build().smoothness)
         }
+    #else
+        func test_smoothness_ignoredOnUnsupportedPlatforms() throws {
+            // given options with smoothness enabled on a platform without `CADisplayLink` frame timing
+            let options = EmbraceIO.CaptureServicesOptions(smoothness: true)
+
+            // then no smoothness service is installed
+            XCTAssertFalse(options.list.contains { String(describing: type(of: $0)) == "SmoothnessCaptureService" })
+        }
     #endif
 
     func test_customService() throws {

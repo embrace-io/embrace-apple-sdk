@@ -28,6 +28,7 @@ extension EmbraceIO {
         let lowMemoryWarning: Bool
         let lowPowerMode: Bool
         let hang: Bool
+        /// Ignored on watchOS and macOS, where `SmoothnessCaptureService` is unavailable.
         let smoothness: Bool
         let customServices: [CaptureService]
 
