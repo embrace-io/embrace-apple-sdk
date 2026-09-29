@@ -17,6 +17,11 @@ extension SpanSemantics {
         /// Total late time while the span was open, in 60fps reference frames.
         public static let keyNormalizedDroppedFrames = "smoothness.normalized_dropped_frames"
 
+        /// Main-thread hangs while the span was open: frames later than the hang threshold, each of which
+        /// had its contribution to `keyNormalizedDroppedFrames` capped. Counts every stall, including ones
+        /// past `HangLimits.hangPerSession` that emit no hang span. iOS-only.
+        public static let keyHangCount = "smoothness.hang_count"
+
         /// Most severe device thermal state observed while the span was open. iOS-only; one of the
         /// `ThermalState` values.
         public static let keyPeakThermalState = "smoothness.peak_thermal_state"

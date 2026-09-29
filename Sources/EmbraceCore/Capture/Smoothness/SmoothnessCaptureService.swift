@@ -25,7 +25,8 @@ import Foundation
     ///
     /// The span opens when the foreground part starts, so it is persisted with that part's id right
     /// away, and ends just before the part's payload is built, carrying the part's frame count,
-    /// dropped frames normalized to 60fps, and the most severe thermal state seen while it was open.
+    /// dropped frames normalized to 60fps, hang count, and the most severe thermal state seen while it
+    /// was open.
     ///
     /// When the app is terminated while a foreground part is open (e.g. swiped away from the app
     /// switcher), the part is never ended, so the span is ended on `willTerminate` instead and flushed
@@ -285,6 +286,7 @@ import Foundation
             // Always ended, including with zero frames: the span is already persisted and zero is valid.
             span.setAttribute(key: SpanSemantics.Smoothness.keyFrameCount, value: stats.frameCount)
             span.setAttribute(key: SpanSemantics.Smoothness.keyNormalizedDroppedFrames, value: stats.normalizedDroppedFrames)
+            span.setAttribute(key: SpanSemantics.Smoothness.keyHangCount, value: stats.cappedTickCount)
             span.setAttribute(key: SpanSemantics.Smoothness.keyPeakThermalState, value: closed.peakThermalState.semanticValue)
             span.end(endTime: stats.endTime)
         }

@@ -195,6 +195,82 @@
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
             XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 0)
             XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyNormalizedDroppedFrames] as? Double, 0)
+            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 0)
+        }
+
+        // MARK: - Hang count
+
+        func test_partWithoutHangs_hasZeroHangCount() throws {
+            startService()
+            startPart(.foreground)
+            let tracker = try XCTUnwrap(service.tracker)
+
+            tracker.recordFrame(lateBy: 0)
+            tracker.recordFrame(lateBy: 2.0 / 60.0)
+            tracker.recordFrame(lateBy: tracker.hangThreshold)
+            endPart()
+
+            let span = try XCTUnwrap(endedSmoothnessSpans.first)
+            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 0)
+        }
+
+        func test_hangCount_countsEveryTickPastHangThreshold() throws {
+            startService()
+            startPart(.foreground)
+            let tracker = try XCTUnwrap(service.tracker)
+
+            tracker.recordFrame(lateBy: 0)
+            tracker.recordFrame(lateBy: tracker.hangThreshold + 0.001)
+            tracker.recordFrame(lateBy: 0)
+            tracker.recordFrame(lateBy: 5)
+            endPart()
+
+            let span = try XCTUnwrap(endedSmoothnessSpans.first)
+            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 2)
+        }
+
+        func test_hangCount_isNotLimitedByHangPerSession() throws {
+            startService()
+            service.onConfigUpdated(MockEmbraceConfigurable(hangLimits: HangLimits(hangPerSession: 1)))
+            startPart(.foreground)
+            let tracker = try XCTUnwrap(service.tracker)
+
+            for _ in 0..<3 {
+                tracker.recordFrame(lateBy: 1)
+            }
+            endPart()
+
+            let span = try XCTUnwrap(endedSmoothnessSpans.first)
+            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 3)
+        }
+
+        func test_hangCount_usesUpdatedHangThreshold() throws {
+            startService()
+            service.onConfigUpdated(MockEmbraceConfigurable(hangLimits: HangLimits(hangThreshold: 0.5)))
+            startPart(.foreground)
+            let tracker = try XCTUnwrap(service.tracker)
+
+            tracker.recordFrame(lateBy: 0.3)
+            tracker.recordFrame(lateBy: 0.6)
+            endPart()
+
+            let span = try XCTUnwrap(endedSmoothnessSpans.first)
+            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 1)
+        }
+
+        func test_hangCount_doesNotCarryIntoNextPart() throws {
+            startService()
+            startPart(.foreground)
+            try XCTUnwrap(service.tracker).recordFrame(lateBy: 1)
+            endPart()
+
+            startPart(.foreground)
+            try XCTUnwrap(service.tracker).recordFrame(lateBy: 0)
+            endPart()
+
+            XCTAssertEqual(endedSmoothnessSpans.count, 2)
+            XCTAssertEqual(endedSmoothnessSpans[0].attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 1)
+            XCTAssertEqual(endedSmoothnessSpans[1].attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 0)
         }
 
         func test_backgroundPartWillEnd_doesNotEndForegroundSpan() {
@@ -542,6 +618,7 @@
             XCTAssertNotNil(span.endTime)
             XCTAssertNotNil(span.attributes[SpanSemantics.Smoothness.keyFrameCount])
             XCTAssertNotNil(span.attributes[SpanSemantics.Smoothness.keyPeakThermalState])
+            XCTAssertNotNil(span.attributes[SpanSemantics.Smoothness.keyHangCount])
         }
 
         func test_foregroundPartEndedOffMain_spanIsEndedBeforeEndSessionReturns() throws {

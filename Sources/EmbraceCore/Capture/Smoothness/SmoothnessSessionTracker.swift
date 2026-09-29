@@ -33,7 +33,14 @@
         /// reference frames.
         let normalizedDroppedFrames: Double
 
-        /// Ticks whose lateness exceeded the hang ceiling and were capped.
+        /// Ticks whose lateness exceeded the hang ceiling and were capped, reported as the span's hang
+        /// count.
+        ///
+        /// Uses the same `delay > hangThreshold` test and threshold as `FrameRateMonitor`, so it is how a
+        /// `smoothness` span is correlated with `HangCaptureService`'s hang spans. It can still differ
+        /// from the number of hang spans in the part: it isn't limited by `HangLimits.hangPerSession`,
+        /// it's counted even when `HangCaptureService` isn't installed, and each service reads its own
+        /// `CADisplayLink`, so a stall right at the threshold can land on one side only.
         let cappedTickCount: Int
     }
 
@@ -53,8 +60,8 @@
     /// before the ending part's payload is queued, on whichever thread is ending the part.
     ///
     /// A single tick that is later than `hangThreshold` (a main-thread hang) is capped to
-    /// `hangThreshold`, so one stall can't dominate an otherwise long session. The session stays open
-    /// across a hang.
+    /// `hangThreshold`, so one stall can't dominate an otherwise long session, and is counted in
+    /// `cappedTickCount`. The session stays open across a hang.
     ///
     /// Late time is summed as a continuous duration and only normalized to 60fps reference frames
     /// when the session closes, so no per-tick rounding accumulates over long sessions.
