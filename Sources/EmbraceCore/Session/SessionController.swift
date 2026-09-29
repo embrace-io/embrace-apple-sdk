@@ -36,6 +36,9 @@ class SessionController: SessionControllable {
 
     static let sessionPartNumberKey = "emb.session_part_number"
 
+    /// `userInfo` key for the ending part's end time (`Date`) on `.embraceSessionPartWillEndSync`.
+    static let sessionPartWillEndSyncEndTimeKey = "endTime"
+
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
 
@@ -432,7 +435,11 @@ class SessionController: SessionControllable {
         otel?.autoTerminateSpans()
 
         // post synchronous internal notification while the part is still current
-        Embrace.notificationCenter.post(name: .embraceSessionPartWillEndSync, object: inProgressSession)
+        Embrace.notificationCenter.post(
+            name: .embraceSessionPartWillEndSync,
+            object: inProgressSession,
+            userInfo: [SessionController.sessionPartWillEndSyncEndTimeKey: now]
+        )
 
         // post public notification
         let mainQueueSession = inProgressSession
@@ -659,9 +666,13 @@ extension Notification.Name {
     /// Posted synchronously on `Embrace.notificationCenter` just before a session part ends, for every
     /// part state. The `object` is the `EmbraceSession` (the part) that is about to end.
     ///
+    /// The `userInfo` carries the part's end time under `SessionController.sessionPartWillEndSyncEndTimeKey`.
+    ///
     /// Unlike `embraceSessionPartWillEnd`, this is posted before the session span ends and before the
     /// part's payload is queued for upload, while `currentSession` still returns the ending part. Spans
-    /// ended from an observer are attributed to the ending part. Prefer spans opened earlier in the part:
+    /// ended from an observer at the part's end time are attributed to the ending part only. A later end
+    /// time overlaps the next part, whose payload would then include the span too, because the next part
+    /// starts at exactly this end time. Prefer spans opened earlier in the part:
     /// cold-start parts match spans by start time only, so a span *started* in the observer is dropped
     /// from a cold-start part's payload.
     ///

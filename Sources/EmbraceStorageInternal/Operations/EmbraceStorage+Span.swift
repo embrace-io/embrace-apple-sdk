@@ -353,9 +353,11 @@ extension EmbraceStorage {
                 endTime
             )
 
-            // span starts before session and doesn't end before session starts
+            // span starts before session and ends after session starts.
+            // A span ending exactly at the start belongs to the previous part only, since parts are
+            // contiguous and the previous part ends at this same instant.
             let predicate2 = NSPredicate(
-                format: "startTime < %@ AND (endTime = nil OR endTime >= %@)",
+                format: "startTime < %@ AND (endTime = nil OR endTime > %@)",
                 startTime,
                 startTime
             )

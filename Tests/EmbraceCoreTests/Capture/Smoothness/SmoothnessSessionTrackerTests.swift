@@ -68,9 +68,14 @@
             return session
         }
 
-        /// Posts the synchronous will-end hook for `session`, defaulting to the current part.
-        private func endPart(_ session: EmbraceSession? = nil) {
-            embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: session ?? currentSession)
+        /// Posts the synchronous will-end hook for `session`, defaulting to the current part, with the
+        /// part's end time as `SessionController` does.
+        private func endPart(_ session: EmbraceSession? = nil, at endTime: Date = Date()) {
+            embraceNotificationCenter.post(
+                name: .embraceSessionPartWillEndSync,
+                object: session ?? currentSession,
+                userInfo: [SessionController.sessionPartWillEndSyncEndTimeKey: endTime]
+            )
         }
 
         private func postDidBecomeActive() {
@@ -144,6 +149,26 @@
             XCTAssertFalse(tracker.isSessionOpen)
             XCTAssertEqual(reported.count, 1)
             XCTAssertEqual(reportedPartIds, [session.id])
+            XCTAssertGreaterThanOrEqual(reported.first?.endTime ?? .distantPast, before)
+            XCTAssertLessThanOrEqual(reported.first?.endTime ?? .distantFuture, Date())
+        }
+
+        func testPartEndClosesAtPartEndTime() {
+            startPart(.foreground)
+            let endTime = Date(timeIntervalSinceNow: -1)
+
+            endPart(at: endTime)
+
+            XCTAssertEqual(reported.first?.endTime, endTime)
+        }
+
+        func testPartEndWithoutEndTimeClosesNow() {
+            startPart(.foreground)
+            let before = Date()
+
+            embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: currentSession)
+
+            XCTAssertEqual(reported.count, 1)
             XCTAssertGreaterThanOrEqual(reported.first?.endTime ?? .distantPast, before)
             XCTAssertLessThanOrEqual(reported.first?.endTime ?? .distantFuture, Date())
         }

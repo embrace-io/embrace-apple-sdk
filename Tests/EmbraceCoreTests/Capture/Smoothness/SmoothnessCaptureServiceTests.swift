@@ -72,8 +72,12 @@
             return session
         }
 
-        private func endPart(_ session: EmbraceSession? = nil) {
-            embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: session ?? currentSession)
+        private func endPart(_ session: EmbraceSession? = nil, at endTime: Date = Date()) {
+            embraceNotificationCenter.post(
+                name: .embraceSessionPartWillEndSync,
+                object: session ?? currentSession,
+                userInfo: [SessionController.sessionPartWillEndSyncEndTimeKey: endTime]
+            )
         }
 
         private func postWillTerminate() {
@@ -154,6 +158,17 @@
             XCTAssertEqual(span.type, .smoothness)
             XCTAssertEqual(span.startTime, session.startTime)
             XCTAssertNil(span.endTime)
+        }
+
+        func test_partWillEnd_endsSpanAtPartEndTime() throws {
+            startService()
+            let session = startPart(.foreground)
+            let endTime = session.startTime.addingTimeInterval(1)
+
+            endPart(at: endTime)
+
+            let span = try XCTUnwrap(endedSmoothnessSpans.first)
+            XCTAssertEqual(span.endTime, endTime)
         }
 
         func test_backgroundPartStart_createsNoSpan() {

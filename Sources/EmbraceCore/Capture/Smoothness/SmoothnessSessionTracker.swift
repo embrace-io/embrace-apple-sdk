@@ -57,7 +57,8 @@
     /// asynchronously on main and can arrive after its part ended.
     ///
     /// Closes synchronously from `.embraceSessionPartWillEndSync`, which `SessionController` posts
-    /// before the ending part's payload is queued, on whichever thread is ending the part.
+    /// before the ending part's payload is queued, on whichever thread is ending the part. The session
+    /// is closed at the part's end time from the notification, so its span belongs to that part only.
     ///
     /// A single tick that is later than `hangThreshold` (a main-thread hang) is capped to
     /// `hangThreshold`, so one stall can't dominate an otherwise long session, and is counted in
@@ -287,10 +288,14 @@
 
         /// `SessionController` posts this synchronously with its lock held, on whichever thread is
         /// ending the part. Matching on the open part id is enough to filter out background parts.
+        ///
+        /// Closes at the part's own end time, since the next part starts at exactly that time and a
+        /// later end would put the span in the next part's payload too.
         @objc private func sessionPartWillEnd(_ notification: Notification) {
             guard let session = notification.object as? EmbraceSession else { return }
 
-            close(partId: session.id, at: Date())
+            let endTime = notification.userInfo?[SessionController.sessionPartWillEndSyncEndTimeKey] as? Date ?? Date()
+            close(partId: session.id, at: endTime)
         }
     }
 
