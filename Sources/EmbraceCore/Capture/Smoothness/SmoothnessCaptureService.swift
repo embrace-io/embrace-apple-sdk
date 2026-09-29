@@ -30,8 +30,13 @@ import Foundation
     ///
     /// When the app is terminated while a foreground part is open (e.g. swiped away from the app
     /// switcher), the part is never ended, so the span is ended on `willTerminate` instead and flushed
-    /// to storage before the notification returns. A part that never ends cleanly otherwise (crash,
-    /// kill while suspended) surfaces as a failed span.
+    /// to storage before the notification returns.
+    ///
+    /// A part that never ends cleanly otherwise (crash, watchdog or jetsam kill) leaves the span open in
+    /// storage, and it is closed when the next launch recovers the session. It is flagged as failed only
+    /// if a crash report was found. To keep its metrics, they are checkpointed onto the span every
+    /// `checkpointInterval` while it is open, and the span carries `smoothness.complete = false` until
+    /// it ends normally, so a recovered span can be told apart from a clean one.
     ///
     /// - Note: Experimental and opt-in. Not part of the default capture services.
     public final class SmoothnessCaptureService: CaptureService {
@@ -45,21 +50,28 @@ import Foundation
             )
         }
 
+        /// How often the open span's metrics are written to storage, so a part that is killed keeps
+        /// them. Each checkpoint is a handful of asynchronous attribute writes, none on the frame path.
+        static let defaultCheckpointInterval: TimeInterval = 15
+
         /// - Parameters:
         ///   - flushStorage: Blocks until pending storage writes, including the span's end, are on disk.
         ///   - thermalState: Reads the device's current thermal state.
+        ///   - checkpointInterval: How often the open span's metrics are checkpointed. `0` disables it.
         init(
             currentSession: @escaping () -> EmbraceSession?,
             notificationCenter: NotificationCenter,
             embraceNotificationCenter: NotificationCenter,
             flushStorage: @escaping () -> Void,
-            thermalState: @escaping () -> ProcessInfo.ThermalState = { ProcessInfo.processInfo.thermalState }
+            thermalState: @escaping () -> ProcessInfo.ThermalState = { ProcessInfo.processInfo.thermalState },
+            checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval
         ) {
             self.currentSession = currentSession
             self.notificationCenter = notificationCenter
             self.embraceNotificationCenter = embraceNotificationCenter
             self.flushStorage = flushStorage
             self.thermalState = thermalState
+            self.checkpointInterval = checkpointInterval
             super.init()
 
             notificationCenter.addObserver(
@@ -129,6 +141,12 @@ import Foundation
             data.withLock { $0.pipeline?.tracker }
         }
 
+        /// Writes the open span's metrics so far to it. No-ops if no span is open. Called by the
+        /// checkpoint timer.
+        func checkpoint() {
+            tracker?.checkpoint(at: Date())
+        }
+
         /// Builds the closure `FrameTimingSource` calls on every tick.
         ///
         /// In debug builds, `EMBSmoothnessSignposts=1` wraps each tick in an `os_signpost` interval
@@ -176,6 +194,9 @@ import Foundation
             tracker.onSessionClosed = { [weak self] partId, stats in
                 self?.endSpan(partId: partId, stats: stats)
             }
+            tracker.onSessionCheckpoint = { [weak self] partId, stats in
+                self?.checkpointSpan(partId: partId, stats: stats)
+            }
 
             let source = FrameTimingSource()
             source.onTick = Self.makeTickHandler(classifier: classifier)
@@ -202,6 +223,8 @@ import Foundation
             let partId: EmbraceIdentifier
             let span: EmbraceSpan
             var peakThermalState: ProcessInfo.ThermalState
+            /// Fires `checkpoint()` while the span is open. Cancelled when the span ends.
+            let checkpointTimer: DispatchSourceTimer?
         }
 
         private struct MutableData {
@@ -215,6 +238,8 @@ import Foundation
         private let embraceNotificationCenter: NotificationCenter
         private let flushStorage: () -> Void
         private let thermalState: () -> ProcessInfo.ThermalState
+        private let checkpointInterval: TimeInterval
+        private let checkpointQueue = DispatchQueue(label: "io.embrace.smoothness.checkpoint", qos: .utility)
 
         /// Raw notification name to avoid a direct UIKit dependency.
         private static let willTerminateNotification =
@@ -247,12 +272,15 @@ import Foundation
         /// Created synchronously so the span is stamped with the part that is current right now. No
         /// auto-termination code: `autoTerminateSpans()` runs just before the part-will-end hook and
         /// would end the span as an error first.
+        ///
+        /// Opened as incomplete, so a span recovered after a kill or crash is flagged as such.
         private func openSpan(partId: EmbraceIdentifier, startTime: Date) {
             guard
                 let span = try? otel?.createInternalSpan(
                     name: SpanSemantics.Smoothness.name,
                     type: .smoothness,
-                    startTime: startTime
+                    startTime: startTime,
+                    attributes: [SpanSemantics.Smoothness.keyComplete: false]
                 )
             else {
                 return
@@ -260,13 +288,50 @@ import Foundation
 
             // Seeded here since the change notification only fires on transitions.
             let initialThermalState = thermalState()
-            let previous = data.withLock { data -> EmbraceSpan? in
-                let previous = data.openSpan?.span
-                data.openSpan = OpenSpan(partId: partId, span: span, peakThermalState: initialThermalState)
+            let timer = makeCheckpointTimer()
+            let previous = data.withLock { data -> OpenSpan? in
+                let previous = data.openSpan
+                data.openSpan = OpenSpan(
+                    partId: partId,
+                    span: span,
+                    peakThermalState: initialThermalState,
+                    checkpointTimer: timer
+                )
                 return previous
             }
             // The tracker closes a part before opening the next, so this only fires if a span leaked.
-            previous?.end()
+            previous?.checkpointTimer?.cancel()
+            previous?.span.end()
+        }
+
+        private func makeCheckpointTimer() -> DispatchSourceTimer? {
+            guard checkpointInterval > 0 else { return nil }
+
+            let timer = DispatchSource.makeTimerSource(queue: checkpointQueue)
+            timer.setEventHandler { [weak self] in
+                self?.checkpoint()
+            }
+            timer.schedule(
+                deadline: .now() + checkpointInterval,
+                repeating: checkpointInterval,
+                leeway: .milliseconds(Int(checkpointInterval * 100))
+            )
+            timer.activate()
+            return timer
+        }
+
+        /// Called with the tracker's lock held, so it can't race the span's end.
+        private func checkpointSpan(partId: EmbraceIdentifier, stats: SmoothnessSessionStats) {
+            let currentThermalState = thermalState()
+            let open = data.withLock { data -> OpenSpan? in
+                guard data.openSpan?.partId == partId else { return nil }
+                data.openSpan?.peakThermalState.raise(to: currentThermalState)
+                return data.openSpan
+            }
+            guard let open else { return }
+
+            setMetrics(on: open.span, stats: stats, peakThermalState: open.peakThermalState)
+            open.span.setAttribute(key: SpanSemantics.Smoothness.keyCheckpointTime, value: stats.endTime.nanosecondsSince1970Truncated)
         }
 
         /// Called with the tracker's lock held, and usually the `SessionController` lock too. Keep it
@@ -281,14 +346,20 @@ import Foundation
                 return open
             }
             guard let closed else { return }
+            closed.checkpointTimer?.cancel()
             let span = closed.span
 
             // Always ended, including with zero frames: the span is already persisted and zero is valid.
+            setMetrics(on: span, stats: stats, peakThermalState: closed.peakThermalState)
+            span.setAttribute(key: SpanSemantics.Smoothness.keyComplete, value: true)
+            span.end(endTime: stats.endTime)
+        }
+
+        private func setMetrics(on span: EmbraceSpan, stats: SmoothnessSessionStats, peakThermalState: ProcessInfo.ThermalState) {
             span.setAttribute(key: SpanSemantics.Smoothness.keyFrameCount, value: stats.frameCount)
             span.setAttribute(key: SpanSemantics.Smoothness.keyNormalizedDroppedFrames, value: stats.normalizedDroppedFrames)
             span.setAttribute(key: SpanSemantics.Smoothness.keyHangCount, value: stats.cappedTickCount)
-            span.setAttribute(key: SpanSemantics.Smoothness.keyPeakThermalState, value: closed.peakThermalState.semanticValue)
-            span.end(endTime: stats.endTime)
+            span.setAttribute(key: SpanSemantics.Smoothness.keyPeakThermalState, value: peakThermalState.semanticValue)
         }
     }
 

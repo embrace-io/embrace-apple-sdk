@@ -324,6 +324,68 @@
             XCTAssertEqual(opened, [session.id])
         }
 
+        // MARK: - Checkpoint
+
+        func testCheckpointReportsStatsSoFarAndKeepsPartOpen() {
+            var checkpoints: [SmoothnessSessionStats] = []
+            var checkpointPartIds: [EmbraceIdentifier] = []
+            tracker.onSessionCheckpoint = { partId, stats in
+                checkpointPartIds.append(partId)
+                checkpoints.append(stats)
+            }
+            let session = startPart(.foreground)
+            let checkpointTime = Date()
+
+            tick(delayInFrames: 0)
+            tick(delayInFrames: 1.5)
+            tick(delayInFrames: 20)
+
+            XCTAssertTrue(tracker.checkpoint(at: checkpointTime))
+            XCTAssertEqual(checkpointPartIds, [session.id])
+            XCTAssertEqual(checkpoints.first?.endTime, checkpointTime)
+            XCTAssertEqual(checkpoints.first?.frameCount, 3)
+            XCTAssertEqual(checkpoints.first?.normalizedDroppedFrames ?? 0, 1.5 + 0.249 * 60, accuracy: accuracy)
+            XCTAssertEqual(checkpoints.first?.cappedTickCount, 1)
+            XCTAssertTrue(tracker.isSessionOpen)
+            XCTAssertTrue(reported.isEmpty)
+        }
+
+        func testCloseAfterCheckpointReportsFullTotals() {
+            tracker.onSessionCheckpoint = { _, _ in }
+            startPart(.foreground)
+
+            tick(delayInFrames: 1)
+            tracker.checkpoint(at: Date())
+            tick(delayInFrames: 2)
+            endPart()
+
+            XCTAssertEqual(reported.count, 1)
+            XCTAssertEqual(reported.first?.frameCount, 2)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 3, accuracy: accuracy)
+        }
+
+        func testCheckpointWithoutOpenPartIsNoOp() {
+            var checkpoints = 0
+            tracker.onSessionCheckpoint = { _, _ in checkpoints += 1 }
+
+            XCTAssertFalse(tracker.checkpoint(at: Date()))
+
+            startPart(.foreground)
+            endPart()
+
+            XCTAssertFalse(tracker.checkpoint(at: Date()))
+            XCTAssertEqual(checkpoints, 0)
+        }
+
+        func testCheckpointInBackgroundPartIsNoOp() {
+            var checkpoints = 0
+            tracker.onSessionCheckpoint = { _, _ in checkpoints += 1 }
+            startPart(.background)
+
+            XCTAssertFalse(tracker.checkpoint(at: Date()))
+            XCTAssertEqual(checkpoints, 0)
+        }
+
         // MARK: - Accounting
 
         func testAccumulatesFrameCountAndNormalizedDroppedFrames() {
