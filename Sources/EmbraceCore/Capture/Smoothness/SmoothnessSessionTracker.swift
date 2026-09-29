@@ -13,11 +13,12 @@
 
     /// Frame accounting for one completed foreground session.
     ///
-    /// Matches Android's smoothness units: `frameCount` is the real (unnormalized) number of frames
-    /// rendered, and `normalizedDroppedFrames` is the total late time expressed in 60fps reference
-    /// frames, so it is refresh-rate independent (one dropped frame is 0.5 at 120Hz, 2.0 at 30Hz).
-    /// Expected frames are not stored; like Android, they are implied by the session's duration
+    /// Uses Android's smoothness units: `normalizedDroppedFrames` is the total late time expressed in
+    /// 60fps reference frames, so it is refresh-rate independent (one dropped frame is 0.5 at 120Hz, 2.0
+    /// at 30Hz). Expected frames are not stored; like Android, they are implied by the session's duration
     /// (`duration * referenceFrameRate`).
+    ///
+    /// `frameCount` does not mean the same as Android's: see its doc comment.
     struct SmoothnessSessionStats: Equatable {
 
         /// The fixed frame rate all dropped-frame counts are normalized to.
@@ -26,7 +27,12 @@
         let startTime: Date
         let endTime: Date
 
-        /// Frames rendered (display link ticks delivered) while the session was open.
+        /// Display link ticks (vsyncs) delivered while the session was open, not frames the app
+        /// rendered.
+        ///
+        /// The display link fires at the display's refresh rate whether or not the app draws, so an idle
+        /// screen still counts 60 or 120 per second. Android's `frameCount` only counts rendered frames,
+        /// so ratios against it are not comparable across platforms.
         let frameCount: Int
 
         /// Total late time while the session was open, after the hang ceiling is applied, in 60fps
@@ -36,8 +42,10 @@
         /// Ticks whose lateness exceeded the hang ceiling and were capped, reported as the span's hang
         /// count.
         ///
-        /// Uses the same `delay > hangThreshold` test and threshold as `FrameRateMonitor`, so it is how a
-        /// `smoothness` span is correlated with `HangCaptureService`'s hang spans. It can still differ
+        /// Uses the same `> hangThreshold` test and threshold as `FrameRateMonitor`, so it is how a
+        /// `smoothness` span is correlated with `HangCaptureService`'s hang spans. The test is applied to
+        /// the lateness after `FrameDropClassifier`'s corrections, which only differs from the raw delay
+        /// by at most one frame interval, and only on a refresh rate step-down. It can still differ
         /// from the number of hang spans in the part: it isn't limited by `HangLimits.hangPerSession`,
         /// it's counted even when `HangCaptureService` isn't installed, and each service reads its own
         /// `CADisplayLink`, so a stall right at the threshold can land on one side only.

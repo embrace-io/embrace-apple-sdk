@@ -155,17 +155,17 @@ import Foundation
         static func makeTickHandler(
             classifier: FrameDropClassifier,
             environment: [String: String] = ProcessInfo.processInfo.environment
-        ) -> (TimeInterval) -> Void {
-            let handler: (TimeInterval) -> Void = { [weak classifier] delay in
-                classifier?.handle(delay: delay)
+        ) -> (FrameTimingSource.Tick) -> Void {
+            let handler: (FrameTimingSource.Tick) -> Void = { [weak classifier] tick in
+                classifier?.handle(tick)
             }
 
             #if DEBUG
                 if environment["EMBSmoothnessSignposts"] == "1" {
                     let log = OSLog(subsystem: "io.embrace.sdk", category: "Smoothness")
-                    return { delay in
+                    return { tick in
                         os_signpost(.begin, log: log, name: "Tick")
-                        handler(delay)
+                        handler(tick)
                         os_signpost(.end, log: log, name: "Tick")
                     }
                 }

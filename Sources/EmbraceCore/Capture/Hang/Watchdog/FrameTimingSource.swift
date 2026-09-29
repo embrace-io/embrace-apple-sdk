@@ -14,16 +14,37 @@
     /// frame's `targetTimestamp` — the system's promise of when that frame would fire — and reports
     /// the difference via `onTick`.
     ///
-    /// This approach is dynamic-rate–safe: using `targetTimestamp` rather than a fixed frame
-    /// duration means ProMotion, Low Power Mode, and `preferredFrameRateRange` transitions never
-    /// produce false deltas. `CADisplayLink` also pauses automatically in the background, so
-    /// suspend gaps are excluded without any extra bookkeeping.
+    /// Using `targetTimestamp` rather than a fixed frame duration keeps the delay correct at
+    /// hang scale across ProMotion, Low Power Mode, and `preferredFrameRateRange` transitions.
+    /// It is not exact at sub-frame scale: when the refresh rate steps down, the next tick lands
+    /// up to one frame interval after the previous `targetTimestamp`, which shows up as a small
+    /// delay. Each `Tick` carries the frame interval before and after, so consumers that account
+    /// for sub-frame lateness (`FrameDropClassifier`) can discount it.
+    ///
+    /// The delay only reflects when the main run loop serviced the display link, so it catches a
+    /// blocked main thread but not frames missed in the commit, render server, or GPU while main
+    /// was free.
+    ///
+    /// `CADisplayLink` pauses automatically in the background, so suspend gaps are excluded
+    /// without any extra bookkeeping.
     final class FrameTimingSource {
 
-        /// Called on each frame tick (after the first, which only arms the comparison) with the
-        /// delay in seconds between the tick's actual timestamp and the previous tick's
-        /// `targetTimestamp`. A positive value means the frame arrived later than promised.
-        var onTick: ((TimeInterval) -> Void)?
+        /// One frame tick's timing.
+        struct Tick {
+            /// Seconds between the tick's actual timestamp and the previous tick's
+            /// `targetTimestamp`. A positive value means the frame arrived later than promised.
+            let delay: TimeInterval
+
+            /// This tick's frame interval (`targetTimestamp - timestamp`).
+            let frameInterval: TimeInterval
+
+            /// The previous tick's frame interval. Differs from `frameInterval` when the refresh
+            /// rate changed between the two ticks.
+            let previousFrameInterval: TimeInterval
+        }
+
+        /// Called on each frame tick, after the first, which only arms the comparison.
+        var onTick: ((Tick) -> Void)?
 
         /// Creates a new `FrameTimingSource` and immediately begins observing frame timing.
         ///
@@ -59,6 +80,9 @@
         /// the current frame would fire.
         private var previousTickExpectedTimestamp: CFTimeInterval?
 
+        /// The previous frame's `targetTimestamp - timestamp`.
+        private var previousFrameInterval: CFTimeInterval = 0
+
         /// Raw notification name to avoid a direct UIKit dependency.
         private static let willEnterForegroundNotification =
             Notification.Name("UIApplicationWillEnterForegroundNotification")
@@ -81,8 +105,10 @@
         /// Compares a tick's `timestamp` against the previous tick's `targetTimestamp`. Must be called
         /// on the main thread.
         func handleTick(timestamp: CFTimeInterval, targetTimestamp: CFTimeInterval) {
+            let frameInterval = targetTimestamp - timestamp
             defer {
                 previousTickExpectedTimestamp = targetTimestamp
+                previousFrameInterval = frameInterval
             }
 
             guard let expectedTimestamp = previousTickExpectedTimestamp else {
@@ -90,8 +116,12 @@
                 return
             }
 
-            let delay = timestamp - expectedTimestamp
-            onTick?(delay)
+            onTick?(
+                Tick(
+                    delay: timestamp - expectedTimestamp,
+                    frameInterval: frameInterval,
+                    previousFrameInterval: previousFrameInterval
+                ))
         }
     }
 

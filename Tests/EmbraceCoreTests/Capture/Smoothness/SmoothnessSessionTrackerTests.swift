@@ -90,7 +90,13 @@
         }
 
         private func tick(delayInFrames: Double) {
-            classifier.handle(delay: frameDuration * delayInFrames)
+            handle(delay: frameDuration * delayInFrames)
+        }
+
+        /// Delivers a tick at a steady refresh rate with `frameInterval` between vsyncs.
+        private func handle(delay: TimeInterval, frameInterval: TimeInterval? = nil) {
+            let interval = frameInterval ?? frameDuration
+            classifier.handle(FrameTimingSource.Tick(delay: delay, frameInterval: interval, previousFrameInterval: interval))
         }
 
         // MARK: - Lifecycle
@@ -404,12 +410,12 @@
         func testPartialFrameDropsAreNotRoundedAway() {
             startPart(.foreground)
 
-            tick(delayInFrames: 0.4)
-            tick(delayInFrames: 0.4)
-            tick(delayInFrames: 0.4)
+            tick(delayInFrames: 1.4)
+            tick(delayInFrames: 1.4)
+            tick(delayInFrames: 1.4)
             endPart()
 
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 1.2, accuracy: accuracy)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 4.2, accuracy: accuracy)
         }
 
         func testTicksOutsideOpenSessionAreIgnored() {
@@ -444,7 +450,7 @@
         func testOneMissedVsyncAt120HzIsHalfAReferenceFrame() {
             startPart(.foreground)
 
-            classifier.handle(delay: 1.0 / 120.0)
+            handle(delay: 1.0 / 120.0, frameInterval: 1.0 / 120.0)
             endPart()
 
             XCTAssertEqual(reported.first?.frameCount, 1)
@@ -454,7 +460,7 @@
         func testOneMissedVsyncAt30HzIsTwoReferenceFrames() {
             startPart(.foreground)
 
-            classifier.handle(delay: 1.0 / 30.0)
+            handle(delay: 1.0 / 30.0, frameInterval: 1.0 / 30.0)
             endPart()
 
             XCTAssertEqual(reported.first?.frameCount, 1)
@@ -464,14 +470,14 @@
         func testLongSessionDoesNotDrift() {
             startPart(.foreground)
 
-            // One hour at 120Hz, every frame 10% of a vsync late.
+            // One hour at 120Hz, every 10th frame one vsync late.
             let ticks = 120 * 60 * 60
-            for _ in 0..<ticks {
-                classifier.handle(delay: (1.0 / 120.0) * 0.1)
+            for index in 0..<ticks {
+                handle(delay: index % 10 == 9 ? 1.0 / 120.0 : 0, frameInterval: 1.0 / 120.0)
             }
             endPart()
 
-            // 432,000 ticks * 0.05 reference frames each.
+            // 43,200 late ticks * 0.5 reference frames each.
             XCTAssertEqual(reported.first?.frameCount, ticks)
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 21_600, accuracy: 1e-6)
         }
@@ -493,7 +499,7 @@
         func testTickAtHangThresholdIsNotCapped() {
             startPart(.foreground)
 
-            classifier.handle(delay: 0.249)
+            handle(delay: 0.249)
             endPart()
 
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
@@ -503,7 +509,7 @@
         func testCeilingIsRefreshRateIndependent() {
             startPart(.foreground)
 
-            classifier.handle(delay: 2.0)
+            handle(delay: 2.0)
             endPart()
 
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
@@ -514,7 +520,7 @@
             startPart(.foreground)
 
             tracker.hangThreshold = 0.5
-            classifier.handle(delay: 2.0)
+            handle(delay: 2.0)
             endPart()
 
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 30, accuracy: accuracy)

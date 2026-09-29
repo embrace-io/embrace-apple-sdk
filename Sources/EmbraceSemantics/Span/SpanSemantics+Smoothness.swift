@@ -11,10 +11,14 @@ extension SpanSemantics {
     public struct Smoothness {
         public static let name = "smoothness"
 
-        /// Frames rendered while the span was open.
+        /// Display link ticks (vsyncs) while the span was open, not frames the app rendered. An idle
+        /// screen still counts at the display's refresh rate. Android's `frame_count` only counts rendered
+        /// frames, so ratios against it are not comparable across platforms.
         public static let keyFrameCount = "smoothness.frame_count"
 
-        /// Total late time while the span was open, in 60fps reference frames.
+        /// Total late time while the span was open, in 60fps reference frames. On iOS this is main-thread
+        /// lateness only: frames missed in the commit, render server, or GPU while the main thread was
+        /// free are not counted, unlike Android, which includes render time.
         public static let keyNormalizedDroppedFrames = "smoothness.normalized_dropped_frames"
 
         /// Main-thread hangs while the span was open: frames later than the hang threshold, each of which

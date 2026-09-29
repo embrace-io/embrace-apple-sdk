@@ -19,16 +19,17 @@
 
         private var notificationCenter: NotificationCenter!
         private var source: FrameTimingSource!
-        private var delays: [TimeInterval] = []
+        private var ticks: [FrameTimingSource.Tick] = []
+        private var delays: [TimeInterval] { ticks.map(\.delay) }
         private var now: CFTimeInterval = 1_000
 
         override func setUp() {
             super.setUp()
             notificationCenter = NotificationCenter()
             source = FrameTimingSource()
-            delays = []
+            ticks = []
             now = 1_000
-            source.onTick = { [unowned self] delay in self.delays.append(delay) }
+            source.onTick = { [unowned self] tick in self.ticks.append(tick) }
             // Discard anything a real tick armed before the test body.
             postWillEnterForeground()
         }
@@ -96,6 +97,31 @@
             XCTAssertEqual(delays.max() ?? 1, 0, accuracy: 1e-9)
         }
 
+        func testTickCarriesFrameIntervals() throws {
+            tick()
+            tick()
+
+            let reported = try XCTUnwrap(ticks.first)
+            XCTAssertEqual(reported.frameInterval, frameDuration, accuracy: 1e-9)
+            XCTAssertEqual(reported.previousFrameInterval, frameDuration, accuracy: 1e-9)
+        }
+
+        func testRateStepDownReportsBothIntervalsAndStepDelay() throws {
+            let fastInterval = 1.0 / 120.0
+            let slowInterval = 1.0 / 60.0
+
+            // A 120Hz tick promises the next frame at `now + fastInterval`, but the display steps
+            // down to 60Hz and the next tick lands one 120Hz interval later than that.
+            source.handleTick(timestamp: now, targetTimestamp: now + fastInterval)
+            now += slowInterval
+            source.handleTick(timestamp: now, targetTimestamp: now + slowInterval)
+
+            let reported = try XCTUnwrap(ticks.first)
+            XCTAssertEqual(reported.delay, fastInterval, accuracy: 1e-9)
+            XCTAssertEqual(reported.frameInterval, slowInterval, accuracy: 1e-9)
+            XCTAssertEqual(reported.previousFrameInterval, fastInterval, accuracy: 1e-9)
+        }
+
         // MARK: - Pipeline
 
         /// Background → foreground through source, classifier and tracker, in the order UIKit and
@@ -114,7 +140,7 @@
             )
             var reported: [SmoothnessSessionStats] = []
             tracker.onSessionClosed = { _, stats in reported.append(stats) }
-            source.onTick = { [classifier] delay in classifier.handle(delay: delay) }
+            source.onTick = { [classifier] tick in classifier.handle(tick) }
 
             func startPart(_ state: SessionState) {
                 let session = MockSession.with(id: .random, state: state)
@@ -164,7 +190,7 @@
             )
             var reported: [SmoothnessSessionStats] = []
             tracker.onSessionClosed = { _, stats in reported.append(stats) }
-            source.onTick = { [classifier] delay in classifier.handle(delay: delay) }
+            source.onTick = { [classifier] tick in classifier.handle(tick) }
 
             let foreground = MockSession.with(id: .random, state: .foreground)
             currentSession = foreground

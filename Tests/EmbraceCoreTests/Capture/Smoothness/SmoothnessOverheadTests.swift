@@ -128,8 +128,8 @@
             )
             openSession()
 
-            handler(0)
-            handler(frameDuration)
+            handler(FrameTimingSource.Tick(delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            handler(FrameTimingSource.Tick(delay: frameDuration, frameInterval: frameDuration, previousFrameInterval: frameDuration))
             tracker.closeOpenSession(at: Date())
 
             XCTAssertEqual(reported?.frameCount, 2)
