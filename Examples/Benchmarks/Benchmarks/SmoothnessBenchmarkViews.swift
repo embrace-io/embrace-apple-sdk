@@ -23,7 +23,10 @@ enum SmoothnessProbe {
 /// main thread.
 ///
 /// The load keeps each frame close to its deadline, so any per-tick cost the SDK adds turns into
-/// measurable hitches instead of disappearing into idle headroom.
+/// measurable hitches instead of disappearing into idle headroom. It is either a fraction of each
+/// frame, or, with `headroom`, everything but a fixed amount of free time per frame. SDK cost is a
+/// fixed number of microseconds per tick, so a fixed headroom stays equally sensitive at 60Hz and
+/// 120Hz, where a fraction leaves twice as much free time at 60Hz.
 ///
 /// It can also inject a fixed cost into every tick (`EMBInjectedTickCostMicros`), standing in for
 /// SDK per-tick work of a known size. `SmoothnessOverheadUITests` uses it as a positive control:
@@ -39,6 +42,8 @@ final class FrameDriver: NSObject {
 
     /// Fraction (0...1) of each frame's duration to spend busy on the main thread.
     private let loadFraction: Double
+    /// If set, overrides `loadFraction`: stay busy for all but this much of each frame, in seconds.
+    private let headroom: CFTimeInterval?
     /// Extra fixed time, in seconds, to spend busy on the main thread every tick.
     private let injectedCost: CFTimeInterval
     private var link: CADisplayLink?
@@ -48,9 +53,24 @@ final class FrameDriver: NSObject {
     private var lastSampleTicks = 0
     private var lastSampleTime: CFTimeInterval = 0
 
-    init(loadFraction: Double, injectedCost: CFTimeInterval = FrameDriver.injectedCostFromEnvironment) {
+    init(
+        loadFraction: Double,
+        headroom: CFTimeInterval? = nil,
+        injectedCost: CFTimeInterval = FrameDriver.injectedCostFromEnvironment
+    ) {
         self.loadFraction = min(max(loadFraction, 0), 1)
+        self.headroom = headroom.map { max($0, 0) }
         self.injectedCost = max(injectedCost, 0)
+    }
+
+    /// The scroll screen's load: `EMBFrameHeadroomMicros` if set, otherwise `EMBFrameLoadFraction`
+    /// (default 0.9).
+    static func scrollLoadFromEnvironment() -> FrameDriver {
+        let environment = ProcessInfo.processInfo.environment
+        return FrameDriver(
+            loadFraction: Double(environment["EMBFrameLoadFraction"] ?? "") ?? 0.9,
+            headroom: Double(environment["EMBFrameHeadroomMicros"] ?? "").map { $0 / 1_000_000 }
+        )
     }
 
     /// `EMBInjectedTickCostMicros` in seconds, or `0` if unset.
@@ -99,8 +119,10 @@ final class FrameDriver: NSObject {
     }
 
     @objc private func tick(_ link: CADisplayLink) {
-        guard loadFraction > 0 || injectedCost > 0 else { return }
-        let deadline = CACurrentMediaTime() + (link.targetTimestamp - link.timestamp) * loadFraction + injectedCost
+        guard loadFraction > 0 || headroom != nil || injectedCost > 0 else { return }
+        let frameDuration = link.targetTimestamp - link.timestamp
+        let load = headroom.map { max(frameDuration - $0, 0) } ?? frameDuration * loadFraction
+        let deadline = CACurrentMediaTime() + load + injectedCost
         while CACurrentMediaTime() < deadline {}
     }
 
@@ -162,13 +184,12 @@ private struct ProbeLabels: ViewModifier {
 /// A long list with non-trivial rows, scrolled by `BenchmarksUITests` to measure hitches with
 /// `SmoothnessCaptureService` on vs off.
 ///
-/// Runs a `FrameDriver` at `EMBFrameLoadFraction` (default 0.9) of every frame, so the baseline
-/// is a screen with little headroom left rather than one that never hitches.
+/// Runs a `FrameDriver` at `EMBFrameLoadFraction` (default 0.9) of every frame, or leaving
+/// `EMBFrameHeadroomMicros` free per frame, so the baseline is a screen with little headroom left
+/// rather than one that never hitches.
 struct SmoothnessScrollView: View {
 
-    @State private var driver = FrameDriver(
-        loadFraction: Double(ProcessInfo.processInfo.environment["EMBFrameLoadFraction"] ?? "") ?? 0.9
-    )
+    @State private var driver = FrameDriver.scrollLoadFromEnvironment()
 
     var body: some View {
         List(0..<2_000, id: \.self) { index in

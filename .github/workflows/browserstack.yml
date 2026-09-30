@@ -13,6 +13,16 @@ on:
         required: false
         type: string
         default: 'iPhone 17 Pro-26'
+      only_testing:
+        description: 'Comma-separated tests or classes to run, e.g. BenchmarksUITests/SomeTests. Empty runs all.'
+        required: false
+        type: string
+        default: ''
+      skip_testing:
+        description: 'Comma-separated tests or classes to skip, e.g. BenchmarksUITests/SomeTests.'
+        required: false
+        type: string
+        default: ''
     secrets:
       BROWSERSTACK_USERNAME:
         required: true
@@ -167,23 +177,39 @@ jobs:
           APP_URL: ${{ needs.build.outputs.app_url }}
           TEST_SUITE_URL: ${{ needs.build.outputs.test_suite_url }}
           DEVICE: ${{ inputs.device }}
+          ONLY_TESTING: ${{ inputs.only_testing }}
+          SKIP_TESTING: ${{ inputs.skip_testing }}
+          BUILD_NAME: Benchmarks UI Tests - ${{ github.sha }}
         run: |
-          # Execute tests on a single iOS device
+          # Execute tests on a single iOS device. The test filters are comma-separated lists,
+          # sent as arrays only when set.
+          BUILD_BODY=$(jq -n \
+            --arg device "$DEVICE" \
+            --arg app "$APP_URL" \
+            --arg testSuite "$TEST_SUITE_URL" \
+            --arg buildName "$BUILD_NAME" \
+            --arg only "$ONLY_TESTING" \
+            --arg skip "$SKIP_TESTING" \
+            '{
+              devices: [$device],
+              app: $app,
+              testSuite: $testSuite,
+              project: "embrace-apple-sdk",
+              buildName: $buildName,
+              networkLogs: false,
+              deviceLogs: true,
+              debugScreenshots: false,
+              video: false,
+              enableResultBundle: true
+            }
+            + (if $only != "" then {"only-testing": ($only | split(","))} else {} end)
+            + (if $skip != "" then {"skip-testing": ($skip | split(","))} else {} end)')
+          echo "Build request: $BUILD_BODY"
+
           BUILD_RESPONSE=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
             -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/build" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"devices\": [\"$DEVICE\"],
-              \"app\": \"$APP_URL\",
-              \"testSuite\": \"$TEST_SUITE_URL\",
-              \"project\": \"embrace-apple-sdk\",
-              \"buildName\": \"Benchmarks UI Tests - ${{ github.sha }}\",
-              \"networkLogs\": false,
-              \"deviceLogs\": true,
-              \"debugScreenshots\": false,
-              \"video\": false,
-              \"enableResultBundle\": true
-            }")
+            -d "$BUILD_BODY")
 
           echo "Build execution response: $BUILD_RESPONSE"
           BUILD_ID=$(echo "$BUILD_RESPONSE" | jq -r '.build_id')

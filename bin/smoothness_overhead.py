@@ -30,6 +30,10 @@ RATE_MIN_FRACTION of it, or the arms' averages differ by more than RATE_MAX_SPRE
 comes from frame durations, so hitches don't lower it, unlike "Display Link Rate" (callbacks per
 second), which is shown as context.
 
+The hitch gate is only sensitive while the Off arm hitches a little. OFF_HITCH_BAND_<rate> (e.g.
+OFF_HITCH_BAND_120="0.5,20", in ms/s) sets the Off hitch ratio band for a device class, taken from
+a calibration run; a scenario outside it is incomplete. Unset, the Off hitch ratio is context only.
+
 Every other paired metric is reported for information. The result is posted as a PR comment
 (when PR_NUMBER is set) and written to the job summary.
 
@@ -219,6 +223,44 @@ def cpu_check(on, off):
     }
 
 
+def expected_rate(arms):
+    """The refresh rate the run should reach: EXPECTED_HZ, or the device's own maximum."""
+    max_rates = [metric["avg"] for metric in (find(metrics, "Max Display Rate") for metrics in arms.values() if metrics) if metric]
+    return EXPECTED_HZ or (max(max_rates) if max_rates else None)
+
+
+def baseline_band(rate):
+    """The Off hitch ratio band set for this device class, as (low, high), or None if unset.
+
+    Set from a calibration run (`bin/smoothness_calibration.py`) as OFF_HITCH_BAND_<rate>, e.g.
+    OFF_HITCH_BAND_120="0.5,20", because the sensitive range differs between 60Hz and 120Hz devices.
+    """
+    value = os.getenv(f"OFF_HITCH_BAND_{round(rate)}", "") if rate else ""
+    if not value.strip():
+        return None
+    low, high = (float(part) for part in value.split(","))
+    return low, high
+
+
+def baseline_check(scenario, off, rate):
+    """Returns (gate row, ok) for the Off arm's hitch ratio against its calibrated band.
+
+    The gate is only sensitive while the Off arm hitches a little. Outside the band (e.g. an iOS
+    update made the screen cheaper to render), a pass doesn't show the SDK is cheap.
+    """
+    hitch_off = find(off, "Hitch Time Ratio")
+    if not hitch_off:
+        return None, True
+    band = baseline_band(rate)
+    metric = f"Off hitch ratio ({hitch_off['unitOfMeasurement']})"
+    if band is None:
+        return (scenario, metric, "ℹ️ no band set", fmt(hitch_off["avg"]), "", "", f"OFF_HITCH_BAND_{round(rate or 0)} unset"), True
+    low, high = band
+    ok = low <= hitch_off["avg"] <= high
+    status = "✅ in band" if ok else "⚠️ outside band"
+    return (scenario, metric, status, fmt(hitch_off["avg"]), "", "", f"band {low:g}–{high:g}"), ok
+
+
 def refresh_rate_check(scenario, arms):
     """Returns (gate row, ok). Every arm's average refresh rate must reach RATE_MIN_FRACTION of the
     expected rate, and the arms' averages must be within RATE_MAX_SPREAD of each other."""
@@ -227,8 +269,7 @@ def refresh_rate_check(scenario, arms):
     if "off" not in rates or "on" not in rates:
         return (scenario, "Display Refresh Rate", "⚠️ missing", "can't confirm the refresh rate", "", "", ""), False
 
-    max_rates = [metric["avg"] for metric in (find(metrics, "Max Display Rate") for metrics in arms.values() if metrics) if metric]
-    expected = EXPECTED_HZ or (max(max_rates) if max_rates else None)
+    expected = expected_rate(arms)
     if not expected:
         return (scenario, "Display Refresh Rate", "⚠️ missing", "no Max Display Rate or EXPECTED_HZ", "", "", ""), False
 
@@ -364,10 +405,16 @@ def evaluate(pairs):
 
         # The SDK's cost is per tick, so a run that fell back to a lower refresh rate (Low Power Mode,
         # thermal caps, no ProMotion) under-measures it, and arms at different rates aren't comparable.
-        rate_row, rate_ok = refresh_rate_check(scenario, {"off": off, "on": on, "control": control})
+        arms = {"off": off, "on": on, "control": control}
+        rate_row, rate_ok = refresh_rate_check(scenario, arms)
         shown.update({"Display Refresh Rate", "Max Display Rate"})
         passed &= rate_ok
         gates.append(rate_row)
+
+        baseline_row, baseline_ok = baseline_check(scenario, off, expected_rate(arms))
+        if baseline_row:
+            passed &= baseline_ok
+            gates.append(baseline_row)
 
         # Context only: callbacks per second, which drop when the main thread hitches.
         rate_on, rate_off = find(on, "Display Link Rate"), find(off, "Display Link Rate")

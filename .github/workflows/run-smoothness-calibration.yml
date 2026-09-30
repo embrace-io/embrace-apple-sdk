@@ -1,0 +1,59 @@
+name: Smoothness Load Calibration
+
+# Sweeps the Smoothness overhead scroll scenario's frame load on one device, and reports which load
+# the overhead gate is most sensitive at (bin/smoothness_calibration.py). Run once per device class
+# (120Hz ProMotion and 60Hz), then commit the chosen load and OFF_HITCH_BAND_<rate>.
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: 'BrowserStack device, as <model>-<iOS version>. Run once on a 120Hz ProMotion device and once on a 60Hz device.'
+        required: false
+        type: string
+        default: 'iPhone 17 Pro-26'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.device }}
+  cancel-in-progress: true
+
+jobs:
+  browserstack:
+    name: Run Calibration Sweep on BrowserStack
+    uses: ./.github/workflows/browserstack.yml
+    secrets:
+      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+    with:
+      device: ${{ inputs.device }}
+      only_testing: 'BenchmarksUITests/SmoothnessLoadCalibrationUITests'
+
+  report:
+    name: Report Calibration
+    needs: [browserstack]
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install scipy
+
+      - name: Report Load Calibration
+        env:
+          PERF_PR: ${{ needs.browserstack.outputs.results }}
+          DEVICE: ${{ inputs.device }}
+        run: |
+          python bin/smoothness_calibration.py

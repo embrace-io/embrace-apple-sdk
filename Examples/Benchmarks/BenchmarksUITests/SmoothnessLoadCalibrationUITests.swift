@@ -1,0 +1,194 @@
+//
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
+//
+
+import XCTest
+
+/// Calibration sweep for the scroll scenario's frame load in `SmoothnessOverheadUITests`.
+///
+/// The gate is only sensitive while the Off arm hitches a little: with too little load, added SDK
+/// cost disappears into idle headroom, and with too much, frames that already miss can't get much
+/// worse. This sweep scrolls the same screen at several loads, as a fraction of each frame
+/// (`EMBFrameLoadFraction`) or as a fixed free time per frame (`EMBFrameHeadroomMicros`), each with
+/// no added cost and with 25µs and 250µs injected per frame. `bin/smoothness_calibration.py` reports,
+/// per load, the Off hitch ratio, how clearly each cost stands out from noise, and what the gate
+/// would say about it.
+///
+/// Smoothness is off in every arm, so only the injected cost differs. Hang capture is on, as in the
+/// gate. Each arm runs as many iterations as a gate arm, so a verdict here predicts the gate's.
+///
+/// Not part of the gate: normal benchmark runs skip this class, and the manual **Smoothness Load
+/// Calibration** workflow runs only this class. Within a load the arms run in a fixed order (Off
+/// first), so a drift over those minutes affects every load the same way and doesn't change which
+/// load ranks best.
+final class SmoothnessLoadCalibrationUITests: XCTestCase {
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    // MARK: - Fraction60
+
+    @MainActor
+    func testFraction60_1_off() throws {
+        scroll(.fraction(0.60), .off)
+    }
+
+    @MainActor
+    func testFraction60_2_cost25() throws {
+        scroll(.fraction(0.60), .cost25)
+    }
+
+    @MainActor
+    func testFraction60_3_cost250() throws {
+        scroll(.fraction(0.60), .cost250)
+    }
+
+    // MARK: - Fraction75
+
+    @MainActor
+    func testFraction75_1_off() throws {
+        scroll(.fraction(0.75), .off)
+    }
+
+    @MainActor
+    func testFraction75_2_cost25() throws {
+        scroll(.fraction(0.75), .cost25)
+    }
+
+    @MainActor
+    func testFraction75_3_cost250() throws {
+        scroll(.fraction(0.75), .cost250)
+    }
+
+    // MARK: - Fraction90
+
+    @MainActor
+    func testFraction90_1_off() throws {
+        scroll(.fraction(0.90), .off)
+    }
+
+    @MainActor
+    func testFraction90_2_cost25() throws {
+        scroll(.fraction(0.90), .cost25)
+    }
+
+    @MainActor
+    func testFraction90_3_cost250() throws {
+        scroll(.fraction(0.90), .cost250)
+    }
+
+    // MARK: - Headroom1000
+
+    @MainActor
+    func testHeadroom1000_1_off() throws {
+        scroll(.headroomMicros(1_000), .off)
+    }
+
+    @MainActor
+    func testHeadroom1000_2_cost25() throws {
+        scroll(.headroomMicros(1_000), .cost25)
+    }
+
+    @MainActor
+    func testHeadroom1000_3_cost250() throws {
+        scroll(.headroomMicros(1_000), .cost250)
+    }
+
+    // MARK: - Headroom2000
+
+    @MainActor
+    func testHeadroom2000_1_off() throws {
+        scroll(.headroomMicros(2_000), .off)
+    }
+
+    @MainActor
+    func testHeadroom2000_2_cost25() throws {
+        scroll(.headroomMicros(2_000), .cost25)
+    }
+
+    @MainActor
+    func testHeadroom2000_3_cost250() throws {
+        scroll(.headroomMicros(2_000), .cost250)
+    }
+
+    // MARK: - Headroom4000
+
+    @MainActor
+    func testHeadroom4000_1_off() throws {
+        scroll(.headroomMicros(4_000), .off)
+    }
+
+    @MainActor
+    func testHeadroom4000_2_cost25() throws {
+        scroll(.headroomMicros(4_000), .cost25)
+    }
+
+    @MainActor
+    func testHeadroom4000_3_cost250() throws {
+        scroll(.headroomMicros(4_000), .cost250)
+    }
+
+    // MARK: - Private
+
+    private enum Load {
+        case fraction(Double)
+        case headroomMicros(Int)
+    }
+
+    private enum Arm {
+        case off
+        case cost25
+        case cost250
+
+        var injectedTickCostMicros: Int {
+            switch self {
+            case .off: return 0
+            case .cost25: return 25
+            case .cost250: return 250
+            }
+        }
+    }
+
+    /// Matches a gate arm (two blocks of 10), so the calibration predicts the gate's verdict.
+    private let iterationCount = 20
+
+    @MainActor
+    private func scroll(_ load: Load, _ arm: Arm) {
+        let app = XCUIApplication()
+        app.launchEnvironment["EMBBenchmarkScreen"] = "smoothness-scroll"
+        app.launchEnvironment["EMBHang"] = "1"
+        app.launchEnvironment["EMBAllowWatchdogInDebugger"] = "1"
+        switch load {
+        case .fraction(let fraction):
+            app.launchEnvironment["EMBFrameLoadFraction"] = String(fraction)
+        case .headroomMicros(let micros):
+            app.launchEnvironment["EMBFrameHeadroomMicros"] = String(micros)
+        }
+        if arm.injectedTickCostMicros > 0 {
+            app.launchEnvironment["EMBInjectedTickCostMicros"] = String(arm.injectedTickCostMicros)
+        }
+        app.launch()
+
+        let list = app.collectionViews.firstMatch
+        XCTAssertTrue(list.waitForExistence(timeout: 10))
+
+        let options = XCTMeasureOptions()
+        options.invocationOptions = [.manuallyStop]
+        options.iterationCount = iterationCount
+
+        measure(
+            metrics: [
+                XCTOSSignpostMetric.scrollingAndDecelerationMetric,
+                LabelMetric.displayRefreshRate(app: app),
+                LabelMetric.maxDisplayRate(app: app),
+                LabelMetric.thermalState(app: app)
+            ],
+            options: options
+        ) {
+            list.swipeUp(velocity: .fast)
+            stopMeasuring()
+            list.swipeDown(velocity: .fast)
+        }
+    }
+}

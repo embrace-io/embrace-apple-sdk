@@ -205,8 +205,9 @@ final class SmoothnessOverheadUITests: XCTestCase {
     }
 }
 
-/// Reports a numeric static text on the benchmark screen, read when each iteration stops.
-private final class LabelMetric: NSObject, XCTMetric {
+/// Reports a numeric static text on the benchmark screen, read when each iteration stops. Shared
+/// with `SmoothnessLoadCalibrationUITests`.
+final class LabelMetric: NSObject, XCTMetric {
 
     /// Callbacks per second over the last second, for a display link configured like the SDK's.
     /// Drops when the main thread hitches, so it's context only.

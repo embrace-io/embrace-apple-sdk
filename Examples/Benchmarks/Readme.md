@@ -56,6 +56,17 @@ Each scenario also runs a **positive control**, `_smoothnessOnPlusCost`: the On 
 
 In CI, `bin/smoothness_overhead.py` pairs the results and posts a PR comment against the pass criteria: the hitch time ratio delta proven within budget, and less than 1 percentage point of added CPU utilization. The hitch budget is the larger of 5% of the Off mean and 1 ms/s. A scenario passes only if the one-sided 95% Welch upper bound on the On − Off delta is below the budget, and fails if the lower bound is above it. Anything in between is **inconclusive**: the run was too noisy to show the cost is within budget, so it doesn't count as a pass. On PRs the comment only reports. For release sign-off, trigger **On Device Benchmarks** manually: its `strict` input (on by default) sets `STRICT=1`, which fails the job unless every gate passes. A failed, inconclusive, incomplete or missing row, or no results at all, blocks. Use the `device` input to pick the device. Release sign-off needs two strict runs: one on a 120Hz ProMotion device, the worst case for per-tick cost, and one on a 60Hz device, which is most of the installed base.
 
+#### Load calibration
+
+The hitch gate is only sensitive while the Off arm hitches a little. With too little load, added SDK cost disappears into idle headroom, and with too much, frames that already miss can't get much worse. The default 0.9 hasn't been calibrated, and a fraction leaves twice as much free time at 60Hz as at 120Hz. `EMBFrameHeadroomMicros` instead leaves a fixed free time per frame, which stays equally sensitive at both rates, because SDK cost is a fixed number of microseconds per tick.
+
+`SmoothnessLoadCalibrationUITests` sweeps the scroll screen at fractions 0.6, 0.75 and 0.9 and at 1, 2 and 4 ms of headroom, each with Smoothness off and 0, 25 or 250µs injected per frame, at the gate's iteration count. Normal benchmark runs skip it. Run the **Smoothness Load Calibration** workflow manually, once on a 120Hz ProMotion device and once on a 60Hz device. `bin/smoothness_calibration.py` reports, per load:
+- the Off hitch ratio;
+- each injected cost's delta, its z (the delta in Welch standard errors) and the gate's verdict;
+- the refresh rate and peak thermal state.
+
+It suggests the load that best detects the 25µs cost, among loads that ran at the expected rate, weren't throttled and caught the 250µs control. It also suggests an `OFF_HITCH_BAND_<rate>`: half to twice that load's Off hitch ratio. After reviewing them, commit the load as the scroll screen's default, and the band in `run-device-benchmarks.yml`. With a band set, the overhead gate marks a scenario incomplete if its Off hitch ratio falls outside it, which catches the baseline drifting out of the sensitive range (e.g. after an iOS update). Unset, the Off hitch ratio is shown as context only.
+
 For the per-tick cost, launch a debug build with `EMBSmoothnessSignposts=1` and record with the Instruments **os_signpost** instrument (subsystem `io.embrace.sdk`, category `Smoothness`, interval `Tick`). `SmoothnessOverheadTests` in `EmbraceCoreTests` covers the same path as a simulator microbenchmark.
 
 ### Environment Variables
@@ -65,6 +76,7 @@ For the per-tick cost, launch a debug build with `EMBSmoothnessSignposts=1` and 
 - `EMBSmoothness=1`: Adds `SmoothnessCaptureService`
 - `EMBAllowWatchdogInDebugger=1`: Keeps `HangCaptureService` and `SmoothnessCaptureService` running when a debugger is attached
 - `EMBInjectedTickCostMicros`: Extra main-thread work, in microseconds, the smoothness screens add to every frame. Used by the positive control
+- `EMBFrameHeadroomMicros`: Free time, in microseconds, the scroll screen leaves in every frame. Overrides `EMBFrameLoadFraction`
 - `EMBFrameLoadFraction`: Fraction of each frame the scroll screen spends busy on the main thread (default 0.9)
 - `EMBBenchmarkScreen`: Launches into `smoothness-scroll` or `smoothness-animation` instead of the default screen
 - `EMBSmoothnessSignposts=1`: Debug builds only. Wraps each Smoothness tick in an `os_signpost` interval

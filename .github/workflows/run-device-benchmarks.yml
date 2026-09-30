@@ -54,6 +54,8 @@ jobs:
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
     with:
       device: ${{ inputs.device || 'iPhone 17 Pro-26' }}
+      # The load calibration sweep runs only from run-smoothness-calibration.yml.
+      skip_testing: 'BenchmarksUITests/SmoothnessLoadCalibrationUITests'
 
   browserstack-main:
     name: Run BrowserStack Tests on Main
@@ -66,6 +68,7 @@ jobs:
     with:
       ref: main
       device: ${{ inputs.device || 'iPhone 17 Pro-26' }}
+      skip_testing: 'BenchmarksUITests/SmoothnessLoadCalibrationUITests'
 
   compare-results:
     name: Compare Performance Results
@@ -102,6 +105,10 @@ jobs:
           TITLE: "🎞️ Smoothness Overhead (on vs off)"
           # Blocks on manual (release sign-off) runs; PR runs only report.
           STRICT: ${{ inputs.strict && '1' || '' }}
+          # Off arm hitch ratio band (ms/s, "low,high") per device class, from a Smoothness Load
+          # Calibration run. Empty leaves the baseline as context only.
+          OFF_HITCH_BAND_120: ''
+          OFF_HITCH_BAND_60: ''
         run: |
           python bin/smoothness_overhead.py
 
