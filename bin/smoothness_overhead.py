@@ -41,7 +41,8 @@ Every other paired metric is reported for information. The result is posted as a
 
 By default the script only reports. With STRICT=1 (release sign-off runs) it exits non-zero unless
 the overall result passes: any failed, inconclusive, incomplete or missing row, or no results at all,
-blocks.
+blocks. Results the script can't evaluate are reported as such, and block only with STRICT=1; a
+failure to post the PR comment is only a warning.
 """
 
 import math
@@ -110,10 +111,13 @@ def load_pairs(results):
     """Returns {scenario: {"on"|"off"|"control": {displayName: metric}, "blocks": {arm: [position]}}}.
 
     Each arm runs as several blocks; a metric's iterations from all of an arm's blocks are merged
-    into one metric, with its average recomputed.
+    into one metric, with its average recomputed. A metric with no measurements (the extraction
+    reports it with `avg: null`) is skipped, so it shows as missing rather than breaking the gates.
     """
     pairs = {}
     for metric in results:
+        if not metric.get("all"):
+            continue
         name = metric["name"].split("/")[-1]
         match = PAIR.match(name)
         if not match:
@@ -128,7 +132,7 @@ def load_pairs(results):
         arm = scenario.setdefault(mode, {})
         merged = arm.get(metric["displayName"])
         if merged is None:
-            arm[metric["displayName"]] = {**metric, "all": list(metric["all"])}
+            arm[metric["displayName"]] = {**metric, "all": list(metric["all"]), "avg": mean(metric["all"])}
         else:
             merged["all"] += metric["all"]
             merged["avg"] = mean(merged["all"])
@@ -528,27 +532,51 @@ def render(gates, info, passed, has_results):
     return "\n".join(body)
 
 
-def post_comment(markdown):
-    from github import Github
+def render_error(error):
+    """The comment for a run the script couldn't evaluate, so the failure shows on the PR."""
+    body = [f"<!-- perf-check-comment: {TITLE} -->", f"### {TITLE}"]
+    if DEVICE:
+        body.append(f"Device: `{DEVICE}`")
+    body.append("")
+    body.append(f"⚠️ Couldn't evaluate the Smoothness overhead results: `{type(error).__name__}: {error}`")
+    if STRICT:
+        body.append("")
+        body.append("**Strict mode: this run blocks.**")
+    return "\n".join(body)
 
-    gh = Github(os.environ["GITHUB_TOKEN"])
-    pr = gh.get_repo(os.environ["REPO"]).get_pull(int(os.environ["PR_NUMBER"]))
-    marker = markdown.splitlines()[0]
-    for comment in pr.get_issue_comments():
-        if marker in comment.body:
-            comment.edit(markdown)
-            return
-    pr.create_issue_comment(markdown)
+
+def post_comment(markdown):
+    """Posts or updates the PR comment. A failure (e.g. a read-only token) is only a warning: the
+    job summary already has the result."""
+    from github import Github, GithubException
+
+    try:
+        gh = Github(os.environ["GITHUB_TOKEN"])
+        pr = gh.get_repo(os.environ["REPO"]).get_pull(int(os.environ["PR_NUMBER"]))
+        marker = markdown.splitlines()[0]
+        for comment in pr.get_issue_comments():
+            if marker in comment.body:
+                comment.edit(markdown)
+                return
+        pr.create_issue_comment(markdown)
+    except GithubException as error:
+        print(f"::warning::Couldn't post the Smoothness overhead comment: {error}", file=sys.stderr)
 
 
 def main():
-    results = json.loads(os.getenv("PERF_PR") or "[]")
-    if isinstance(results, dict):
-        results = []
+    pairs, passed = None, False
+    try:
+        results = json.loads(os.getenv("PERF_PR") or "[]")
+        if isinstance(results, dict):
+            results = []
 
-    pairs = load_pairs(results)
-    gates, info, passed = evaluate(pairs)
-    markdown = render(gates, info, passed, bool(pairs))
+        pairs = load_pairs(results)
+        gates, info, passed = evaluate(pairs)
+        markdown = render(gates, info, passed, bool(pairs))
+    except Exception as error:
+        # Report instead of crashing, so the PR shows why there's no result.
+        pairs, passed = None, False
+        markdown = render_error(error)
     print(markdown)
 
     summary = os.getenv("GITHUB_STEP_SUMMARY")
