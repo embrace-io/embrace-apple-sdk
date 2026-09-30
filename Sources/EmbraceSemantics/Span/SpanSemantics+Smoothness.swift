@@ -41,6 +41,16 @@ extension SpanSemantics {
         /// time. iOS-only.
         public static let keyCheckpointTime = "smoothness.checkpoint_time"
 
+        /// Why the span ended before its session part did, so its duration covers only part of the
+        /// part. Absent when the span ended with its part. One of the `EndReason` values. iOS-only.
+        public static let keyEndReason = "smoothness.end_reason"
+
+        /// Values for `keyEndReason`.
+        public struct EndReason {
+            /// Remote config turned smoothness off for this device while the part was open.
+            public static let remoteDisabled = "remote_disabled"
+        }
+
         /// Values for `keyPeakThermalState`, mirroring `ProcessInfo.ThermalState`.
         public struct ThermalState {
             public static let nominal = "nominal"

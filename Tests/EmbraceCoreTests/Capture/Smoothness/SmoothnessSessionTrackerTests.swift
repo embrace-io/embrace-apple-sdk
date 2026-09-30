@@ -581,6 +581,81 @@
             XCTAssertTrue(tracker.isSessionOpen)
             XCTAssertTrue(reported.isEmpty)
         }
+
+        // MARK: - Invalidate and skip
+
+        func testInvalidateClosesOpenPart() {
+            let part = startPart(.foreground)
+            tick(delayInFrames: 0)
+
+            XCTAssertTrue(tracker.invalidate(at: Date()))
+
+            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertEqual(reportedPartIds, [part.id])
+            XCTAssertEqual(reported.first?.frameCount, 1)
+        }
+
+        func testInvalidateWithNoOpenPartReturnsFalse() {
+            XCTAssertFalse(tracker.invalidate(at: Date()))
+            XCTAssertTrue(reported.isEmpty)
+        }
+
+        func testInvalidatedTrackerOpensNoPart() {
+            tracker.invalidate(at: Date())
+
+            // A later part start, cold-start swap or direct open is ignored.
+            startPart(.foreground)
+            postDidBecomeActive()
+            drainMain()
+            tracker.openCurrentForegroundPart()
+
+            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertTrue(opened.isEmpty)
+        }
+
+        func testInvalidatedTrackerIgnoresTicks() {
+            startPart(.foreground)
+            tracker.invalidate(at: Date())
+
+            tick(delayInFrames: 3)
+
+            XCTAssertEqual(tracker.openFrameCount, 0)
+            XCTAssertEqual(reported.count, 1)
+        }
+
+        func testSkipCurrentForegroundPartKeepsItClosed() {
+            // given a foreground part that is current before the tracker hears its start
+            currentSession = MockSession.with(id: .random, state: .foreground)
+
+            tracker.skipCurrentForegroundPart()
+
+            tracker.openCurrentForegroundPart()
+            postDidBecomeActive()
+            drainMain()
+            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertTrue(opened.isEmpty)
+        }
+
+        func testSkipCurrentForegroundPartStillOpensNextPart() {
+            currentSession = MockSession.with(id: .random, state: .foreground)
+            tracker.skipCurrentForegroundPart()
+
+            let next = startPart(.foreground)
+
+            XCTAssertEqual(tracker.openPartId, next.id)
+        }
+
+        func testSkipCurrentForegroundPartDoesNotSkipBackgroundPart() {
+            // given a background cold-start part, later swapped to foreground in place
+            let part = MockSession.with(id: .random, state: .background)
+            currentSession = part
+            tracker.skipCurrentForegroundPart()
+
+            currentSession = MockSession.with(id: part.id, state: .foreground)
+            tracker.openCurrentForegroundPart()
+
+            XCTAssertEqual(tracker.openPartId, part.id)
+        }
     }
 
 #endif  // !os(watchOS) && !os(macOS)

@@ -38,15 +38,28 @@ import Foundation
     /// `checkpointInterval` while it is open, and the span carries `smoothness.complete = false` until
     /// it ends normally, so a recovered span can be told apart from a clean one.
     ///
-    /// - Note: Experimental and opt-in. Not part of the default capture services.
+    /// Installed by default but gated by remote config (`EmbraceConfigurable.isSmoothnessEnabled`). Until
+    /// it's enabled for the device the service is dormant: no `CADisplayLink`, no spans.
+    /// - Enabled while running: the pipeline starts, and the first span is the next foreground part's,
+    ///   so no span covers only part of a part.
+    /// - Disabled while running: the pipeline is torn down at once, and an open span ends with
+    ///   `smoothness.end_reason = remote_disabled`.
     public final class SmoothnessCaptureService: CaptureService {
 
         public convenience override init() {
+            self.init(ignoresRemoteConfig: false)
+        }
+
+        /// - Parameter ignoresRemoteConfig: Runs whether or not remote config enables smoothness. For
+        ///   benchmarks, which must measure the service on devices outside the rollout.
+        @_spi(Private)
+        public convenience init(ignoresRemoteConfig: Bool) {
             self.init(
                 currentSession: { Embrace.client?.sessionController.currentSession },
                 notificationCenter: .default,
                 embraceNotificationCenter: Embrace.notificationCenter,
-                flushStorage: { Embrace.client?.storage.coreData.save(allowMainQueue: true) }
+                flushStorage: { Embrace.client?.storage.coreData.save(allowMainQueue: true) },
+                ignoresRemoteConfig: ignoresRemoteConfig
             )
         }
 
@@ -60,6 +73,7 @@ import Foundation
         ///   - checkpointInterval: How often the open span's metrics are checkpointed. `0` disables it.
         ///   - debuggerAttached: Whether a debugger is attached. The service disables itself if so.
         ///   - environment: Checked for `EMBAllowWatchdogInDebugger=1`, which keeps it enabled anyway.
+        ///   - ignoresRemoteConfig: Runs whether or not remote config enables smoothness.
         init(
             currentSession: @escaping () -> EmbraceSession?,
             notificationCenter: NotificationCenter,
@@ -68,7 +82,8 @@ import Foundation
             thermalState: @escaping () -> ProcessInfo.ThermalState = { ProcessInfo.processInfo.thermalState },
             checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval,
             debuggerAttached: @escaping () -> Bool = isDebuggerAttached,
-            environment: [String: String] = ProcessInfo.processInfo.environment
+            environment: [String: String] = ProcessInfo.processInfo.environment,
+            ignoresRemoteConfig: Bool = false
         ) {
             self.currentSession = currentSession
             self.notificationCenter = notificationCenter
@@ -78,6 +93,7 @@ import Foundation
             self.checkpointInterval = checkpointInterval
             self.debuggerAttached = debuggerAttached
             self.environment = environment
+            self.ignoresRemoteConfig = ignoresRemoteConfig
             super.init()
 
             notificationCenter.addObserver(
@@ -101,38 +117,46 @@ import Foundation
         public override func onStart() {
 
             // Breakpoints and stepping would read as dropped frames.
-            if debuggerAttached() && environment["EMBAllowWatchdogInDebugger"] != "1" {
+            if isBlockedByDebugger {
                 logger?.warning(
                     "[Smoothness] Disabled because a debugger is attached. Set the env var EMBAllowWatchdogInDebugger=1 to enable in debug mode.")
                 return
             }
 
-            if Thread.isMainThread {
-                activate()
-            } else {
-                DispatchQueue.main.async { [weak self] in self?.activate() }
-            }
+            // Opens a part that started before the tracker existed. That part isn't a partial one:
+            // config applied before start comes from the cache, so the device was already in the
+            // rollout when it started.
+            onMain { [weak self] in self?.activate(opensCurrentPart: true) }
         }
 
         public override func onStop() {
-            // Release the pipeline so no CADisplayLink outlives an SDK stop. A part still open here
-            // is closed with the frames counted so far, which ends its span normally.
-            let pipeline = data.withLock { data -> Pipeline? in
-                let previous = data.pipeline
-                data.pipeline = nil
-                return previous
-            }
-            pipeline?.tracker.closeOpenSession(at: Date())
+            // A part still open here is closed with the frames counted so far, which ends its span
+            // normally.
+            tearDown(endReason: nil)
         }
 
         public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
             let hangThreshold = config.hangLimits.hangThreshold
-            let tracker = data.withLock { data -> SmoothnessSessionTracker? in
+            let isEnabled = config.isSmoothnessEnabled
+            let (tracker, wasEnabled) = data.withLock { data -> (SmoothnessSessionTracker?, Bool) in
+                let wasEnabled = data.isRemotelyEnabled
                 data.hangThreshold = hangThreshold
-                return data.pipeline?.tracker
+                data.isRemotelyEnabled = isEnabled
+                return (data.pipeline?.tracker, wasEnabled)
             }
             // Set outside `data`'s lock: the tracker calls back into it with its own lock held.
             tracker?.hangThreshold = hangThreshold
+
+            // Before start, the value is only stored; `onStart()` applies it.
+            guard !ignoresRemoteConfig, isEnabled != wasEnabled, state.load(order: .acquire) == .active else { return }
+
+            if isEnabled {
+                logger?.debug("[Smoothness] Enabled by remote config. Measuring from the next foreground part.")
+                onMain { [weak self] in self?.activate(opensCurrentPart: false) }
+            } else {
+                logger?.debug("[Smoothness] Disabled by remote config.")
+                tearDown(endReason: SpanSemantics.Smoothness.EndReason.remoteDisabled)
+            }
         }
 
         /// Frames counted so far in the open foreground part, or `0` while the service isn't running
@@ -198,10 +222,42 @@ import Foundation
 
         // MARK: - Private
 
-        /// Builds the timing source → classifier → tracker pipeline and swaps it in, but only if the
-        /// service is still active. If a concurrent `onStop()` raced in, the new pipeline is dropped,
-        /// which releases its CADisplayLink. Must be called on the main thread.
-        private func activate() {
+        /// Whether a debugger keeps the service from running.
+        private var isBlockedByDebugger: Bool {
+            debuggerAttached() && environment["EMBAllowWatchdogInDebugger"] != "1"
+        }
+
+        /// Whether remote config lets the pipeline run. Call with `data`'s lock held.
+        private func isRunnable(_ data: MutableData) -> Bool {
+            ignoresRemoteConfig || data.isRemotelyEnabled
+        }
+
+        private func onMain(_ block: @escaping () -> Void) {
+            if Thread.isMainThread {
+                block()
+            } else {
+                DispatchQueue.main.async(execute: block)
+            }
+        }
+
+        /// Builds the timing source → classifier → tracker pipeline and stores it, but only if the
+        /// service is active, remote config lets it run, and no pipeline is live. Must be called on the
+        /// main thread.
+        ///
+        /// Every activation runs on main, so two can't interleave, and one that finds a live pipeline
+        /// no-ops instead of replacing it. A teardown can still race in off main between the build and
+        /// the store; the recheck under the lock then drops the new pipeline, which releases its
+        /// CADisplayLink here on main.
+        ///
+        /// - Parameter opensCurrentPart: Whether to open the current foreground part now. `false` when
+        ///   enabled partway through a part, which then gets no span.
+        private func activate(opensCurrentPart: Bool) {
+            guard !isBlockedByDebugger,
+                data.withLock({ $0.pipeline == nil && isRunnable($0) })
+            else {
+                return
+            }
+
             let classifier = FrameDropClassifier()
             let tracker = SmoothnessSessionTracker(
                 classifier: classifier,
@@ -223,15 +279,45 @@ import Foundation
             let source = FrameTimingSource()
             source.onTick = Self.makeTickHandler(classifier: classifier)
 
+            // Before the store, so nothing can open the part in between; opens are delivered on main.
+            if !opensCurrentPart {
+                tracker.skipCurrentForegroundPart()
+            }
+
             let stored = data.withLock { data -> Bool in
-                guard state.load(order: .acquire) == .active else { return false }
+                guard state.load(order: .acquire) == .active, data.pipeline == nil, isRunnable(data) else { return false }
                 data.pipeline = Pipeline(source: source, classifier: classifier, tracker: tracker)
                 return true
             }
 
             // The first foreground part may have started before the tracker existed.
-            if stored {
+            if stored && opensCurrentPart {
                 tracker.openCurrentForegroundPart()
+            }
+        }
+
+        /// Takes the live pipeline out, closes its open part, and releases it on main.
+        ///
+        /// Releasing the pipeline invalidates its `CADisplayLink`, which must happen on main, where the
+        /// display link delivers its ticks. The tracker is invalidated first, so a part start delivered
+        /// before that release can't open a span.
+        ///
+        /// - Parameter endReason: Set on the open span as `smoothness.end_reason`, if any.
+        private func tearDown(endReason: String?) {
+            let pipeline = data.withLock { data -> Pipeline? in
+                let previous = data.pipeline
+                data.pipeline = nil
+                if previous != nil {
+                    data.openSpan?.endReason = endReason
+                }
+                return previous
+            }
+            guard let pipeline else { return }
+
+            pipeline.tracker.invalidate(at: Date())
+
+            if !Thread.isMainThread {
+                DispatchQueue.main.async { withExtendedLifetime(pipeline) {} }
             }
         }
 
@@ -247,10 +333,14 @@ import Foundation
             var peakThermalState: ProcessInfo.ThermalState
             /// Fires `checkpoint()` while the span is open. Cancelled when the span ends.
             let checkpointTimer: DispatchSourceTimer?
+            /// Set when the span is ended early, e.g. by remote config. Written as `smoothness.end_reason`.
+            var endReason: String?
         }
 
         private struct MutableData {
             var hangThreshold: TimeInterval = HangLimits().hangThreshold
+            /// From `EmbraceConfigurable.isSmoothnessEnabled`. Off until a config says otherwise.
+            var isRemotelyEnabled = false
             var pipeline: Pipeline?
             var openSpan: OpenSpan?
         }
@@ -263,6 +353,7 @@ import Foundation
         private let checkpointInterval: TimeInterval
         private let debuggerAttached: () -> Bool
         private let environment: [String: String]
+        private let ignoresRemoteConfig: Bool
         private let checkpointQueue = DispatchQueue(label: "io.embrace.smoothness.checkpoint", qos: .utility)
 
         /// Raw notification name to avoid a direct UIKit dependency.
@@ -376,6 +467,9 @@ import Foundation
             // Always ended, including with zero frames: the span is already persisted and zero is valid.
             setMetrics(on: span, stats: stats, peakThermalState: closed.peakThermalState)
             span.setAttribute(key: SpanSemantics.Smoothness.keyComplete, value: true)
+            if let endReason = closed.endReason {
+                span.setAttribute(key: SpanSemantics.Smoothness.keyEndReason, value: endReason)
+            }
             span.end(endTime: stats.endTime)
         }
 

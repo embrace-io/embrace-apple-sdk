@@ -75,7 +75,7 @@ For the per-tick cost, launch a debug build with `EMBSmoothnessSignposts=1` and 
 
 - `noop`: When set to any value, disables Embrace SDK initialization for baseline performance measurement
 - `EMBHang=1`: Adds `HangCaptureService`
-- `EMBSmoothness=1`: Adds `SmoothnessCaptureService`
+- `EMBSmoothness=1`: Adds `SmoothnessCaptureService`, running whether or not remote config enables it. Without it, the app removes the service from the defaults, so no other benchmark includes it
 - `EMBAllowWatchdogInDebugger=1`: Keeps `HangCaptureService` and `SmoothnessCaptureService` running when a debugger is attached
 - `EMBInjectedTickCostMicros`: Extra main-thread work, in microseconds, the smoothness screens add to every frame. Used by the positive control
 - `EMBFrameHeadroomMicros`: Free time, in microseconds, the scroll screen leaves in every frame. Overrides `EMBFrameLoadFraction`

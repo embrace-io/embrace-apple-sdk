@@ -40,11 +40,13 @@
         }
 
         /// The default checkpoint interval is long enough that the timer never fires during a test. The
-        /// debugger check defaults to detached, so the suite also runs from Xcode.
+        /// debugger check defaults to detached, so the suite also runs from Xcode. The remote config gate
+        /// is bypassed by default; the remote config tests turn it back on.
         private func makeService(
             checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval,
             debuggerAttached: @escaping () -> Bool = { false },
-            environment: [String: String] = [:]
+            environment: [String: String] = [:],
+            ignoresRemoteConfig: Bool = true
         ) -> SmoothnessCaptureService {
             SmoothnessCaptureService(
                 currentSession: { [unowned self] in self.currentSession },
@@ -54,7 +56,8 @@
                 thermalState: { [unowned self] in self.thermalState },
                 checkpointInterval: checkpointInterval,
                 debuggerAttached: debuggerAttached,
-                environment: environment
+                environment: environment,
+                ignoresRemoteConfig: ignoresRemoteConfig
             )
         }
 
@@ -845,6 +848,296 @@
 
             XCTAssertEqual(try XCTUnwrap(service.tracker).hangThreshold, 0.5)
         }
+
+        // MARK: - Remote config
+
+        private func makeRemoteGatedService(debuggerAttached: @escaping () -> Bool = { false }) {
+            service = makeService(debuggerAttached: debuggerAttached, ignoresRemoteConfig: false)
+        }
+
+        private func setRemotelyEnabled(_ enabled: Bool) {
+            service.onConfigUpdated(MockEmbraceConfigurable(isSmoothnessEnabled: enabled))
+        }
+
+        /// Runs `block` on a background queue and waits for it without running main, so anything it
+        /// hops to main is still queued when this returns.
+        private func runOffMain(_ block: @escaping () -> Void) {
+            let done = DispatchSemaphore(value: 0)
+            DispatchQueue.global().async {
+                block()
+                done.signal()
+            }
+            done.wait()
+        }
+
+        func test_remote_offByDefault_staysDormant() {
+            makeRemoteGatedService()
+            currentSession = MockSession.with(id: .random, state: .foreground)
+
+            startService()
+            startPart(.foreground)
+            endPart()
+
+            XCTAssertNil(service.tracker)
+            XCTAssertNil(service.frameTimingSource)
+            XCTAssertTrue(smoothnessSpans.isEmpty)
+        }
+
+        func test_remote_enabledBeforeStart_opensCurrentPart() {
+            makeRemoteGatedService()
+            currentSession = MockSession.with(id: .random, state: .foreground)
+            setRemotelyEnabled(true)
+
+            startService()
+
+            XCTAssertEqual(service.tracker?.openPartId, currentSession?.id)
+            XCTAssertEqual(smoothnessSpans.count, 1)
+        }
+
+        func test_remote_disabledBeforeStart_staysDormant() {
+            makeRemoteGatedService()
+            setRemotelyEnabled(true)
+            setRemotelyEnabled(false)
+
+            startService()
+            startPart(.foreground)
+
+            XCTAssertNil(service.tracker)
+            XCTAssertTrue(smoothnessSpans.isEmpty)
+        }
+
+        func test_remote_enabledWhileRunning_skipsCurrentPartAndOpensNext() throws {
+            makeRemoteGatedService()
+            startService()
+            startPart(.foreground)
+
+            setRemotelyEnabled(true)
+
+            // The pipeline runs, but the part that was already open gets no span, even when the app
+            // becomes active again during it.
+            XCTAssertNotNil(service.tracker)
+            postDidBecomeActive()
+            drainMain()
+            XCTAssertTrue(smoothnessSpans.isEmpty)
+
+            endPart()
+            let next = startPart(.foreground)
+
+            XCTAssertEqual(service.tracker?.openPartId, next.id)
+            XCTAssertEqual(smoothnessSpans.count, 1)
+        }
+
+        func test_remote_enabledOffMain_buildsPipelineOnMain() {
+            makeRemoteGatedService()
+            startService()
+
+            runOffMain { self.setRemotelyEnabled(true) }
+            XCTAssertNil(service.tracker)
+
+            drainMain()
+
+            XCTAssertNotNil(service.tracker)
+        }
+
+        func test_remote_enabledWhileDebuggerAttached_staysDormant() {
+            makeRemoteGatedService(debuggerAttached: { true })
+            startService()
+
+            setRemotelyEnabled(true)
+            drainMain()
+
+            XCTAssertNil(service.tracker)
+        }
+
+        func test_remote_disabledWhileRunning_endsSpanWithReasonAndReleasesPipeline() throws {
+            makeRemoteGatedService()
+            setRemotelyEnabled(true)
+            startService()
+            startPart(.foreground)
+            try XCTUnwrap(service.tracker).recordFrame(lateBy: 0)
+            weak var source = service.frameTimingSource
+            XCTAssertNotNil(source)
+
+            setRemotelyEnabled(false)
+
+            XCTAssertNil(service.tracker)
+            XCTAssertNil(source)
+            let span = try XCTUnwrap(endedSmoothnessSpans.first)
+            XCTAssertEqual(endedSmoothnessSpans.count, 1)
+            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 1)
+            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyComplete] as? Bool, true)
+            XCTAssertEqual(
+                span.attributes[SpanSemantics.Smoothness.keyEndReason] as? String,
+                SpanSemantics.Smoothness.EndReason.remoteDisabled
+            )
+        }
+
+        func test_remote_disabledWhileRunning_opensNoFurtherSpans() {
+            makeRemoteGatedService()
+            setRemotelyEnabled(true)
+            startService()
+            startPart(.foreground)
+
+            setRemotelyEnabled(false)
+            endPart()
+            startPart(.foreground)
+            postDidBecomeActive()
+            drainMain()
+
+            XCTAssertEqual(smoothnessSpans.count, 1)
+        }
+
+        func test_remote_disabledOffMain_releasesPipelineOnMain() throws {
+            makeRemoteGatedService()
+            setRemotelyEnabled(true)
+            startService()
+            startPart(.foreground)
+            weak var source = service.frameTimingSource
+
+            runOffMain { self.setRemotelyEnabled(false) }
+
+            // The span has ended and the service has let go, but the display link's owner is only
+            // released once main runs.
+            XCTAssertNil(service.tracker)
+            XCTAssertEqual(endedSmoothnessSpans.count, 1)
+            XCTAssertNotNil(source)
+
+            drainMain()
+
+            XCTAssertNil(source)
+        }
+
+        func test_remote_disabledOffMain_partStartBeforeRelease_opensNoSpan() {
+            makeRemoteGatedService()
+            setRemotelyEnabled(true)
+            startService()
+            startPart(.foreground)
+
+            runOffMain { self.setRemotelyEnabled(false) }
+            // The retired tracker is still registered for part starts until main releases it.
+            startPart(.foreground)
+            drainMain()
+
+            XCTAssertEqual(smoothnessSpans.count, 1)
+            XCTAssertEqual(endedSmoothnessSpans.count, 1)
+        }
+
+        func test_remote_partEndingNormally_hasNoEndReason() throws {
+            makeRemoteGatedService()
+            setRemotelyEnabled(true)
+            startService()
+            startPart(.foreground)
+
+            endPart()
+
+            let span = try XCTUnwrap(endedSmoothnessSpans.first)
+            XCTAssertNil(span.attributes[SpanSemantics.Smoothness.keyEndReason])
+        }
+
+        func test_remote_stop_hasNoEndReason() throws {
+            makeRemoteGatedService()
+            setRemotelyEnabled(true)
+            startService()
+            startPart(.foreground)
+
+            service.stop()
+
+            let span = try XCTUnwrap(endedSmoothnessSpans.first)
+            XCTAssertNil(span.attributes[SpanSemantics.Smoothness.keyEndReason])
+        }
+
+        func test_remote_reenabled_opensFromNextPart() {
+            makeRemoteGatedService()
+            setRemotelyEnabled(true)
+            startService()
+            startPart(.foreground)
+
+            setRemotelyEnabled(false)
+            setRemotelyEnabled(true)
+
+            XCTAssertNotNil(service.tracker)
+            XCTAssertEqual(smoothnessSpans.count, 1)
+
+            endPart()
+            startPart(.foreground)
+            XCTAssertEqual(smoothnessSpans.count, 2)
+        }
+
+        func test_remote_unchangedConfig_keepsPipeline() {
+            makeRemoteGatedService()
+            setRemotelyEnabled(true)
+            startService()
+            let tracker = service.tracker
+
+            setRemotelyEnabled(true)
+            drainMain()
+
+            XCTAssertTrue(service.tracker === tracker)
+        }
+
+        func test_remote_ignored_keepsRunningWhenDisabled() {
+            startService()
+            startPart(.foreground)
+
+            setRemotelyEnabled(false)
+
+            XCTAssertNotNil(service.tracker)
+            XCTAssertTrue(endedSmoothnessSpans.isEmpty)
+        }
+
+        // MARK: - Activation races (M4)
+
+        func test_restartWhileActivateQueued_buildsOnePipeline() throws {
+            service.install(otel: otel)
+            currentSession = MockSession.with(id: .random, state: .foreground)
+
+            // Two activations queued on main: start, stop, start.
+            runOffMain {
+                self.service.start()
+                self.service.stop()
+                self.service.start()
+            }
+            drainMain()
+
+            // The second finds the first's pipeline and no-ops, so no span is replaced or leaked.
+            XCTAssertNotNil(service.tracker)
+            XCTAssertEqual(smoothnessSpans.count, 1)
+            XCTAssertTrue(endedSmoothnessSpans.isEmpty)
+
+            endPart()
+            XCTAssertEqual(endedSmoothnessSpans.count, 1)
+            XCTAssertEqual(endedSmoothnessSpans.first?.attributes[SpanSemantics.Smoothness.keyComplete] as? Bool, true)
+        }
+
+        func test_enableTwiceWhileActivateQueued_buildsOnePipeline() {
+            makeRemoteGatedService()
+            startService()
+
+            runOffMain {
+                self.setRemotelyEnabled(true)
+                self.setRemotelyEnabled(false)
+                self.setRemotelyEnabled(true)
+            }
+            drainMain()
+
+            XCTAssertNotNil(service.tracker)
+            weak var tracker = service.tracker
+            drainMain()
+            XCTAssertTrue(service.tracker === tracker)
+        }
+
+        func test_stopOffMain_releasesPipelineOnMain() {
+            startService()
+            weak var source = service.frameTimingSource
+
+            runOffMain { self.service.stop() }
+            XCTAssertNil(service.tracker)
+            XCTAssertNotNil(source)
+
+            drainMain()
+
+            XCTAssertNil(source)
+        }
     }
 
     // MARK: - SessionController integration
@@ -876,7 +1169,8 @@
                 notificationCenter: .default,
                 embraceNotificationCenter: Embrace.notificationCenter,
                 flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
-                debuggerAttached: { false }
+                debuggerAttached: { false },
+                ignoresRemoteConfig: true
             )
             service.install(otel: otel)
             service.start()
@@ -1116,7 +1410,8 @@
                 flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
                 thermalState: { .nominal },
                 checkpointInterval: 0,
-                debuggerAttached: { false }
+                debuggerAttached: { false },
+                ignoresRemoteConfig: true
             )
         }
 
@@ -1226,7 +1521,6 @@
         }
     }
 
-
     // MARK: - End to end
 
     /// The real `SessionController`, `DefaultOTelSignalsHandler`, storage and upload, with only the
@@ -1301,7 +1595,8 @@
                 flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
                 thermalState: { .nominal },
                 checkpointInterval: 0,
-                debuggerAttached: { false }
+                debuggerAttached: { false },
+                ignoresRemoteConfig: true
             )
             service.install(otel: handler)
             service.start()

@@ -106,6 +106,10 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
         configurable.traceparentInjectionEnabled
     }
 
+    public var isSmoothnessEnabled: Bool {
+        configurable.isSmoothnessEnabled
+    }
+
     public var isUiLoadInstrumentationEnabled: Bool {
         configurable.isUiLoadInstrumentationEnabled
     }

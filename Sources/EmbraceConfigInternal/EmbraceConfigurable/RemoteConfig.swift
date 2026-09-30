@@ -2,11 +2,13 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
+import CryptoKit
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceConfiguration
+    import EmbraceSemantics
 #endif
 
 /// Remote config uses the Embrace Config Service to request config values
@@ -25,6 +27,10 @@ public class RemoteConfig {
     // threshold values
     static let deviceIdUsedDigits: UInt = 6
     let deviceIdHexValue: UInt64
+
+    /// Salt for the smoothness cohort. Changing it reshuffles which devices are in the rollout.
+    static let smoothnessSalt = "smoothness"
+    let smoothnessHexValue: UInt64
 
     private let updating = EmbraceAtomic<Bool>(false)
 
@@ -50,6 +56,8 @@ public class RemoteConfig {
         self._payload = EmbraceMutex(payload)
         self.fetcher = fetcher
         self.deviceIdHexValue = options.deviceId.intValue(digitCount: Self.deviceIdUsedDigits)
+        self.smoothnessHexValue = Self.saltedHexValue(
+            deviceId: options.deviceId, salt: Self.smoothnessSalt, digits: Self.deviceIdUsedDigits)
         self.logger = logger
 
         if let url = options.cacheLocation {
@@ -119,6 +127,12 @@ extension RemoteConfig: EmbraceConfigurable {
     public var isNetworkSpansForwardingEnabled: Bool { isEnabled(threshold: payload.nsfThreshold ?? 0) }
 
     public var traceparentInjectionEnabled: Bool { isEnabled(threshold: payload.traceparentInjectionThreshold ?? 0) }
+
+    /// Uses its own salted cohort, so the devices in the smoothness rollout are independent of the ones
+    /// in every other percentage rollout.
+    public var isSmoothnessEnabled: Bool {
+        Self.isEnabled(hexValue: smoothnessHexValue, digits: Self.deviceIdUsedDigits, threshold: payload.smoothnessThreshold ?? 0)
+    }
 
     public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 
@@ -275,6 +289,20 @@ extension RemoteConfig {
 
     func isEnabled(threshold: Float) -> Bool {
         return Self.isEnabled(hexValue: deviceIdHexValue, digits: Self.deviceIdUsedDigits, threshold: threshold)
+    }
+
+    /// A device's position in a salted cohort, for use as `isEnabled(hexValue:digits:threshold:)`'s `hexValue`.
+    ///
+    /// The first `digits` hex digits of `SHA256("<salt>:<device id>")`, where the device id is its
+    /// uppercased `stringValue`. Like the unsalted value it is stable across launches, and raising the
+    /// threshold only adds devices. Unlike it, each salt orders devices independently, so two rollouts
+    /// at the same percentage overlap only by chance.
+    ///
+    /// The backend must use the same formula if it ever needs to reproduce the cohort.
+    static func saltedHexValue(deviceId: EmbraceIdentifier, salt: String, digits: UInt) -> UInt64 {
+        let digest = SHA256.hash(data: Data("\(salt):\(deviceId.stringValue.uppercased())".utf8))
+        let hex = digest.map { String(format: "%02x", $0) }.joined()
+        return UInt64(hex.prefix(Int(digits)), radix: 16) ?? .max
     }
 
     /// Algorithm to determine if percentage threshold is enabled for the hexValue

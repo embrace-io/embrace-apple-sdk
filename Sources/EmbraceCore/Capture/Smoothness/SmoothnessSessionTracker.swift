@@ -198,7 +198,8 @@
 
         /// Opens an accumulator for `partId`, closing any other part that was left open.
         ///
-        /// No-ops if `partId` is already open, has already ended, or isn't the current foreground part.
+        /// No-ops if `partId` is already open, has already ended or been skipped, or isn't the current
+        /// foreground part, or if the tracker has been invalidated.
         ///
         /// The current part is checked under the lock, so a part that ends between a caller's own check
         /// and this call can't be reopened. `currentSession` still returns the ending part during the
@@ -207,7 +208,8 @@
             lock.locked {
                 if state.openSession?.partId == partId { return }
 
-                guard let current = currentSession(), current.id == partId, current.state == .foreground,
+                guard !state.isInvalidated,
+                    let current = currentSession(), current.id == partId, current.state == .foreground,
                     state.lastEndedPartId != partId
                 else {
                     return
@@ -252,6 +254,39 @@
             }
         }
 
+        /// Closes whichever part is open, like `closeOpenSession(at:)`, and stops the tracker from
+        /// opening any part again.
+        ///
+        /// Called when the tracker is retired. Its observers stay registered until it is released,
+        /// which can happen a main turn later, and a part start delivered in that window must not open
+        /// a span nothing will end.
+        ///
+        /// - Returns: Whether a part was open and has now been reported.
+        @discardableResult
+        func invalidate(at endTime: Date) -> Bool {
+            lock.locked {
+                state.isInvalidated = true
+                guard let partId = state.openSession?.partId else { return false }
+
+                state.lastEndedPartId = partId
+                closeLocked(at: endTime)
+                return true
+            }
+        }
+
+        /// Stops the current part from being opened, if it's foreground.
+        ///
+        /// Called when the tracker is created partway through a foreground part, so the part's first span
+        /// is the next part's rather than a partial one. A background part isn't skipped, so the cold-start
+        /// swap to foreground still opens it.
+        func skipCurrentForegroundPart() {
+            lock.locked {
+                guard let current = currentSession(), current.state == .foreground else { return }
+
+                state.lastEndedPartId = current.id
+            }
+        }
+
         /// Reports the open part's stats so far without closing it. No-ops if no part is open.
         ///
         /// - Returns: Whether a part was open and has been reported.
@@ -278,7 +313,11 @@
         private struct State {
             var hangThreshold: TimeInterval
             var openSession: OpenSession?
+            /// The part that must not be opened: the last one closed, or one skipped because the tracker
+            /// started partway through it.
             var lastEndedPartId: EmbraceIdentifier?
+            /// Set by `invalidate(at:)`. No part opens once it's set.
+            var isInvalidated = false
         }
 
         /// Raw notification name to avoid a direct UIKit dependency.

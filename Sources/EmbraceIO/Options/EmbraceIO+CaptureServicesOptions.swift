@@ -28,12 +28,13 @@ extension EmbraceIO {
         let lowMemoryWarning: Bool
         let lowPowerMode: Bool
         let hang: Bool
+        /// On by default, but the service stays dormant until remote config enables it for the device.
         /// Ignored on watchOS and macOS, where `SmoothnessCaptureService` is unavailable.
         let smoothness: Bool
         let customServices: [CaptureService]
 
         /// Returns a `CaptureServicesOptions` instance configured with the default set of `CaptureServices`.
-        /// - Note: The default services are `.urlSession`, `.tap`, `.view`, `.webView`, `.lowMemoryWarning` and `.lowPowerMode`.
+        /// - Note: The default services are `.urlSession`, `.tap`, `.view`, `.webView`, `.lowMemoryWarning`, `.lowPowerMode` and `.smoothness`.
         public class func `default`() -> EmbraceIO.CaptureServicesOptions {
             return CaptureServicesOptions()
         }
@@ -44,7 +45,7 @@ extension EmbraceIO {
                 lowMemoryWarning: Bool = true,
                 lowPowerMode: Bool = true,
                 hang: Bool = false,
-                smoothness: Bool = false,
+                smoothness: Bool = true,
                 customServices: [CaptureService] = []
             ) {
                 self.urlSession = urlSession
@@ -67,7 +68,7 @@ extension EmbraceIO {
                         lowMemoryWarning: Bool = true,
                         lowPowerMode: Bool = true,
                         hang: Bool = false,
-                        smoothness: Bool = false,
+                        smoothness: Bool = true,
                         customServices: [CaptureService] = []
                     ) {
                         self.urlSession = urlSession
@@ -90,7 +91,7 @@ extension EmbraceIO {
                         lowMemoryWarning: Bool = true,
                         lowPowerMode: Bool = true,
                         hang: Bool = false,
-                        smoothness: Bool = false,
+                        smoothness: Bool = true,
                         customServices: [CaptureService] = []
                     ) {
                         self.urlSession = urlSession
@@ -113,7 +114,7 @@ extension EmbraceIO {
                     lowMemoryWarning: Bool = true,
                     lowPowerMode: Bool = true,
                     hang: Bool = false,
-                    smoothness: Bool = false,
+                    smoothness: Bool = true,
                     customServices: [CaptureService] = []
                 ) {
                     self.urlSession = urlSession

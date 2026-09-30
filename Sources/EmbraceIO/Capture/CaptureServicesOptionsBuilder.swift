@@ -91,7 +91,8 @@ public final class CaptureServicesOptionsBuilder {
     }
 
     /// Adds the default `CaptureServices` using their corresponding default options.
-    /// The default services are: `.urlSession`, `.tap`, `.view`, `webView`, `.lowMemoryWarning` and `.lowPowerMode`.
+    /// The default services are: `.urlSession`, `.tap`, `.view`, `webView`, `.lowMemoryWarning`, `.lowPowerMode` and
+    /// `.smoothness`. Smoothness stays dormant until remote config enables it for the device; remove it to opt out.
     /// - Note: Any existing `CaptureService` previously added will not get replaced by calling this method.
     @discardableResult
     public func addDefaults() -> Self {
@@ -128,6 +129,13 @@ public final class CaptureServicesOptionsBuilder {
         if map[.lowPowerMode] == nil {
             map[.lowPowerMode] = true
         }
+
+        #if !os(watchOS) && !os(macOS)
+            // smoothness
+            if map[.smoothness] == nil {
+                map[.smoothness] = true
+            }
+        #endif
 
         return self
     }
@@ -205,7 +213,8 @@ public final class CaptureServicesOptionsBuilder {
         }
 
         /// Adds a new `SmoothnessCaptureService`.
-        /// - Note: Experimental and opt-in; it is not part of the default capture services.
+        /// - Note: Part of the default capture services. It stays dormant until remote config enables it
+        ///   for the device.
         /// - Note: Available on iOS and tvOS only. Frame timing relies on
         ///   `CADisplayLink`, which has no standalone initializer on macOS and
         ///   is not available on watchOS.
