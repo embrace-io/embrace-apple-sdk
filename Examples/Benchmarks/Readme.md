@@ -50,6 +50,8 @@ Both screens pin the display to 120Hz, and `Benchmarks-Info.plist` sets `CADisab
 
 Both services disable themselves under a debugger, and running the tests from Xcode attaches one, so both arms set `EMBAllowWatchdogInDebugger=1`. To prove the On arm really measured Smoothness, both scenarios also report **Smoothness Frames**: the frames the SDK counted in the open foreground part. The tests assert it is above 0 in `_smoothnessOn` and 0 in `_smoothnessOff`, and `bin/smoothness_overhead.py` marks the scenario incomplete otherwise.
 
+Each scenario also runs a **positive control**, `_smoothnessOnPlusCost`: the On arm plus 250µs of main-thread work on every frame (`EMBInjectedTickCostMicros`). The script requires every gate in the scenario to report the control as over budget. If a gate misses it, that gate can't see a cost of that size (for example because the baseline is already saturated), so its pass means nothing and the run is incomplete.
+
 In CI, `bin/smoothness_overhead.py` pairs the results and posts a PR comment against the pass criteria: the hitch time ratio delta proven within budget, and less than 1 percentage point of added CPU utilization. The hitch budget is the larger of 5% of the Off mean and 1 ms/s. A scenario passes only if the one-sided 95% Welch upper bound on the On − Off delta is below the budget, and fails if the lower bound is above it. Anything in between is **inconclusive**: the run was too noisy to show the cost is within budget, so it doesn't count as a pass. The comment doesn't fail the job, because release sign-off is manual. To run on another device (e.g. a 60Hz model), trigger **On Device Benchmarks** manually with the `device` input.
 
 For the per-tick cost, launch a debug build with `EMBSmoothnessSignposts=1` and record with the Instruments **os_signpost** instrument (subsystem `io.embrace.sdk`, category `Smoothness`, interval `Tick`). `SmoothnessOverheadTests` in `EmbraceCoreTests` covers the same path as a simulator microbenchmark.
@@ -60,6 +62,7 @@ For the per-tick cost, launch a debug build with `EMBSmoothnessSignposts=1` and 
 - `EMBHang=1`: Adds `HangCaptureService`
 - `EMBSmoothness=1`: Adds `SmoothnessCaptureService`
 - `EMBAllowWatchdogInDebugger=1`: Keeps `HangCaptureService` and `SmoothnessCaptureService` running when a debugger is attached
+- `EMBInjectedTickCostMicros`: Extra main-thread work, in microseconds, the smoothness screens add to every frame. Used by the positive control
 - `EMBFrameLoadFraction`: Fraction of each frame the scroll screen spends busy on the main thread (default 0.9)
 - `EMBBenchmarkScreen`: Launches into `smoothness-scroll` or `smoothness-animation` instead of the default screen
 - `EMBSmoothnessSignposts=1`: Debug builds only. Wraps each Smoothness tick in an `os_signpost` interval

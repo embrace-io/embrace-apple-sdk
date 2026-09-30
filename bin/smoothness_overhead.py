@@ -12,6 +12,10 @@ vs `<scenario>_smoothnessOn`, same build) and applies the overhead criteria:
 - CPU utilization (CPU Time / Clock Monotonic Time, per iteration): increase below
   CPU_MAX_DELTA_PP percentage points.
 
+Each scenario also runs a positive control, `<scenario>_smoothnessOnPlusCost`: Smoothness on, plus a
+known cost the benchmark adds to every frame. Each gate the scenario applies must report the control
+as over budget; if it doesn't, the gate can't see a cost of that size, and the run is incomplete.
+
 A scenario only counts if the SDK's own frame count ("Smoothness Frames") is above 0 in the On arm
 and 0 in the Off arm; otherwise the comparison didn't measure Smoothness and the run is incomplete.
 
@@ -35,7 +39,10 @@ CPU_MAX_DELTA_PP = float(os.getenv("CPU_MAX_DELTA_PP", "1.0"))
 TITLE = os.getenv("TITLE") or "Smoothness Overhead (on vs off)"
 DEVICE = os.getenv("DEVICE", "")
 
-PAIR = re.compile(r"^(?P<scenario>.*)_smoothness(?P<mode>On|Off)(\(\))?$")
+PAIR = re.compile(r"^(?P<scenario>.*)_smoothness(?P<mode>OnPlusCost|On|Off)(\(\))?$")
+
+# The positive control arm: Smoothness on, plus a known per-tick cost the gate must catch.
+MODES = {"On": "on", "Off": "off", "OnPlusCost": "control"}
 
 
 def one_sided_p(on, off):
@@ -67,14 +74,14 @@ def welch_bounds(on, off, alpha):
 
 
 def load_pairs(results):
-    """Returns {scenario: {"on"|"off": {displayName: metric}}}."""
+    """Returns {scenario: {"on"|"off"|"control": {displayName: metric}}}."""
     pairs = {}
     for metric in results:
         name = metric["name"].split("/")[-1]
         match = PAIR.match(name)
         if not match:
             continue
-        mode = match["mode"].lower()
+        mode = MODES[match["mode"]]
         pairs.setdefault(match["scenario"], {}).setdefault(mode, {})[metric["displayName"]] = metric
     return pairs
 
@@ -92,6 +99,73 @@ def fmt(x, digits=3):
 
 def fmtp(p):
     return f"{p:.3g}" if p is not None else "n/a"
+
+
+WITHIN = "✅ within budget"
+OVER = "❌ over budget"
+INCONCLUSIVE = "⚠️ inconclusive"
+
+
+def hitch_check(on, off):
+    """Hitch Time Ratio check of `on` against `off`, or None if either lacks the metric.
+
+    Passing needs proof the delta is within budget, so noise can't pass as "no regression".
+    """
+    hitch_on, hitch_off = find(on, "Hitch Time Ratio"), find(off, "Hitch Time Ratio")
+    if not hitch_on or not hitch_off:
+        return None
+
+    delta = hitch_on["avg"] - hitch_off["avg"]
+    relative = delta / hitch_off["avg"] if hitch_off["avg"] else (math.inf if delta > 0 else 0.0)
+    budget = max(HITCH_THRESHOLD * hitch_off["avg"], HITCH_ABS_FLOOR)
+    bounds = welch_bounds(hitch_on["all"], hitch_off["all"], ALPHA)
+    if bounds is None:
+        status, evidence = INCONCLUSIVE, "too few iterations"
+    else:
+        lower, upper = bounds
+        if upper < budget:
+            status = WITHIN
+        elif lower > budget:
+            status = OVER
+        else:
+            status = INCONCLUSIVE
+        evidence = f"≤ {upper:+.3f} (budget {budget:.3f})"
+
+    return {
+        "name": hitch_on["displayName"],
+        "metric": f"{hitch_on['displayName']} ({hitch_on['unitOfMeasurement']})",
+        "status": status,
+        "cells": (
+            fmt(hitch_off["avg"]),
+            fmt(hitch_on["avg"]),
+            f"{delta:+.3f} ({relative:+.1%})" if math.isfinite(relative) else f"{delta:+.3f}",
+            evidence,
+        ),
+    }
+
+
+def cpu_check(on, off):
+    """CPU utilization check of `on` against `off`, or None if either lacks CPU or clock time."""
+    cpu_on, cpu_off = find(on, "CPU Time"), find(off, "CPU Time")
+    clock_on, clock_off = find(on, "Clock Monotonic Time"), find(off, "Clock Monotonic Time")
+    if not (cpu_on and cpu_off and clock_on and clock_off):
+        return None
+
+    util_on = [c / w * 100 for c, w in zip(cpu_on["all"], clock_on["all"]) if w]
+    util_off = [c / w * 100 for c, w in zip(cpu_off["all"], clock_off["all"]) if w]
+    delta_pp = mean(util_on) - mean(util_off)
+
+    return {
+        "name": cpu_on["displayName"],
+        "metric": "CPU utilization (%)",
+        "status": OVER if delta_pp >= CPU_MAX_DELTA_PP else WITHIN,
+        "cells": (
+            fmt(mean(util_off), 2),
+            fmt(mean(util_on), 2),
+            f"{delta_pp:+.2f} pp",
+            f"p = {fmtp(one_sided_p(util_on, util_off))}",
+        ),
+    }
 
 
 def evaluate(pairs):
@@ -135,54 +209,45 @@ def evaluate(pairs):
             gates.append((scenario, "Smoothness Frames", "⚠️ missing", "can't confirm Smoothness ran", "", "", ""))
             passed = False
 
-        hitch_on, hitch_off = find(on, "Hitch Time Ratio"), find(off, "Hitch Time Ratio")
-        if hitch_on and hitch_off:
-            gated.add(hitch_on["displayName"])
-            delta = hitch_on["avg"] - hitch_off["avg"]
-            relative = delta / hitch_off["avg"] if hitch_off["avg"] else (math.inf if delta > 0 else 0.0)
-            budget = max(HITCH_THRESHOLD * hitch_off["avg"], HITCH_ABS_FLOOR)
-            bounds = welch_bounds(hitch_on["all"], hitch_off["all"], ALPHA)
-            # Passing needs proof the delta is within budget, so noise can't pass as "no regression".
-            if bounds is None:
-                status, evidence = "⚠️ inconclusive", "too few iterations"
-            else:
-                lower, upper = bounds
-                if upper < budget:
-                    status = "✅ within budget"
-                elif lower > budget:
-                    status = "❌ over budget"
-                else:
-                    status = "⚠️ inconclusive"
-                evidence = f"≤ {upper:+.3f} (budget {budget:.3f})"
-            passed &= status.startswith("✅")
-            gates.append((
-                scenario,
-                f"{hitch_on['displayName']} ({hitch_on['unitOfMeasurement']})",
-                status,
-                fmt(hitch_off["avg"]),
-                fmt(hitch_on["avg"]),
-                f"{delta:+.3f} ({relative:+.1%})" if math.isfinite(relative) else f"{delta:+.3f}",
-                evidence,
-            ))
+        hitch = hitch_check(on, off)
+        if hitch:
+            gated.add(hitch["name"])
+            passed &= hitch["status"] == WITHIN
+            gates.append((scenario, hitch["metric"], hitch["status"], *hitch["cells"]))
 
-        cpu_on, cpu_off = find(on, "CPU Time"), find(off, "CPU Time")
-        clock_on, clock_off = find(on, "Clock Monotonic Time"), find(off, "Clock Monotonic Time")
-        if cpu_on and cpu_off and clock_on and clock_off:
-            gated.add(cpu_on["displayName"])
-            util_on = [c / w * 100 for c, w in zip(cpu_on["all"], clock_on["all"]) if w]
-            util_off = [c / w * 100 for c, w in zip(cpu_off["all"], clock_off["all"]) if w]
-            delta_pp = mean(util_on) - mean(util_off)
-            regressed = delta_pp >= CPU_MAX_DELTA_PP
-            passed &= not regressed
-            gates.append((
-                scenario,
-                "CPU utilization (%)",
-                "❌ fail" if regressed else "✅ pass",
-                fmt(mean(util_off), 2),
-                fmt(mean(util_on), 2),
-                f"{delta_pp:+.2f} pp",
-                f"p = {fmtp(one_sided_p(util_on, util_off))}",
-            ))
+        cpu = cpu_check(on, off)
+        if cpu:
+            gated.add(cpu["name"])
+            passed &= cpu["status"] == WITHIN
+            gates.append((scenario, cpu["metric"], cpu["status"], *cpu["cells"]))
+
+        # The positive control must be caught by every gate this scenario applies. If it isn't, the
+        # gate can't see a cost of that size (e.g. the baseline is saturated), so a pass means nothing.
+        control = pairs[scenario].get("control", {})
+        if not control:
+            gates.append((scenario, "positive control", "⚠️ missing", "can't show the gate detects a cost", "", "", ""))
+            passed = False
+        else:
+            frames_control = find(control, "Smoothness Frames")
+            if not frames_control or frames_control["avg"] <= 0:
+                gates.append((scenario, "positive control", "❌ inactive", "Smoothness counted no frames", "", "", ""))
+                passed = False
+            for check, gate in ((hitch_check, hitch), (cpu_check, cpu)):
+                if not gate:
+                    continue
+                result = check(control, off)
+                if not result:
+                    gates.append((scenario, f"control: {gate['metric']}", "⚠️ missing", "", "", "", ""))
+                    passed = False
+                    continue
+                detected = result["status"] == OVER
+                passed &= detected
+                gates.append((
+                    scenario,
+                    f"control: {result['metric']}",
+                    "✅ detected" if detected else "❌ not detected",
+                    *result["cells"],
+                ))
 
         # Context only: shows whether the scenario really ran at the intended refresh rate.
         rate_on, rate_off = find(on, "Display Link Rate"), find(off, "Display Link Rate")
@@ -229,7 +294,8 @@ def render(gates, info, passed, has_results):
         f"Criteria: hitch time ratio delta proven within budget — the one-sided {1 - ALPHA:.0%} upper bound "
         f"must be below max(`{HITCH_THRESHOLD:.0%}` of Off, `{HITCH_ABS_FLOOR}` ms/s), and a run too noisy "
         f"to show that is inconclusive; CPU utilization increase < `{CPU_MAX_DELTA_PP}` pp; "
-        "Smoothness frame count > 0 in On and 0 in Off. Hang capture is on in both arms."
+        "Smoothness frame count > 0 in On and 0 in Off; the positive control (On plus a known per-frame "
+        "cost) must be over budget on every gate. Hang capture is on in all arms."
     )
     body.append("")
 

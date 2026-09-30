@@ -13,6 +13,10 @@ import XCTest
 /// Both services disable themselves under a debugger, which the scheme attaches for a local run, so
 /// both arms set `EMBAllowWatchdogInDebugger=1`. Each arm also reports and asserts the SDK's frame
 /// count, so an On arm where Smoothness never ran can't pass as a measurement.
+///
+/// Each scenario also runs a positive control, `_smoothnessOnPlusCost`: the On arm plus
+/// `injectedTickCostMicros` of main-thread work on every frame. The script requires every gate to
+/// report it as over budget, which proves the gate can see a cost of that size at all.
 final class SmoothnessOverheadUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -31,6 +35,11 @@ final class SmoothnessOverheadUITests: XCTestCase {
         measureScrolling(smoothness: true)
     }
 
+    @MainActor
+    func testScrolling_smoothnessOnPlusCost() throws {
+        measureScrolling(smoothness: true, injectingCost: true)
+    }
+
     // MARK: - Continuous animation: steady-state CPU
 
     @MainActor
@@ -43,18 +52,31 @@ final class SmoothnessOverheadUITests: XCTestCase {
         measureAnimation(smoothness: true)
     }
 
+    @MainActor
+    func testAnimation_smoothnessOnPlusCost() throws {
+        measureAnimation(smoothness: true, injectingCost: true)
+    }
+
     // MARK: - Private
 
     private let animationWindow: TimeInterval = 10
 
+    /// The positive control's added cost per frame. 250µs is 3 percentage points of CPU at 120Hz and
+    /// 1.5 at 60Hz, both over the 1 point budget, and about 250× the SDK's ~1µs on-device per-tick
+    /// budget.
+    private let injectedTickCostMicros = 250
+
     @MainActor
-    private func launch(screen: String, smoothness: Bool) -> XCUIApplication {
+    private func launch(screen: String, smoothness: Bool, injectingCost: Bool) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["EMBBenchmarkScreen"] = screen
         app.launchEnvironment["EMBHang"] = "1"
         app.launchEnvironment["EMBAllowWatchdogInDebugger"] = "1"
         if smoothness {
             app.launchEnvironment["EMBSmoothness"] = "1"
+        }
+        if injectingCost {
+            app.launchEnvironment["EMBInjectedTickCostMicros"] = String(injectedTickCostMicros)
         }
         app.launch()
         return app
@@ -63,8 +85,8 @@ final class SmoothnessOverheadUITests: XCTestCase {
     /// Uses Apple's scroll signposts, so hitches are measured independently of the SDK's own
     /// frame accounting.
     @MainActor
-    private func measureScrolling(smoothness: Bool) {
-        let app = launch(screen: "smoothness-scroll", smoothness: smoothness)
+    private func measureScrolling(smoothness: Bool, injectingCost: Bool = false) {
+        let app = launch(screen: "smoothness-scroll", smoothness: smoothness, injectingCost: injectingCost)
         let list = app.collectionViews.firstMatch
         XCTAssertTrue(list.waitForExistence(timeout: 10))
 
@@ -93,8 +115,8 @@ final class SmoothnessOverheadUITests: XCTestCase {
     /// Measures a fixed idle window while the screen animates every frame. `XCTClockMetric` records
     /// the window so CPU time can be turned into utilization.
     @MainActor
-    private func measureAnimation(smoothness: Bool) {
-        let app = launch(screen: "smoothness-animation", smoothness: smoothness)
+    private func measureAnimation(smoothness: Bool, injectingCost: Bool = false) {
+        let app = launch(screen: "smoothness-animation", smoothness: smoothness, injectingCost: injectingCost)
         XCTAssertTrue(app.otherElements["smoothness-animation"].waitForExistence(timeout: 10))
 
         let options = XCTMeasureOptions()

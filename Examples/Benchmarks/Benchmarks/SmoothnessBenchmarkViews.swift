@@ -24,6 +24,10 @@ enum SmoothnessProbe {
 /// The load keeps each frame close to its deadline, so any per-tick cost the SDK adds turns into
 /// measurable hitches instead of disappearing into idle headroom.
 ///
+/// It can also inject a fixed cost into every tick (`EMBInjectedTickCostMicros`), standing in for
+/// SDK per-tick work of a known size. `SmoothnessOverheadUITests` uses it as a positive control:
+/// the overhead gate must catch it, or the gate can't see a cost of that size.
+///
 /// A second, probe display link is configured like the SDK's `FrameTimingSource` (default frame
 /// rate range, `.common` mode) and only counts ticks, so `sampleProbeRate()` reports the rate the
 /// SDK's own display links actually ran at.
@@ -31,14 +35,22 @@ final class FrameDriver: NSObject {
 
     /// Fraction (0...1) of each frame's duration to spend busy on the main thread.
     private let loadFraction: Double
+    /// Extra fixed time, in seconds, to spend busy on the main thread every tick.
+    private let injectedCost: CFTimeInterval
     private var link: CADisplayLink?
     private var probe: CADisplayLink?
     private var probeTicks = 0
     private var lastSampleTicks = 0
     private var lastSampleTime: CFTimeInterval = 0
 
-    init(loadFraction: Double) {
+    init(loadFraction: Double, injectedCost: CFTimeInterval = FrameDriver.injectedCostFromEnvironment) {
         self.loadFraction = min(max(loadFraction, 0), 1)
+        self.injectedCost = max(injectedCost, 0)
+    }
+
+    /// `EMBInjectedTickCostMicros` in seconds, or `0` if unset.
+    static var injectedCostFromEnvironment: CFTimeInterval {
+        (Double(ProcessInfo.processInfo.environment["EMBInjectedTickCostMicros"] ?? "") ?? 0) / 1_000_000
     }
 
     func start() {
@@ -73,8 +85,8 @@ final class FrameDriver: NSObject {
     }
 
     @objc private func tick(_ link: CADisplayLink) {
-        guard loadFraction > 0 else { return }
-        let deadline = CACurrentMediaTime() + (link.targetTimestamp - link.timestamp) * loadFraction
+        guard loadFraction > 0 || injectedCost > 0 else { return }
+        let deadline = CACurrentMediaTime() + (link.targetTimestamp - link.timestamp) * loadFraction + injectedCost
         while CACurrentMediaTime() < deadline {}
     }
 
@@ -150,7 +162,7 @@ struct SmoothnessScrollView: View {
 
 /// A continuously animating screen that keeps the display rendering every frame, so an idle
 /// window measures the steady-state CPU cost of the display link and tick handler. A load-free
-/// `FrameDriver` keeps it at 120Hz.
+/// `FrameDriver` keeps it at 120Hz, and adds only the injected cost, if any.
 struct SmoothnessAnimationView: View {
 
     @State private var driver = FrameDriver(loadFraction: 0)
