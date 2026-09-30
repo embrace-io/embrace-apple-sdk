@@ -6,6 +6,7 @@ import Combine
 @_spi(Private) import EmbraceCore
 import QuartzCore
 import SwiftUI
+import UIKit
 
 /// The `SmoothnessCaptureService` the app started with, or `nil` if `EMBSmoothness` wasn't set.
 enum SmoothnessProbe {
@@ -29,8 +30,11 @@ enum SmoothnessProbe {
 /// the overhead gate must catch it, or the gate can't see a cost of that size.
 ///
 /// A second, probe display link is configured like the SDK's `FrameTimingSource` (default frame
-/// rate range, `.common` mode) and only counts ticks, so `sampleProbeRate()` reports the rate the
-/// SDK's own display links actually ran at.
+/// rate range, `.common` mode). It reports two rates:
+/// - `sampleProbeRate()`: callbacks per second, the rate the SDK's own display links actually ran
+///   at. Callbacks run on the main thread, so this drops when the main thread hitches.
+/// - `sampleRefreshRate()`: the display's refresh rate, from each callback's frame duration. It
+///   doesn't depend on callbacks being delivered, so hitches don't drag it down.
 final class FrameDriver: NSObject {
 
     /// Fraction (0...1) of each frame's duration to spend busy on the main thread.
@@ -40,6 +44,7 @@ final class FrameDriver: NSObject {
     private var link: CADisplayLink?
     private var probe: CADisplayLink?
     private var probeTicks = 0
+    private var probeFrameDurations: [CFTimeInterval] = []
     private var lastSampleTicks = 0
     private var lastSampleTime: CFTimeInterval = 0
 
@@ -84,6 +89,15 @@ final class FrameDriver: NSObject {
         return Double(probeTicks - lastSampleTicks) / (now - lastSampleTime)
     }
 
+    /// The display's refresh rate since the previous call, from the median frame duration, or `0`
+    /// if no tick arrived.
+    func sampleRefreshRate() -> Double {
+        defer { probeFrameDurations.removeAll(keepingCapacity: true) }
+        let durations = probeFrameDurations.filter { $0 > 0 }.sorted()
+        guard !durations.isEmpty else { return 0 }
+        return 1 / durations[durations.count / 2]
+    }
+
     @objc private func tick(_ link: CADisplayLink) {
         guard loadFraction > 0 || injectedCost > 0 else { return }
         let deadline = CACurrentMediaTime() + (link.targetTimestamp - link.timestamp) * loadFraction + injectedCost
@@ -92,17 +106,22 @@ final class FrameDriver: NSObject {
 
     @objc private func probeTick(_ link: CADisplayLink) {
         probeTicks += 1
+        probeFrameDurations.append(link.targetTimestamp - link.timestamp)
     }
 }
 
 /// Shows, once a second, the values `BenchmarksUITests` reads back as static texts:
-/// - `display-link-rate`: the probe display link's rate over the last second.
+/// - `display-link-rate`: the probe display link's callbacks per second over the last second.
+/// - `display-refresh-rate`: the display's refresh rate over the last second.
+/// - `max-display-rate`: the screen's `maximumFramesPerSecond` (120 on ProMotion, 60 otherwise).
 /// - `smoothness-frames`: `SmoothnessProbe.frameCount`, which proves whether the SDK is active.
 /// - `thermal-state`: `ProcessInfo.thermalState` as its raw value (0 nominal ... 3 critical).
 private struct ProbeLabels: ViewModifier {
 
     let driver: FrameDriver
     @State private var rate = "0"
+    @State private var refreshRate = "0"
+    @State private var maxRate = "0"
     @State private var smoothnessFrames = "0"
     @State private var thermalState = String(ProcessInfo.processInfo.thermalState.rawValue)
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -113,6 +132,10 @@ private struct ProbeLabels: ViewModifier {
                 VStack(alignment: .trailing, spacing: 0) {
                     Text(rate)
                         .accessibilityIdentifier("display-link-rate")
+                    Text(refreshRate)
+                        .accessibilityIdentifier("display-refresh-rate")
+                    Text(maxRate)
+                        .accessibilityIdentifier("max-display-rate")
                     Text(smoothnessFrames)
                         .accessibilityIdentifier("smoothness-frames")
                     Text(thermalState)
@@ -123,9 +146,16 @@ private struct ProbeLabels: ViewModifier {
             }
             .onReceive(timer) { _ in
                 rate = String(format: "%.1f", driver.sampleProbeRate())
+                refreshRate = String(format: "%.1f", driver.sampleRefreshRate())
+                maxRate = String(Self.maximumFramesPerSecond)
                 smoothnessFrames = String(SmoothnessProbe.frameCount)
                 thermalState = String(ProcessInfo.processInfo.thermalState.rawValue)
             }
+    }
+
+    private static var maximumFramesPerSecond: Int {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        return scenes.first?.screen.maximumFramesPerSecond ?? 0
     }
 }
 

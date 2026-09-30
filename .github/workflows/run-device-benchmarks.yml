@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       device:
-        description: 'BrowserStack device, as <model>-<iOS version>. Use a 60Hz device for the Smoothness overhead sign-off.'
+        description: 'BrowserStack device, as <model>-<iOS version>. Smoothness overhead sign-off needs a strict run on a 120Hz ProMotion device and one on a 60Hz device.'
         required: false
         type: string
         default: 'iPhone 17 Pro-26'

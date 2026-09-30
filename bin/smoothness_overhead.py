@@ -24,6 +24,12 @@ steady drift over the run cancels out; `<n>` is the block's position. Each arm's
 before the gates run. A scenario is incomplete if the arms' average positions differ (e.g. a block
 is missing), or if any iteration's thermal state reached serious, since the device was throttling.
 
+Every arm must also run at the expected refresh rate: the device's own maximum ("Max Display Rate"),
+or EXPECTED_HZ if set. A scenario is incomplete if any arm's average "Display Refresh Rate" is below
+RATE_MIN_FRACTION of it, or the arms' averages differ by more than RATE_MAX_SPREAD. The refresh rate
+comes from frame durations, so hitches don't lower it, unlike "Display Link Rate" (callbacks per
+second), which is shown as context.
+
 Every other paired metric is reported for information. The result is posted as a PR comment
 (when PR_NUMBER is set) and written to the job summary.
 
@@ -48,6 +54,10 @@ CPU_MAX_DELTA_PP = float(os.getenv("CPU_MAX_DELTA_PP", "1.0"))
 TITLE = os.getenv("TITLE") or "Smoothness Overhead (on vs off)"
 DEVICE = os.getenv("DEVICE", "")
 STRICT = os.getenv("STRICT") == "1"
+# The refresh rate every arm must reach. Defaults to the device's own maximum ("Max Display Rate").
+EXPECTED_HZ = float(os.getenv("EXPECTED_HZ") or 0) or None
+RATE_MIN_FRACTION = float(os.getenv("RATE_MIN_FRACTION", "0.85"))
+RATE_MAX_SPREAD = float(os.getenv("RATE_MAX_SPREAD", "0.10"))
 
 # e.g. `testScrolling_2_smoothnessOn()`: the number is the block's position in the run.
 PAIR = re.compile(r"^(?P<scenario>.*?)(_(?P<block>\d+))?_smoothness(?P<mode>OnPlusCost|On|Off)(\(\))?$")
@@ -209,6 +219,34 @@ def cpu_check(on, off):
     }
 
 
+def refresh_rate_check(scenario, arms):
+    """Returns (gate row, ok). Every arm's average refresh rate must reach RATE_MIN_FRACTION of the
+    expected rate, and the arms' averages must be within RATE_MAX_SPREAD of each other."""
+    rates = {arm: find(metrics, "Display Refresh Rate") for arm, metrics in arms.items() if metrics}
+    rates = {arm: metric["avg"] for arm, metric in rates.items() if metric}
+    if "off" not in rates or "on" not in rates:
+        return (scenario, "Display Refresh Rate", "⚠️ missing", "can't confirm the refresh rate", "", "", ""), False
+
+    max_rates = [metric["avg"] for metric in (find(metrics, "Max Display Rate") for metrics in arms.values() if metrics) if metric]
+    expected = EXPECTED_HZ or (max(max_rates) if max_rates else None)
+    if not expected:
+        return (scenario, "Display Refresh Rate", "⚠️ missing", "no Max Display Rate or EXPECTED_HZ", "", "", ""), False
+
+    floor = RATE_MIN_FRACTION * expected
+    spread = (max(rates.values()) - min(rates.values())) / max(rates.values()) if max(rates.values()) else 0.0
+    if min(rates.values()) < floor:
+        status = "⚠️ below expected"
+    elif spread > RATE_MAX_SPREAD:
+        status = "⚠️ arms differ"
+    else:
+        status = "✅ at expected rate"
+    evidence = f"expected {expected:.0f} Hz (≥ {floor:.0f}), spread {spread:.0%}"
+    if "control" in rates:
+        evidence += f", control {rates['control']:.1f}"
+    row = (scenario, "Display Refresh Rate (Hz)", status, fmt(rates["off"], 1), fmt(rates["on"], 1), "", evidence)
+    return row, status.startswith("✅")
+
+
 def evaluate(pairs):
     """Returns (gate rows, info rows, overall pass)."""
     gates, info = [], []
@@ -324,7 +362,14 @@ def evaluate(pairs):
             gates.append((scenario, "Thermal State", "⚠️ missing", "can't rule out throttling", "", "", ""))
             passed = False
 
-        # Context only: shows whether the scenario really ran at the intended refresh rate.
+        # The SDK's cost is per tick, so a run that fell back to a lower refresh rate (Low Power Mode,
+        # thermal caps, no ProMotion) under-measures it, and arms at different rates aren't comparable.
+        rate_row, rate_ok = refresh_rate_check(scenario, {"off": off, "on": on, "control": control})
+        shown.update({"Display Refresh Rate", "Max Display Rate"})
+        passed &= rate_ok
+        gates.append(rate_row)
+
+        # Context only: callbacks per second, which drop when the main thread hitches.
         rate_on, rate_off = find(on, "Display Link Rate"), find(off, "Display Link Rate")
         if rate_on and rate_off:
             shown.add(rate_on["displayName"])

@@ -150,6 +150,8 @@ final class SmoothnessOverheadUITests: XCTestCase {
                 XCTOSSignpostMetric.scrollingAndDecelerationMetric,
                 XCTCPUMetric(application: app),
                 LabelMetric.displayLinkRate(app: app),
+                LabelMetric.displayRefreshRate(app: app),
+                LabelMetric.maxDisplayRate(app: app),
                 LabelMetric.smoothnessFrames(app: app),
                 LabelMetric.thermalState(app: app)
             ],
@@ -178,6 +180,8 @@ final class SmoothnessOverheadUITests: XCTestCase {
                 XCTCPUMetric(application: app),
                 XCTClockMetric(),
                 LabelMetric.displayLinkRate(app: app),
+                LabelMetric.displayRefreshRate(app: app),
+                LabelMetric.maxDisplayRate(app: app),
                 LabelMetric.smoothnessFrames(app: app),
                 LabelMetric.thermalState(app: app)
             ],
@@ -204,14 +208,37 @@ final class SmoothnessOverheadUITests: XCTestCase {
 /// Reports a numeric static text on the benchmark screen, read when each iteration stops.
 private final class LabelMetric: NSObject, XCTMetric {
 
-    /// The rate a display link configured like the SDK's actually ran at over the last second.
-    /// Confirms whether a scenario really ran at 120Hz.
+    /// Callbacks per second over the last second, for a display link configured like the SDK's.
+    /// Drops when the main thread hitches, so it's context only.
     static func displayLinkRate(app: XCUIApplication) -> LabelMetric {
         LabelMetric(
             app: app,
             label: "display-link-rate",
             identifier: "io.embrace.benchmarks.displayLinkRate",
             displayName: "Display Link Rate",
+            unitSymbol: "Hz"
+        )
+    }
+
+    /// The display's refresh rate over the last second, from frame durations, so hitches don't
+    /// lower it. The script requires it to reach the device's maximum in every arm.
+    static func displayRefreshRate(app: XCUIApplication) -> LabelMetric {
+        LabelMetric(
+            app: app,
+            label: "display-refresh-rate",
+            identifier: "io.embrace.benchmarks.displayRefreshRate",
+            displayName: "Display Refresh Rate",
+            unitSymbol: "Hz"
+        )
+    }
+
+    /// The screen's `maximumFramesPerSecond`: what the refresh rate is checked against.
+    static func maxDisplayRate(app: XCUIApplication) -> LabelMetric {
+        LabelMetric(
+            app: app,
+            label: "max-display-rate",
+            identifier: "io.embrace.benchmarks.maxDisplayRate",
+            displayName: "Max Display Rate",
             unitSymbol: "Hz"
         )
     }
