@@ -18,7 +18,7 @@
     /// lets the loop share exactly this state and nothing else — the worker is handed this, never the
     /// sampler — so there's no way to accidentally wire the loop to atomics nobody writes to.
     private final class SharedPollState {
-        /// `CLOCK_MONOTONIC_RAW` ns when the current busy epoch began; `0` when the run loop is idle.
+        /// `EmbraceMonotonicTime` ns when the current busy epoch began; `0` when the run loop is idle.
         /// Written by the main-thread beacon, read by the background poller.
         let busySince = EmbraceAtomic<UInt64>(0)
         let paused = EmbraceAtomic<Bool>(false)
@@ -197,7 +197,7 @@
                     self.shared.busySince.store(0, order: .release)  // going idle → not a hang
                 } else {
                     // .afterWaiting → a busy epoch begins. One atomic store, nothing else.
-                    self.shared.busySince.store(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW), order: .release)
+                    self.shared.busySince.store(EmbraceMonotonicTime.nanos(), order: .release)
                 }
             }
         }
@@ -243,7 +243,7 @@
                 let since = shared.busySince.load(order: .acquire)
                 guard since != 0, since != lastSampledEpoch else { continue }
 
-                let now = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
+                let now = EmbraceMonotonicTime.nanos()
                 guard now &- since >= config.triggerNanos else { continue }
 
                 lastSampledEpoch = since  // one snapshot per stall episode
@@ -252,9 +252,9 @@
         }
 
         private func captureSample() {
-            let pre = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
+            let pre = EmbraceMonotonicTime.nanos()
             let backtrace = EmbraceBacktrace.backtrace(of: config.mainThread, threadIndex: 0)  // suspends main; alloc-free
-            let post = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
+            let post = EmbraceMonotonicTime.nanos()
 
             let sample = MainThreadStackSample(
                 timestamp: backtrace.timestamp,

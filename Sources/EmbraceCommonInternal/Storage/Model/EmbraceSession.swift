@@ -52,4 +52,10 @@ package protocol EmbraceSession {
     /// Termination reason — set only on the **last** part of a terminated user session.
     /// Drives `emb.user_session_termination_reason` and `emb.is_final_session_part = 1`.
     var userSessionTerminationReason: TerminationReason? { get }
+
+    /// Milliseconds the device wall clock moved relative to the time that actually elapsed during
+    /// this part. Positive means the clock ran ahead of real elapsed time, negative means it was
+    /// moved backwards. Measured when the part ends, so it is `nil` on an in-progress part, on a
+    /// part recovered from an earlier process, and whenever the measurement could not be trusted.
+    var clockDriftMs: EMBInt? { get }
 }

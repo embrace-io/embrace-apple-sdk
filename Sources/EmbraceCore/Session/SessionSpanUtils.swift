@@ -147,6 +147,15 @@ extension SpanPayload {
             attributeArray.append(Attribute(key: SpanSemantics.Session.keyCrashId, value: crashId))
         }
 
+        // Only present when the part ended in this process and the measurement was trustworthy —
+        // omitted entirely otherwise, rather than emitted as a zero that would be indistinguishable
+        // from a device whose clock genuinely did not move.
+        if let clockDriftMs = session.clockDriftMs {
+            attributeArray.append(
+                Attribute(key: SpanSemantics.Session.keyClockMonotonicDrift, value: String(clockDriftMs))
+            )
+        }
+
         // Termination reason and final-part flag travel together — both emitted only on the
         // last part of a terminated user session. `emb.is_final_session_part` is `"1"` when
         // set, otherwise the key is omitted entirely.

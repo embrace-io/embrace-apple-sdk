@@ -51,5 +51,15 @@ extension SpanSemantics {
 
         public static let keyHeartbeat = "emb.heartbeat_time_unix_nano"
         public static let keyCrashId = "emb.crash_id"
+
+        /// Milliseconds the device wall clock moved relative to the time that actually elapsed
+        /// during this session part. Positive means the clock ran ahead — it was stepped or slewed
+        /// forward; negative means it was moved backwards; zero means it was not adjusted.
+        ///
+        /// This reports that the clock *changed*, not that it is *wrong*: a device whose clock is
+        /// permanently off but never corrected reports zero. Omitted when no trustworthy
+        /// measurement was available for the part, which is the case for any part recovered from an
+        /// earlier process.
+        public static let keyClockMonotonicDrift = "emb.clock_monotonic_drift"
     }
 }

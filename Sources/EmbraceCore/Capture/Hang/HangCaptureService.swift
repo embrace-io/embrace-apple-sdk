@@ -213,11 +213,11 @@ import Foundation
 
             // Reconcile the CADisplayLink-confirmed hang with the sampler's during-block snapshots.
             // `duration` is a clock-agnostic interval, so subtracting it from a fresh
-            // CLOCK_MONOTONIC_RAW reading (taken here on main, ≈ real hang end) yields the window in
+            // monotonic reading (taken here on main, ≈ real hang end) yields the window in
             // the sampler's own clock. The during-block sample was taken at ≈ start + trigger, so it
             // lands inside; a small tolerance absorbs callback latency.
             let tolerance: UInt64 = 20_000_000  // 20 ms
-            let endMono = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
+            let endMono = EmbraceMonotonicTime.nanos()
             let durationNanos = UInt64((duration * 1_000_000_000).rounded())
             let startMono = endMono > durationNanos + tolerance ? endMono &- durationNanos &- tolerance : 0
             // Take the earliest during-block sample in the window — closest to where the block began.

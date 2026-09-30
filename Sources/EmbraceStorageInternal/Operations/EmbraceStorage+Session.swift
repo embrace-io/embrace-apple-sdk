@@ -112,7 +112,9 @@ extension EmbraceStorage {
             userSessionInactivityTimeout: userSessionInactivityTimeout,
             userSessionLastForegroundEnd: userSessionLastForegroundEnd,
             userSessionPartIndex: userSessionPartIndex,
-            userSessionTerminationReason: userSessionTerminationReason
+            userSessionTerminationReason: userSessionTerminationReason,
+            // Drift is measured when the part ends, so a part that is only just starting has none.
+            clockDriftMs: nil
         )
     }
 
@@ -247,7 +249,8 @@ extension EmbraceStorage {
         appTerminated: Bool? = nil,
         crashReportId: String? = nil,
         userSessionLastForegroundEnd: Date? = nil,
-        userSessionTerminationReason: TerminationReason? = nil
+        userSessionTerminationReason: TerminationReason? = nil,
+        clockDriftMs: EMBInt? = nil
     ) -> EmbraceSession? {
 
         coreData.performAsyncOperation { [self] context in
@@ -290,6 +293,10 @@ extension EmbraceStorage {
                 fetchedSession.userSessionTerminationReason = userSessionTerminationReason.rawValue
             }
 
+            if let clockDriftMs = clockDriftMs {
+                fetchedSession.clockDriftMs = NSNumber(value: Int64(clockDriftMs))
+            }
+
             coreData.save()
         }
 
@@ -301,7 +308,8 @@ extension EmbraceStorage {
             appTerminated: appTerminated,
             crashReportId: crashReportId,
             userSessionLastForegroundEnd: userSessionLastForegroundEnd,
-            userSessionTerminationReason: userSessionTerminationReason
+            userSessionTerminationReason: userSessionTerminationReason,
+            clockDriftMs: clockDriftMs
         )
     }
 }
@@ -315,7 +323,8 @@ extension EmbraceSession {
         appTerminated: Bool? = nil,
         crashReportId: String? = nil,
         userSessionLastForegroundEnd: Date? = nil,
-        userSessionTerminationReason: TerminationReason? = nil
+        userSessionTerminationReason: TerminationReason? = nil,
+        clockDriftMs: EMBInt? = nil
     ) -> EmbraceSession {
 
         return ImmutableSessionRecord(
@@ -338,7 +347,8 @@ extension EmbraceSession {
             userSessionInactivityTimeout: self.userSessionInactivityTimeout,
             userSessionLastForegroundEnd: userSessionLastForegroundEnd ?? self.userSessionLastForegroundEnd,
             userSessionPartIndex: self.userSessionPartIndex,
-            userSessionTerminationReason: userSessionTerminationReason ?? self.userSessionTerminationReason
+            userSessionTerminationReason: userSessionTerminationReason ?? self.userSessionTerminationReason,
+            clockDriftMs: clockDriftMs ?? self.clockDriftMs
         )
     }
 }
