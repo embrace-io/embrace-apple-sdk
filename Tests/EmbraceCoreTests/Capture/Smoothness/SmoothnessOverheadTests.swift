@@ -17,6 +17,9 @@
     /// Ticks are driven synchronously on main, as in `FrameTimingSourceTests`, so the real display
     /// link can't interleave. Simulator numbers are a regression guard only; release sign-off uses
     /// on-device numbers from `Examples/Benchmarks`.
+    ///
+    /// Only `test_tickCost_staysWithinBudget` can fail on cost. The `measure` tests are informational:
+    /// they have no baselines, because a baseline is tied to one machine and CI hosts vary.
     final class SmoothnessOverheadTests: XCTestCase {
 
         /// Ticks per `measure` iteration.

@@ -2,6 +2,12 @@ name: On Device Benchmarks
 
 on:
   workflow_call:
+    inputs:
+      strict:
+        description: 'Fail the job unless the Smoothness overhead gate passes.'
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       device:
@@ -9,6 +15,11 @@ on:
         required: false
         type: string
         default: 'iPhone 17 Pro-26'
+      strict:
+        description: 'Fail the job unless the Smoothness overhead gate passes. Keep on for release sign-off.'
+        required: false
+        type: boolean
+        default: true
   pull_request:
     paths:
       - '.github/workflows/run-device-benchmarks.yml'
@@ -89,6 +100,8 @@ jobs:
           DEVICE: ${{ inputs.device || 'iPhone 17 Pro-26' }}
           # Overrides the workflow-level TITLE, which is also perfcomp's comment marker.
           TITLE: "🎞️ Smoothness Overhead (on vs off)"
+          # Blocks on manual (release sign-off) runs; PR runs only report.
+          STRICT: ${{ inputs.strict && '1' || '' }}
         run: |
           python bin/smoothness_overhead.py
 

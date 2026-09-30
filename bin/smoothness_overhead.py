@@ -20,14 +20,18 @@ A scenario only counts if the SDK's own frame count ("Smoothness Frames") is abo
 and 0 in the Off arm; otherwise the comparison didn't measure Smoothness and the run is incomplete.
 
 Every other paired metric is reported for information. The result is posted as a PR comment
-(when PR_NUMBER is set) and written to the job summary. It never fails the job: release
-sign-off is manual, backed by these numbers.
+(when PR_NUMBER is set) and written to the job summary.
+
+By default the script only reports. With STRICT=1 (release sign-off runs) it exits non-zero unless
+the overall result passes: any failed, inconclusive, incomplete or missing row, or no results at all,
+blocks.
 """
 
 import math
 import os
 import re
 import json
+import sys
 from statistics import mean, variance
 
 from scipy import stats
@@ -38,6 +42,7 @@ HITCH_ABS_FLOOR = float(os.getenv("HITCH_ABS_FLOOR", "1.0"))
 CPU_MAX_DELTA_PP = float(os.getenv("CPU_MAX_DELTA_PP", "1.0"))
 TITLE = os.getenv("TITLE") or "Smoothness Overhead (on vs off)"
 DEVICE = os.getenv("DEVICE", "")
+STRICT = os.getenv("STRICT") == "1"
 
 PAIR = re.compile(r"^(?P<scenario>.*)_smoothness(?P<mode>OnPlusCost|On|Off)(\(\))?$")
 
@@ -301,11 +306,17 @@ def render(gates, info, passed, has_results):
 
     if not has_results:
         body.append("⚠️ No `SmoothnessOverheadUITests` results found in this run.")
+        if STRICT:
+            body.append("")
+            body.append("**Strict mode: this run blocks.**")
         return "\n".join(body)
 
-    body.append(
-        f"**Overall: {'✅ within budget' if passed else '❌ over budget, inconclusive or incomplete'}** — release sign-off still required."
-    )
+    verdict = "✅ within budget" if passed else "❌ over budget, inconclusive or incomplete"
+    if STRICT:
+        mode = "strict mode, gate passed" if passed else "strict mode, this run blocks"
+    else:
+        mode = "report only; release sign-off uses a strict run"
+    body.append(f"**Overall: {verdict}** — {mode}.")
     body.append("")
     body.append("| Scenario | Metric | Status | Off | On | Δ | Evidence |")
     body.append("|:---|:---|:---|---:|---:|---:|---:|")
@@ -356,6 +367,11 @@ def main():
 
     if os.getenv("PR_NUMBER"):
         post_comment(markdown)
+
+    # Exits only after reporting, so a blocked run still shows why.
+    if STRICT and not (pairs and passed):
+        print("Smoothness overhead gate did not pass (STRICT=1).", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
