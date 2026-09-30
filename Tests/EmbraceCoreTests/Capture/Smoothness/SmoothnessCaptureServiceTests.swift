@@ -13,6 +13,7 @@
     import XCTest
 
     @_spi(Private) @testable import EmbraceCore
+    @testable import EmbraceUploadInternal
 
     final class SmoothnessCaptureServiceTests: XCTestCase {
 
@@ -1222,6 +1223,182 @@
             let span = try recoverSmoothnessSpan(of: session)
             XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyFrameCount, of: span), "2")
             XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyComplete, of: span), "true")
+        }
+    }
+
+
+    // MARK: - End to end
+
+    /// The real `SessionController`, `DefaultOTelSignalsHandler`, storage and upload, with only the
+    /// network mocked. The span is created by the service, so the part id is stamped by production
+    /// code, and each part's payload is decoded from the request that was sent.
+    final class SmoothnessCaptureServiceEndToEndTests: XCTestCase {
+
+        private let sessionsUrl = URL(string: "https://embrace.smoothness-end-to-end.test/sessions")!
+
+        private var storage: EmbraceStorage!
+        private var upload: EmbraceUpload!
+        private var controller: SessionController!
+        private var userSessionController: UserSessionController!
+        private var logController: LogController!
+        private var handler: DefaultOTelSignalsHandler!
+        private var service: SmoothnessCaptureService!
+        private let sdkStateProvider = MockEmbraceSDKStateProvider()
+
+        override func setUpWithError() throws {
+            try super.setUpWithError()
+            EmbraceHTTPMock.clearRequests()
+            EmbraceHTTPMock.mock(url: sessionsUrl)
+
+            let urlSessionConfiguration = URLSessionConfiguration.ephemeral
+            urlSessionConfiguration.protocolClasses = [EmbraceHTTPMock.self]
+            upload = try EmbraceUpload(
+                options: EmbraceUpload.Options(
+                    endpoints: EmbraceUpload.EndpointOptions(
+                        spansURL: sessionsUrl,
+                        logsURL: URL(string: "https://embrace.smoothness-end-to-end.test/logs")!,
+                        attachmentsURL: URL(string: "https://embrace.smoothness-end-to-end.test/attachments")!
+                    ),
+                    cache: EmbraceUpload.CacheOptions(storageMechanism: .inMemory(name: name), enableBackgroundTasks: false),
+                    metadata: EmbraceUpload.MetadataOptions(apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678"),
+                    redundancy: EmbraceUpload.RedundancyOptions(automaticRetryCount: -1),
+                    urlSessionConfiguration: urlSessionConfiguration
+                ),
+                logger: MockLogger(),
+                queue: DispatchQueue(label: "io.embrace.tests.smoothnessEndToEnd.upload")
+            )
+            storage = try EmbraceStorage.createInMemoryDb()
+            sdkStateProvider.isEnabled = true
+
+            // A synchronous controller queue builds each part's payload inside the part's end, right
+            // after the hook: the least time for the span's writes to land before the payload fetch.
+            controller = SessionController(storage: storage, upload: upload, config: nil, queue: MockQueue())
+            controller.sdkStateProvider = sdkStateProvider
+            userSessionController = UserSessionController(storage: storage, config: MockEmbraceConfigurable())
+            userSessionController.sessionController = controller
+            controller.userSessionController = userSessionController
+
+            logController = LogController(
+                storage: storage,
+                upload: SpyEmbraceLogUploader(),
+                sessionController: controller,
+                queue: DispatchQueue(label: "io.embrace.tests.smoothnessEndToEnd.logs")
+            )
+            handler = DefaultOTelSignalsHandler(
+                storage: storage,
+                sessionController: controller,
+                logController: logController,
+                limiter: MockOTelSignalsLimiter(),
+                sanitizer: MockOTelSignalsSanitizer(),
+                bridge: MockOTelSignalBridge()
+            )
+            controller.otel = handler
+
+            service = SmoothnessCaptureService(
+                currentSession: { [unowned self] in self.controller.currentSession },
+                notificationCenter: .default,
+                embraceNotificationCenter: Embrace.notificationCenter,
+                flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
+                thermalState: { .nominal },
+                checkpointInterval: 0,
+                debuggerAttached: { false }
+            )
+            service.install(otel: handler)
+            service.start()
+        }
+
+        override func tearDownWithError() throws {
+            service?.stop()
+            service = nil
+            // Stop in-flight uploads so they don't outlive the test. `upload` is released first, as in
+            // `SessionControllerTests`, so a cancelled operation doesn't refill the queue.
+            let uploadQueues = [upload?.spansQueue, upload?.logsQueue, upload?.attachmentsQueue].compactMap { $0 }
+            let uploadCache = upload?.cache
+            upload = nil
+            uploadQueues.forEach { $0.cancelAllOperations() }
+            uploadCache?.coreData.destroy()
+            controller = nil
+            userSessionController = nil
+            handler = nil
+            logController = nil
+            storage?.coreData.destroy()
+            storage = nil
+            EmbraceHTTPMock.clearRequests()
+            try super.tearDownWithError()
+        }
+
+        /// `.embraceSessionPartDidStart` is posted asynchronously on main.
+        private func drainMain() {
+            let drained = expectation(description: "main drained")
+            DispatchQueue.main.async { drained.fulfill() }
+            wait(for: [drained], timeout: 1)
+        }
+
+        /// The uploaded payload's `data` block, keyed by the id of the part it belongs to, read from its
+        /// `emb-session` span. (`session.id` is the user session's id, shared by its parts.)
+        private func uploadedPayloads() throws -> [String: [String: Any]] {
+            try EmbraceHTTPMock.requestBodiesForUrl(sessionsUrl).reduce(into: [:]) { result, body in
+                let json = try XCTUnwrap(JSONSerialization.jsonObject(with: try body.gunzipped()) as? [String: Any])
+                let data = try XCTUnwrap(json["data"] as? [String: Any])
+                let sessionSpan = try XCTUnwrap(spans(in: data, key: "spans").first { $0["name"] as? String == SpanSemantics.Session.name })
+                let partId = try XCTUnwrap(attribute(CommonSemantics.keyPartId, of: sessionSpan))
+                result[partId] = data
+            }
+        }
+
+        private func spans(in data: [String: Any], key: String) -> [[String: Any]] {
+            data[key] as? [[String: Any]] ?? []
+        }
+
+        private func smoothnessSpans(in data: [String: Any], key: String) -> [[String: Any]] {
+            spans(in: data, key: key).filter { $0["name"] as? String == SpanSemantics.Smoothness.name }
+        }
+
+        private func attribute(_ key: String, of span: [String: Any]) -> String? {
+            let attributes = span["attributes"] as? [[String: Any]] ?? []
+            return attributes.first { $0["key"] as? String == key }?["value"] as? String
+        }
+
+        /// EMBR-14228: the span is ended and its metrics are written by the sync hook before the ending
+        /// part's payload is built, so it is sent complete with that part, and only with that part.
+        func test_foregroundToForeground_spanIsSentCompleteWithEndingPartOnly() throws {
+            let part = try XCTUnwrap(controller.startSession(state: .foreground))
+            drainMain()
+            let tracker = try XCTUnwrap(service.tracker)
+            XCTAssertEqual(tracker.openPartId, part.id)
+            tracker.recordFrame(lateBy: 0)
+            tracker.recordFrame(lateBy: 0)
+            tracker.recordFrame(lateBy: 1.0 / 60.0)
+
+            let next = try XCTUnwrap(controller.startSession(state: .foreground))
+            drainMain()
+            controller.endSession()
+            upload.waitForAllWork()
+
+            let payloads = try uploadedPayloads()
+            XCTAssertEqual(payloads.count, 2)
+
+            // Sent with the ending part, ended at the part's end, with its final metrics.
+            let partData = try XCTUnwrap(payloads[part.id.stringValue])
+            XCTAssertTrue(smoothnessSpans(in: partData, key: "span_snapshots").isEmpty)
+            let partSpans = smoothnessSpans(in: partData, key: "spans")
+            XCTAssertEqual(partSpans.count, 1)
+            let span = try XCTUnwrap(partSpans.first)
+            let spanId = try XCTUnwrap(span["span_id"] as? String)
+            XCTAssertEqual(attribute(CommonSemantics.keyPartId, of: span), part.id.stringValue)
+            XCTAssertEqual(span["end_time_unix_nano"] as? NSNumber, NSNumber(value: next.startTime.nanosecondsSince1970Truncated))
+            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyFrameCount, of: span), "3")
+            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyNormalizedDroppedFrames, of: span).flatMap(Double.init) ?? 0, 1, accuracy: 1e-9)
+            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyHangCount, of: span), "0")
+            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyPeakThermalState, of: span), SpanSemantics.Smoothness.ThermalState.nominal)
+            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyComplete, of: span), "true")
+
+            // Not sent again with the next part, which carries its own span.
+            let nextData = try XCTUnwrap(payloads[next.id.stringValue])
+            let nextSpans = smoothnessSpans(in: nextData, key: "spans") + smoothnessSpans(in: nextData, key: "span_snapshots")
+            XCTAssertFalse(nextSpans.contains { $0["span_id"] as? String == spanId })
+            XCTAssertEqual(nextSpans.count, 1)
+            XCTAssertEqual(nextSpans.first.flatMap { attribute(CommonSemantics.keyPartId, of: $0) }, next.id.stringValue)
         }
     }
 
