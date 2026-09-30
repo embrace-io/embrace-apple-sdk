@@ -137,6 +137,46 @@
             XCTAssertNil(service.tracker)
         }
 
+        func test_startOffMain_buildsPipelineOnMain() {
+            service.install(otel: otel)
+            currentSession = MockSession.with(id: .random, state: .foreground)
+
+            // A semaphore, not an expectation: waiting on it doesn't run main, so the hop can't
+            // land before the checks below.
+            let started = DispatchSemaphore(value: 0)
+            DispatchQueue.global().async {
+                self.service.start()
+                started.signal()
+            }
+            started.wait()
+            XCTAssertNil(service.tracker)
+
+            drainMain()
+
+            XCTAssertNotNil(service.tracker)
+            // The part was already current, so activation opens it.
+            XCTAssertEqual(service.tracker?.openPartId, currentSession?.id)
+            XCTAssertEqual(smoothnessSpans.count, 1)
+        }
+
+        func test_stopBeforeActivateRuns_leavesNoPipeline() {
+            service.install(otel: otel)
+            currentSession = MockSession.with(id: .random, state: .foreground)
+
+            let started = DispatchSemaphore(value: 0)
+            DispatchQueue.global().async {
+                self.service.start()
+                started.signal()
+            }
+            started.wait()
+            // `activate()` is still queued on main.
+            service.stop()
+            drainMain()
+
+            XCTAssertNil(service.tracker)
+            XCTAssertTrue(smoothnessSpans.isEmpty)
+        }
+
         func test_notStarted_createsNoSpans() {
             service.install(otel: otel)
 
@@ -899,6 +939,103 @@
 
             XCTAssertEqual(smoothnessSpans.count, 1)
             XCTAssertNotNil(smoothnessSpans.first?.endTime)
+        }
+
+        /// The tracker observes did-become-active before `iOSSessionLifecycle` swaps the part to
+        /// foreground. Its hop to the next main turn is what still catches the swap.
+        func test_coldStartSwapToForeground_trackerObservesFirst_opensSpan() throws {
+            let session = try XCTUnwrap(controller.startSession(state: .background))
+            XCTAssertTrue(session.coldStart)
+            drainMain()
+
+            NotificationCenter.default.post(name: Notification.Name("UIApplicationDidBecomeActiveNotification"), object: nil)
+            controller.update(state: .foreground)
+            drainMain()
+
+            let span = try XCTUnwrap(smoothnessSpans.first)
+            XCTAssertEqual(service.tracker?.openPartId, session.id)
+
+            controller.endSession()
+
+            XCTAssertNotNil(span.endTime)
+        }
+
+        /// EMBR-14228: adding the sync hook doesn't change when the existing end notifications fire.
+        /// The foreground-end one is still posted synchronously after the hook, with the end time,
+        /// and the public one still arrives later, on main.
+        func test_foregroundPartEnd_existingNotificationTimingUnchanged() throws {
+            let session = try XCTUnwrap(controller.startSession(state: .foreground))
+            drainMain()
+            let span = try XCTUnwrap(smoothnessSpans.first)
+
+            var order: [String] = []
+            var foregroundEndTime: Date?
+            var spanEndedAtForegroundEnd = false
+            let syncToken = Embrace.notificationCenter.addObserver(forName: .embraceSessionPartWillEndSync, object: nil, queue: nil) { _ in
+                order.append("sync")
+            }
+            let foregroundToken = Embrace.notificationCenter.addObserver(forName: .embraceForegroundSessionDidEnd, object: nil, queue: nil) {
+                notification in
+                order.append("foregroundDidEnd")
+                foregroundEndTime = notification.object as? Date
+                spanEndedAtForegroundEnd = span.endTime != nil
+            }
+            defer {
+                Embrace.notificationCenter.removeObserver(syncToken)
+                Embrace.notificationCenter.removeObserver(foregroundToken)
+            }
+            // Posted async on main, so ignore ones left over from other tests.
+            let publicWillEnd = expectation(forNotification: .embraceSessionPartWillEnd, object: nil) { notification in
+                guard (notification.object as? EmbraceSession)?.id == session.id else { return false }
+                order.append("public")
+                return true
+            }
+
+            let endTime = controller.endSession()
+
+            XCTAssertEqual(order, ["sync", "foregroundDidEnd"])
+            XCTAssertEqual(foregroundEndTime, endTime)
+            XCTAssertTrue(spanEndedAtForegroundEnd)
+
+            wait(for: [publicWillEnd], timeout: 1)
+
+            XCTAssertEqual(order, ["sync", "foregroundDidEnd", "public"])
+        }
+
+        /// Max-duration expiry rolls the part on the controller's queue, so the service closes the
+        /// span off main, at the roll time, and opens a new one for the next part.
+        func test_rollPartForUserSessionExpiryOffMain_endsSpanAtRollTimeAndOpensNext() throws {
+            controller.startSession(state: .foreground)
+            drainMain()
+            let span = try XCTUnwrap(smoothnessSpans.first)
+            let tracker = try XCTUnwrap(service.tracker)
+            let serviceOnSessionClosed = tracker.onSessionClosed
+            var closedOnMain: Bool?
+            tracker.onSessionClosed = { partId, stats in
+                closedOnMain = Thread.isMainThread
+                serviceOnSessionClosed?(partId, stats)
+            }
+            let rollTime = Date()
+
+            let rolled = expectation(description: "rolled off main")
+            var endedBeforeRollReturned = false
+            controller.queue.async {
+                self.controller.rollPartForUserSessionExpiry(reason: .maxDurationReached, at: rollTime)
+                endedBeforeRollReturned = span.endTime != nil
+                rolled.fulfill()
+            }
+            wait(for: [rolled], timeout: 1)
+            // The next part's start is delivered async on main.
+            drainMain()
+
+            XCTAssertEqual(closedOnMain, false)
+            XCTAssertTrue(endedBeforeRollReturned)
+            XCTAssertEqual(span.endTime, rollTime)
+            let next = try XCTUnwrap(controller.currentSession)
+            XCTAssertEqual(next.startTime, rollTime)
+            XCTAssertEqual(smoothnessSpans.count, 2)
+            XCTAssertEqual(service.tracker?.openPartId, next.id)
+            XCTAssertNil(smoothnessSpans.last?.endTime)
         }
     }
 
