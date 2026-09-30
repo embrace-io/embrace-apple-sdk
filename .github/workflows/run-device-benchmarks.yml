@@ -33,9 +33,11 @@ on:
 permissions:
   contents: read
 
+# Keyed by device too, so the 120Hz and 60Hz sign-off runs on one ref don't share a group. Only PR
+# runs cancel a superseded run; a manual sign-off run always runs to completion.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.device || 'default' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   THRESHOLD_PCT: 5.0
@@ -60,7 +62,9 @@ jobs:
   browserstack-main:
     name: Run BrowserStack Tests on Main
     needs: [browserstack-pr]
-    if: success()
+    # Only the PR-vs-main comparison uses main's results, and it posts to a PR, so a manual
+    # sign-off run skips it.
+    if: success() && github.event_name == 'pull_request'
     uses: ./.github/workflows/browserstack.yml
     secrets:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
@@ -73,6 +77,45 @@ jobs:
   compare-results:
     name: Compare Performance Results
     needs: [browserstack-pr, browserstack-main]
+    runs-on: ubuntu-latest
+    # Posts to the PR, so it needs one.
+    if: success() && github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install scipy pygithub
+
+      - name: Run Performance Comparison
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PERF_PR: ${{ needs.browserstack-pr.outputs.results }}
+          PERF_MAIN: ${{ needs.browserstack-main.outputs.results }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          THRESHOLD_PCT: ${{ env.THRESHOLD_PCT }}
+          ALPHA: ${{ env.ALPHA }}
+          TITLE: ${{ env.TITLE }}
+        run: |
+          python bin/perfcomp.py
+
+  smoothness-overhead:
+    name: Compare Smoothness Overhead
+    # Uses only the PR build's results, so it doesn't wait on or depend on the main run. As its own
+    # job, it can't skip the PR-vs-main comparison either.
+    needs: [browserstack-pr]
     runs-on: ubuntu-latest
     if: success()
     permissions:
@@ -93,25 +136,8 @@ jobs:
         run: |
           pip install scipy pygithub
 
-      - name: Run Performance Comparison
-        # Posts to the PR, so it needs one.
-        if: github.event_name == 'pull_request'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PERF_PR: ${{ needs.browserstack-pr.outputs.results }}
-          PERF_MAIN: ${{ needs.browserstack-main.outputs.results }}
-          REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          THRESHOLD_PCT: ${{ env.THRESHOLD_PCT }}
-          ALPHA: ${{ env.ALPHA }}
-          TITLE: ${{ env.TITLE }}
-        run: |
-          python bin/perfcomp.py
-
       - name: Run Smoothness Overhead Comparison
-        # Runs after perfcomp so a failure here can't skip the PR-vs-main comparison, and runs even
-        # if perfcomp failed. Only a strict (release sign-off) run can fail the job.
-        if: ${{ !cancelled() }}
+        # Only a strict (release sign-off) run can fail the job.
         continue-on-error: ${{ !inputs.strict }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
