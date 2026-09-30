@@ -30,7 +30,11 @@ struct BenchmarksApp: App {
             _ = builder.addHangCaptureService()
         }
         if environment["EMBSmoothness"] == "1" {
-            _ = builder.addSmoothnessCaptureService()
+            // Added as an instance, rather than with `addSmoothnessCaptureService()`, so the
+            // benchmark screens can show whether it is really counting frames.
+            let service = SmoothnessCaptureService()
+            SmoothnessProbe.service = service
+            _ = builder.add(service)
         }
         return builder.build()
     }

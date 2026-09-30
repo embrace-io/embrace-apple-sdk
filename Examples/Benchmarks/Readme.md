@@ -48,6 +48,8 @@ These tests use `XCTApplicationLaunchMetric()` to accurately measure the time it
 
 Both screens pin the display to 120Hz, and `Benchmarks-Info.plist` sets `CADisableMinimumFrameDurationOnPhone` so ProMotion iPhones actually run above 60Hz. This applies to the whole app, including the launch benchmarks. Both scenarios also report **Display Link Rate**: the rate of a probe display link configured like the SDK's, so the report shows whether a run really reached 120Hz.
 
+Both services disable themselves under a debugger, and running the tests from Xcode attaches one, so both arms set `EMBAllowWatchdogInDebugger=1`. To prove the On arm really measured Smoothness, both scenarios also report **Smoothness Frames**: the frames the SDK counted in the open foreground part. The tests assert it is above 0 in `_smoothnessOn` and 0 in `_smoothnessOff`, and `bin/smoothness_overhead.py` marks the scenario incomplete otherwise.
+
 In CI, `bin/smoothness_overhead.py` pairs the results and posts a PR comment against the pass criteria: no significant hitch time ratio regression (≥5% and ≥1 ms/s, α = 0.05), and less than 1 percentage point of added CPU utilization. The comment doesn't fail the job, because release sign-off is manual. To run on another device (e.g. a 60Hz model), trigger **On Device Benchmarks** manually with the `device` input.
 
 For the per-tick cost, launch a debug build with `EMBSmoothnessSignposts=1` and record with the Instruments **os_signpost** instrument (subsystem `io.embrace.sdk`, category `Smoothness`, interval `Tick`). `SmoothnessOverheadTests` in `EmbraceCoreTests` covers the same path as a simulator microbenchmark.
@@ -57,6 +59,7 @@ For the per-tick cost, launch a debug build with `EMBSmoothnessSignposts=1` and 
 - `noop`: When set to any value, disables Embrace SDK initialization for baseline performance measurement
 - `EMBHang=1`: Adds `HangCaptureService`
 - `EMBSmoothness=1`: Adds `SmoothnessCaptureService`
+- `EMBAllowWatchdogInDebugger=1`: Keeps `HangCaptureService` and `SmoothnessCaptureService` running when a debugger is attached
 - `EMBFrameLoadFraction`: Fraction of each frame the scroll screen spends busy on the main thread (default 0.9)
 - `EMBBenchmarkScreen`: Launches into `smoothness-scroll` or `smoothness-animation` instead of the default screen
 - `EMBSmoothnessSignposts=1`: Debug builds only. Wraps each Smoothness tick in an `os_signpost` interval

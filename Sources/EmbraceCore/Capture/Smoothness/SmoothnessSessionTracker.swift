@@ -111,6 +111,9 @@
         /// The id of the part currently being accumulated, if any.
         var openPartId: EmbraceIdentifier? { lock.locked { state.openSession?.partId } }
 
+        /// Frames counted so far in the part currently being accumulated, or `0` if none is open.
+        var openFrameCount: Int { lock.locked { state.openSession?.frameCount ?? 0 } }
+
         /// Must be called on the main thread.
         ///
         /// - Parameters:

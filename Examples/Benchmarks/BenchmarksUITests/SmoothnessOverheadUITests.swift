@@ -9,6 +9,10 @@ import XCTest
 /// Each scenario runs as a `_smoothnessOff` / `_smoothnessOn` pair against the same build, with
 /// `HangCaptureService` on in both, so the delta isolates Smoothness. `bin/smoothness_overhead.py`
 /// pairs the results by name and applies the pass criteria.
+///
+/// Both services disable themselves under a debugger, which the scheme attaches for a local run, so
+/// both arms set `EMBAllowWatchdogInDebugger=1`. Each arm also reports and asserts the SDK's frame
+/// count, so an On arm where Smoothness never ran can't pass as a measurement.
 final class SmoothnessOverheadUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -48,6 +52,7 @@ final class SmoothnessOverheadUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["EMBBenchmarkScreen"] = screen
         app.launchEnvironment["EMBHang"] = "1"
+        app.launchEnvironment["EMBAllowWatchdogInDebugger"] = "1"
         if smoothness {
             app.launchEnvironment["EMBSmoothness"] = "1"
         }
@@ -72,7 +77,8 @@ final class SmoothnessOverheadUITests: XCTestCase {
             metrics: [
                 XCTOSSignpostMetric.scrollingAndDecelerationMetric,
                 XCTCPUMetric(application: app),
-                DisplayLinkRateMetric(app: app)
+                LabelMetric.displayLinkRate(app: app),
+                LabelMetric.smoothnessFrames(app: app)
             ],
             options: options
         ) {
@@ -80,6 +86,8 @@ final class SmoothnessOverheadUITests: XCTestCase {
             stopMeasuring()
             list.swipeDown(velocity: .fast)
         }
+
+        assertSmoothness(active: smoothness, in: app)
     }
 
     /// Measures a fixed idle window while the screen animates every frame. `XCTClockMetric` records
@@ -93,32 +101,80 @@ final class SmoothnessOverheadUITests: XCTestCase {
         options.iterationCount = 5
 
         measure(
-            metrics: [XCTCPUMetric(application: app), XCTClockMetric(), DisplayLinkRateMetric(app: app)],
+            metrics: [
+                XCTCPUMetric(application: app),
+                XCTClockMetric(),
+                LabelMetric.displayLinkRate(app: app),
+                LabelMetric.smoothnessFrames(app: app)
+            ],
             options: options
         ) {
             Thread.sleep(forTimeInterval: animationWindow)
         }
+
+        assertSmoothness(active: smoothness, in: app)
+    }
+
+    /// Fails the run if Smoothness wasn't counting frames in the On arm, or was in the Off arm.
+    @MainActor
+    private func assertSmoothness(active: Bool, in app: XCUIApplication) {
+        let frames = Int(app.staticTexts["smoothness-frames"].label) ?? 0
+        if active {
+            XCTAssertGreaterThan(frames, 0, "SmoothnessCaptureService counted no frames, so it wasn't running")
+        } else {
+            XCTAssertEqual(frames, 0, "SmoothnessCaptureService counted frames in the Off arm")
+        }
     }
 }
 
-/// Reports the rate a display link configured like the SDK's actually ran at, read from the
-/// benchmark screen's `display-link-rate` label (its rate over the last second) when each
-/// iteration stops. Confirms whether a scenario really ran at 120Hz.
-private final class DisplayLinkRateMetric: NSObject, XCTMetric {
+/// Reports a numeric static text on the benchmark screen, read when each iteration stops.
+private final class LabelMetric: NSObject, XCTMetric {
+
+    /// The rate a display link configured like the SDK's actually ran at over the last second.
+    /// Confirms whether a scenario really ran at 120Hz.
+    static func displayLinkRate(app: XCUIApplication) -> LabelMetric {
+        LabelMetric(
+            app: app,
+            label: "display-link-rate",
+            identifier: "io.embrace.benchmarks.displayLinkRate",
+            displayName: "Display Link Rate",
+            unitSymbol: "Hz"
+        )
+    }
+
+    /// Frames the SDK counted in the open foreground part. Proves whether Smoothness was running:
+    /// `bin/smoothness_overhead.py` requires it to be above 0 in the On arm and 0 in the Off arm.
+    static func smoothnessFrames(app: XCUIApplication) -> LabelMetric {
+        LabelMetric(
+            app: app,
+            label: "smoothness-frames",
+            identifier: "io.embrace.benchmarks.smoothnessFrames",
+            displayName: "Smoothness Frames",
+            unitSymbol: "frames"
+        )
+    }
 
     private let app: XCUIApplication
-    private var rate: Double = 0
+    private let label: String
+    private let identifier: String
+    private let displayName: String
+    private let unitSymbol: String
+    private var value: Double = 0
 
-    init(app: XCUIApplication) {
+    private init(app: XCUIApplication, label: String, identifier: String, displayName: String, unitSymbol: String) {
         self.app = app
+        self.label = label
+        self.identifier = identifier
+        self.displayName = displayName
+        self.unitSymbol = unitSymbol
     }
 
     func copy(with zone: NSZone? = nil) -> Any {
-        DisplayLinkRateMetric(app: app)
+        LabelMetric(app: app, label: label, identifier: identifier, displayName: displayName, unitSymbol: unitSymbol)
     }
 
     func didStopMeasuring() {
-        rate = Double(app.staticTexts["display-link-rate"].label) ?? 0
+        value = Double(app.staticTexts[label].label) ?? 0
     }
 
     func reportMeasurements(
@@ -127,10 +183,10 @@ private final class DisplayLinkRateMetric: NSObject, XCTMetric {
     ) throws -> [XCTPerformanceMeasurement] {
         [
             XCTPerformanceMeasurement(
-                identifier: "io.embrace.benchmarks.displayLinkRate",
-                displayName: "Display Link Rate",
-                doubleValue: rate,
-                unitSymbol: "Hz"
+                identifier: identifier,
+                displayName: displayName,
+                doubleValue: value,
+                unitSymbol: unitSymbol
             )
         ]
     }

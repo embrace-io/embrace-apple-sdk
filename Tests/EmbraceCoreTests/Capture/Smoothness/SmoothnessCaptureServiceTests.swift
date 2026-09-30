@@ -12,7 +12,7 @@
     import TestSupport
     import XCTest
 
-    @testable import EmbraceCore
+    @_spi(Private) @testable import EmbraceCore
 
     final class SmoothnessCaptureServiceTests: XCTestCase {
 
@@ -145,6 +145,26 @@
 
             XCTAssertNil(service.tracker)
             XCTAssertTrue(smoothnessSpans.isEmpty)
+        }
+
+        func test_openPartFrameCount_isZeroWhenNotStarted() {
+            service.install(otel: otel)
+            startPart(.foreground)
+
+            XCTAssertEqual(service.openPartFrameCount, 0)
+        }
+
+        func test_openPartFrameCount_countsFramesInOpenPartOnly() throws {
+            startService()
+            startPart(.foreground)
+            let tracker = try XCTUnwrap(service.tracker)
+
+            tracker.recordFrame(lateBy: 0)
+            tracker.recordFrame(lateBy: 1.0 / 60.0)
+            XCTAssertEqual(service.openPartFrameCount, 2)
+
+            endPart()
+            XCTAssertEqual(service.openPartFrameCount, 0)
         }
 
         func test_start_opensSpanForAlreadyForegroundPart() {

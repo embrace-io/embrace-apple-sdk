@@ -9,6 +9,9 @@ vs `<scenario>_smoothnessOn`, same build) and applies the overhead criteria:
 - CPU utilization (CPU Time / Clock Monotonic Time, per iteration): increase below
   CPU_MAX_DELTA_PP percentage points.
 
+A scenario only counts if the SDK's own frame count ("Smoothness Frames") is above 0 in the On arm
+and 0 in the Off arm; otherwise the comparison didn't measure Smoothness and the run is incomplete.
+
 Every other paired metric is reported for information. The result is posted as a PR comment
 (when PR_NUMBER is set) and written to the job summary. It never fails the job: release
 sign-off is manual, backed by these numbers.
@@ -84,6 +87,32 @@ def evaluate(pairs):
 
         gated = set()
         shown = set()
+
+        # Proves the comparison measured Smoothness: without it, an On arm where the service
+        # disabled itself (e.g. under a debugger) would pass as SDK-off against SDK-off.
+        frames_on, frames_off = find(on, "Smoothness Frames"), find(off, "Smoothness Frames")
+        if frames_on and frames_off:
+            shown.add(frames_on["displayName"])
+            active = frames_on["avg"] > 0 and frames_off["avg"] == 0
+            passed &= active
+            if active:
+                status = "✅ active"
+            elif frames_on["avg"] <= 0:
+                status = "❌ inactive in On"
+            else:
+                status = "❌ active in Off"
+            gates.append((
+                scenario,
+                f"{frames_on['displayName']} ({frames_on['unitOfMeasurement']})",
+                status,
+                fmt(frames_off["avg"], 0),
+                fmt(frames_on["avg"], 0),
+                "",
+                "",
+            ))
+        else:
+            gates.append((scenario, "Smoothness Frames", "⚠️ missing", "can't confirm Smoothness ran", "", "", ""))
+            passed = False
 
         hitch_on, hitch_off = find(on, "Hitch Time Ratio"), find(off, "Hitch Time Ratio")
         if hitch_on and hitch_off:
@@ -165,8 +194,8 @@ def render(gates, info, passed, has_results):
         body.append(f"Device: `{DEVICE}`")
     body.append(
         f"Criteria: hitch time ratio no significant regression (α = `{ALPHA}`, ≥ `{HITCH_THRESHOLD:.0%}` "
-        f"and ≥ `{HITCH_ABS_FLOOR}` ms/s); CPU utilization increase < `{CPU_MAX_DELTA_PP}` pp. "
-        "Hang capture is on in both arms."
+        f"and ≥ `{HITCH_ABS_FLOOR}` ms/s); CPU utilization increase < `{CPU_MAX_DELTA_PP}` pp; "
+        "Smoothness frame count > 0 in On and 0 in Off. Hang capture is on in both arms."
     )
     body.append("")
 

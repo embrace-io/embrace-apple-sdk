@@ -3,8 +3,20 @@
 //
 
 import Combine
+@_spi(Private) import EmbraceCore
 import QuartzCore
 import SwiftUI
+
+/// The `SmoothnessCaptureService` the app started with, or `nil` if `EMBSmoothness` wasn't set.
+enum SmoothnessProbe {
+    static var service: SmoothnessCaptureService?
+
+    /// Frames the SDK has counted in the open foreground part. `0` means Smoothness isn't
+    /// running, e.g. because it disabled itself under a debugger.
+    static var frameCount: Int {
+        service?.openPartFrameCount ?? 0
+    }
+}
 
 /// Pins the display to 120Hz and, optionally, burns a fixed fraction of every frame's budget on the
 /// main thread.
@@ -71,24 +83,31 @@ final class FrameDriver: NSObject {
     }
 }
 
-/// Shows the probe display link's rate over the last second, for `BenchmarksUITests` to read as the
-/// `display-link-rate` static text.
-private struct DisplayLinkRateLabel: ViewModifier {
+/// Shows, once a second, the values `BenchmarksUITests` reads back as static texts:
+/// - `display-link-rate`: the probe display link's rate over the last second.
+/// - `smoothness-frames`: `SmoothnessProbe.frameCount`, which proves whether the SDK is active.
+private struct ProbeLabels: ViewModifier {
 
     let driver: FrameDriver
     @State private var rate = "0"
+    @State private var smoothnessFrames = "0"
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     func body(content: Content) -> some View {
         content
             .overlay(alignment: .topTrailing) {
-                Text(rate)
-                    .font(.caption2.monospacedDigit())
-                    .padding(4)
-                    .accessibilityIdentifier("display-link-rate")
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text(rate)
+                        .accessibilityIdentifier("display-link-rate")
+                    Text(smoothnessFrames)
+                        .accessibilityIdentifier("smoothness-frames")
+                }
+                .font(.caption2.monospacedDigit())
+                .padding(4)
             }
             .onReceive(timer) { _ in
                 rate = String(format: "%.1f", driver.sampleProbeRate())
+                smoothnessFrames = String(SmoothnessProbe.frameCount)
             }
     }
 }
@@ -123,7 +142,7 @@ struct SmoothnessScrollView: View {
             .padding(.vertical, 4)
         }
         .accessibilityIdentifier("smoothness-list")
-        .modifier(DisplayLinkRateLabel(driver: driver))
+        .modifier(ProbeLabels(driver: driver))
         .onAppear { driver.start() }
         .onDisappear { driver.stop() }
     }
@@ -154,7 +173,7 @@ struct SmoothnessAnimationView: View {
         }
         .ignoresSafeArea()
         .accessibilityIdentifier("smoothness-animation")
-        .modifier(DisplayLinkRateLabel(driver: driver))
+        .modifier(ProbeLabels(driver: driver))
         .onAppear { driver.start() }
         .onDisappear { driver.stop() }
     }

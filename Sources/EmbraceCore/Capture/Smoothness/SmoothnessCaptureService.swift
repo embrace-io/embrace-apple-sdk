@@ -129,6 +129,16 @@ import Foundation
             tracker?.hangThreshold = hangThreshold
         }
 
+        /// Frames counted so far in the open foreground part, or `0` while the service isn't running
+        /// (e.g. disabled because a debugger is attached) or no foreground part is open.
+        ///
+        /// SPI for benchmarks, to prove the service is active in the measured run. Reads the existing
+        /// per-part count, so it adds nothing to the per-tick path.
+        @_spi(Private)
+        public var openPartFrameCount: Int {
+            tracker?.openFrameCount ?? 0
+        }
+
         // MARK: - Internal
 
         /// The per-tick hang ceiling currently applied, from `HangLimits.hangThreshold`.
