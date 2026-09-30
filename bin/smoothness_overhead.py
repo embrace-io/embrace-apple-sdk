@@ -3,9 +3,12 @@
 Pairs `SmoothnessOverheadUITests` results from a single benchmark run (`<scenario>_smoothnessOff`
 vs `<scenario>_smoothnessOn`, same build) and applies the overhead criteria:
 
-- Hitch Time Ratio: no regression that is significant (one-sided Welch, p < ALPHA), at least
-  HITCH_THRESHOLD_PCT relative, and at least HITCH_ABS_FLOOR ms/s absolute. The floor keeps a
-  near-zero baseline from turning noise into a large relative change.
+- Hitch Time Ratio: the On − Off delta must be shown to be within budget, where the budget is
+  max(HITCH_THRESHOLD_PCT of the Off mean, HITCH_ABS_FLOOR ms/s). The floor keeps a near-zero
+  baseline from turning noise into a tiny budget. This is an equivalence test: the one-sided
+  (1 − ALPHA) Welch upper bound on the delta must be below the budget to pass. If the lower bound
+  is above the budget, the scenario fails. Otherwise the run is too noisy to tell, and the scenario
+  is inconclusive, which doesn't count as a pass.
 - CPU utilization (CPU Time / Clock Monotonic Time, per iteration): increase below
   CPU_MAX_DELTA_PP percentage points.
 
@@ -21,7 +24,7 @@ import math
 import os
 import re
 import json
-from statistics import mean
+from statistics import mean, variance
 
 from scipy import stats
 
@@ -43,6 +46,24 @@ def one_sided_p(on, off):
     if math.isnan(p):
         return None
     return p / 2 if t > 0 else 1 - p / 2
+
+
+def welch_bounds(on, off, alpha):
+    """One-sided (1 - alpha) Welch confidence bounds on mean(on) - mean(off).
+
+    Returns (lower, upper), or None if either side has fewer than 2 values.
+    """
+    if len(on) < 2 or len(off) < 2:
+        return None
+    delta = mean(on) - mean(off)
+    se_on, se_off = variance(on) / len(on), variance(off) / len(off)
+    se = math.sqrt(se_on + se_off)
+    if se == 0:
+        return delta, delta
+    # Welch–Satterthwaite degrees of freedom.
+    df = (se_on + se_off) ** 2 / (se_on**2 / (len(on) - 1) + se_off**2 / (len(off) - 1))
+    margin = stats.t.ppf(1 - alpha, df) * se
+    return delta - margin, delta + margin
 
 
 def load_pairs(results):
@@ -119,17 +140,29 @@ def evaluate(pairs):
             gated.add(hitch_on["displayName"])
             delta = hitch_on["avg"] - hitch_off["avg"]
             relative = delta / hitch_off["avg"] if hitch_off["avg"] else (math.inf if delta > 0 else 0.0)
-            p = one_sided_p(hitch_on["all"], hitch_off["all"])
-            regressed = p is not None and p < ALPHA and relative >= HITCH_THRESHOLD and delta >= HITCH_ABS_FLOOR
-            passed &= not regressed
+            budget = max(HITCH_THRESHOLD * hitch_off["avg"], HITCH_ABS_FLOOR)
+            bounds = welch_bounds(hitch_on["all"], hitch_off["all"], ALPHA)
+            # Passing needs proof the delta is within budget, so noise can't pass as "no regression".
+            if bounds is None:
+                status, evidence = "⚠️ inconclusive", "too few iterations"
+            else:
+                lower, upper = bounds
+                if upper < budget:
+                    status = "✅ within budget"
+                elif lower > budget:
+                    status = "❌ over budget"
+                else:
+                    status = "⚠️ inconclusive"
+                evidence = f"≤ {upper:+.3f} (budget {budget:.3f})"
+            passed &= status.startswith("✅")
             gates.append((
                 scenario,
                 f"{hitch_on['displayName']} ({hitch_on['unitOfMeasurement']})",
-                "❌ fail" if regressed else "✅ pass",
+                status,
                 fmt(hitch_off["avg"]),
                 fmt(hitch_on["avg"]),
                 f"{delta:+.3f} ({relative:+.1%})" if math.isfinite(relative) else f"{delta:+.3f}",
-                fmtp(p),
+                evidence,
             ))
 
         cpu_on, cpu_off = find(on, "CPU Time"), find(off, "CPU Time")
@@ -148,7 +181,7 @@ def evaluate(pairs):
                 fmt(mean(util_off), 2),
                 fmt(mean(util_on), 2),
                 f"{delta_pp:+.2f} pp",
-                fmtp(one_sided_p(util_on, util_off)),
+                f"p = {fmtp(one_sided_p(util_on, util_off))}",
             ))
 
         # Context only: shows whether the scenario really ran at the intended refresh rate.
@@ -193,8 +226,9 @@ def render(gates, info, passed, has_results):
     if DEVICE:
         body.append(f"Device: `{DEVICE}`")
     body.append(
-        f"Criteria: hitch time ratio no significant regression (α = `{ALPHA}`, ≥ `{HITCH_THRESHOLD:.0%}` "
-        f"and ≥ `{HITCH_ABS_FLOOR}` ms/s); CPU utilization increase < `{CPU_MAX_DELTA_PP}` pp; "
+        f"Criteria: hitch time ratio delta proven within budget — the one-sided {1 - ALPHA:.0%} upper bound "
+        f"must be below max(`{HITCH_THRESHOLD:.0%}` of Off, `{HITCH_ABS_FLOOR}` ms/s), and a run too noisy "
+        f"to show that is inconclusive; CPU utilization increase < `{CPU_MAX_DELTA_PP}` pp; "
         "Smoothness frame count > 0 in On and 0 in Off. Hang capture is on in both arms."
     )
     body.append("")
@@ -203,9 +237,11 @@ def render(gates, info, passed, has_results):
         body.append("⚠️ No `SmoothnessOverheadUITests` results found in this run.")
         return "\n".join(body)
 
-    body.append(f"**Overall: {'✅ within budget' if passed else '❌ over budget or incomplete'}** — release sign-off still required.")
+    body.append(
+        f"**Overall: {'✅ within budget' if passed else '❌ over budget, inconclusive or incomplete'}** — release sign-off still required."
+    )
     body.append("")
-    body.append("| Scenario | Metric | Status | Off | On | Δ | p |")
+    body.append("| Scenario | Metric | Status | Off | On | Δ | Evidence |")
     body.append("|:---|:---|:---|---:|---:|---:|---:|")
     for row in gates:
         body.append("| " + " | ".join(row) + " |")
