@@ -98,11 +98,13 @@ final class FrameDriver: NSObject {
 /// Shows, once a second, the values `BenchmarksUITests` reads back as static texts:
 /// - `display-link-rate`: the probe display link's rate over the last second.
 /// - `smoothness-frames`: `SmoothnessProbe.frameCount`, which proves whether the SDK is active.
+/// - `thermal-state`: `ProcessInfo.thermalState` as its raw value (0 nominal ... 3 critical).
 private struct ProbeLabels: ViewModifier {
 
     let driver: FrameDriver
     @State private var rate = "0"
     @State private var smoothnessFrames = "0"
+    @State private var thermalState = String(ProcessInfo.processInfo.thermalState.rawValue)
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     func body(content: Content) -> some View {
@@ -113,6 +115,8 @@ private struct ProbeLabels: ViewModifier {
                         .accessibilityIdentifier("display-link-rate")
                     Text(smoothnessFrames)
                         .accessibilityIdentifier("smoothness-frames")
+                    Text(thermalState)
+                        .accessibilityIdentifier("thermal-state")
                 }
                 .font(.caption2.monospacedDigit())
                 .padding(4)
@@ -120,6 +124,7 @@ private struct ProbeLabels: ViewModifier {
             .onReceive(timer) { _ in
                 rate = String(format: "%.1f", driver.sampleProbeRate())
                 smoothnessFrames = String(SmoothnessProbe.frameCount)
+                thermalState = String(ProcessInfo.processInfo.thermalState.rawValue)
             }
     }
 }

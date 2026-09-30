@@ -6,17 +6,23 @@ import XCTest
 
 /// Overhead release gate for `SmoothnessCaptureService`.
 ///
-/// Each scenario runs as a `_smoothnessOff` / `_smoothnessOn` pair against the same build, with
+/// Each scenario compares `_smoothnessOff` and `_smoothnessOn` arms against the same build, with
 /// `HangCaptureService` on in both, so the delta isolates Smoothness. `bin/smoothness_overhead.py`
 /// pairs the results by name and applies the pass criteria.
 ///
 /// Both services disable themselves under a debugger, which the scheme attaches for a local run, so
-/// both arms set `EMBAllowWatchdogInDebugger=1`. Each arm also reports and asserts the SDK's frame
+/// every arm sets `EMBAllowWatchdogInDebugger=1`. Each arm also reports and asserts the SDK's frame
 /// count, so an On arm where Smoothness never ran can't pass as a measurement.
 ///
 /// Each scenario also runs a positive control, `_smoothnessOnPlusCost`: the On arm plus
 /// `injectedTickCostMicros` of main-thread work on every frame. The script requires every gate to
 /// report it as over budget, which proves the gate can see a cost of that size at all.
+///
+/// XCTest runs methods alphabetically, and the device drifts over a run (it warms up, may throttle,
+/// background work settles). So each arm runs as two blocks in a mirrored order, numbered so the
+/// alphabetical order is Off, On, OnPlusCost, OnPlusCost, On, Off. Every arm's average position is
+/// the same, so a steady drift cancels out of every comparison. The script merges each arm's blocks.
+/// Every iteration also records the thermal state, and the script rejects a throttled run.
 final class SmoothnessOverheadUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -26,40 +32,85 @@ final class SmoothnessOverheadUITests: XCTestCase {
     // MARK: - Scrolling: host app hitches
 
     @MainActor
-    func testScrolling_smoothnessOff() throws {
-        measureScrolling(smoothness: false)
+    func testScrolling_1_smoothnessOff() throws {
+        measureScrolling(.off)
     }
 
     @MainActor
-    func testScrolling_smoothnessOn() throws {
-        measureScrolling(smoothness: true)
+    func testScrolling_2_smoothnessOn() throws {
+        measureScrolling(.on)
     }
 
     @MainActor
-    func testScrolling_smoothnessOnPlusCost() throws {
-        measureScrolling(smoothness: true, injectingCost: true)
+    func testScrolling_3_smoothnessOnPlusCost() throws {
+        measureScrolling(.onPlusCost)
+    }
+
+    @MainActor
+    func testScrolling_4_smoothnessOnPlusCost() throws {
+        measureScrolling(.onPlusCost)
+    }
+
+    @MainActor
+    func testScrolling_5_smoothnessOn() throws {
+        measureScrolling(.on)
+    }
+
+    @MainActor
+    func testScrolling_6_smoothnessOff() throws {
+        measureScrolling(.off)
     }
 
     // MARK: - Continuous animation: steady-state CPU
 
     @MainActor
-    func testAnimation_smoothnessOff() throws {
-        measureAnimation(smoothness: false)
+    func testAnimation_1_smoothnessOff() throws {
+        measureAnimation(.off)
     }
 
     @MainActor
-    func testAnimation_smoothnessOn() throws {
-        measureAnimation(smoothness: true)
+    func testAnimation_2_smoothnessOn() throws {
+        measureAnimation(.on)
     }
 
     @MainActor
-    func testAnimation_smoothnessOnPlusCost() throws {
-        measureAnimation(smoothness: true, injectingCost: true)
+    func testAnimation_3_smoothnessOnPlusCost() throws {
+        measureAnimation(.onPlusCost)
+    }
+
+    @MainActor
+    func testAnimation_4_smoothnessOnPlusCost() throws {
+        measureAnimation(.onPlusCost)
+    }
+
+    @MainActor
+    func testAnimation_5_smoothnessOn() throws {
+        measureAnimation(.on)
+    }
+
+    @MainActor
+    func testAnimation_6_smoothnessOff() throws {
+        measureAnimation(.off)
     }
 
     // MARK: - Private
 
+    private enum Arm {
+        case off
+        case on
+        /// The positive control.
+        case onPlusCost
+
+        var smoothness: Bool { self != .off }
+        var injectsCost: Bool { self == .onPlusCost }
+    }
+
     private let animationWindow: TimeInterval = 10
+
+    /// Iterations per block; each arm runs two blocks. The loaded scroll baseline hitches, which is
+    /// noisier than a baseline that never does, so scrolling gets more.
+    private let scrollingIterationsPerBlock = 10
+    private let animationIterationsPerBlock = 3
 
     /// The positive control's added cost per frame. 250µs is 3 percentage points of CPU at 120Hz and
     /// 1.5 at 60Hz, both over the 1 point budget, and about 250× the SDK's ~1µs on-device per-tick
@@ -67,15 +118,15 @@ final class SmoothnessOverheadUITests: XCTestCase {
     private let injectedTickCostMicros = 250
 
     @MainActor
-    private func launch(screen: String, smoothness: Bool, injectingCost: Bool) -> XCUIApplication {
+    private func launch(screen: String, arm: Arm) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["EMBBenchmarkScreen"] = screen
         app.launchEnvironment["EMBHang"] = "1"
         app.launchEnvironment["EMBAllowWatchdogInDebugger"] = "1"
-        if smoothness {
+        if arm.smoothness {
             app.launchEnvironment["EMBSmoothness"] = "1"
         }
-        if injectingCost {
+        if arm.injectsCost {
             app.launchEnvironment["EMBInjectedTickCostMicros"] = String(injectedTickCostMicros)
         }
         app.launch()
@@ -85,22 +136,22 @@ final class SmoothnessOverheadUITests: XCTestCase {
     /// Uses Apple's scroll signposts, so hitches are measured independently of the SDK's own
     /// frame accounting.
     @MainActor
-    private func measureScrolling(smoothness: Bool, injectingCost: Bool = false) {
-        let app = launch(screen: "smoothness-scroll", smoothness: smoothness, injectingCost: injectingCost)
+    private func measureScrolling(_ arm: Arm) {
+        let app = launch(screen: "smoothness-scroll", arm: arm)
         let list = app.collectionViews.firstMatch
         XCTAssertTrue(list.waitForExistence(timeout: 10))
 
         let options = XCTMeasureOptions()
         options.invocationOptions = [.manuallyStop]
-        // The loaded baseline hitches, which is noisier than a baseline that never does.
-        options.iterationCount = 20
+        options.iterationCount = scrollingIterationsPerBlock
 
         measure(
             metrics: [
                 XCTOSSignpostMetric.scrollingAndDecelerationMetric,
                 XCTCPUMetric(application: app),
                 LabelMetric.displayLinkRate(app: app),
-                LabelMetric.smoothnessFrames(app: app)
+                LabelMetric.smoothnessFrames(app: app),
+                LabelMetric.thermalState(app: app)
             ],
             options: options
         ) {
@@ -109,32 +160,33 @@ final class SmoothnessOverheadUITests: XCTestCase {
             list.swipeDown(velocity: .fast)
         }
 
-        assertSmoothness(active: smoothness, in: app)
+        assertSmoothness(active: arm.smoothness, in: app)
     }
 
     /// Measures a fixed idle window while the screen animates every frame. `XCTClockMetric` records
     /// the window so CPU time can be turned into utilization.
     @MainActor
-    private func measureAnimation(smoothness: Bool, injectingCost: Bool = false) {
-        let app = launch(screen: "smoothness-animation", smoothness: smoothness, injectingCost: injectingCost)
+    private func measureAnimation(_ arm: Arm) {
+        let app = launch(screen: "smoothness-animation", arm: arm)
         XCTAssertTrue(app.otherElements["smoothness-animation"].waitForExistence(timeout: 10))
 
         let options = XCTMeasureOptions()
-        options.iterationCount = 5
+        options.iterationCount = animationIterationsPerBlock
 
         measure(
             metrics: [
                 XCTCPUMetric(application: app),
                 XCTClockMetric(),
                 LabelMetric.displayLinkRate(app: app),
-                LabelMetric.smoothnessFrames(app: app)
+                LabelMetric.smoothnessFrames(app: app),
+                LabelMetric.thermalState(app: app)
             ],
             options: options
         ) {
             Thread.sleep(forTimeInterval: animationWindow)
         }
 
-        assertSmoothness(active: smoothness, in: app)
+        assertSmoothness(active: arm.smoothness, in: app)
     }
 
     /// Fails the run if Smoothness wasn't counting frames in the On arm, or was in the Off arm.
@@ -173,6 +225,18 @@ private final class LabelMetric: NSObject, XCTMetric {
             identifier: "io.embrace.benchmarks.smoothnessFrames",
             displayName: "Smoothness Frames",
             unitSymbol: "frames"
+        )
+    }
+
+    /// `ProcessInfo.ThermalState` as its raw value: 0 nominal, 1 fair, 2 serious, 3 critical. The
+    /// script rejects a run that reaches serious, since throttling invalidates the comparison.
+    static func thermalState(app: XCUIApplication) -> LabelMetric {
+        LabelMetric(
+            app: app,
+            label: "thermal-state",
+            identifier: "io.embrace.benchmarks.thermalState",
+            displayName: "Thermal State",
+            unitSymbol: "state"
         )
     }
 

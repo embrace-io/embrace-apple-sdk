@@ -41,10 +41,12 @@ These tests use `XCTApplicationLaunchMetric()` to accurately measure the time it
 
 ### Smoothness Overhead Tests (release gate)
 
-`SmoothnessOverheadUITests` measures what `SmoothnessCaptureService` costs the host app. Each scenario runs twice against the same build, as `_smoothnessOff` and `_smoothnessOn`, with `HangCaptureService` on in both:
+`SmoothnessOverheadUITests` measures what `SmoothnessCaptureService` costs the host app. Each scenario compares `_smoothnessOff` and `_smoothnessOn` arms against the same build, with `HangCaptureService` on in both:
 
 - **testScrolling**: fast swipes through a long list, measured with `XCTOSSignpostMetric.scrollingAndDecelerationMetric` (Apple's own hitch time ratio, independent of the SDK's accounting) and CPU. A `FrameDriver` burns `EMBFrameLoadFraction` (default 0.9) of every frame on the main thread, so the baseline has little headroom and added per-tick cost shows up as hitches.
 - **testAnimation**: a 10s window over a screen that animates every frame, measured with CPU and clock time to get steady-state CPU utilization.
+
+XCTest runs test methods alphabetically, and the device drifts over a run: it warms up, may throttle, and background work settles. So each arm runs as two blocks (10 iterations each for scrolling, 3 for animation), numbered so the order is mirrored: `_1_smoothnessOff`, `_2_smoothnessOn`, `_3_smoothnessOnPlusCost`, `_4_smoothnessOnPlusCost`, `_5_smoothnessOn`, `_6_smoothnessOff`. Every arm's average position in the run is the same, so a steady drift cancels out of every comparison. The script merges each arm's blocks, and marks the scenario incomplete if a block is missing. Every iteration also records **Thermal State** (`ProcessInfo.thermalState`, 0 nominal to 3 critical). The report shows each arm's peak, and a run that reaches serious (2) is incomplete, because the device was throttling.
 
 Both screens pin the display to 120Hz, and `Benchmarks-Info.plist` sets `CADisableMinimumFrameDurationOnPhone` so ProMotion iPhones actually run above 60Hz. This applies to the whole app, including the launch benchmarks. Both scenarios also report **Display Link Rate**: the rate of a probe display link configured like the SDK's, so the report shows whether a run really reached 120Hz.
 

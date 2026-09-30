@@ -1,7 +1,7 @@
 """Smoothness overhead release gate.
 
-Pairs `SmoothnessOverheadUITests` results from a single benchmark run (`<scenario>_smoothnessOff`
-vs `<scenario>_smoothnessOn`, same build) and applies the overhead criteria:
+Pairs `SmoothnessOverheadUITests` results from a single benchmark run (`<scenario>_<n>_smoothnessOff`
+vs `<scenario>_<n>_smoothnessOn`, same build) and applies the overhead criteria:
 
 - Hitch Time Ratio: the On − Off delta must be shown to be within budget, where the budget is
   max(HITCH_THRESHOLD_PCT of the Off mean, HITCH_ABS_FLOOR ms/s). The floor keeps a near-zero
@@ -18,6 +18,11 @@ as over budget; if it doesn't, the gate can't see a cost of that size, and the r
 
 A scenario only counts if the SDK's own frame count ("Smoothness Frames") is above 0 in the On arm
 and 0 in the Off arm; otherwise the comparison didn't measure Smoothness and the run is incomplete.
+
+Each arm runs as numbered blocks in a mirrored order (Off, On, OnPlusCost, OnPlusCost, On, Off), so a
+steady drift over the run cancels out; `<n>` is the block's position. Each arm's blocks are merged
+before the gates run. A scenario is incomplete if the arms' average positions differ (e.g. a block
+is missing), or if any iteration's thermal state reached serious, since the device was throttling.
 
 Every other paired metric is reported for information. The result is posted as a PR comment
 (when PR_NUMBER is set) and written to the job summary.
@@ -44,10 +49,14 @@ TITLE = os.getenv("TITLE") or "Smoothness Overhead (on vs off)"
 DEVICE = os.getenv("DEVICE", "")
 STRICT = os.getenv("STRICT") == "1"
 
-PAIR = re.compile(r"^(?P<scenario>.*)_smoothness(?P<mode>OnPlusCost|On|Off)(\(\))?$")
+# e.g. `testScrolling_2_smoothnessOn()`: the number is the block's position in the run.
+PAIR = re.compile(r"^(?P<scenario>.*?)(_(?P<block>\d+))?_smoothness(?P<mode>OnPlusCost|On|Off)(\(\))?$")
 
 # The positive control arm: Smoothness on, plus a known per-tick cost the gate must catch.
 MODES = {"On": "on", "Off": "off", "OnPlusCost": "control"}
+
+# `ProcessInfo.ThermalState.serious`: the device is throttling, so the arms aren't comparable.
+THERMAL_SERIOUS = 2
 
 
 def one_sided_p(on, off):
@@ -79,7 +88,11 @@ def welch_bounds(on, off, alpha):
 
 
 def load_pairs(results):
-    """Returns {scenario: {"on"|"off"|"control": {displayName: metric}}}."""
+    """Returns {scenario: {"on"|"off"|"control": {displayName: metric}, "blocks": {arm: [position]}}}.
+
+    Each arm runs as several blocks; a metric's iterations from all of an arm's blocks are merged
+    into one metric, with its average recomputed.
+    """
     pairs = {}
     for metric in results:
         name = metric["name"].split("/")[-1]
@@ -87,8 +100,31 @@ def load_pairs(results):
         if not match:
             continue
         mode = MODES[match["mode"]]
-        pairs.setdefault(match["scenario"], {}).setdefault(mode, {})[metric["displayName"]] = metric
+        scenario = pairs.setdefault(match["scenario"], {})
+        position = int(match["block"]) if match["block"] else None
+        blocks = scenario.setdefault("blocks", {}).setdefault(mode, [])
+        if position not in blocks:
+            blocks.append(position)
+
+        arm = scenario.setdefault(mode, {})
+        merged = arm.get(metric["displayName"])
+        if merged is None:
+            arm[metric["displayName"]] = {**metric, "all": list(metric["all"])}
+        else:
+            merged["all"] += metric["all"]
+            merged["avg"] = mean(merged["all"])
     return pairs
+
+
+def order_check(blocks):
+    """Whether every arm ran as at least two blocks with the same average position in the run.
+
+    With a mirrored order (Off, On, OnPlusCost, OnPlusCost, On, Off), a steady drift over the run
+    shifts every arm equally, so it cancels out of each comparison.
+    """
+    if not blocks or any(None in positions or len(positions) < 2 for positions in blocks.values()):
+        return False
+    return len({mean(positions) for positions in blocks.values()}) == 1
 
 
 def find(metrics, needle):
@@ -253,6 +289,40 @@ def evaluate(pairs):
                     "✅ detected" if detected else "❌ not detected",
                     *result["cells"],
                 ))
+
+        # A missing block breaks the mirrored order, so drift would no longer cancel.
+        blocks = pairs[scenario].get("blocks", {})
+        ordered = order_check(blocks)
+        passed &= ordered
+        gates.append((
+            scenario,
+            "run order",
+            "✅ mirrored" if ordered else "⚠️ unbalanced",
+            ", ".join(f"{arm} {sorted(p for p in positions if p is not None)}" for arm, positions in sorted(blocks.items())),
+            "",
+            "",
+            "",
+        ))
+
+        # Throttling changes what the arms measure, so a throttled run can't be compared.
+        thermal = {arm: find(metrics, "Thermal State") for arm, metrics in (("off", off), ("on", on), ("control", control))}
+        if thermal["off"] and thermal["on"]:
+            shown.add(thermal["on"]["displayName"])
+            peaks = {arm: max(metric["all"]) for arm, metric in thermal.items() if metric}
+            throttled = max(peaks.values()) >= THERMAL_SERIOUS
+            passed &= not throttled
+            gates.append((
+                scenario,
+                "Thermal State (peak)",
+                "❌ throttled" if throttled else "ℹ️ context",
+                fmt(peaks["off"], 0),
+                fmt(peaks["on"], 0),
+                "",
+                f"control {fmt(peaks['control'], 0)}" if "control" in peaks else "",
+            ))
+        else:
+            gates.append((scenario, "Thermal State", "⚠️ missing", "can't rule out throttling", "", "", ""))
+            passed = False
 
         # Context only: shows whether the scenario really ran at the intended refresh rate.
         rate_on, rate_off = find(on, "Display Link Rate"), find(off, "Display Link Rate")
