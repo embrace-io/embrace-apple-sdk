@@ -146,6 +146,52 @@
             XCTAssertTrue(opened.isEmpty)
         }
 
+        func testOpenForEndedPartIsIgnoredAfterAnotherPartEnds() {
+            // A caller saw `first` as current, then `first` and a background part both ended before
+            // it took the tracker's lock, so `lastEndedPartId` no longer names `first`.
+            let first = startPart(.foreground)
+            endPart()
+            startPart(.background)
+            endPart()
+            startPart(.foreground)
+            opened = []
+
+            tracker.open(partId: first.id, at: Date())
+
+            XCTAssertNotEqual(tracker.openPartId, first.id)
+            XCTAssertTrue(opened.isEmpty)
+        }
+
+        func testOpenForNonCurrentPartDoesNotCloseOpenPart() {
+            let session = startPart(.foreground)
+
+            tracker.open(partId: .random, at: Date())
+
+            XCTAssertEqual(tracker.openPartId, session.id)
+            XCTAssertTrue(reported.isEmpty)
+        }
+
+        func testOpenForCurrentBackgroundPartIsIgnored() {
+            let session = MockSession.with(id: .random, state: .background)
+            currentSession = session
+
+            tracker.open(partId: session.id, at: Date())
+
+            XCTAssertFalse(tracker.isSessionOpen)
+        }
+
+        func testStaleEndDoesNotAllowReopeningEndedPart() {
+            let session = startPart(.foreground)
+            tracker.closeOpenSession(at: Date())
+
+            // A stale will-end for a part that is neither open nor current.
+            endPart(MockSession.with(id: .random, state: .background))
+            tracker.open(partId: session.id, at: Date())
+
+            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertEqual(opened, [session.id])
+        }
+
         func testPartEndClosesAndReports() {
             let session = startPart(.foreground)
             let before = Date()

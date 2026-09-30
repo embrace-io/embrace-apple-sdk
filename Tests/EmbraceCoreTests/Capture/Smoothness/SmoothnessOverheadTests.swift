@@ -38,6 +38,7 @@
         private var classifier: FrameDropClassifier!
         private var tracker: SmoothnessSessionTracker!
         private var now: CFTimeInterval = 1_000
+        private var currentSession: EmbraceSession?
 
         override func setUpWithError() throws {
             try super.setUpWithError()
@@ -47,7 +48,7 @@
             tracker = SmoothnessSessionTracker(
                 classifier: classifier,
                 hangThreshold: 0.249,
-                currentSession: { nil },
+                currentSession: { [unowned self] in self.currentSession },
                 notificationCenter: NotificationCenter(),
                 embraceNotificationCenter: NotificationCenter()
             )
@@ -62,6 +63,7 @@
             source = nil
             tracker = nil
             classifier = nil
+            currentSession = nil
             super.tearDown()
         }
 
@@ -83,7 +85,9 @@
         }
 
         private func openSession() {
-            tracker.open(partId: .random, at: Date())
+            let session = MockSession.with(id: .random, state: .foreground)
+            currentSession = session
+            tracker.open(partId: session.id, at: Date())
         }
 
         // MARK: - Tests

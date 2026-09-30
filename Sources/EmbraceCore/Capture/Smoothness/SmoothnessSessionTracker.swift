@@ -119,7 +119,9 @@
         /// - Parameters:
         ///   - classifier: The classifier this tracker attaches to for its whole lifetime.
         ///   - hangThreshold: Per-tick ceiling, shared with `HangCaptureService`.
-        ///   - currentSession: Returns the current session part.
+        ///   - currentSession: Returns the current session part. Called with the tracker's lock held, so
+        ///     it must not take `SessionController`'s lock, which is held while the will-end hook takes
+        ///     the tracker's lock. `SessionController.currentSession` only takes its own session mutex.
         ///   - notificationCenter: Where `.embraceSessionPartDidStart` and the app's did-become-active
         ///     notification are posted.
         ///   - embraceNotificationCenter: Where `.embraceSessionPartWillEndSync` is posted.
@@ -188,6 +190,7 @@
 
         /// Opens the current part if it is foreground and not already open. Call on the main thread.
         func openCurrentForegroundPart(at startTime: Date = Date()) {
+            // Early exit only; `open` repeats the check under the lock.
             guard let session = currentSession(), session.state == .foreground else { return }
 
             open(partId: session.id, at: startTime)
@@ -195,15 +198,22 @@
 
         /// Opens an accumulator for `partId`, closing any other part that was left open.
         ///
-        /// No-ops if `partId` is already open or has already ended.
+        /// No-ops if `partId` is already open, has already ended, or isn't the current foreground part.
+        ///
+        /// The current part is checked under the lock, so a part that ends between a caller's own check
+        /// and this call can't be reopened. `currentSession` still returns the ending part during the
+        /// will-end hook, so `lastEndedPartId` covers that window.
         func open(partId: EmbraceIdentifier, at startTime: Date) {
             lock.locked {
-                if let open = state.openSession {
-                    if open.partId == partId { return }
-                    closeLocked(at: startTime)
+                if state.openSession?.partId == partId { return }
+
+                guard let current = currentSession(), current.id == partId, current.state == .foreground,
+                    state.lastEndedPartId != partId
+                else {
+                    return
                 }
 
-                guard state.lastEndedPartId != partId else { return }
+                closeLocked(at: startTime)
 
                 state.openSession = OpenSession(partId: partId, startTime: startTime)
                 onSessionOpened?(partId, startTime)
@@ -212,11 +222,15 @@
 
         /// Closes the accumulator for `partId` and reports it. No-ops if `partId` isn't open.
         ///
-        /// Marks `partId` as ended either way, so a late open for it is ignored.
+        /// Marks `partId` as ended if it is open or current, so a late open for it is ignored. Any other
+        /// id is stale and ignored, so it can't overwrite the record of the part that did end.
         func close(partId: EmbraceIdentifier, at endTime: Date) {
             lock.locked {
+                let isOpen = state.openSession?.partId == partId
+                guard isOpen || currentSession()?.id == partId else { return }
+
                 state.lastEndedPartId = partId
-                guard state.openSession?.partId == partId else { return }
+                guard isOpen else { return }
 
                 closeLocked(at: endTime)
             }
@@ -297,6 +311,8 @@
         }
 
         /// `SessionController` posts this asynchronously on the main thread.
+        ///
+        /// The checks here are early exits only; `open` repeats them under the lock.
         @objc private func sessionPartDidStart(_ notification: Notification) {
             guard let session = notification.object as? EmbraceSession,
                 session.state == .foreground,
