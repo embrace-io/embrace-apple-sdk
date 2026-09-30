@@ -569,6 +569,8 @@
             startService()
             startPart(.foreground)
 
+            // Drops without a notification, so `fair` can only come from the seed at open.
+            thermalState = .nominal
             endPart()
 
             XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.first), SpanSemantics.Smoothness.ThermalState.fair)
@@ -662,7 +664,7 @@
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
             XCTAssertEqual(endedSmoothnessSpans.count, 1)
             XCTAssertNotNil(span.endTime)
-            XCTAssertNotEqual(span.status, .error)
+            XCTAssertEqual(span.status, .unset)
             XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 2)
             XCTAssertEqual(
                 span.attributes[SpanSemantics.Smoothness.keyNormalizedDroppedFrames] as? Double ?? 0,
@@ -848,10 +850,26 @@
             controller.startSession(state: .foreground)
             drainMain()
             let span = try XCTUnwrap(smoothnessSpans.first)
+            let tracker = try XCTUnwrap(service.tracker)
+            let serviceOnSessionClosed = tracker.onSessionClosed
+            var closedOnMain: Bool?
+            tracker.onSessionClosed = { partId, stats in
+                closedOnMain = Thread.isMainThread
+                serviceOnSessionClosed?(partId, stats)
+            }
 
-            controller.queue.sync { _ = self.controller.endSession() }
+            // `async`, not `sync`: a `sync` from main runs the block on main.
+            let ended = expectation(description: "ended off main")
+            var endedBeforeEndSessionReturned = false
+            controller.queue.async {
+                _ = self.controller.endSession()
+                endedBeforeEndSessionReturned = span.endTime != nil
+                ended.fulfill()
+            }
+            wait(for: [ended], timeout: 1)
 
-            XCTAssertNotNil(span.endTime)
+            XCTAssertEqual(closedOnMain, false)
+            XCTAssertTrue(endedBeforeEndSessionReturned)
         }
 
         func test_coldStartSwapToForeground_opensAndClosesSpan() throws {

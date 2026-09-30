@@ -214,6 +214,66 @@
             XCTAssertEqual(stats.cappedTickCount, 0)
             XCTAssertEqual(stats.normalizedDroppedFrames, 0, accuracy: 1e-9)
         }
+
+        /// The foreground part is already open when the first post-gap tick arrives, so only the
+        /// source's reset keeps the gap out of it.
+        func testGapIsNotReportedToForegroundPartOpenBeforeFirstTick() throws {
+            let stats = try foregroundPartStatsAfterGap(resetOnWillEnterForeground: true)
+
+            // The first tick after the reset only arms.
+            XCTAssertEqual(stats.frameCount, 2)
+            XCTAssertEqual(stats.cappedTickCount, 0)
+            XCTAssertEqual(stats.normalizedDroppedFrames, 0, accuracy: 1e-9)
+        }
+
+        /// Control for the test above: without the reset, the gap does reach the open part.
+        func testGapWithoutResetIsReportedToForegroundPartOpenBeforeFirstTick() throws {
+            let stats = try foregroundPartStatsAfterGap(resetOnWillEnterForeground: false)
+
+            XCTAssertEqual(stats.frameCount, 3)
+            XCTAssertEqual(stats.cappedTickCount, 1)
+            XCTAssertGreaterThan(stats.normalizedDroppedFrames, 0)
+        }
+
+        /// Foreground part, background gap, then a new foreground part that starts before the first
+        /// post-gap tick. Returns the stats of that second part.
+        private func foregroundPartStatsAfterGap(resetOnWillEnterForeground: Bool) throws -> SmoothnessSessionStats {
+            let embraceNotificationCenter = NotificationCenter()
+            let classifier = FrameDropClassifier()
+            var currentSession: EmbraceSession?
+            let tracker = SmoothnessSessionTracker(
+                classifier: classifier,
+                hangThreshold: 0.249,
+                currentSession: { currentSession },
+                notificationCenter: notificationCenter,
+                embraceNotificationCenter: embraceNotificationCenter
+            )
+            var reported: [SmoothnessSessionStats] = []
+            tracker.onSessionClosed = { _, stats in reported.append(stats) }
+            source.onTick = { [classifier] tick in classifier.handle(tick) }
+
+            let foreground = MockSession.with(id: .random, state: .foreground)
+            currentSession = foreground
+            notificationCenter.post(name: .embraceSessionPartDidStart, object: foreground)
+            tick()
+            tick()
+            embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: foreground)
+
+            skip(backgroundGap)
+            if resetOnWillEnterForeground {
+                postWillEnterForeground()
+            }
+            let resumed = MockSession.with(id: .random, state: .foreground)
+            currentSession = resumed
+            notificationCenter.post(name: .embraceSessionPartDidStart, object: resumed)
+            tick()
+            tick()
+            tick()
+            embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: resumed)
+
+            XCTAssertEqual(reported.count, 2)
+            return try XCTUnwrap(withExtendedLifetime(tracker) { reported.last })
+        }
     }
 
 #endif  // !os(watchOS) && !os(macOS)
