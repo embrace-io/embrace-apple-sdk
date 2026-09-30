@@ -9,8 +9,10 @@ vs `<scenario>_<n>_smoothnessOn`, same build) and applies the overhead criteria:
   (1 − ALPHA) Welch upper bound on the delta must be below the budget to pass. If the lower bound
   is above the budget, the scenario fails. Otherwise the run is too noisy to tell, and the scenario
   is inconclusive, which doesn't count as a pass.
-- CPU utilization (CPU Time / Clock Monotonic Time, per iteration): increase below
-  CPU_MAX_DELTA_PP percentage points.
+- CPU utilization (CPU Time / Clock Monotonic Time, per iteration): the same equivalence test,
+  with a budget of CPU_MAX_DELTA_PP percentage points. Gated only in scenarios without a frame
+  load (LOADED_SCENARIOS): on a loaded screen, SDK cost that drops frames also skips the load's
+  busy work, so CPU can fall with Smoothness on. There it is shown for information.
 
 Each scenario also runs a positive control, `<scenario>_smoothnessOnPlusCost`: Smoothness on, plus a
 known cost the benchmark adds to every frame. Each gate the scenario applies must report the control
@@ -55,6 +57,9 @@ ALPHA = float(os.getenv("ALPHA", "0.05"))
 HITCH_THRESHOLD = float(os.getenv("HITCH_THRESHOLD_PCT", "5.0")) / 100.0
 HITCH_ABS_FLOOR = float(os.getenv("HITCH_ABS_FLOOR", "1.0"))
 CPU_MAX_DELTA_PP = float(os.getenv("CPU_MAX_DELTA_PP", "1.0"))
+
+# Scenarios whose screen runs a frame load; their CPU utilization is informational only.
+LOADED_SCENARIOS = {"testScrolling"}
 TITLE = os.getenv("TITLE") or "Smoothness Overhead (on vs off)"
 DEVICE = os.getenv("DEVICE", "")
 STRICT = os.getenv("STRICT") == "1"
@@ -199,27 +204,43 @@ def hitch_check(on, off):
     }
 
 
+def utilization(metrics):
+    """Per-iteration CPU utilization (%) as CPU Time / Clock Monotonic Time, or None if either is
+    missing."""
+    cpu, clock = find(metrics, "CPU Time"), find(metrics, "Clock Monotonic Time")
+    if not cpu or not clock:
+        return None
+    return [c / w * 100 for c, w in zip(cpu["all"], clock["all"]) if w]
+
+
 def cpu_check(on, off):
-    """CPU utilization check of `on` against `off`, or None if either lacks CPU or clock time."""
-    cpu_on, cpu_off = find(on, "CPU Time"), find(off, "CPU Time")
-    clock_on, clock_off = find(on, "Clock Monotonic Time"), find(off, "Clock Monotonic Time")
-    if not (cpu_on and cpu_off and clock_on and clock_off):
+    """CPU utilization check of `on` against `off`, or None if either lacks CPU or clock time.
+
+    Like the hitch check, passing needs proof the increase is within budget.
+    """
+    util_on, util_off = utilization(on), utilization(off)
+    if not util_on or not util_off:
         return None
 
-    util_on = [c / w * 100 for c, w in zip(cpu_on["all"], clock_on["all"]) if w]
-    util_off = [c / w * 100 for c, w in zip(cpu_off["all"], clock_off["all"]) if w]
     delta_pp = mean(util_on) - mean(util_off)
+    bounds = welch_bounds(util_on, util_off, ALPHA)
+    if bounds is None:
+        status, evidence = INCONCLUSIVE, "too few iterations"
+    else:
+        lower, upper = bounds
+        if upper < CPU_MAX_DELTA_PP:
+            status = WITHIN
+        elif lower > CPU_MAX_DELTA_PP:
+            status = OVER
+        else:
+            status = INCONCLUSIVE
+        evidence = f"≤ {upper:+.2f} (budget {CPU_MAX_DELTA_PP:g})"
 
     return {
-        "name": cpu_on["displayName"],
+        "name": find(on, "CPU Time")["displayName"],
         "metric": "CPU utilization (%)",
-        "status": OVER if delta_pp >= CPU_MAX_DELTA_PP else WITHIN,
-        "cells": (
-            fmt(mean(util_off), 2),
-            fmt(mean(util_on), 2),
-            f"{delta_pp:+.2f} pp",
-            f"p = {fmtp(one_sided_p(util_on, util_off))}",
-        ),
+        "status": status,
+        "cells": (fmt(mean(util_off), 2), fmt(mean(util_on), 2), f"{delta_pp:+.2f} pp", evidence),
     }
 
 
@@ -336,7 +357,14 @@ def evaluate(pairs):
             gates.append((scenario, hitch["metric"], hitch["status"], *hitch["cells"]))
 
         cpu = cpu_check(on, off)
-        if cpu:
+        if cpu and scenario in LOADED_SCENARIOS:
+            # Confounded by the frame load (see LOADED_SCENARIOS), so shown but not gated, and the
+            # control isn't expected to fail it.
+            shown.add(cpu["name"])
+            util_on, util_off = utilization(on), utilization(off)
+            info.append((scenario, cpu["metric"], *cpu["cells"][:2], cpu["cells"][2], fmtp(one_sided_p(util_on, util_off))))
+            cpu = None
+        elif cpu:
             gated.add(cpu["name"])
             passed &= cpu["status"] == WITHIN
             gates.append((scenario, cpu["metric"], cpu["status"], *cpu["cells"]))
@@ -460,7 +488,8 @@ def render(gates, info, passed, has_results):
     body.append(
         f"Criteria: hitch time ratio delta proven within budget — the one-sided {1 - ALPHA:.0%} upper bound "
         f"must be below max(`{HITCH_THRESHOLD:.0%}` of Off, `{HITCH_ABS_FLOOR}` ms/s), and a run too noisy "
-        f"to show that is inconclusive; CPU utilization increase < `{CPU_MAX_DELTA_PP}` pp; "
+        f"to show that is inconclusive; CPU utilization increase proven below `{CPU_MAX_DELTA_PP}` pp the same way "
+        "(unloaded scenarios only); "
         "Smoothness frame count > 0 in On and 0 in Off; the positive control (On plus a known per-frame "
         "cost) must be over budget on every gate. Hang capture is on in all arms."
     )

@@ -14,9 +14,10 @@ import XCTest
 /// every arm sets `EMBAllowWatchdogInDebugger=1`. Each arm also reports and asserts the SDK's frame
 /// count, so an On arm where Smoothness never ran can't pass as a measurement.
 ///
-/// Each scenario also runs a positive control, `_smoothnessOnPlusCost`: the On arm plus
-/// `injectedTickCostMicros` of main-thread work on every frame. The script requires every gate to
-/// report it as over budget, which proves the gate can see a cost of that size at all.
+/// Each scenario also runs a positive control, `_smoothnessOnPlusCost`: the On arm plus a fixed
+/// amount of main-thread work on every frame (`scrollingControlCostMicros`,
+/// `animationControlCostMicros`). The script requires every gate to report it as over budget, which
+/// proves the gate can see a cost of that size at all.
 ///
 /// XCTest runs methods alphabetically, and the device drifts over a run (it warms up, may throttle,
 /// background work settles). So each arm runs as two blocks in a mirrored order, numbered so the
@@ -107,18 +108,23 @@ final class SmoothnessOverheadUITests: XCTestCase {
 
     private let animationWindow: TimeInterval = 10
 
-    /// Iterations per block; each arm runs two blocks. The loaded scroll baseline hitches, which is
-    /// noisier than a baseline that never does, so scrolling gets more.
+    /// Iterations per block; each arm runs two blocks, so twice this many per arm. Each animation
+    /// iteration is a 10s window.
     private let scrollingIterationsPerBlock = 10
-    private let animationIterationsPerBlock = 3
+    private let animationIterationsPerBlock = 6
 
-    /// The positive control's added cost per frame. 250µs is 3 percentage points of CPU at 120Hz and
-    /// 1.5 at 60Hz, both over the 1 point budget, and about 250× the SDK's ~1µs on-device per-tick
-    /// budget.
-    private let injectedTickCostMicros = 250
+    /// The scroll control's added cost per frame, about 250× the SDK's ~1µs on-device per-tick
+    /// budget. It's gated on hitches, and a larger cost would only break every frame of the loaded
+    /// screen.
+    private let scrollingControlCostMicros = 250
+
+    /// The animation control's added cost per frame. It's gated on CPU, against a 1 point budget:
+    /// 500µs is 6 points at 120Hz and 3 at 60Hz, enough margin for the control to be proven over
+    /// budget at either rate. The screen has no frame load, so the cost breaks nothing.
+    private let animationControlCostMicros = 500
 
     @MainActor
-    private func launch(screen: String, arm: Arm) -> XCUIApplication {
+    private func launch(screen: String, arm: Arm, controlCostMicros: Int) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["EMBBenchmarkScreen"] = screen
         app.launchEnvironment["EMBHang"] = "1"
@@ -127,17 +133,18 @@ final class SmoothnessOverheadUITests: XCTestCase {
             app.launchEnvironment["EMBSmoothness"] = "1"
         }
         if arm.injectsCost {
-            app.launchEnvironment["EMBInjectedTickCostMicros"] = String(injectedTickCostMicros)
+            app.launchEnvironment["EMBInjectedTickCostMicros"] = String(controlCostMicros)
         }
         app.launch()
         return app
     }
 
     /// Uses Apple's scroll signposts, so hitches are measured independently of the SDK's own
-    /// frame accounting.
+    /// frame accounting. `XCTClockMetric` records each swipe's window so CPU utilization can be
+    /// reported, for information only: the frame load confounds it.
     @MainActor
     private func measureScrolling(_ arm: Arm) {
-        let app = launch(screen: "smoothness-scroll", arm: arm)
+        let app = launch(screen: "smoothness-scroll", arm: arm, controlCostMicros: scrollingControlCostMicros)
         let list = app.collectionViews.firstMatch
         XCTAssertTrue(list.waitForExistence(timeout: 10))
 
@@ -149,6 +156,7 @@ final class SmoothnessOverheadUITests: XCTestCase {
             metrics: [
                 XCTOSSignpostMetric.scrollingAndDecelerationMetric,
                 XCTCPUMetric(application: app),
+                XCTClockMetric(),
                 LabelMetric.displayLinkRate(app: app),
                 LabelMetric.displayRefreshRate(app: app),
                 LabelMetric.maxDisplayRate(app: app),
@@ -169,7 +177,7 @@ final class SmoothnessOverheadUITests: XCTestCase {
     /// the window so CPU time can be turned into utilization.
     @MainActor
     private func measureAnimation(_ arm: Arm) {
-        let app = launch(screen: "smoothness-animation", arm: arm)
+        let app = launch(screen: "smoothness-animation", arm: arm, controlCostMicros: animationControlCostMicros)
         XCTAssertTrue(app.otherElements["smoothness-animation"].waitForExistence(timeout: 10))
 
         let options = XCTMeasureOptions()
