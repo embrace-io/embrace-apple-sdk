@@ -172,6 +172,10 @@ final class SmoothnessLoadCalibrationUITests: XCTestCase {
 
         let list = app.collectionViews.firstMatch
         XCTAssertTrue(list.waitForExistence(timeout: 10))
+        app.settleBenchmarkScreen(smoothness: false) {
+            list.swipeUp(velocity: .fast)
+            list.swipeDown(velocity: .fast)
+        }
 
         let options = XCTMeasureOptions()
         options.invocationOptions = [.manuallyStop]

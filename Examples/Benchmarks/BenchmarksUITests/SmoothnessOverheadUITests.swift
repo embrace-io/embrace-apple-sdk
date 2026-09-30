@@ -24,6 +24,9 @@ import XCTest
 /// alphabetical order is Off, On, OnPlusCost, OnPlusCost, On, Off. Every arm's average position is
 /// the same, so a steady drift cancels out of every comparison. The script merges each arm's blocks.
 /// Every iteration also records the thermal state, and the script rejects a throttled run.
+///
+/// Every arm settles before measuring (`settleBenchmarkScreen`), so the SDK's startup work doesn't
+/// overlap the first iterations.
 final class SmoothnessOverheadUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -147,6 +150,10 @@ final class SmoothnessOverheadUITests: XCTestCase {
         let app = launch(screen: "smoothness-scroll", arm: arm, controlCostMicros: scrollingControlCostMicros)
         let list = app.collectionViews.firstMatch
         XCTAssertTrue(list.waitForExistence(timeout: 10))
+        app.settleBenchmarkScreen(smoothness: arm.smoothness) {
+            list.swipeUp(velocity: .fast)
+            list.swipeDown(velocity: .fast)
+        }
 
         let options = XCTMeasureOptions()
         options.invocationOptions = [.manuallyStop]
@@ -179,6 +186,7 @@ final class SmoothnessOverheadUITests: XCTestCase {
     private func measureAnimation(_ arm: Arm) {
         let app = launch(screen: "smoothness-animation", arm: arm, controlCostMicros: animationControlCostMicros)
         XCTAssertTrue(app.otherElements["smoothness-animation"].waitForExistence(timeout: 10))
+        app.settleBenchmarkScreen(smoothness: arm.smoothness)
 
         let options = XCTMeasureOptions()
         options.iterationCount = animationIterationsPerBlock
@@ -210,6 +218,46 @@ final class SmoothnessOverheadUITests: XCTestCase {
         } else {
             XCTAssertEqual(frames, 0, "SmoothnessCaptureService counted frames in the Off arm")
         }
+    }
+}
+
+extension XCUIApplication {
+
+    /// The least time between a benchmark screen appearing and its first measured iteration.
+    static let benchmarkSettleTime: TimeInterval = 5
+
+    /// Waits for a benchmark screen to settle before measuring. Shared with
+    /// `SmoothnessLoadCalibrationUITests`.
+    ///
+    /// The SDK starts in the app's `init`, but its startup work (session start, storage, config
+    /// fetch, upload) carries on in the background after launch. Measuring straight away overlaps it
+    /// with the first iterations, which adds noise, and more of it in arms that start more services.
+    ///
+    /// Waits until the screen reports its refresh rate, and, if `smoothness`, until the SDK has
+    /// counted frames. Then runs `warmUp`, and sleeps out the rest of `benchmarkSettleTime`.
+    @MainActor
+    func settleBenchmarkScreen(smoothness: Bool, warmUp: () -> Void = {}) {
+        let deadline = Date().addingTimeInterval(Self.benchmarkSettleTime)
+
+        waitForNonZeroLabel("display-refresh-rate", "The benchmark screen never reported a refresh rate")
+        if smoothness {
+            waitForNonZeroLabel("smoothness-frames", "SmoothnessCaptureService counted no frames before measuring, so it isn't running")
+        }
+        warmUp()
+
+        let remaining = deadline.timeIntervalSinceNow
+        if remaining > 0 {
+            Thread.sleep(forTimeInterval: remaining)
+        }
+    }
+
+    /// Fails unless the static text `identifier` shows a non-zero number within 10s. The labels
+    /// start at "0" and update once a second.
+    @MainActor
+    private func waitForNonZeroLabel(_ identifier: String, _ message: String) {
+        let predicate = NSPredicate(format: "label != %@ AND label != %@", "0", "0.0")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: staticTexts[identifier])
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation], timeout: 10), .completed, message)
     }
 }
 
