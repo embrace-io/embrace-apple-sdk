@@ -29,10 +29,6 @@
 
         override func setUpWithError() throws {
             try super.setUpWithError()
-            try XCTSkipIf(
-                isDebuggerAttached() && ProcessInfo.processInfo.environment["EMBAllowWatchdogInDebugger"] != "1",
-                "SmoothnessCaptureService disables itself under a debugger"
-            )
             otel = MockOTelSignalsHandler()
             notificationCenter = NotificationCenter()
             embraceNotificationCenter = NotificationCenter()
@@ -42,9 +38,12 @@
             service = makeService()
         }
 
-        /// The default checkpoint interval is long enough that the timer never fires during a test.
+        /// The default checkpoint interval is long enough that the timer never fires during a test. The
+        /// debugger check defaults to detached, so the suite also runs from Xcode.
         private func makeService(
-            checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval
+            checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval,
+            debuggerAttached: @escaping () -> Bool = { false },
+            environment: [String: String] = [:]
         ) -> SmoothnessCaptureService {
             SmoothnessCaptureService(
                 currentSession: { [unowned self] in self.currentSession },
@@ -52,7 +51,9 @@
                 embraceNotificationCenter: embraceNotificationCenter,
                 flushStorage: { [unowned self] in self.flushes.append(self.endedSmoothnessSpans.count) },
                 thermalState: { [unowned self] in self.thermalState },
-                checkpointInterval: checkpointInterval
+                checkpointInterval: checkpointInterval,
+                debuggerAttached: debuggerAttached,
+                environment: environment
             )
         }
 
@@ -135,6 +136,40 @@
             service.stop()
 
             XCTAssertNil(service.tracker)
+        }
+
+        func test_stop_releasesFrameTimingSource() {
+            startService()
+            weak var source = service.frameTimingSource
+            XCTAssertNotNil(source)
+
+            service.stop()
+
+            // The source owns the CADisplayLink and invalidates it on deinit.
+            XCTAssertNil(source)
+        }
+
+        func test_debuggerAttached_disablesService() {
+            service = makeService(debuggerAttached: { true })
+            let logger = MockLogger()
+            service.install(otel: otel, logger: logger)
+            service.start()
+            startPart(.foreground)
+            endPart()
+
+            XCTAssertNil(service.tracker)
+            XCTAssertTrue(smoothnessSpans.isEmpty)
+            XCTAssertTrue(logger.loggedMessages.contains { $0.level == .warning && $0.message.contains("debugger") })
+        }
+
+        func test_debuggerAttached_withAllowWatchdogInDebugger_keepsServiceEnabled() {
+            service = makeService(debuggerAttached: { true }, environment: ["EMBAllowWatchdogInDebugger": "1"])
+            startService()
+            startPart(.foreground)
+            endPart()
+
+            XCTAssertNotNil(service.tracker)
+            XCTAssertEqual(endedSmoothnessSpans.count, 1)
         }
 
         func test_startOffMain_buildsPipelineOnMain() {
@@ -824,10 +859,6 @@
 
         override func setUpWithError() throws {
             try super.setUpWithError()
-            try XCTSkipIf(
-                isDebuggerAttached() && ProcessInfo.processInfo.environment["EMBAllowWatchdogInDebugger"] != "1",
-                "SmoothnessCaptureService disables itself under a debugger"
-            )
             storage = try EmbraceStorage.createInMemoryDb()
             sdkStateProvider.isEnabled = true
             otel = MockOTelSignalsHandler()
@@ -843,7 +874,8 @@
                 currentSession: { [unowned self] in self.controller.currentSession },
                 notificationCenter: .default,
                 embraceNotificationCenter: Embrace.notificationCenter,
-                flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) }
+                flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
+                debuggerAttached: { false }
             )
             service.install(otel: otel)
             service.start()
@@ -1055,10 +1087,6 @@
 
         override func setUpWithError() throws {
             try super.setUpWithError()
-            try XCTSkipIf(
-                isDebuggerAttached() && ProcessInfo.processInfo.environment["EMBAllowWatchdogInDebugger"] != "1",
-                "SmoothnessCaptureService disables itself under a debugger"
-            )
             storage = try EmbraceStorage.createInMemoryDb()
             sessionController = MockSessionController()
             sessionController.storage = storage
@@ -1086,7 +1114,8 @@
                 embraceNotificationCenter: embraceNotificationCenter,
                 flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
                 thermalState: { .nominal },
-                checkpointInterval: 0
+                checkpointInterval: 0,
+                debuggerAttached: { false }
             )
         }
 

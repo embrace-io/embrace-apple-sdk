@@ -58,13 +58,17 @@ import Foundation
         ///   - flushStorage: Blocks until pending storage writes, including the span's end, are on disk.
         ///   - thermalState: Reads the device's current thermal state.
         ///   - checkpointInterval: How often the open span's metrics are checkpointed. `0` disables it.
+        ///   - debuggerAttached: Whether a debugger is attached. The service disables itself if so.
+        ///   - environment: Checked for `EMBAllowWatchdogInDebugger=1`, which keeps it enabled anyway.
         init(
             currentSession: @escaping () -> EmbraceSession?,
             notificationCenter: NotificationCenter,
             embraceNotificationCenter: NotificationCenter,
             flushStorage: @escaping () -> Void,
             thermalState: @escaping () -> ProcessInfo.ThermalState = { ProcessInfo.processInfo.thermalState },
-            checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval
+            checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval,
+            debuggerAttached: @escaping () -> Bool = isDebuggerAttached,
+            environment: [String: String] = ProcessInfo.processInfo.environment
         ) {
             self.currentSession = currentSession
             self.notificationCenter = notificationCenter
@@ -72,6 +76,8 @@ import Foundation
             self.flushStorage = flushStorage
             self.thermalState = thermalState
             self.checkpointInterval = checkpointInterval
+            self.debuggerAttached = debuggerAttached
+            self.environment = environment
             super.init()
 
             notificationCenter.addObserver(
@@ -95,7 +101,7 @@ import Foundation
         public override func onStart() {
 
             // Breakpoints and stepping would read as dropped frames.
-            if isDebuggerAttached() && ProcessInfo.processInfo.environment["EMBAllowWatchdogInDebugger"] != "1" {
+            if debuggerAttached() && environment["EMBAllowWatchdogInDebugger"] != "1" {
                 logger?.warning(
                     "[Smoothness] Disabled because a debugger is attached. Set the env var EMBAllowWatchdogInDebugger=1 to enable in debug mode.")
                 return
@@ -149,6 +155,12 @@ import Foundation
         /// The live tracker, or `nil` while the service isn't running.
         var tracker: SmoothnessSessionTracker? {
             data.withLock { $0.pipeline?.tracker }
+        }
+
+        /// The live frame timing source, which owns the `CADisplayLink`, or `nil` while the service
+        /// isn't running.
+        var frameTimingSource: FrameTimingSource? {
+            data.withLock { $0.pipeline?.source }
         }
 
         /// Writes the open span's metrics so far to it. No-ops if no span is open. Called by the
@@ -249,6 +261,8 @@ import Foundation
         private let flushStorage: () -> Void
         private let thermalState: () -> ProcessInfo.ThermalState
         private let checkpointInterval: TimeInterval
+        private let debuggerAttached: () -> Bool
+        private let environment: [String: String]
         private let checkpointQueue = DispatchQueue(label: "io.embrace.smoothness.checkpoint", qos: .utility)
 
         /// Raw notification name to avoid a direct UIKit dependency.
