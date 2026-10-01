@@ -36,8 +36,10 @@ class SpyStorage: Storage {
     var didCallFetchResourcesForProcessId = false
     var fetchResourcesForProcessIdReceivedParameter: EmbraceIdentifier!
     var stubbedFetchResourcesForProcessId: [EmbraceMetadata] = []
+    var fetchResourcesForProcessIdCallCount = 0
     func fetchResourcesForProcessId(_ processId: EmbraceIdentifier) -> [EmbraceMetadata] {
         didCallFetchResourcesForProcessId = true
+        fetchResourcesForProcessIdCallCount += 1
         fetchResourcesForProcessIdReceivedParameter = processId
         return stubbedFetchResourcesForProcessId
     }

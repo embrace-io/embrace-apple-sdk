@@ -937,6 +937,70 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 1)
     }
 
+    func test_logsUploadNeverCompleting_doesntBlockSessionRecovery() async throws {
+        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
+        // mock successful requests
+        EmbraceHTTPMock.mock(url: testSpansUrl())
+
+        // given a storage and upload modules
+        let storage = try EmbraceStorage.createInMemoryDb()
+        defer { storage.coreData.destroy() }
+
+        let upload = try EmbraceUpload(
+            options: uploadOptions, logger: logger, queue: queue)
+
+        // given a log uploader that never reports back
+        let logUploader = SpyEmbraceLogUploader()
+        logUploader.shouldCompleteLogUploads = false
+
+        let logController = LogController(
+            storage: storage,
+            upload: logUploader,
+            controller: MockSessionController()
+        )
+        logController.sdkStateProvider = sdkStateProvider
+        logController.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
+        let otel = MockEmbraceOpenTelemetry()
+
+        // given the resources required for the payload to be valid
+        storage.addMetadata(
+            key: AppResourceKey.appVersion.rawValue,
+            value: "1.2.3",
+            type: .requiredResource,
+            lifespan: .process,
+            lifespanId: TestConstants.processId.stringValue
+        )
+
+        // given logs in storage
+        storage.createLog(
+            id: EmbraceIdentifier.random,
+            processId: TestConstants.processId,
+            severity: .debug,
+            body: "test",
+            attributes: [:]
+        )
+
+        // given a finished session in the storage
+        await storage.addSession(
+            id: TestConstants.sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(timeIntervalSinceNow: -60),
+            endTime: Date()
+        )
+
+        // when sending unsent data
+        // (the completion is never called because the log upload never finishes, so it can't be awaited)
+        UnsentDataHandler.sendUnsentData(
+            storage: storage, upload: upload, otel: otel, logController: logController, completion: nil)
+
+        // then the session is still sent
+        wait(timeout: .longTimeout, interval: .shortInterval, until: { EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1 })
+        XCTAssertEqual(logUploader.didCallUploadLogCount, 1)
+    }
+
     func test_criticalLogs() async throws {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests

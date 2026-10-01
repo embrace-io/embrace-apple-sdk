@@ -10,10 +10,19 @@ class SpyEmbraceLogUploader: EmbraceLogUploader {
     var didCallUploadLogCount = 0
     var logPayloadTypes: String? = nil
     var stubbedLogCompletion: (Result<(), Error>)?
+    /// When `false`, log upload completions are stored in `pendingLogCompletions` instead of being called.
+    var shouldCompleteLogUploads = true
+    var pendingLogCompletions: [((Result<(), Error>) -> Void)?] = []
     func uploadLog(id: String, data: Data, payloadTypes: String, completion: ((Result<(), Error>) -> Void)?) {
         didCallUploadLogCount += 1
         didCallUploadLog = true
         logPayloadTypes = payloadTypes
+
+        guard shouldCompleteLogUploads else {
+            pendingLogCompletions.append(completion)
+            return
+        }
+
         completion?(stubbedLogCompletion ?? .success(()))
     }
 

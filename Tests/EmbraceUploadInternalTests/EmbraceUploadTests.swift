@@ -84,6 +84,42 @@ class EmbraceUploadTests: XCTestCase {
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
+    func test_deallocatedModule_callsCompletionWithError() throws {
+        // given a module whose queue is paused
+        let pausedQueue = DispatchQueue(label: "com.test.embrace.paused.queue")
+        pausedQueue.suspend()
+
+        let spansExpectation = XCTestExpectation()
+        let logExpectation = XCTestExpectation()
+        let attachmentExpectation = XCTestExpectation()
+
+        let assertUnavailable: (Result<(), Error>, XCTestExpectation) -> Void = { result, expectation in
+            switch result {
+            case .failure(let error as NSError):
+                XCTAssertEqual(error.code, EmbraceUploadErrorCode.uploaderUnavailable.rawValue)
+                expectation.fulfill()
+            default:
+                XCTAssert(false, "Upload should've failed!")
+            }
+        }
+
+        var deallocatingModule: EmbraceUpload? = try EmbraceUpload(
+            options: testOptions, logger: MockLogger(), queue: pausedQueue)
+        weak var weakModule = deallocatingModule
+
+        // when uploading and the module is deallocated before the work runs
+        deallocatingModule?.uploadSpans(id: "id", data: TestConstants.data) { assertUnavailable($0, spansExpectation) }
+        deallocatingModule?.uploadLog(id: "id", data: TestConstants.data) { assertUnavailable($0, logExpectation) }
+        deallocatingModule?.uploadAttachment(id: "id", data: TestConstants.data) { assertUnavailable($0, attachmentExpectation) }
+        deallocatingModule = nil
+        XCTAssertNil(weakModule)
+
+        pausedQueue.resume()
+
+        // then every completion is called with an error
+        wait(for: [spansExpectation, logExpectation, attachmentExpectation], timeout: .defaultTimeout)
+    }
+
     func test_success() throws {
         try XCTSkipIf(XCTestCase.isWatchOS())
 

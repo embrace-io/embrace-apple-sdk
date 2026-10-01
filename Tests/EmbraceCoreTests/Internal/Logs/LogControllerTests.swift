@@ -129,6 +129,53 @@ class LogControllerTests: XCTestCase {
         try thenStorageShouldntCallRemoveLogs()
     }
 
+    // MARK: - Testing sequential uploads
+
+    func testUploaderNeverCompleting_onSetup_doesntBlockTheCaller() {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        let returned = expectation(description: "uploadAllPersistedLogs returned")
+        DispatchQueue.global().async {
+            self.sut.uploadAllPersistedLogs()
+            returned.fulfill()
+        }
+
+        wait(for: [returned], timeout: 1.0)
+    }
+
+    func testUploaderNeverCompleting_onSetup_buildsAllPayloadsBeforeReturning() throws {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        sut.uploadAllPersistedLogs()
+
+        // each batch belongs to a different process, so both payloads are built before returning
+        let unwrappedStorage = try XCTUnwrap(storage)
+        XCTAssertEqual(unwrappedStorage.fetchResourcesForProcessIdCallCount, 2)
+    }
+
+    func testHavingMoreThanABatch_onSetup_uploadsTheNextBatchOnlyAfterThePreviousOneCompletes() {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        let completed = expectation(description: "all batches uploaded")
+        sut.uploadAllPersistedLogs { completed.fulfill() }
+
+        wait(until: { self.upload.didCallUploadLogCount == 1 })
+        wait(delay: 0.2)
+        XCTAssertEqual(upload.didCallUploadLogCount, 1)
+
+        upload.pendingLogCompletions.removeFirst()?(.success(()))
+        wait(until: { self.upload.didCallUploadLogCount == 2 })
+
+        upload.pendingLogCompletions.removeFirst()?(.success(()))
+        wait(for: [completed], timeout: 1.0)
+    }
+
     // MARK: - Testing dropped batches
 
     func testHavingLogsWithoutRequiredMetadata_onSetup_wontUploadAndRemovesThem() throws {
@@ -413,6 +460,11 @@ extension LogControllerTests {
         upload.stubbedAttachmentCompletion = .failure(RandomError())
     }
 
+    fileprivate func givenNeverCompletingLogUploader() {
+        upload = .init()
+        upload.shouldCompleteLogUploads = false
+    }
+
     fileprivate func givenSDKEnabled(_ sdkEnabled: Bool = true) {
         sdkStateProvider.isEnabled = sdkEnabled
     }
@@ -457,7 +509,9 @@ extension LogControllerTests {
     }
 
     fileprivate func whenInvokingSetup() {
-        sut.uploadAllPersistedLogs()
+        let completed = expectation(description: "uploadAllPersistedLogs completed")
+        sut.uploadAllPersistedLogs { completed.fulfill() }
+        wait(for: [completed], timeout: 1.0)
     }
 
     fileprivate func whenInvokingBatchFinished(withLogs logs: [EmbraceLog]) {
