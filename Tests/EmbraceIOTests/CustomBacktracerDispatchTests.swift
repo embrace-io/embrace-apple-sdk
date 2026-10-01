@@ -17,16 +17,17 @@
 
     @testable import EmbraceCore
 
-    /// Base of the addresses `StubBacktracer` writes, chosen so they can't come from a real walk.
-    private let stubFrameBase: FrameAddress = 0xD1D1_0000
-    private let stubFrameCount = 3
+    /// First frame each stub writes, naming which method the SDK called. Chosen so they can't come
+    /// from a real walk. The second frame is the thread argument the method received.
+    private let pthreadVariantTag: FrameAddress = 0xD1D1_0001
+    private let machThreadVariantTag: FrameAddress = 0xD1D1_0002
 
-    /// The address the replacement implementation writes when it is reached through `objc_msgSend`.
+    /// The frame the replacement implementation writes when it is reached through `objc_msgSend`.
     private let dispatchedFrame: FrameAddress = 0xBAD0_0001
 
-    /// A customer-style `Backtracer`. It is not `KSCrashBacktracing`, so the SDK reaches it through
-    /// the custom-backtracer path.
-    private final class StubBacktracer: Backtracer {
+    /// A customer-style `Backtracer` that predates `backtrace(ofMachThread:into:capacity:)`. It is
+    /// not `KSCrashBacktracing`, so the SDK reaches it through the custom-backtracer path.
+    private final class PThreadOnlyBacktracer: Backtracer {
         func backtrace(of thread: pthread_t) -> [FrameAddress] { [] }
 
         func backtrace(
@@ -34,11 +35,39 @@
             into buffer: UnsafeMutablePointer<FrameAddress>,
             capacity: Int
         ) -> Int {
-            let count = min(capacity, stubFrameCount)
-            for index in 0..<count {
-                buffer[index] = stubFrameBase + FrameAddress(index + 1)
-            }
-            return count
+            guard capacity >= 2 else { return 0 }
+            buffer[0] = pthreadVariantTag
+            buffer[1] = FrameAddress(bitPattern: thread)
+            return 2
+        }
+    }
+
+    /// A custom `Backtracer` that implements the mach-port variant too. It conforms directly rather
+    /// than subclassing: a subclass method doesn't implicitly become `@objc` to satisfy an optional
+    /// requirement, so the runtime wouldn't see it.
+    private final class MachThreadBacktracer: Backtracer {
+        func backtrace(of thread: pthread_t) -> [FrameAddress] { [] }
+
+        func backtrace(
+            of thread: pthread_t,
+            into buffer: UnsafeMutablePointer<FrameAddress>,
+            capacity: Int
+        ) -> Int {
+            guard capacity >= 2 else { return 0 }
+            buffer[0] = pthreadVariantTag
+            buffer[1] = FrameAddress(bitPattern: thread)
+            return 2
+        }
+
+        func backtrace(
+            ofMachThread thread: thread_t,
+            into buffer: UnsafeMutablePointer<FrameAddress>,
+            capacity: Int
+        ) -> Int {
+            guard capacity >= 2 else { return 0 }
+            buffer[0] = machThreadVariantTag
+            buffer[1] = FrameAddress(thread)
+            return 2
         }
     }
 
@@ -67,8 +96,9 @@
             try Embrace.setup(options: options).start()
         }
 
-        /// Parks a background thread and walks it with the configured backtracer.
-        private func walkParkedThread() throws -> [UInt] {
+        /// Parks a background thread, walks it with the configured backtracer, and returns the
+        /// frames along with the walked thread.
+        private func walkParkedThread() throws -> (frames: [UInt], thread: pthread_t) {
             let ready = DispatchSemaphore(value: 0)
             let hold = DispatchSemaphore(value: 0)
             let box = PThreadBox()
@@ -84,16 +114,30 @@
             defer { hold.signal() }
 
             let target = try XCTUnwrap(box.value, "parked thread did not publish its pthread_t")
-            return EmbraceBacktrace.backtrace(of: target, threadIndex: 0).threads.first?.callstack.addresses ?? []
+            let frames = EmbraceBacktrace.backtrace(of: target, threadIndex: 0).threads.first?.callstack.addresses ?? []
+            return (frames, target)
         }
 
-        /// The direct IMP call passes the arguments and return value through correctly.
-        func test_customBacktracer_isCalledAndItsFramesAreReturned() throws {
-            try startEmbrace(backtracer: StubBacktracer())
+        /// A backtracer without the mach-port variant still works: the direct IMP call passes the
+        /// `pthread_t`, buffer and return value through correctly.
+        func test_pthreadOnlyBacktracer_isCalledWithTheTargetThread() throws {
+            try startEmbrace(backtracer: PThreadOnlyBacktracer())
+
+            let walk = try walkParkedThread()
+
+            XCTAssertEqual(walk.frames, [pthreadVariantTag, FrameAddress(bitPattern: walk.thread)])
+        }
+
+        /// When a backtracer implements the mach-port variant, the SDK calls it with the target's
+        /// mach port and never calls the `pthread_t` variant.
+        func test_machThreadBacktracer_isPreferredAndGetsTheTargetsMachPort() throws {
+            try startEmbrace(backtracer: MachThreadBacktracer())
+
+            let walk = try walkParkedThread()
 
             XCTAssertEqual(
-                try walkParkedThread(),
-                (1...stubFrameCount).map { stubFrameBase + FrameAddress($0) }
+                walk.frames,
+                [machThreadVariantTag, FrameAddress(pthread_mach_thread_np(walk.thread))]
             )
         }
 
@@ -104,16 +148,16 @@
             /// dispatch would see the swap and call the replacement. The SDK calls the IMP it looked
             /// up before suspending, so it must still reach the original.
             func test_customBacktracer_isNotDispatchedInsideTheSuspendWindow() throws {
-                let backtracer = StubBacktracer()
+                let backtracer = MachThreadBacktracer()
                 try startEmbrace(backtracer: backtracer)
 
-                let selector = #selector(Backtracer.backtrace(of:into:capacity:))
+                let selector = #selector(Backtracer.backtrace(ofMachThread:into:capacity:))
                 let method = try XCTUnwrap(class_getInstanceMethod(object_getClass(backtracer), selector))
                 let originalIMP = method_getImplementation(method)
 
                 let replacement:
                     @convention(c) (
-                        AnyObject, Selector, pthread_t, UnsafeMutablePointer<FrameAddress>, Int
+                        AnyObject, Selector, thread_t, UnsafeMutablePointer<FrameAddress>, Int
                     ) -> Int = { _, _, _, buffer, capacity in
                         guard capacity > 0 else { return 0 }
                         buffer[0] = dispatchedFrame
@@ -129,26 +173,26 @@
                     method_setImplementation(method, originalIMP)
                 }
 
-                let addresses = try walkParkedThread()
+                let frames = try walkParkedThread().frames
 
                 XCTAssertFalse(
-                    addresses.contains(dispatchedFrame),
+                    frames.contains(dispatchedFrame),
                     "The custom backtracer was reached through objc_msgSend inside the suspend window."
                 )
-                XCTAssertEqual(addresses.first, stubFrameBase + 1)
+                XCTAssertEqual(frames.first, machThreadVariantTag)
             }
         #endif
 
-        /// A backtracer whose class doesn't implement the method (only reachable through forwarding)
+        /// A backtracer whose class implements neither method (only reachable through forwarding)
         /// is skipped rather than called in the window.
-        func test_backtracerWithoutTheMethod_returnsNoFrames() throws {
-            // `NSObject` has no `backtrace(of:into:capacity:)`. The cast is the only way to get such
-            // an object past the type checker, which is the point: it stands in for an `NSProxy`.
+        func test_backtracerWithoutTheMethods_returnsNoFrames() throws {
+            // `NSObject` implements neither walk. The cast is the only way to get such an object
+            // past the type checker, which is the point: it stands in for an `NSProxy`.
             let object = NSObject()
             defer { withExtendedLifetime(object) {} }
             try startEmbrace(backtracer: unsafeBitCast(object, to: Backtracer.self))
 
-            XCTAssertEqual(try walkParkedThread(), [])
+            XCTAssertEqual(try walkParkedThread().frames, [])
         }
     }
 

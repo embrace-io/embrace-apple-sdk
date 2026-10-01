@@ -186,32 +186,67 @@ extension EmbraceBacktraceFrame {
     }
 }
 
-/// The IMP of `Backtracer.backtrace(of:into:capacity:)`. An `@objc` method's IMP takes the receiver
-/// and `_cmd` ahead of the declared arguments. The receiver is a raw pointer rather than `AnyObject`
-/// so calling it does no retain/release.
-private typealias BacktraceIntoIMP =
-    @convention(c) (
-        UnsafeMutableRawPointer, Selector, pthread_t, UnsafeMutablePointer<FrameAddress>, Int
-    ) -> Int
-
-private let backtraceIntoSelector = #selector(Backtracer.backtrace(of:into:capacity:))
-
-/// Resolves `backtracer`'s implementation of `backtrace(of:into:capacity:)` so it can be called
-/// directly while a thread is suspended.
+/// A custom backtracer's suspend-window walk, resolved to a plain C function before the suspend.
 ///
-/// Must be called *before* `thread_suspend`: the lookup itself takes the ObjC runtime lock. The
-/// lookup uses the receiver's dynamic class, so it sees the same implementation `objc_msgSend` would
-/// (including subclass overrides and KVO / isa-swizzled classes).
-///
-/// Returns `nil` when the class has no such method, e.g. an `NSProxy` that relies on message
-/// forwarding. Forwarding can't run in the window, so that backtracer can't walk a suspended thread.
-private func backtraceIntoIMP(of backtracer: Backtracer) -> BacktraceIntoIMP? {
-    guard let cls = object_getClass(backtracer),
-        let method = class_getInstanceMethod(cls, backtraceIntoSelector)
-    else {
-        return nil
+/// An `@objc` method's IMP takes the receiver and `_cmd` ahead of the declared arguments. The
+/// receiver is a raw pointer rather than `AnyObject` so calling it does no retain/release.
+private enum SuspendedBacktraceIMP {
+    typealias MachThreadIMP =
+        @convention(c) (
+            UnsafeMutableRawPointer, Selector, thread_t, UnsafeMutablePointer<FrameAddress>, Int
+        ) -> Int
+    typealias PThreadIMP =
+        @convention(c) (
+            UnsafeMutableRawPointer, Selector, pthread_t, UnsafeMutablePointer<FrameAddress>, Int
+        ) -> Int
+
+    // Each case carries its selector (the IMP's `_cmd`) so the call reads no statics in the window.
+
+    /// `backtrace(ofMachThread:into:capacity:)`: needs no pthread lookup in the window.
+    case machThread(MachThreadIMP, Selector)
+    /// `backtrace(of:into:capacity:)`: for backtracers that don't implement the mach-port variant.
+    /// The implementation may still take the pthread lock to resolve the mach port.
+    case pthread(PThreadIMP, Selector)
+
+    /// Resolves `backtracer`'s walk, preferring the mach-port variant.
+    ///
+    /// Must be called *before* `thread_suspend`: the lookup itself takes the ObjC runtime lock. The
+    /// lookup uses the receiver's dynamic class, so it sees the same implementation `objc_msgSend`
+    /// would (including subclass overrides and KVO / isa-swizzled classes).
+    ///
+    /// Returns `nil` when the class implements neither method, e.g. an `NSProxy` that relies on
+    /// message forwarding. Forwarding can't run in the window, so that backtracer can't walk a
+    /// suspended thread.
+    init?(resolving backtracer: Backtracer) {
+        guard let cls = object_getClass(backtracer) else {
+            return nil
+        }
+        let machThreadSelector = #selector(Backtracer.backtrace(ofMachThread:into:capacity:))
+        let pthreadSelector = #selector(Backtracer.backtrace(of:into:capacity:))
+        if let method = class_getInstanceMethod(cls, machThreadSelector) {
+            self = .machThread(unsafeBitCast(method_getImplementation(method), to: MachThreadIMP.self), machThreadSelector)
+        } else if let method = class_getInstanceMethod(cls, pthreadSelector) {
+            self = .pthread(unsafeBitCast(method_getImplementation(method), to: PThreadIMP.self), pthreadSelector)
+        } else {
+            return nil
+        }
     }
-    return unsafeBitCast(method_getImplementation(method), to: BacktraceIntoIMP.self)
+
+    /// Calls the resolved walk. Safe inside the suspend window: a direct C call, no dispatch.
+    func callAsFunction(
+        _ receiver: UnsafeMutableRawPointer,
+        thread: pthread_t,
+        machThread: thread_t,
+        into buffer: UnsafeMutablePointer<FrameAddress>,
+        capacity: Int
+    ) -> Int {
+        switch self {
+        case .machThread(let imp, let selector):
+            return imp(receiver, selector, machThread, buffer, capacity)
+        case .pthread(let imp, let selector):
+            return imp(receiver, selector, thread, buffer, capacity)
+        }
+    }
 }
 
 extension EmbraceBacktrace {
@@ -275,7 +310,7 @@ extension EmbraceBacktrace {
         // call through the existential is an `objc_msgSend`, which on a cold method cache takes the
         // ObjC runtime lock. If the suspended thread holds that lock, the walk never returns and the
         // process deadlocks. Calling the concrete type is a vtable dispatch instead: no locks.
-        // A custom `Backtracer` gets the same guarantee through `backtraceIntoIMP(of:)` below.
+        // A custom `Backtracer` gets the same guarantee through `SuspendedBacktraceIMP` below.
         let ksBacktracer = backtracer as? KSCrashBacktracing
 
         // get the mach thread to take the snapshot of
@@ -290,13 +325,13 @@ extension EmbraceBacktrace {
         if canSuspend {
             // A custom backtracer is called through its IMP, looked up here, outside the window,
             // where taking the runtime lock is harmless.
-            let customIMP: BacktraceIntoIMP?
+            let customIMP: SuspendedBacktraceIMP?
             if ksBacktracer != nil {
                 customIMP = nil
-            } else if let imp = backtraceIntoIMP(of: backtracer) {
+            } else if let imp = SuspendedBacktraceIMP(resolving: backtracer) {
                 customIMP = imp
             } else {
-                Embrace.logger.warning("[EmbraceBacktrace] backtracer does not implement backtrace(of:into:capacity:)")
+                Embrace.logger.warning("[EmbraceBacktrace] backtracer does not implement a suspended-thread backtrace")
                 return []
             }
             // Passed unretained so no retain/release runs in the window; `backtracer` is kept alive
@@ -321,11 +356,14 @@ extension EmbraceBacktrace {
             #endif
             let count: Int
             if let ksBacktracer {
-                count = ksBacktracer.backtrace(of: thread, into: buffer, capacity: entries)
+                // The mach port was resolved before the suspend: no pthread lookup in the window.
+                count = ksBacktracer.backtrace(ofMachThread: machThread, into: buffer, capacity: entries)
             } else {
                 // Custom `Backtracer`: a plain C call to the IMP resolved above. No `objc_msgSend`,
                 // no method-cache lookup.
-                count = customIMP?(receiver, backtraceIntoSelector, thread, buffer, entries) ?? 0
+                count =
+                    customIMP?(receiver, thread: thread, machThread: machThread, into: buffer, capacity: entries)
+                    ?? 0
             }
             #if DEBUG
                 EmbraceBacktraceSuspendWindowProbe.didExit?()

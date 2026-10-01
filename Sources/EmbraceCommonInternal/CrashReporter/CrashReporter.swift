@@ -127,17 +127,12 @@ public typealias FrameAddress = UInt
     /// heap — a `malloc` here can deadlock the whole process if the suspended thread holds the
     /// allocator lock.
     ///
-    /// - Important: The implementation MUST be allocation-free and async-signal-safe: no `malloc`,
-    ///   no Obj-C/Swift runtime work, no lock acquisition, and no `pthread_*` calls that take
-    ///   `thread` as their argument. It is called between `thread_suspend` and `thread_resume` of a
-    ///   thread that is not the caller, and if that thread holds a lock the implementation needs,
-    ///   the process deadlocks. In particular, `pthread_mach_thread_np(thread)` takes libpthread's
-    ///   thread-list lock when `thread` is not the caller, so do not call it here.
-    /// - Note: The SDK makes the call itself safe. It resolves this method's implementation before
-    ///   suspending the thread and calls it directly, so no `objc_msgSend` or method-cache lookup
-    ///   runs while the thread is suspended. The implementation must be a real method on the
-    ///   receiver's class. If it is reached only through message forwarding (for example an
-    ///   `NSProxy`), the SDK skips the capture.
+    /// - Important: Prefer implementing ``backtrace(ofMachThread:into:capacity:)``; when it is
+    ///   implemented, the SDK calls it instead of this method. This variant is hard to implement
+    ///   safely: walking a thread needs its mach port, and `pthread_mach_thread_np(thread)` takes
+    ///   libpthread's thread-list lock when `thread` is not the caller. If the suspended thread holds
+    ///   that lock, the process deadlocks. Otherwise the same rules apply as for
+    ///   ``backtrace(ofMachThread:into:capacity:)``.
     /// - Parameters:
     ///   - thread: The target `pthread_t`. Must not be the calling thread (it is expected to be
     ///     suspended by the caller for the duration of the call). Use it only as an opaque value,
@@ -147,6 +142,35 @@ public typealias FrameAddress = UInt
     /// - Returns: The number of frame addresses written to `buffer` (`0...capacity`).
     @objc func backtrace(
         of thread: pthread_t,
+        into buffer: UnsafeMutablePointer<FrameAddress>,
+        capacity: Int
+    ) -> Int
+
+    /// Fills `buffer` (which has room for `capacity` addresses) with the frame addresses of the
+    /// thread whose mach port is `thread`, returning the number of addresses written. Ordered from
+    /// the top frame to the bottom.
+    ///
+    /// This is the preferred way to walk a suspended thread. The SDK resolves the mach port before
+    /// suspending the thread, so the implementation needs no pthread lookup while it is suspended.
+    ///
+    /// - Important: The implementation MUST be allocation-free and async-signal-safe: no `malloc`,
+    ///   no Obj-C/Swift runtime work, no lock acquisition, and no `pthread_*` calls on other
+    ///   threads. It is called between `thread_suspend` and `thread_resume` of a thread that is not
+    ///   the caller, and if that thread holds a lock the implementation needs, the process
+    ///   deadlocks.
+    /// - Note: The SDK makes the call itself safe. It resolves the implementation before suspending
+    ///   the thread and calls it directly, so no `objc_msgSend` or method-cache lookup runs while the
+    ///   thread is suspended. The implementation must be a real method on the receiver's class. If it
+    ///   is reached only through message forwarding (for example an `NSProxy`), the SDK does not
+    ///   see it.
+    /// - Parameters:
+    ///   - thread: The target's mach port. Never the calling thread; it is suspended by the caller
+    ///     for the duration of the call.
+    ///   - buffer: Caller-owned storage for at least `capacity` `FrameAddress` values.
+    ///   - capacity: The capacity of `buffer`, in elements.
+    /// - Returns: The number of frame addresses written to `buffer` (`0...capacity`).
+    @objc optional func backtrace(
+        ofMachThread thread: thread_t,
         into buffer: UnsafeMutablePointer<FrameAddress>,
         capacity: Int
     ) -> Int

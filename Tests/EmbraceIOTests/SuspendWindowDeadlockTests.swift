@@ -207,6 +207,42 @@
             }
         }
 
+        /// The victim keeps resolving another thread's mach port, which takes libpthread's thread-list
+        /// lock, so suspending it repeatedly catches it holding that lock. A walk that resolves the
+        /// target's mach port inside the window (`pthread_mach_thread_np` on a thread that isn't the
+        /// caller) needs that same lock and wedges the process.
+        func test_noDeadlock_victimHammersPthreadListLock() throws {
+            try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
+
+            let running = EmbraceAtomic<Bool>(true)
+            let ready = DispatchSemaphore(value: 0)
+            let box = PThreadBox()
+            let testThread = pthread_self()  // any thread other than the victim will do
+
+            let victim = Thread {
+                box.value = pthread_self()
+                ready.signal()
+                while running.load(order: .relaxed) {
+                    _ = pthread_mach_thread_np(testThread)
+                }
+            }
+            victim.name = "emb.deadlock.pthreadlist"
+            victim.start()
+            ready.wait()
+            defer { running.store(false, order: .relaxed) }
+
+            let target = try XCTUnwrap(box.value, "victim did not publish its pthread_t")
+
+            // Stop at the first stall: the sampler stays wedged, so later samples can only time out.
+            for iteration in 0..<200 where !sampleCompletes(victim: target) {
+                XCTFail(
+                    "Sampling stalled on iteration \(iteration) while the victim hammered the pthread "
+                        + "thread-list lock — the suspend-window walk is resolving a pthread (deadlock)."
+                )
+                return
+            }
+        }
+
         /// The load-bearing case: the victim continuously allocates/frees, so suspending it
         /// repeatedly catches it mid-`malloc` holding the allocator lock. If the alloc-free window
         /// regressed and started allocating, this would deadlock and time out.

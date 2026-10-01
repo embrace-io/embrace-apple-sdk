@@ -42,15 +42,26 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
         into buffer: UnsafeMutablePointer<FrameAddress>,
         capacity: Int
     ) -> Int {
+        // Only reached by callers outside the SDK, which uses `backtrace(ofMachThread:…)`.
+        // `pthread_mach_thread_np` takes libpthread's thread-list lock for a thread other than the
+        // caller; see the protocol docs.
+        return backtrace(ofMachThread: pthread_mach_thread_np(thread), into: buffer, capacity: capacity)
+    }
+
+    public func backtrace(
+        ofMachThread thread: thread_t,
+        into buffer: UnsafeMutablePointer<FrameAddress>,
+        capacity: Int
+    ) -> Int {
         // Fills the caller's buffer from a stack-allocated context and cursor: no malloc, no runtime
-        // work. The `pthread_self()` workaround in `backtrace(of:)` is intentionally not repeated —
-        // this entry point only walks a suspended thread, never the caller.
+        // work, no locks. The `pthread_self()` workaround in `backtrace(of:)` is intentionally not
+        // repeated — this entry point only walks a suspended thread, never the caller.
         //
         // Use the already-suspended entry point: `captureBacktrace(thread:…)` is the running-thread
         // API, which re-suspends the target and logs via `fprintf` on error paths, both unsafe here.
         return Int(
             captureBacktraceFromSuspended(
-                machThread: pthread_mach_thread_np(thread),
+                machThread: thread,
                 addresses: buffer,
                 count: Int32(capacity),
                 isTruncated: nil
