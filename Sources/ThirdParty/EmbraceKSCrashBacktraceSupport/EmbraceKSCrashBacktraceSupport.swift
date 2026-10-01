@@ -54,7 +54,7 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
         capacity: Int
     ) -> Int {
         // Fills the caller's buffer from a stack-allocated context and cursor: no malloc, no runtime
-        // work, no locks. The `pthread_self()` workaround in `backtrace(of:)` is intentionally not
+        // work, no blocking locks (KSCrash's capture lock is a try-lock; contention yields 0 frames). The `pthread_self()` workaround in `backtrace(of:)` is intentionally not
         // repeated — this entry point only walks a suspended thread, never the caller.
         //
         // Use the already-suspended entry point: `captureBacktrace(thread:…)` is the running-thread

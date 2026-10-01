@@ -132,12 +132,11 @@ public typealias FrameAddress = UInt
     /// heap — a `malloc` here can deadlock the whole process if the suspended thread holds the
     /// allocator lock.
     ///
-    /// - Important: Prefer implementing ``backtrace(ofMachThread:into:capacity:)``; when it is
-    ///   implemented, the SDK calls it instead of this method. This variant is hard to implement
-    ///   safely: walking a thread needs its mach port, and `pthread_mach_thread_np(thread)` takes
-    ///   libpthread's thread-list lock when `thread` is not the caller. If the suspended thread holds
-    ///   that lock, the process deadlocks. Otherwise the same rules apply as for
-    ///   ``backtrace(ofMachThread:into:capacity:)``.
+    /// - Important: The implementation MUST be allocation-free and async-signal-safe: no `malloc`,
+    ///   no Obj-C/Swift runtime work, no lock acquisition. It is called while `thread` is suspended.
+    ///   Resolving its mach port here (`pthread_mach_thread_np`) takes libpthread's thread-list lock
+    ///   and can deadlock, so prefer implementing ``backtrace(ofMachThread:into:capacity:)``; when it
+    ///   is implemented, the SDK never calls this method on a suspended thread.
     /// - Parameters:
     ///   - thread: The target `pthread_t`. Must not be the calling thread (it is expected to be
     ///     suspended by the caller for the duration of the call). Use it only as an opaque value,

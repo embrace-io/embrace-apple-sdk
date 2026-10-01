@@ -189,7 +189,8 @@ extension EmbraceBacktraceFrame {
 /// A custom backtracer's suspend-window walk, resolved to a plain C function before the suspend.
 ///
 /// An `@objc` method's IMP takes the receiver and `_cmd` ahead of the declared arguments. The
-/// receiver is a raw pointer rather than `AnyObject` so calling it does no retain/release.
+/// receiver is a raw pointer rather than `AnyObject` so the SDK's call adds no retain/release (the
+/// callee's `@objc` thunk may still retain `self` in unoptimized builds; that is lock-free in practice).
 private enum SuspendedBacktraceIMP {
     typealias MachThreadIMP =
         @convention(c) (
@@ -314,7 +315,7 @@ extension EmbraceBacktrace {
         // call through the existential is an `objc_msgSend`, which on a cold method cache takes the
         // ObjC runtime lock. If the suspended thread holds that lock, the walk never returns and the
         // process deadlocks. Calling the concrete type is a vtable dispatch instead: no locks.
-        // A custom `Backtracer` gets the same guarantee through `SuspendedBacktraceIMP` below.
+        // A custom `Backtracer` avoids `objc_msgSend` the same way, through `SuspendedBacktraceIMP` below.
         let ksBacktracer = backtracer as? KSCrashBacktracing
 
         // get the mach thread to take the snapshot of
@@ -346,15 +347,15 @@ extension EmbraceBacktrace {
                 }
                 return []
             }
-            // Passed unretained so no retain/release runs in the window; `backtracer` is kept alive
+            // Passed unretained so the SDK adds no retain/release in the window; `backtracer` is kept alive
             // by this frame (and by `Embrace.Options`) until the walk returns.
             let receiver = Unmanaged.passUnretained(backtracer as AnyObject).toOpaque()
             defer { withExtendedLifetime(backtracer) {} }
 
             // Deadlock hazard: if the suspended thread holds the allocator lock, any `malloc` in the
             // suspend window hangs the process. So allocate the buffer before the suspend and do all
-            // heap work (copy/slice) after the resume — only the alloc-free
-            // `backtrace(of:into:capacity:)` runs in the window.
+            // heap work (copy/slice) after the resume — only the alloc-free walk
+            // (`backtrace(ofMachThread:…)`, or a custom backtracer's resolved IMP) runs in the window.
             let buffer = UnsafeMutablePointer<FrameAddress>.allocate(capacity: entries)
             defer { buffer.deallocate() }
 

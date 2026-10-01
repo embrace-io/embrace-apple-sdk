@@ -1,5 +1,5 @@
 //
-//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
 // Thread suspension is unavailable on watchOS and the hang feature is gated out of macOS, so the
@@ -43,8 +43,8 @@
     }
 
     /// A custom `Backtracer` that implements the mach-port variant too. It conforms directly rather
-    /// than subclassing: a subclass method doesn't implicitly become `@objc` to satisfy an optional
-    /// requirement, so the runtime wouldn't see it.
+    /// than subclassing `KSCrashBacktracing`: a subclass would take the built-in path and never reach
+    /// the custom-backtracer dispatch.
     private final class MachThreadBacktracer: Backtracer {
         func backtrace(of thread: pthread_t) -> [FrameAddress] { [] }
 
@@ -81,6 +81,7 @@
 
     private final class PThreadBox {
         var value: pthread_t?
+        var machPort: thread_t = 0
     }
 
     final class CustomBacktracerDispatchTests: XCTestCase {
@@ -105,14 +106,16 @@
         }
 
         /// Parks a background thread, walks it with the configured backtracer, and returns the
-        /// frames along with the walked thread.
-        private func walkParkedThread() throws -> (frames: [UInt], thread: pthread_t) {
+        /// frames along with the walked thread and its mach port. The port is resolved by the thread
+        /// itself: the thread is released on return, so resolving it afterwards could race its exit.
+        private func walkParkedThread() throws -> (frames: [UInt], thread: pthread_t, machPort: thread_t) {
             let ready = DispatchSemaphore(value: 0)
             let hold = DispatchSemaphore(value: 0)
             let box = PThreadBox()
 
             let thread = Thread {
                 box.value = pthread_self()
+                box.machPort = pthread_mach_thread_np(pthread_self())
                 ready.signal()
                 hold.wait()
             }
@@ -123,7 +126,7 @@
 
             let target = try XCTUnwrap(box.value, "parked thread did not publish its pthread_t")
             let frames = EmbraceBacktrace.backtrace(of: target, threadIndex: 0).threads.first?.callstack.addresses ?? []
-            return (frames, target)
+            return (frames, target, box.machPort)
         }
 
         /// A backtracer without the mach-port variant still works: the direct IMP call passes the
@@ -145,7 +148,7 @@
 
             XCTAssertEqual(
                 walk.frames,
-                [machThreadVariantTag, FrameAddress(pthread_mach_thread_np(walk.thread))]
+                [machThreadVariantTag, FrameAddress(walk.machPort)]
             )
         }
 
