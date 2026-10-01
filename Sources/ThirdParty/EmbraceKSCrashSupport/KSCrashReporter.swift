@@ -17,10 +17,6 @@ import Foundation
 @objc(KSCrashReporter)
 public final class KSCrashReporter: NSObject, CrashReporter {
 
-    // KSCrash uses C callbacks. We can't capture Swift in them.
-    // The workaround is to hold onto a private shared instance.
-    private static weak var shared: KSCrashReporter?
-
     private struct KSCrashKey {
         static let user = "user"
         static let crashReport = "report"
@@ -48,8 +44,10 @@ public final class KSCrashReporter: NSObject, CrashReporter {
 
     struct WatchdogEventData {
         var reportID: Int64? = nil
-        var inEvent: Bool = false
         var event: WatchdogEvent? = nil
+        /// Incremented every time the current watchdog report is discarded, so a report written
+        /// for an event that has already ended can be detected and deleted.
+        var generation: UInt64 = 0
     }
     private var watchdogData: EmbraceMutex<WatchdogEventData> = EmbraceMutex(WatchdogEventData())
     private var hangObservers: [NSObjectProtocol] = []
@@ -57,7 +55,6 @@ public final class KSCrashReporter: NSObject, CrashReporter {
     public override init() {
         reporter.userInfo = [:]
         super.init()
-        KSCrashReporter.shared = self
     }
 
     deinit {
@@ -88,12 +85,6 @@ public final class KSCrashReporter: NSObject, CrashReporter {
         config.enableSwapCxaThrow = false
         config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
         config.reportStoreConfiguration.appName = context.appId ?? "default"
-        config.didWriteReportCallback = { _, reportID in
-            KSCrashReporter.shared?.watchdogData.withLock {
-                guard $0.inEvent else { return }
-                $0.reportID = reportID
-            }
-        }
         try reporter.install(with: config)
         registerForHangs()
     }
@@ -274,7 +265,8 @@ extension KSCrashReporter {
     /// report to disk with the hang duration in the reason.
     public func watchdogEventStarted(_ event: WatchdogEvent) {
 
-        deleteWatchdogReport(nextEvent: event)
+        let generation = deleteWatchdogReport(nextEvent: event)
+        let existingIds = currentReportIds()
 
         reporter.reportUserException(
             KSCrashWatchdogEventKey.watchdgodEvent,
@@ -285,6 +277,27 @@ extension KSCrashReporter {
             logAllThreads: true,
             terminateProgram: false
         )
+
+        // `reportUserException` is synchronous and non-fatal, so the report is already on disk
+        // and its id can be read from the store here instead of from a KSCrash callback.
+        // KSCrash callbacks may run while every other thread is suspended, where taking locks
+        // or touching weak references can deadlock the process.
+        guard let reportId = currentReportIds().subtracting(existingIds).max() else {
+            return
+        }
+
+        let isStale = watchdogData.withLock {
+            guard $0.generation == generation else {
+                return true
+            }
+            $0.reportID = reportId
+            return false
+        }
+
+        // The hang ended (or a new one started) while the report was being written.
+        if isStale {
+            reporter.reportStore?.deleteReport(with: reportId)
+        }
     }
 
     /// Hang ended: delete the synthetic report, if present.
@@ -294,18 +307,29 @@ extension KSCrashReporter {
 
     /// Deletes the most recent synthetic watchdog report (if any) and clears
     /// in-flight state under `watchdogData`.
-    private func deleteWatchdogReport(nextEvent: WatchdogEvent?) {
+    /// - Returns: The generation that a report written for `nextEvent` must match to be kept.
+    @discardableResult
+    private func deleteWatchdogReport(nextEvent: WatchdogEvent?) -> UInt64 {
 
-        let reportId = watchdogData.withLock {
+        let (reportId, generation) = watchdogData.withLock {
             let reportId = $0.reportID
             $0.event = nextEvent
-            $0.inEvent = false
             $0.reportID = nil
-            return reportId
+            $0.generation &+= 1
+            return (reportId, $0.generation)
         }
         if let wid = reportId {
             reporter.reportStore?.deleteReport(with: wid)
         }
+        return generation
+    }
+
+    /// Ids of all the reports currently stored by KSCrash.
+    private func currentReportIds() -> Set<Int64> {
+        guard let ids = reporter.reportStore?.reportIDs else {
+            return []
+        }
+        return Set(ids.map { $0.int64Value })
     }
 }
 
