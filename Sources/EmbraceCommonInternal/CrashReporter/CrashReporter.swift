@@ -106,6 +106,11 @@ import Foundation
 public typealias FrameAddress = UInt
 
 /// Captures stack backtraces for threads.
+///
+/// - Important: To walk a suspended thread, the SDK looks up the walk method on the backtracer's
+///   class (or a superclass) *before* suspending, and calls it directly. A backtracer that relies
+///   on message forwarding (`forwardingTargetForSelector:`, `forwardInvocation:`, an `NSProxy`)
+///   can't be called this way: the SDK logs an error and captures no frames for suspended threads.
 @objc public protocol Backtracer {
 
     /// Captures a backtrace for the provided thread.
@@ -158,11 +163,8 @@ public typealias FrameAddress = UInt
     ///   threads. It is called between `thread_suspend` and `thread_resume` of a thread that is not
     ///   the caller, and if that thread holds a lock the implementation needs, the process
     ///   deadlocks.
-    /// - Note: The SDK makes the call itself safe. It resolves the implementation before suspending
-    ///   the thread and calls it directly, so no `objc_msgSend` or method-cache lookup runs while the
-    ///   thread is suspended. The implementation must be a real method on the receiver's class. If it
-    ///   is reached only through message forwarding (for example an `NSProxy`), the SDK does not
-    ///   see it.
+    /// - Note: The SDK resolves the implementation before suspending the thread and calls it
+    ///   directly, so no `objc_msgSend` or method-cache lookup runs while the thread is suspended.
     /// - Parameters:
     ///   - thread: The target's mach port. Never the calling thread; it is suspended by the caller
     ///     for the duration of the call.

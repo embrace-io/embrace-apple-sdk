@@ -71,6 +71,14 @@
         }
     }
 
+    /// Implements only the self-capture walk, standing in for a backtracer whose suspended-thread
+    /// walks are reachable only through forwarding (e.g. an `NSProxy`). The self-capture walk is
+    /// still needed: the SDK's error about the unresolvable backtracer is exported as a log, which
+    /// captures the logging thread's stack through it.
+    private final class SelfCaptureOnlyBacktracer: NSObject {
+        @objc(backtraceOf:) func backtrace(of thread: pthread_t) -> [FrameAddress] { [] }
+    }
+
     private final class PThreadBox {
         var value: pthread_t?
     }
@@ -183,16 +191,25 @@
             }
         #endif
 
-        /// A backtracer whose class implements neither method (only reachable through forwarding)
-        /// is skipped rather than called in the window.
+        /// A backtracer whose class implements neither suspended-thread walk (e.g. one that relies on
+        /// forwarding) is skipped before the suspend rather than called in the window.
         func test_backtracerWithoutTheMethods_returnsNoFrames() throws {
-            // `NSObject` implements neither walk. The cast is the only way to get such an object
-            // past the type checker, which is the point: it stands in for an `NSProxy`.
-            let object = NSObject()
+            // The class lacks the required `backtrace(of:into:capacity:)`, so `unsafeBitCast` gets
+            // it past the type checker.
+            let object = SelfCaptureOnlyBacktracer()
             defer { withExtendedLifetime(object) {} }
             try startEmbrace(backtracer: unsafeBitCast(object, to: Backtracer.self))
 
+            #if DEBUG
+                var suspended = false
+                EmbraceBacktraceSuspendWindowProbe.willEnter = { suspended = true }
+                defer { EmbraceBacktraceSuspendWindowProbe.willEnter = nil }
+            #endif
+
             XCTAssertEqual(try walkParkedThread().frames, [])
+            #if DEBUG
+                XCTAssertFalse(suspended, "an unresolvable backtracer must be skipped before the suspend")
+            #endif
         }
     }
 

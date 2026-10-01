@@ -271,6 +271,10 @@ extension EmbraceBacktrace {
 
 extension EmbraceBacktrace {
 
+    /// Set the first time a backtracer can't be resolved for a suspended-thread walk, so the error
+    /// is logged once per process rather than on every hang sample.
+    private static let didReportUnresolvableBacktracer = EmbraceAtomic<Bool>(false)
+
     /// Number of Embrace capture-plumbing frames on top of a stack walked on the *current* thread
     /// (self-capture, `canSuspend == false`): the `Backtracer` call and the `_takeSnapshot` /
     /// `takeSnapshot` / `backtrace(of:threadIndex:)` wrappers above the caller. Dropping exactly
@@ -331,7 +335,15 @@ extension EmbraceBacktrace {
             } else if let imp = SuspendedBacktraceIMP(resolving: backtracer) {
                 customIMP = imp
             } else {
-                Embrace.logger.warning("[EmbraceBacktrace] backtracer does not implement a suspended-thread backtrace")
+                // Nothing is suspended yet, so logging here is safe.
+                if !didReportUnresolvableBacktracer.exchange(true) {
+                    Embrace.logger.error(
+                        "[EmbraceBacktrace] \(type(of: backtracer)) implements neither "
+                            + "backtrace(ofMachThread:into:capacity:) nor backtrace(of:into:capacity:) "
+                            + "as a method of its class. Message forwarding (e.g. NSProxy) can't run while "
+                            + "a thread is suspended, so hang and main-thread log stack traces will be empty."
+                    )
+                }
                 return []
             }
             // Passed unretained so no retain/release runs in the window; `backtracer` is kept alive
