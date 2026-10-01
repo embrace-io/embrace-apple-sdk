@@ -26,7 +26,10 @@ class PerformanceTests: XCTestCase {
     func runStartup(_ options: Embrace.Options) {
 
         #if !os(watchOS)
+            let swizzleCacheBaseline = Set(SwizzleCache.shared.residueDescription)
             defer {
+                _ = try? Embrace.client?.stop()
+                SwizzleCache.shared.restoreEntries(addedSince: swizzleCacheBaseline)
                 Embrace.client = nil
             }
 
@@ -45,10 +48,13 @@ class PerformanceTests: XCTestCase {
                     didBecomeActiveNotif = UIApplication.didBecomeActiveNotification
                     didFinishLaunchingNotif = UIApplication.didFinishLaunchingNotification
                 #endif
-                NotificationCenter.default.addObserver(forName: didBecomeActiveNotif, object: nil, queue: .main) { _ in
+                let observer = NotificationCenter.default.addObserver(forName: didBecomeActiveNotif, object: nil, queue: .main) { _ in
                     RunLoop.main.perform(inModes: [.common]) {
                         expect.fulfill()
                     }
+                }
+                defer {
+                    NotificationCenter.default.removeObserver(observer)
                 }
 
                 NotificationCenter.default.post(name: didFinishLaunchingNotif, object: nil)
