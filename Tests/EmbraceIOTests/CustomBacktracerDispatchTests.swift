@@ -21,6 +21,7 @@
     /// from a real walk. The second frame is the thread argument the method received.
     private let pthreadVariantTag: FrameAddress = 0xD1D1_0001
     private let machThreadVariantTag: FrameAddress = 0xD1D1_0002
+    private let overriddenPthreadVariantTag: FrameAddress = 0xD1D1_0003
 
     /// The frame the replacement implementation writes when it is reached through `objc_msgSend`.
     private let dispatchedFrame: FrameAddress = 0xBAD0_0001
@@ -68,6 +69,64 @@
             buffer[0] = machThreadVariantTag
             buffer[1] = FrameAddress(thread)
             return 2
+        }
+    }
+
+    /// A custom `Backtracer` meant to be subclassed. It implements only the `pthread_t` variant.
+    private class BaseBacktracer: Backtracer {
+        func backtrace(of thread: pthread_t) -> [FrameAddress] { [] }
+
+        func backtrace(
+            of thread: pthread_t,
+            into buffer: UnsafeMutablePointer<FrameAddress>,
+            capacity: Int
+        ) -> Int {
+            guard capacity >= 2 else { return 0 }
+            buffer[0] = pthreadVariantTag
+            buffer[1] = FrameAddress(bitPattern: thread)
+            return 2
+        }
+    }
+
+    /// Overrides the base's `pthread_t` variant.
+    private final class OverridingBacktracer: BaseBacktracer {
+        override func backtrace(
+            of thread: pthread_t,
+            into buffer: UnsafeMutablePointer<FrameAddress>,
+            capacity: Int
+        ) -> Int {
+            guard capacity >= 2 else { return 0 }
+            buffer[0] = overriddenPthreadVariantTag
+            buffer[1] = FrameAddress(bitPattern: thread)
+            return 2
+        }
+    }
+
+    /// Adds the mach-port variant, which the base doesn't implement.
+    private final class MachThreadInSubclassBacktracer: BaseBacktracer {
+        func backtrace(
+            ofMachThread thread: thread_t,
+            into buffer: UnsafeMutablePointer<FrameAddress>,
+            capacity: Int
+        ) -> Int {
+            guard capacity >= 2 else { return 0 }
+            buffer[0] = machThreadVariantTag
+            buffer[1] = FrameAddress(thread)
+            return 2
+        }
+    }
+
+    /// Fills the whole buffer but reports one frame more than it holds, violating the contract.
+    private final class OverreportingBacktracer: Backtracer {
+        func backtrace(of thread: pthread_t) -> [FrameAddress] { [] }
+
+        func backtrace(
+            of thread: pthread_t,
+            into buffer: UnsafeMutablePointer<FrameAddress>,
+            capacity: Int
+        ) -> Int {
+            for i in 0..<capacity { buffer[i] = pthreadVariantTag }
+            return capacity + 1
         }
     }
 
@@ -149,6 +208,49 @@
             XCTAssertEqual(
                 walk.frames,
                 [machThreadVariantTag, FrameAddress(walk.machPort)]
+            )
+        }
+
+        /// The SDK looks the walk up on the receiver's dynamic class, so a subclass override wins
+        /// over the base implementation.
+        func test_subclassOverride_isCalled() throws {
+            try startEmbrace(backtracer: OverridingBacktracer())
+
+            let walk = try walkParkedThread()
+
+            XCTAssertEqual(walk.frames, [overriddenPthreadVariantTag, FrameAddress(bitPattern: walk.thread)])
+        }
+
+        /// A mach-port variant declared only in a subclass is still exposed to the runtime (Swift
+        /// infers `@objc` for it through the inherited conformance), so the SDK finds and prefers it.
+        func test_machThreadVariantDeclaredInSubclass_isPreferred() throws {
+            try startEmbrace(backtracer: MachThreadInSubclassBacktracer())
+
+            let walk = try walkParkedThread()
+
+            XCTAssertEqual(walk.frames, [machThreadVariantTag, FrameAddress(walk.machPort)])
+        }
+
+        /// A count larger than the buffer is clamped rather than read past the buffer's end.
+        ///
+        /// The returned frames are capped either way (`.prefix` after the copy), so without the clamp
+        /// this only fails under AddressSanitizer, which reports the over-read as a heap-buffer-overflow.
+        func test_overreportedCount_isClampedToTheBuffer() throws {
+            try startEmbrace(backtracer: OverreportingBacktracer())
+
+            let frames = try walkParkedThread().frames
+
+            XCTAssertEqual(frames.count, EmbraceBacktrace.maxCapturedFrames)
+            XCTAssertTrue(frames.allSatisfy { $0 == pthreadVariantTag })
+        }
+
+        /// Objective-C backtracers implement the method by its selector, so renaming the Swift
+        /// declaration would silently stop the SDK from finding theirs and fall back to the
+        /// `pthread_t` variant. Pin the selector.
+        func test_machThreadVariant_selectorIsStable() {
+            XCTAssertEqual(
+                NSStringFromSelector(#selector(Backtracer.backtrace(ofMachThread:into:capacity:))),
+                "backtraceOfMachThread:into:capacity:"
             )
         }
 

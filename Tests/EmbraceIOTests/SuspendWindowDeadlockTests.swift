@@ -207,12 +207,20 @@
             }
         }
 
+        /// Fails unless the KSCrash backtracer is configured. Without a backtracer, `_takeSnapshot`
+        /// returns before suspending anything and the sampling tests would pass vacuously.
+        private func requireKSCrashBacktracer() throws {
+            let backtracer = try XCTUnwrap(Embrace.client?.options.backtracer, "no backtracer configured")
+            XCTAssertEqual("\(type(of: backtracer))", "KSCrashBacktracing")
+        }
+
         /// The victim keeps resolving another thread's mach port, which takes libpthread's thread-list
         /// lock, so suspending it repeatedly catches it holding that lock. A walk that resolves the
         /// target's mach port inside the window (`pthread_mach_thread_np` on a thread that isn't the
         /// caller) needs that same lock and wedges the process.
         func test_noDeadlock_victimHammersPthreadListLock() throws {
             try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
+            try requireKSCrashBacktracer()
 
             let running = EmbraceAtomic<Bool>(true)
             let ready = DispatchSemaphore(value: 0)
@@ -248,6 +256,7 @@
         /// regressed and started allocating, this would deadlock and time out.
         func test_noDeadlock_victimHammersAllocator() throws {
             try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
+            try requireKSCrashBacktracer()
 
             let running = EmbraceAtomic<Bool>(true)
             let ready = DispatchSemaphore(value: 0)

@@ -384,8 +384,8 @@ extension EmbraceBacktrace {
             // ───── END SUSPEND WINDOW ─────
             emb_thread_resume(machThread)
 
-            addresses =
-                Array(UnsafeBufferPointer(start: buffer, count: max(0, count)))
+            addresses  // Clamped: a custom backtracer reporting more than `entries` must not over-read `buffer`.
+            = Array(UnsafeBufferPointer(start: buffer, count: min(max(0, count), entries)))
                 .dropFirst(sdkFrameSkip)
                 .prefix(entries)
                 .compactMap { $0 as UInt }
