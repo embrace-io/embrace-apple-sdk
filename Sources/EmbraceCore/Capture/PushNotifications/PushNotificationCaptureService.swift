@@ -42,6 +42,9 @@ import UserNotifications
             lock.unlock()
         }
 
+        // read the current delegate before swizzling, since the swizzled getter returns the proxied delegate
+        let currentDelegate = UNUserNotificationCenter.current().delegate
+
         initializeSwizzlers()
 
         swizzlers.forEach {
@@ -53,21 +56,22 @@ import UserNotifications
         }
 
         // call set delegate manually to set the proxy
-        UNUserNotificationCenter.current().delegate = UNUserNotificationCenter.current().delegate
+        UNUserNotificationCenter.current().delegate = currentDelegate
     }
 
     private func initializeSwizzlers() {
         swizzlers.append(UNUserNotificationCenterSetDelegateSwizzler(proxy: proxy))
+        swizzlers.append(UNUserNotificationCenterGetDelegateSwizzler(proxy: proxy))
     }
 }
 
 // swiftlint:disable line_length
 struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
     typealias ImplementationType =
-        @convention(c) (UNUserNotificationCenter, Selector, UNUserNotificationCenterDelegate)
+        @convention(c) (UNUserNotificationCenter, Selector, UNUserNotificationCenterDelegate?)
         -> Void
     typealias BlockImplementationType =
-        @convention(block) (UNUserNotificationCenter, UNUserNotificationCenterDelegate)
+        @convention(block) (UNUserNotificationCenter, UNUserNotificationCenterDelegate?)
         -> Void
     static var selector: Selector = #selector(setter: UNUserNotificationCenter.delegate)
     var baseClass: AnyClass
@@ -80,9 +84,38 @@ struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
 
     func install() throws {
         try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
-            return { webView, delegate in
-                proxy.originalDelegate = delegate
-                originalImplementation(webView, Self.selector, proxy)
+            return { center, delegate in
+                // Setting the proxy itself (e.g. re-assigning the current delegate) must not make the proxy forward to itself.
+                if !(delegate is UNUserNotificationCenterDelegateProxy) {
+                    proxy.originalDelegate = delegate
+                }
+                originalImplementation(center, Self.selector, proxy)
+            }
+        }
+    }
+}
+
+/// Hides the proxy from callers of `UNUserNotificationCenter.delegate` by returning the delegate it forwards to.
+/// This way, code that reads the delegate to re-assign or wrap it never feeds the proxy back into itself.
+struct UNUserNotificationCenterGetDelegateSwizzler: Swizzlable {
+    typealias ImplementationType =
+        @convention(c) (UNUserNotificationCenter, Selector) -> UNUserNotificationCenterDelegate?
+    typealias BlockImplementationType =
+        @convention(block) (UNUserNotificationCenter) -> UNUserNotificationCenterDelegate?
+    static var selector: Selector = #selector(getter: UNUserNotificationCenter.delegate)
+    var baseClass: AnyClass
+    let proxy: UNUserNotificationCenterDelegateProxy
+
+    init(proxy: UNUserNotificationCenterDelegateProxy, baseClass: AnyClass = UNUserNotificationCenter.self) {
+        self.baseClass = baseClass
+        self.proxy = proxy
+    }
+
+    func install() throws {
+        try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
+            return { center in
+                let delegate = originalImplementation(center, Self.selector)
+                return delegate is UNUserNotificationCenterDelegateProxy ? proxy.originalDelegate : delegate
             }
         }
     }
