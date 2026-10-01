@@ -36,6 +36,9 @@ The hitch gate is only sensitive while the Off arm hitches a little. OFF_HITCH_B
 OFF_HITCH_BAND_120="0.5,20", in ms/s) sets the Off hitch ratio band for a device class, taken from
 a calibration run; a scenario outside it is incomplete. Unset, the Off hitch ratio is context only.
 
+Gates look metrics up by their whole display name, allowing a qualifier in parentheses (see `find`).
+A name that matches more than one metric is an error, so a gate never silently picks one.
+
 Every other paired metric is reported for information. The result is posted as a PR comment
 (when PR_NUMBER is set) and written to the job summary.
 
@@ -150,11 +153,23 @@ def order_check(blocks):
     return len({mean(positions) for positions in blocks.values()}) == 1
 
 
-def find(metrics, needle):
-    for display_name, metric in metrics.items():
-        if needle.lower() in display_name.lower():
-            return metric
-    return None
+class AmbiguousMetric(Exception):
+    """More than one metric matches a name, so a gate can't tell which one it should use."""
+
+
+def find(metrics, name):
+    """The metric called `name`, or None if there's none.
+
+    Matches the whole display name, which may carry a qualifier in parentheses: XCTest reports
+    "CPU Time (Benchmarks)" for the app's CPU time, and the scroll signpost metrics as e.g.
+    "Hitch Time Ratio (Scroll_DraggingAndDeceleration)". Raises AmbiguousMetric if more than one
+    matches, rather than gating on whichever comes first.
+    """
+    pattern = re.compile(rf"{re.escape(name)}( \(.+\))?")
+    matches = sorted(display_name for display_name in metrics if pattern.fullmatch(display_name))
+    if len(matches) > 1:
+        raise AmbiguousMetric(f"{name!r} matches {', '.join(map(repr, matches))}")
+    return metrics[matches[0]] if matches else None
 
 
 def fmt(x, digits=3):
