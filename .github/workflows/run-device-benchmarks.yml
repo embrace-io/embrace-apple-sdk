@@ -133,10 +133,12 @@ jobs:
 
   smoothness-overhead:
     name: Compare Smoothness Overhead
-    # As its own job, it can't skip the PR-vs-main comparison, or be skipped by it.
+    # As its own job, it can't skip the PR-vs-main comparison, or be skipped by it. Checks its own
+    # dependency's result: success() also requires every job upstream of it to have succeeded, and on
+    # a manual run the PR and main builds are skipped.
     needs: [browserstack-smoothness]
     runs-on: ubuntu-latest
-    if: success()
+    if: ${{ !cancelled() && needs.browserstack-smoothness.result == 'success' }}
     permissions:
       pull-requests: write
       contents: read
