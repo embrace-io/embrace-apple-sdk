@@ -4,6 +4,7 @@
 
 import OpenTelemetryApi
 import OpenTelemetrySdk
+import TestSupport
 import XCTest
 
 @testable import EmbraceCommonInternal
@@ -90,6 +91,7 @@ final class EmbraceLogProcessorTests: XCTestCase {
         let logger = provider.loggerBuilder(instrumentationScopeName: "test").build()
 
         logger.logRecordBuilder().setBody(.string("forwarded")).setSeverity(.info).emit()
+        processor.waitForAllWork()
 
         XCTAssertEqual(childProcessor.capturedLogs.count, 1)
         if case let .string(body) = childProcessor.capturedLogs.first?.body {
@@ -108,11 +110,90 @@ final class EmbraceLogProcessorTests: XCTestCase {
         let logger = provider.loggerBuilder(instrumentationScopeName: "test").build()
 
         logger.logRecordBuilder().setBody(.string("exported")).setSeverity(.info).emit()
+        processor.waitForAllWork()
 
         XCTAssertEqual(childExporter.exportedLogs.count, 1)
     }
 
+    // MARK: - Child forwarding runs on the processor queue
+
+    func test_onEmit_returnsWithoutWaitingForChildren_andNotifiesDelegateInline() throws {
+        let blockingProcessor = BlockingLogProcessor()
+        let childExporter = CapturingLogExporter()
+        let processor = EmbraceLogProcessor(
+            delegate: mockDelegate,
+            childProcessors: [blockingProcessor],
+            childExporters: [childExporter]
+        )
+        let logger = LoggerProviderSdk(logRecordProcessors: [processor])
+            .loggerBuilder(instrumentationScopeName: "test").build()
+
+        // If children ran inline, this call would block for `BlockingLogProcessor`'s guard
+        // timeout and the log would already have been received.
+        logger.logRecordBuilder().setBody(.string("first")).emit()
+
+        // The first log is still held by the child processor, so the emit returned without it.
+        XCTAssertEqual(blockingProcessor.entered.wait(timeout: .now() + TimeInterval.defaultTimeout), .success)
+        XCTAssertTrue(blockingProcessor.receivedBodies.isEmpty)
+        XCTAssertTrue(childExporter.exportedLogs.isEmpty)
+
+        // The delegate (Embrace's own handling) is still notified on the emitting thread.
+        logger.logRecordBuilder().setBody(.string("second")).emit()
+        XCTAssertEqual(mockDelegate.emittedLogs.count, 2)
+
+        blockingProcessor.gate.signal()
+        processor.waitForAllWork()
+
+        XCTAssertFalse(blockingProcessor.ranOnCallerThread)
+        XCTAssertEqual(blockingProcessor.receivedBodies, ["first", "second"])
+        XCTAssertEqual(childExporter.exportedLogs.count, 2)
+    }
+
+    func test_onEmit_forwardsLogsToChildrenInOrder() {
+        let childExporter = CapturingLogExporter()
+        let processor = EmbraceLogProcessor(delegate: mockDelegate, childExporters: [childExporter])
+        let logger = LoggerProviderSdk(logRecordProcessors: [processor])
+            .loggerBuilder(instrumentationScopeName: "test").build()
+
+        for i in 0..<50 {
+            logger.logRecordBuilder().setBody(.string("\(i)")).emit()
+        }
+        processor.waitForAllWork()
+
+        XCTAssertEqual(childExporter.exportedLogs.map(\.body), (0..<50).map { .string("\($0)") })
+    }
+
+    // A child exporter that re-enters the SDK queue it was called from (for example by starting a
+    // URLSession task, which the network capture handles with `queue.sync`) traps if it runs on that queue.
+    func test_onEmit_fromAnSDKQueue_childExporterRunsOffThatQueue() {
+        let sdkQueue = DispatchQueue(label: "test.sdk-queue")
+        let sdkQueueKey = DispatchSpecificKey<Bool>()
+        sdkQueue.setSpecific(key: sdkQueueKey, value: true)
+
+        let childExporter = QueueCheckingLogExporter(key: sdkQueueKey)
+        let processor = EmbraceLogProcessor(delegate: mockDelegate, childExporters: [childExporter])
+        let logger = LoggerProviderSdk(logRecordProcessors: [processor])
+            .loggerBuilder(instrumentationScopeName: "test").build()
+
+        sdkQueue.sync {
+            logger.logRecordBuilder().setBody(.string("from-sdk-queue")).emit()
+        }
+        processor.waitForAllWork()
+
+        XCTAssertEqual(childExporter.ranOnKeyedQueue, [false])
+    }
+
     // MARK: - forceFlush propagation and result aggregation
+
+    func test_forceFlush_runsAfterPendingLogs() {
+        let childProcessor = CapturingLogProcessor()
+        let processor = EmbraceLogProcessor(delegate: mockDelegate, childProcessors: [childProcessor])
+
+        processor.onEmit(logRecord: makeLogRecord(body: "pending"))
+        _ = processor.forceFlush(explicitTimeout: 5.0)
+
+        XCTAssertEqual(childProcessor.calls, ["onEmit", "forceFlush"])
+    }
 
     func test_forceFlush_propagatesToChildProcessorsAndExporters() {
         let childProcessor = CapturingLogProcessor()
@@ -148,6 +229,16 @@ final class EmbraceLogProcessorTests: XCTestCase {
 
     // MARK: - shutdown propagation
 
+    func test_shutdown_runsAfterPendingLogs() {
+        let childProcessor = CapturingLogProcessor()
+        let processor = EmbraceLogProcessor(delegate: mockDelegate, childProcessors: [childProcessor])
+
+        processor.onEmit(logRecord: makeLogRecord(body: "pending"))
+        _ = processor.shutdown(explicitTimeout: 5.0)
+
+        XCTAssertEqual(childProcessor.calls, ["onEmit", "shutdown"])
+    }
+
     func test_shutdown_propagatesToChildProcessorsAndExporters() {
         let childProcessor = CapturingLogProcessor()
         let childExporter = CapturingLogExporter()
@@ -161,6 +252,16 @@ final class EmbraceLogProcessorTests: XCTestCase {
 
         XCTAssertTrue(childProcessor.didShutdown)
         XCTAssertTrue(childExporter.didShutdown)
+    }
+
+    private func makeLogRecord(body: String) -> ReadableLogRecord {
+        ReadableLogRecord(
+            resource: Resource(),
+            instrumentationScopeInfo: InstrumentationScopeInfo(name: "test"),
+            timestamp: Date(),
+            body: .string(body),
+            attributes: [:]
+        )
     }
 }
 
@@ -185,23 +286,70 @@ class MockLogProcessorDelegate: EmbraceLogProcessorDelegate {
 
 class CapturingLogProcessor: LogRecordProcessor {
     private(set) var capturedLogs: [ReadableLogRecord] = []
+    private(set) var calls: [String] = []
     private(set) var didForceFlush = false
     private(set) var didShutdown = false
     var forceFlushResult: ExportResult = .success
 
     func onEmit(logRecord: ReadableLogRecord) {
+        calls.append("onEmit")
         capturedLogs.append(logRecord)
     }
 
     func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult {
+        calls.append("forceFlush")
         didForceFlush = true
         return forceFlushResult
     }
 
     func shutdown(explicitTimeout: TimeInterval?) -> ExportResult {
+        calls.append("shutdown")
         didShutdown = true
         return .success
     }
+}
+
+/// Blocks inside the first `onEmit` until `gate` is signalled, which holds the processor queue.
+private class BlockingLogProcessor: LogRecordProcessor {
+    let entered = DispatchSemaphore(value: 0)
+    let gate = DispatchSemaphore(value: 0)
+    private let callerThread = Thread.current
+
+    private(set) var ranOnCallerThread = false
+    private(set) var receivedBodies: [String] = []
+
+    func onEmit(logRecord: ReadableLogRecord) {
+        if receivedBodies.isEmpty {
+            ranOnCallerThread = Thread.current == callerThread
+            entered.signal()
+            // timed-wait: deadlock guard so a regression to inline forwarding fails instead of hanging.
+            _ = gate.wait(timeout: .now() + TimeInterval.defaultTimeout)
+        }
+        if case let .string(body) = logRecord.body {
+            receivedBodies.append(body)
+        }
+    }
+
+    func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult { .success }
+    func shutdown(explicitTimeout: TimeInterval?) -> ExportResult { .success }
+}
+
+/// Records, for each export, whether it ran on the queue tagged with `key`.
+private class QueueCheckingLogExporter: LogRecordExporter {
+    private let key: DispatchSpecificKey<Bool>
+    private(set) var ranOnKeyedQueue: [Bool] = []
+
+    init(key: DispatchSpecificKey<Bool>) {
+        self.key = key
+    }
+
+    func export(logRecords: [ReadableLogRecord], explicitTimeout: TimeInterval?) -> ExportResult {
+        ranOnKeyedQueue.append(DispatchQueue.getSpecific(key: key) == true)
+        return .success
+    }
+
+    func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult { .success }
+    func shutdown(explicitTimeout: TimeInterval?) {}
 }
 
 class CapturingLogExporter: LogRecordExporter {

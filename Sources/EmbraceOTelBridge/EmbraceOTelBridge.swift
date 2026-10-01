@@ -285,6 +285,7 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
 
     package func waitForAllWork() {
         spanProcessor.waitForAllWork()
+        logProcessor.waitForAllWork()
     }
 
     package func createLog(_ log: EmbraceLog) {

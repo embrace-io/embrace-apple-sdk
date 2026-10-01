@@ -49,7 +49,8 @@ final class BridgeInternalLogIdsTests: XCTestCase {
             EmbraceIO.shared.log("bridge-log-\(i)", severity: .info)
         }
 
-        // Each log is built on the processing queue and emitted and exported synchronously from there.
+        // Each log is built and emitted on the processing queue, then exported from the bridge's log
+        // processor queue; `waitForAllWork` drains both.
         Embrace.client?.waitForAllWork()
 
         // Every log made it through the pipeline exactly once.

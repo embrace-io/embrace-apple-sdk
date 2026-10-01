@@ -184,6 +184,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_createLog_triggersExporter() {
         let log = MockEmbraceLog()
         bridge.createLog(log)
+        bridge.waitForAllWork()
         XCTAssertEqual(logExporter.exportedLogs.count, 1)
     }
 
@@ -206,6 +207,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         for _ in 0..<100 {
             bridge.createLog(MockEmbraceLog())
         }
+        bridge.waitForAllWork()
         // Each log reaches the exporter exactly once and none of them is treated as external.
         XCTAssertEqual(logExporter.exportedLogs.count, 100)
         XCTAssertEqual(mockDelegate.emittedLogs.count, 0)
@@ -230,6 +232,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         DispatchQueue.concurrentPerform(iterations: 100) { _ in
             bridge.createLog(MockEmbraceLog())
         }
+        bridge.waitForAllWork()
 
         XCTAssertEqual(exporter.exportedLogs.count, 100)
         XCTAssertEqual(delegate.emittedLogs.count, 0)
@@ -796,6 +799,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let log = MockEmbraceLog()
         log.severity = .error
         bridge.createLog(log)
+        bridge.waitForAllWork()
         XCTAssertEqual(logExporter.exportedLogs.count, 1)
         XCTAssertEqual(logExporter.exportedLogs.first?.severity, .error)
     }
@@ -804,6 +808,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let log = MockEmbraceLog()
         log.severity = .warn
         bridge.createLog(log)
+        bridge.waitForAllWork()
         XCTAssertEqual(logExporter.exportedLogs.count, 1)
         XCTAssertEqual(logExporter.exportedLogs.first?.severity, .warn)
     }
@@ -814,6 +819,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let log = MockEmbraceLog()
         log.attributes = ["custom.key": "custom-value"]
         bridge.createLog(log)
+        bridge.waitForAllWork()
         XCTAssertEqual(logExporter.exportedLogs.count, 1)
         XCTAssertEqual(logExporter.exportedLogs.first?.attributes["custom.key"], .string("custom-value"))
     }
@@ -827,6 +833,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let log = MockEmbraceLog()
         log.severity = .critical
         bridge.createLog(log)
+        bridge.waitForAllWork()
         XCTAssertEqual(logExporter.exportedLogs.count, 1)
         // When Severity(rawValue:) returns nil, severity is not set on the builder
     }

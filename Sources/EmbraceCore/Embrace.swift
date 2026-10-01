@@ -466,8 +466,8 @@ package class Embrace {
 
     /// Waits synchronously for all queued SDK work to drain.
     ///
-    /// Drains the internal processing queue and the OTel bridge's span pipeline so the SDK
-    /// is idle before the caller continues. Intended for benchmarks and tests — exposed
+    /// Drains the internal processing queue and the OTel bridge's span and log pipelines so the
+    /// SDK is idle before the caller continues. Intended for benchmarks and tests — exposed
     /// publicly via `@_spi(Private)` on `EmbraceIO`.
     package func waitForAllWork() {
         // Don't use `asyncAndWait(::)` — it crashes on iOS 16.4 sim. Radar: FB21077492.
