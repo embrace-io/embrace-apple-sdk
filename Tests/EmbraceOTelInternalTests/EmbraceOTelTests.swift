@@ -13,17 +13,18 @@ final class EmbraceOTelTests: XCTestCase {
     let sdkStateProvider = MockEmbraceSDKStateProvider()
 
     var logExporter = InMemoryLogRecordExporter()
+    var logSharedState: DefaultEmbraceLogSharedState!
 
     override func setUpWithError() throws {
         EmbraceOTel.setup(spanProcessors: [MockSpanProcessor()])
 
-        EmbraceOTel.setup(
-            logSharedState: DefaultEmbraceLogSharedState.create(
-                storage: try .createInMemoryDb(),
-                batcher: DummyLogBatcher(),
-                exporter: logExporter,
-                sdkStateProvider: sdkStateProvider
-            ))
+        logSharedState = DefaultEmbraceLogSharedState.create(
+            storage: try .createInMemoryDb(),
+            batcher: DummyLogBatcher(),
+            exporter: logExporter,
+            sdkStateProvider: sdkStateProvider
+        )
+        EmbraceOTel.setup(logSharedState: logSharedState)
     }
 
     // MARK: Register Tracer
@@ -128,6 +129,7 @@ final class EmbraceOTelTests: XCTestCase {
         let otel = EmbraceOTel()
 
         otel.log("example message", severity: .info, timestamp: Date(), attributes: [:])
+        drainLogProcessors()
         let record = logExporter.finishedLogRecords.first { $0.body == .string("example message") }
 
         XCTAssertNotNil(record)
@@ -144,11 +146,17 @@ final class EmbraceOTelTests: XCTestCase {
             severity: .info,
             timestamp: logTime,
             attributes: ["foo": "bar"])
+        drainLogProcessors()
         let record = logExporter.finishedLogRecords.first { $0.body == .string("example message") }
 
         XCTAssertNotNil(record)
         XCTAssertEqual(record?.body, .string("example message"))
         XCTAssertEqual(record?.timestamp, logTime)
         XCTAssertEqual(record?.attributes, ["foo": .string("bar")])
+    }
+
+    // customer exporters run on the log processor queue
+    private func drainLogProcessors() {
+        logSharedState.processors.forEach { _ = $0.forceFlush() }
     }
 }

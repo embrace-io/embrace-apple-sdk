@@ -30,6 +30,9 @@ final class GenericLogExporterTests: XCTestCase {
             .setBody(.string("example log message"))
             .emit()
 
+        // customer exporters run on the log processor queue
+        sharedState.processors.forEach { _ = $0.forceFlush() }
+
         let exportedLogRecord = exporter.finishedLogRecords.first
         XCTAssertNotNil(exportedLogRecord)
         XCTAssertEqual(exportedLogRecord?.body, .string("example log message"))
