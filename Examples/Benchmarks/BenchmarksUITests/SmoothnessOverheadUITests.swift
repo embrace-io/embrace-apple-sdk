@@ -164,11 +164,7 @@ final class SmoothnessOverheadUITests: XCTestCase {
                 XCTOSSignpostMetric.scrollingAndDecelerationMetric,
                 XCTCPUMetric(application: app),
                 XCTClockMetric(),
-                LabelMetric.displayLinkRate(app: app),
-                LabelMetric.displayRefreshRate(app: app),
-                LabelMetric.maxDisplayRate(app: app),
-                LabelMetric.smoothnessFrames(app: app),
-                LabelMetric.thermalState(app: app)
+                LabelMetric(app: app, labels: [.displayLinkRate, .displayRefreshRate, .maxDisplayRate, .smoothnessFrames, .thermalState])
             ],
             options: options
         ) {
@@ -195,11 +191,7 @@ final class SmoothnessOverheadUITests: XCTestCase {
             metrics: [
                 XCTCPUMetric(application: app),
                 XCTClockMetric(),
-                LabelMetric.displayLinkRate(app: app),
-                LabelMetric.displayRefreshRate(app: app),
-                LabelMetric.maxDisplayRate(app: app),
-                LabelMetric.smoothnessFrames(app: app),
-                LabelMetric.thermalState(app: app)
+                LabelMetric(app: app, labels: [.displayLinkRate, .displayRefreshRate, .maxDisplayRate, .smoothnessFrames, .thermalState])
             ],
             options: options
         ) {
@@ -261,103 +253,97 @@ extension XCUIApplication {
     }
 }
 
-/// Reports a numeric static text on the benchmark screen, read when each iteration stops. Shared
-/// with `SmoothnessLoadCalibrationUITests`.
+/// Reports the benchmark screen's numeric static texts, read when each iteration stops, as one
+/// measurement each. Shared with `SmoothnessLoadCalibrationUITests`.
+///
+/// One metric reads all its labels, one after another. XCTest stops metrics concurrently, and every
+/// element query records an XCTest activity, so with one metric per label two queries could
+/// overlap, and XCTest aborted the test runner ("… StaticText must be the top of the stack").
 final class LabelMetric: NSObject, XCTMetric {
 
-    /// Callbacks per second over the last second, for a display link configured like the SDK's.
-    /// Drops when the main thread hitches, so it's context only.
-    static func displayLinkRate(app: XCUIApplication) -> LabelMetric {
-        LabelMetric(
-            app: app,
-            label: "display-link-rate",
-            identifier: "io.embrace.benchmarks.displayLinkRate",
-            displayName: "Display Link Rate",
-            unitSymbol: "Hz"
-        )
-    }
-
-    /// The display's refresh rate over the last second, from frame durations, so hitches don't
-    /// lower it. The script requires it to reach the device's maximum in every arm.
-    static func displayRefreshRate(app: XCUIApplication) -> LabelMetric {
-        LabelMetric(
-            app: app,
-            label: "display-refresh-rate",
-            identifier: "io.embrace.benchmarks.displayRefreshRate",
-            displayName: "Display Refresh Rate",
-            unitSymbol: "Hz"
-        )
-    }
-
-    /// The screen's `maximumFramesPerSecond`: what the refresh rate is checked against.
-    static func maxDisplayRate(app: XCUIApplication) -> LabelMetric {
-        LabelMetric(
-            app: app,
-            label: "max-display-rate",
-            identifier: "io.embrace.benchmarks.maxDisplayRate",
-            displayName: "Max Display Rate",
-            unitSymbol: "Hz"
-        )
-    }
-
-    /// Frames the SDK counted in the open foreground part. Proves whether Smoothness was running:
-    /// `bin/smoothness_overhead.py` requires it to be above 0 in the On arm and 0 in the Off arm.
-    static func smoothnessFrames(app: XCUIApplication) -> LabelMetric {
-        LabelMetric(
-            app: app,
-            label: "smoothness-frames",
-            identifier: "io.embrace.benchmarks.smoothnessFrames",
-            displayName: "Smoothness Frames",
-            unitSymbol: "frames"
-        )
-    }
-
-    /// `ProcessInfo.ThermalState` as its raw value: 0 nominal, 1 fair, 2 serious, 3 critical. The
-    /// script rejects a run that reaches serious, since throttling invalidates the comparison.
-    static func thermalState(app: XCUIApplication) -> LabelMetric {
-        LabelMetric(
-            app: app,
-            label: "thermal-state",
-            identifier: "io.embrace.benchmarks.thermalState",
-            displayName: "Thermal State",
-            unitSymbol: "state"
-        )
+    struct Label {
+        /// The static text's accessibility identifier on the benchmark screen.
+        let label: String
+        let identifier: String
+        let displayName: String
+        let unitSymbol: String
     }
 
     private let app: XCUIApplication
-    private let label: String
-    private let identifier: String
-    private let displayName: String
-    private let unitSymbol: String
-    private var value: Double = 0
+    private let labels: [Label]
+    private var values: [Double] = []
 
-    private init(app: XCUIApplication, label: String, identifier: String, displayName: String, unitSymbol: String) {
+    init(app: XCUIApplication, labels: [Label]) {
         self.app = app
-        self.label = label
-        self.identifier = identifier
-        self.displayName = displayName
-        self.unitSymbol = unitSymbol
+        self.labels = labels
     }
 
     func copy(with zone: NSZone? = nil) -> Any {
-        LabelMetric(app: app, label: label, identifier: identifier, displayName: displayName, unitSymbol: unitSymbol)
+        LabelMetric(app: app, labels: labels)
     }
 
     func didStopMeasuring() {
-        value = Double(app.staticTexts[label].label) ?? 0
+        values = labels.map { Double(app.staticTexts[$0.label].label) ?? 0 }
     }
 
     func reportMeasurements(
         from startTime: XCTPerformanceMeasurementTimestamp,
         to endTime: XCTPerformanceMeasurementTimestamp
     ) throws -> [XCTPerformanceMeasurement] {
-        [
+        zip(labels, values).map { label, value in
             XCTPerformanceMeasurement(
-                identifier: identifier,
-                displayName: displayName,
+                identifier: label.identifier,
+                displayName: label.displayName,
                 doubleValue: value,
-                unitSymbol: unitSymbol
+                unitSymbol: label.unitSymbol
             )
-        ]
+        }
     }
+}
+
+extension LabelMetric.Label {
+
+    /// Callbacks per second over the last second, for a display link configured like the SDK's.
+    /// Drops when the main thread hitches, so it's context only.
+    static let displayLinkRate = LabelMetric.Label(
+        label: "display-link-rate",
+        identifier: "io.embrace.benchmarks.displayLinkRate",
+        displayName: "Display Link Rate",
+        unitSymbol: "Hz"
+    )
+
+    /// The display's refresh rate over the last second, from frame durations, so hitches don't
+    /// lower it. The script requires it to reach the device's maximum in every arm.
+    static let displayRefreshRate = LabelMetric.Label(
+        label: "display-refresh-rate",
+        identifier: "io.embrace.benchmarks.displayRefreshRate",
+        displayName: "Display Refresh Rate",
+        unitSymbol: "Hz"
+    )
+
+    /// The screen's `maximumFramesPerSecond`: what the refresh rate is checked against.
+    static let maxDisplayRate = LabelMetric.Label(
+        label: "max-display-rate",
+        identifier: "io.embrace.benchmarks.maxDisplayRate",
+        displayName: "Max Display Rate",
+        unitSymbol: "Hz"
+    )
+
+    /// Frames the SDK counted in the open foreground part. Proves whether Smoothness was running:
+    /// `bin/smoothness_overhead.py` requires it to be above 0 in the On arm and 0 in the Off arm.
+    static let smoothnessFrames = LabelMetric.Label(
+        label: "smoothness-frames",
+        identifier: "io.embrace.benchmarks.smoothnessFrames",
+        displayName: "Smoothness Frames",
+        unitSymbol: "frames"
+    )
+
+    /// `ProcessInfo.ThermalState` as its raw value: 0 nominal, 1 fair, 2 serious, 3 critical. The
+    /// script rejects a run that reaches serious, since throttling invalidates the comparison.
+    static let thermalState = LabelMetric.Label(
+        label: "thermal-state",
+        identifier: "io.embrace.benchmarks.thermalState",
+        displayName: "Thermal State",
+        unitSymbol: "state"
+    )
 }

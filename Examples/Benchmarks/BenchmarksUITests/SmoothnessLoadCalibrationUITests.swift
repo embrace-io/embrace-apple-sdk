@@ -184,9 +184,7 @@ final class SmoothnessLoadCalibrationUITests: XCTestCase {
         measure(
             metrics: [
                 XCTOSSignpostMetric.scrollingAndDecelerationMetric,
-                LabelMetric.displayRefreshRate(app: app),
-                LabelMetric.maxDisplayRate(app: app),
-                LabelMetric.thermalState(app: app)
+                LabelMetric(app: app, labels: [.displayRefreshRate, .maxDisplayRate, .thermalState])
             ],
             options: options
         ) {
