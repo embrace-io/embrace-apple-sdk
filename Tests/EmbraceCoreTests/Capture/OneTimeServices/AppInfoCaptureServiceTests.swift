@@ -64,25 +64,22 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         XCTAssertNotNil(framework)
         XCTAssertEqual(framework!.value, "-1")
 
-        // sdk version
+        // critical resources are not captured by the service
         let sdkVersion = handler.fetchMetadata(
             key: AppResourceKey.sdkVersion.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
-        XCTAssertNotNil(sdkVersion)
-        XCTAssertEqual(sdkVersion!.value, EmbraceMeta.sdkVersion)
+        XCTAssertNil(sdkVersion)
 
-        // app version
         let appVersion = handler.fetchMetadata(
             key: AppResourceKey.appVersion.rawValue,
             type: .requiredResource,
             lifespan: .process,
             lifespanId: processId
         )
-        XCTAssertNotNil(appVersion)
-        XCTAssertEqual(appVersion!.value, EMBDevice.appVersion)
+        XCTAssertNil(appVersion)
 
         // process identifier
         let processIdentifier = handler.fetchMetadata(
@@ -93,6 +90,12 @@ final class AppInfoCaptureServiceTests: XCTestCase {
         )
         XCTAssertNotNil(processIdentifier)
         XCTAssertEqual(processIdentifier!.value, ProcessIdentifier.current.stringValue)
+    }
+
+    func test_criticalResources() {
+        let resources = AppInfoCaptureService.criticalResources
+        XCTAssertEqual(resources[AppResourceKey.sdkVersion.rawValue], EmbraceMeta.sdkVersion)
+        XCTAssertEqual(resources[AppResourceKey.appVersion.rawValue], EMBDevice.appVersion)
     }
 
     func test_notStarted() throws {
