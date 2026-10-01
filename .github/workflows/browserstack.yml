@@ -23,6 +23,11 @@ on:
         required: false
         type: string
         default: ''
+      test_timeout_minutes:
+        description: 'Time limit for the BrowserStack test run, in minutes. The wait gives up 5 minutes earlier, stopping the build, so the result bundle step still has time to run.'
+        required: false
+        type: number
+        default: 40
     secrets:
       BROWSERSTACK_USERNAME:
         required: true
@@ -165,7 +170,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: success()
-    timeout-minutes: 40
+    timeout-minutes: ${{ inputs.test_timeout_minutes }}
     outputs:
       build_id: ${{ steps.execute_tests.outputs.build_id }}
       build_status: ${{ steps.wait_tests.outputs.build_status }}
@@ -226,10 +231,13 @@ jobs:
           BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
           BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
           BUILD_ID: ${{ steps.execute_tests.outputs.build_id }}
+          TEST_TIMEOUT_MINUTES: ${{ inputs.test_timeout_minutes }}
         run: |
           echo "Waiting for build $BUILD_ID to complete..."
 
-          MAX_WAIT_TIME=3600    # 60 minutes max wait
+          # Gives up 5 minutes before the job's time limit, so the build is stopped rather than left
+          # running when the job is killed.
+          MAX_WAIT_TIME=$(( (TEST_TIMEOUT_MINUTES - 5) * 60 ))
           POLL_INTERVAL=30     # Poll every 30 seconds
           ELAPSED_TIME=0
 
@@ -240,7 +248,7 @@ jobs:
             STATUS=$(echo "$BUILD_STATUS_RESPONSE" | jq -r '.status')
             echo "Current status: $STATUS (elapsed: ${ELAPSED_TIME}s)"
 
-            if [ "$STATUS" = "passed" ] || [ "$STATUS" = "done" ] || [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then
+            if [ "$STATUS" = "passed" ] || [ "$STATUS" = "done" ] || [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ] || [ "$STATUS" = "timedout" ]; then
               echo "Build finished with status: $STATUS"
               echo "$BUILD_STATUS_RESPONSE" | jq '.'
 
@@ -259,9 +267,23 @@ jobs:
           done
 
           if [ $ELAPSED_TIME -ge $MAX_WAIT_TIME ]; then
-            echo "Timeout waiting for build to complete"
+            echo "::error::Timed out after ${MAX_WAIT_TIME}s waiting for build $BUILD_ID to complete"
             exit 1
           fi
+
+      - name: Stop BrowserStack Build
+        # BrowserStack runs one session at a time, so a build left running would hold up the next
+        # one. Stops the build if the wait timed out or failed, or the run was cancelled.
+        if: ${{ (failure() || cancelled()) && steps.execute_tests.outputs.build_id != '' && steps.execute_tests.outputs.build_id != 'null' && steps.wait_tests.outputs.build_status == '' }}
+        env:
+          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+          BUILD_ID: ${{ steps.execute_tests.outputs.build_id }}
+        run: |
+          echo "Stopping build $BUILD_ID..."
+          curl -fsS -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
+            -X POST "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/builds/$BUILD_ID/stop" \
+            || echo "::warning::Could not stop BrowserStack build $BUILD_ID"
 
       - name: Download Result Bundle
         env:

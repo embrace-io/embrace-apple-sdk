@@ -45,26 +45,30 @@ env:
   TITLE: "🚀 Device Benchmarks (PR vs Main)"
 
 jobs:
+  # BrowserStack runs one session at a time, so the device builds run one after another: PR, then
+  # main, then Smoothness. Each runs as its own BrowserStack build with its own time limit, so a slow
+  # Smoothness suite can't take the launch and span benchmarks down with it.
   browserstack-pr:
     name: Run BrowserStack Tests on PR
     # Dependabot runs get no repository secrets, so the BrowserStack credentials would be empty.
     # Check the PR author, not github.actor: a person re-running the checks becomes the actor.
-    if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
+    # A manual sign-off run needs only the Smoothness suite.
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]' }}
     uses: ./.github/workflows/browserstack.yml
     secrets:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
     with:
       device: ${{ inputs.device || 'iPhone 17 Pro-26' }}
-      # The load calibration sweep runs only from run-smoothness-calibration.yml.
-      skip_testing: 'BenchmarksUITests/SmoothnessLoadCalibrationUITests'
+      # The Smoothness overhead suite runs in browserstack-smoothness, and the load calibration sweep
+      # only from run-smoothness-calibration.yml.
+      skip_testing: 'BenchmarksUITests/SmoothnessOverheadUITests,BenchmarksUITests/SmoothnessLoadCalibrationUITests'
 
   browserstack-main:
     name: Run BrowserStack Tests on Main
     needs: [browserstack-pr]
-    # Only the PR-vs-main comparison uses main's results, and it posts to a PR, so a manual
-    # sign-off run skips it.
-    if: success() && github.event_name == 'pull_request'
+    # Only the PR-vs-main comparison uses main's results.
+    if: success()
     uses: ./.github/workflows/browserstack.yml
     secrets:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
@@ -72,7 +76,23 @@ jobs:
     with:
       ref: main
       device: ${{ inputs.device || 'iPhone 17 Pro-26' }}
-      skip_testing: 'BenchmarksUITests/SmoothnessLoadCalibrationUITests'
+      skip_testing: 'BenchmarksUITests/SmoothnessOverheadUITests,BenchmarksUITests/SmoothnessLoadCalibrationUITests'
+
+  browserstack-smoothness:
+    name: Run BrowserStack Smoothness Overhead Tests on PR
+    # Waits for the other builds only to keep to one BrowserStack session, so it runs whatever they
+    # did. On a manual run they're skipped, and it starts straight away.
+    needs: [browserstack-pr, browserstack-main]
+    if: ${{ !cancelled() && github.event.pull_request.user.login != 'dependabot[bot]' }}
+    uses: ./.github/workflows/browserstack.yml
+    secrets:
+      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+    with:
+      device: ${{ inputs.device || 'iPhone 17 Pro-26' }}
+      only_testing: 'BenchmarksUITests/SmoothnessOverheadUITests'
+      # 12 tests, each launching the app and settling before up to 10 measured iterations.
+      test_timeout_minutes: 60
 
   compare-results:
     name: Compare Performance Results
@@ -113,9 +133,8 @@ jobs:
 
   smoothness-overhead:
     name: Compare Smoothness Overhead
-    # Uses only the PR build's results, so it doesn't wait on or depend on the main run. As its own
-    # job, it can't skip the PR-vs-main comparison either.
-    needs: [browserstack-pr]
+    # As its own job, it can't skip the PR-vs-main comparison, or be skipped by it.
+    needs: [browserstack-smoothness]
     runs-on: ubuntu-latest
     if: success()
     permissions:
@@ -141,7 +160,7 @@ jobs:
         continue-on-error: ${{ !inputs.strict }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PERF_PR: ${{ needs.browserstack-pr.outputs.results }}
+          PERF_PR: ${{ needs.browserstack-smoothness.outputs.results }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           ALPHA: ${{ env.ALPHA }}
