@@ -186,6 +186,34 @@ extension EmbraceBacktraceFrame {
     }
 }
 
+/// The IMP of `Backtracer.backtrace(of:into:capacity:)`. An `@objc` method's IMP takes the receiver
+/// and `_cmd` ahead of the declared arguments. The receiver is a raw pointer rather than `AnyObject`
+/// so calling it does no retain/release.
+private typealias BacktraceIntoIMP =
+    @convention(c) (
+        UnsafeMutableRawPointer, Selector, pthread_t, UnsafeMutablePointer<FrameAddress>, Int
+    ) -> Int
+
+private let backtraceIntoSelector = #selector(Backtracer.backtrace(of:into:capacity:))
+
+/// Resolves `backtracer`'s implementation of `backtrace(of:into:capacity:)` so it can be called
+/// directly while a thread is suspended.
+///
+/// Must be called *before* `thread_suspend`: the lookup itself takes the ObjC runtime lock. The
+/// lookup uses the receiver's dynamic class, so it sees the same implementation `objc_msgSend` would
+/// (including subclass overrides and KVO / isa-swizzled classes).
+///
+/// Returns `nil` when the class has no such method, e.g. an `NSProxy` that relies on message
+/// forwarding. Forwarding can't run in the window, so that backtracer can't walk a suspended thread.
+private func backtraceIntoIMP(of backtracer: Backtracer) -> BacktraceIntoIMP? {
+    guard let cls = object_getClass(backtracer),
+        let method = class_getInstanceMethod(cls, backtraceIntoSelector)
+    else {
+        return nil
+    }
+    return unsafeBitCast(method_getImplementation(method), to: BacktraceIntoIMP.self)
+}
+
 extension EmbraceBacktrace {
     @discardableResult
     static private func emb_thread_suspend(_ thread: mach_port_t) -> kern_return_t {
@@ -247,6 +275,7 @@ extension EmbraceBacktrace {
         // call through the existential is an `objc_msgSend`, which on a cold method cache takes the
         // ObjC runtime lock. If the suspended thread holds that lock, the walk never returns and the
         // process deadlocks. Calling the concrete type is a vtable dispatch instead: no locks.
+        // A custom `Backtracer` gets the same guarantee through `backtraceIntoIMP(of:)` below.
         let ksBacktracer = backtracer as? KSCrashBacktracing
 
         // get the mach thread to take the snapshot of
@@ -259,6 +288,22 @@ extension EmbraceBacktrace {
 
         let addresses: [UInt]
         if canSuspend {
+            // A custom backtracer is called through its IMP, looked up here, outside the window,
+            // where taking the runtime lock is harmless.
+            let customIMP: BacktraceIntoIMP?
+            if ksBacktracer != nil {
+                customIMP = nil
+            } else if let imp = backtraceIntoIMP(of: backtracer) {
+                customIMP = imp
+            } else {
+                Embrace.logger.warning("[EmbraceBacktrace] backtracer does not implement backtrace(of:into:capacity:)")
+                return []
+            }
+            // Passed unretained so no retain/release runs in the window; `backtracer` is kept alive
+            // by this frame (and by `Embrace.Options`) until the walk returns.
+            let receiver = Unmanaged.passUnretained(backtracer as AnyObject).toOpaque()
+            defer { withExtendedLifetime(backtracer) {} }
+
             // Deadlock hazard: if the suspended thread holds the allocator lock, any `malloc` in the
             // suspend window hangs the process. So allocate the buffer before the suspend and do all
             // heap work (copy/slice) after the resume — only the alloc-free
@@ -278,9 +323,9 @@ extension EmbraceBacktrace {
             if let ksBacktracer {
                 count = ksBacktracer.backtrace(of: thread, into: buffer, capacity: entries)
             } else {
-                // Custom `Backtracer`: still an `objc_msgSend`, with the risk described above. It
-                // can't be made safe while `Backtracer` is `@objc`.
-                count = backtracer.backtrace(of: thread, into: buffer, capacity: entries)
+                // Custom `Backtracer`: a plain C call to the IMP resolved above. No `objc_msgSend`,
+                // no method-cache lookup.
+                count = customIMP?(receiver, backtraceIntoSelector, thread, buffer, entries) ?? 0
             }
             #if DEBUG
                 EmbraceBacktraceSuspendWindowProbe.didExit?()

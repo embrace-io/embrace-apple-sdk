@@ -128,16 +128,20 @@ public typealias FrameAddress = UInt
     /// allocator lock.
     ///
     /// - Important: The implementation MUST be allocation-free and async-signal-safe: no `malloc`,
-    ///   no Obj-C/Swift runtime work, no lock acquisition. It is called between `thread_suspend` and
-    ///   `thread_resume` of a thread that is not the caller.
-    /// - Note: Following the rule above is not sufficient for a *custom* implementation. Because this
-    ///   protocol is `@objc`, the SDK reaches a custom backtracer through `objc_msgSend`, and that
-    ///   dispatch itself takes the ObjC runtime lock when the method cache is cold — inside the
-    ///   suspend window. If the suspended thread holds that lock, the process deadlocks regardless of
-    ///   what the implementation does. The built-in backtracer is called directly and is not affected.
+    ///   no Obj-C/Swift runtime work, no lock acquisition, and no `pthread_*` calls that take
+    ///   `thread` as their argument. It is called between `thread_suspend` and `thread_resume` of a
+    ///   thread that is not the caller, and if that thread holds a lock the implementation needs,
+    ///   the process deadlocks. In particular, `pthread_mach_thread_np(thread)` takes libpthread's
+    ///   thread-list lock when `thread` is not the caller, so do not call it here.
+    /// - Note: The SDK makes the call itself safe. It resolves this method's implementation before
+    ///   suspending the thread and calls it directly, so no `objc_msgSend` or method-cache lookup
+    ///   runs while the thread is suspended. The implementation must be a real method on the
+    ///   receiver's class. If it is reached only through message forwarding (for example an
+    ///   `NSProxy`), the SDK skips the capture.
     /// - Parameters:
     ///   - thread: The target `pthread_t`. Must not be the calling thread (it is expected to be
-    ///     suspended by the caller for the duration of the call).
+    ///     suspended by the caller for the duration of the call). Use it only as an opaque value,
+    ///     for example to compare against threads you resolved earlier.
     ///   - buffer: Caller-owned storage for at least `capacity` `FrameAddress` values.
     ///   - capacity: The capacity of `buffer`, in elements.
     /// - Returns: The number of frame addresses written to `buffer` (`0...capacity`).
