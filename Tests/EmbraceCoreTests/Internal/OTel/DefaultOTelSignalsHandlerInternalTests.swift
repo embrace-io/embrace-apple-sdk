@@ -358,6 +358,36 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(record!.attributes["key"] as! String, "value")
     }
 
+    func test_onSpanAttributesUpdated() throws {
+        // given a span
+        let span = MockSpan(name: "test")
+        storage?.upsertSpan(span)
+
+        // when onSpanAttributesUpdated is called
+        handler.onSpanAttributesUpdated(span, attributes: ["key": "value", "otherKey": "otherValue"])
+
+        // then the bridge gets each attribute
+        XCTAssertEqual(bridge.updateSpanAttributeCallCount, 2)
+
+        // then the span is updated on the db
+        let record = storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId)
+        XCTAssertEqual(record!.attributes.count, 2)
+        XCTAssertEqual(record!.attributes["key"] as! String, "value")
+        XCTAssertEqual(record!.attributes["otherKey"] as! String, "otherValue")
+    }
+
+    func test_createSpan_persistsAsynchronously_isStored() throws {
+        // when creating a span whose storage write is queued
+        let span = try handler._createSpan(
+            name: "test",
+            type: .performance,
+            persistsAsynchronously: true
+        )
+
+        // then it is in storage once the queued write runs
+        XCTAssertNotNil(storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId))
+    }
+
     func test_onSpanEnded() throws {
         // given a span
         let span = MockSpan(name: "test")

@@ -32,6 +32,7 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         var onSpanEventAddedCallCount: Int = 0
         var onSpanLinkAddedCallCount: Int = 0
         var onSpanAttributeUpdatedCallCount: Int = 0
+        var onSpanAttributesUpdatedCallCount: Int = 0
 
         /// The end times the handler was notified with, in the order they arrived.
         ///
@@ -229,6 +230,14 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
 
     func onSpanAttributeUpdated(_ span: EmbraceSpan, key: String, value: EmbraceAttributeValue?) {
         state.withLock { $0.onSpanAttributeUpdatedCallCount += 1 }
+    }
+
+    var onSpanAttributesUpdatedCallCount: Int {
+        state.safeValue.onSpanAttributesUpdatedCallCount
+    }
+
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, attributes: EmbraceAttributes) {
+        state.withLock { $0.onSpanAttributesUpdatedCallCount += 1 }
     }
 
     var onSpanEndedTimes: [Date] {

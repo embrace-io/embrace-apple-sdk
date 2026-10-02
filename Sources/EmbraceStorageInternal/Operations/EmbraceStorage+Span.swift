@@ -33,6 +33,16 @@ extension EmbraceStorage {
         coreData.save()
     }
 
+    /// Adds or updates a span to the storage asynchronously, like `upsertSpan(_:)`.
+    ///
+    /// The write is queued on the storage context, so any write queued after it for the same span,
+    /// and any later read, sees the span.
+    public func upsertSpanAsync(_ span: EmbraceSpan) {
+        coreData.performAsyncOperation { [self] _ in
+            upsertSpan(span)
+        }
+    }
+
     func fetchSpanRequest(id: String, traceId: String) -> NSFetchRequest<SpanRecord> {
         let request = SpanRecord.createFetchRequest()
         request.fetchLimit = 1
@@ -184,6 +194,27 @@ extension EmbraceStorage {
                     var attributes: EmbraceAttributes = .keyValueDecode(span.attributes)
                     attributes[key] = value
                     span.attributes = attributes.keyValueEncoded()
+                }
+            } catch {}
+        }
+    }
+
+    /// Asynchronously adds or updates several attributes of the stored span in one save, like
+    /// `setSpanAttribute(id:traceId:key:value:)` does for one.
+    /// - Parameters:
+    ///   - id: Identifier of the span
+    ///   - traceId: Trace identifier of the span
+    ///   - attributes: Attributes to add or update. Other attributes of the span are left untouched.
+    public func setSpanAttributes(id: String, traceId: String, attributes: EmbraceAttributes) {
+        guard !attributes.isEmpty else { return }
+
+        coreData.performAsyncOperation(save: true) { context in
+            do {
+                let request = self.fetchSpanRequest(id: id, traceId: traceId)
+                if let span = try context.fetch(request).first {
+                    var stored: EmbraceAttributes = .keyValueDecode(span.attributes)
+                    stored.merge(attributes) { _, new in new }
+                    span.attributes = stored.keyValueEncoded()
                 }
             } catch {}
         }

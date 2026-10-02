@@ -32,7 +32,8 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
-        isInternal: Bool = true
+        isInternal: Bool = true,
+        persistsAsynchronously: Bool = false
     ) throws -> EmbraceSpan {
 
         let traceId = parentSpan?.context.traceId ?? .randomTraceId()

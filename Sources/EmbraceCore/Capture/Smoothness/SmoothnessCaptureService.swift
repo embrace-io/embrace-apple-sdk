@@ -64,7 +64,7 @@
         }
 
         /// How often the open span's metrics are written to storage, so a part that is killed keeps
-        /// them. Each checkpoint is a handful of asynchronous attribute writes, none on the frame path.
+        /// them. Each checkpoint is one asynchronous attribute write, off the frame path.
         static let defaultCheckpointInterval: TimeInterval = 15
 
         /// - Parameters:
@@ -393,6 +393,11 @@
         /// auto-termination code: `autoTerminateSpans()` runs just before the part-will-end hook and
         /// would end the span as an error first.
         ///
+        /// Its storage write is queued rather than awaited, so the tracker's lock, which an off-main
+        /// close waits on with the `SessionController` lock held, isn't held for a CoreData round
+        /// trip. The span's later writes and the part's payload build are queued on the same storage
+        /// context after it, so they still see it.
+        ///
         /// Opened as incomplete, so a span recovered after a kill or crash is flagged as such.
         private func openSpan(partId: EmbraceIdentifier, startTime: Date) {
             guard
@@ -400,7 +405,8 @@
                     name: SpanSemantics.Smoothness.name,
                     type: .smoothness,
                     startTime: startTime,
-                    attributes: [SpanSemantics.Smoothness.keyComplete: false]
+                    attributes: [SpanSemantics.Smoothness.keyComplete: false],
+                    persistsAsynchronously: true
                 )
             else {
                 return
@@ -450,8 +456,9 @@
             }
             guard let open else { return }
 
-            setMetrics(on: open.span, stats: stats, peakThermalState: open.peakThermalState)
-            open.span.setAttribute(key: SpanSemantics.Smoothness.keyCheckpointTime, value: stats.endTime.nanosecondsSince1970Truncated)
+            var attributes = metrics(stats: stats, peakThermalState: open.peakThermalState)
+            attributes[SpanSemantics.Smoothness.keyCheckpointTime] = stats.endTime.nanosecondsSince1970Truncated
+            open.span.setAttributes(attributes)
         }
 
         /// Called with the tracker's lock held, and usually the `SessionController` lock too. Keep it
@@ -470,19 +477,22 @@
             let span = closed.span
 
             // Always ended, including with zero frames: the span is already persisted and zero is valid.
-            setMetrics(on: span, stats: stats, peakThermalState: closed.peakThermalState)
-            span.setAttribute(key: SpanSemantics.Smoothness.keyComplete, value: true)
+            var attributes = metrics(stats: stats, peakThermalState: closed.peakThermalState)
+            attributes[SpanSemantics.Smoothness.keyComplete] = true
             if let endReason = closed.endReason {
-                span.setAttribute(key: SpanSemantics.Smoothness.keyEndReason, value: endReason)
+                attributes[SpanSemantics.Smoothness.keyEndReason] = endReason
             }
+            span.setAttributes(attributes)
             span.end(endTime: stats.endTime)
         }
 
-        private func setMetrics(on span: EmbraceSpan, stats: SmoothnessSessionStats, peakThermalState: ProcessInfo.ThermalState) {
-            span.setAttribute(key: SpanSemantics.Smoothness.keyFrameCount, value: stats.frameCount)
-            span.setAttribute(key: SpanSemantics.Smoothness.keyNormalizedDroppedFrames, value: stats.normalizedDroppedFrames)
-            span.setAttribute(key: SpanSemantics.Smoothness.keyHangCount, value: stats.cappedTickCount)
-            span.setAttribute(key: SpanSemantics.Smoothness.keyPeakThermalState, value: peakThermalState.semanticValue)
+        private func metrics(stats: SmoothnessSessionStats, peakThermalState: ProcessInfo.ThermalState) -> EmbraceAttributes {
+            [
+                SpanSemantics.Smoothness.keyFrameCount: stats.frameCount,
+                SpanSemantics.Smoothness.keyNormalizedDroppedFrames: stats.normalizedDroppedFrames,
+                SpanSemantics.Smoothness.keyHangCount: stats.cappedTickCount,
+                SpanSemantics.Smoothness.keyPeakThermalState: peakThermalState.semanticValue
+            ]
         }
     }
 

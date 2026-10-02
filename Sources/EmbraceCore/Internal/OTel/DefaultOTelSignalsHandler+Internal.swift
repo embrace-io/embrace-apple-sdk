@@ -22,7 +22,8 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
-        isInternal: Bool = true
+        isInternal: Bool = true,
+        persistsAsynchronously: Bool = false
     ) throws -> EmbraceSpan {
 
         guard isInternal || limiter.shouldCreateCustomSpan() else {
@@ -170,7 +171,11 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         }
 
         // save span
-        storage?.upsertSpan(span)
+        if persistsAsynchronously {
+            storage?.upsertSpanAsync(span)
+        } else {
+            storage?.upsertSpan(span)
+        }
 
         return span
     }
@@ -340,6 +345,13 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
     func onSpanAttributeUpdated(_ span: EmbraceSpan, key: String, value: EmbraceAttributeValue?) {
         bridge.updateSpanAttribute(span, key: key, value: value)
         storage?.setSpanAttribute(id: span.context.spanId, traceId: span.context.traceId, key: key, value: value)
+    }
+
+    func onSpanAttributesUpdated(_ span: EmbraceSpan, attributes: EmbraceAttributes) {
+        for (key, value) in attributes {
+            bridge.updateSpanAttribute(span, key: key, value: value)
+        }
+        storage?.setSpanAttributes(id: span.context.spanId, traceId: span.context.traceId, attributes: attributes)
     }
 
     func onSpanEnded(_ span: any EmbraceSpan, endTime: Date) {
