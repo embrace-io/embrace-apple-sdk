@@ -42,23 +42,9 @@ public final class KSCrashReporter: NSObject, CrashReporter {
 
     private let reporter: KSCrash = KSCrash.shared
 
-    struct WatchdogEventData {
-        var reportID: Int64? = nil
-        var event: WatchdogEvent? = nil
-        /// Incremented every time the current watchdog report is discarded, so a report written
-        /// for an event that has already ended can be detected and deleted.
-        var generation: UInt64 = 0
-    }
-    private var watchdogData: EmbraceMutex<WatchdogEventData> = EmbraceMutex(WatchdogEventData())
-    private var hangObservers: [NSObjectProtocol] = []
-
     public override init() {
         reporter.userInfo = [:]
         super.init()
-    }
-
-    deinit {
-        unregisterForHangs()
     }
 
     // this is the path that contains `/Reports`.
@@ -86,7 +72,6 @@ public final class KSCrashReporter: NSObject, CrashReporter {
         config.installPath = context.filePathProvider.directoryURL(for: "embrace_crash_reporter")?.path
         config.reportStoreConfiguration.appName = context.appId ?? "default"
         try reporter.install(with: config)
-        registerForHangs()
     }
 
     /// Fetches all saved `EmbraceCrashReport`.
@@ -111,7 +96,7 @@ public final class KSCrashReporter: NSObject, CrashReporter {
             }
 
             // fetch report
-            guard var report = store.report(for: id)?.value else {
+            guard let report = store.report(for: id)?.value else {
                 continue
             }
 
@@ -121,9 +106,11 @@ public final class KSCrashReporter: NSObject, CrashReporter {
                 continue
             }
 
-            // check the _name_, if it's a `watchdog_event`, we need to modify the `crashed_thread`.
+            // Drop synthetic watchdog reports. Older SDK versions wrote one on every hang and
+            // relied on deleting it when the hang recovered, which left them behind on disk.
             if report.isWatchdogEvent() {
-                report.changeCrashedThread(to: 0)
+                store.deleteReport(with: id)
+                continue
             }
 
             // serialize json
@@ -229,108 +216,17 @@ public final class KSCrashReporter: NSObject, CrashReporter {
 
 // MARK: - Watchdog (hang) integration
 
-/// When a hang starts, we write a synthetic crash report to disk. When the hang
-/// recovers, we delete that report. If the OS terminates the app during the hang
-/// (0x8badf00d for blocking the main thread), the synthetic report remains on disk
-/// and is picked up on next launch as a regular crash report. This routes watchdog
-/// terminations through the same crash pipeline without crashing the process.
 extension KSCrashReporter {
 
-    /// Subscribes to `.hangEventStarted` and `.hangEventEnded` and forwards them to the
-    /// corresponding handlers. Observers are stored in `hangObservers`.
-    private func registerForHangs() {
-        let obs1 = NotificationCenter.default.addObserver(forName: .hangEventStarted, object: nil, queue: nil) { [weak self] notification in
-            if let event = notification.object as? WatchdogEvent {
-                self?.watchdogEventStarted(event)
-            }
-        }
-        hangObservers.append(obs1)
+    /// No longer has any effect. Hangs are detected after the main thread recovers, so a report
+    /// written at that point can't capture a watchdog termination. Watchdog terminations are
+    /// reported through MetricKit instead.
+    @available(*, deprecated, message: "Watchdog reports are no longer written. This method does nothing.")
+    public func watchdogEventStarted(_ event: WatchdogEvent) {}
 
-        let obs2 = NotificationCenter.default.addObserver(forName: .hangEventEnded, object: nil, queue: nil) { [weak self] notification in
-            if let event = notification.object as? WatchdogEvent {
-                self?.watchdogEventEnded(event)
-            }
-        }
-        hangObservers.append(obs2)
-    }
-
-    /// Removes previously registered hang observers and clears `hangObservers`.
-    private func unregisterForHangs() {
-        let observers = hangObservers
-        hangObservers.removeAll()
-        observers.forEach { NotificationCenter.default.removeObserver($0) }
-    }
-
-    /// Hang began: delete any prior synthetic report and write a new user-exception
-    /// report to disk with the hang duration in the reason.
-    public func watchdogEventStarted(_ event: WatchdogEvent) {
-
-        let generation = deleteWatchdogReport(nextEvent: event)
-        let existingIds = currentReportIds()
-
-        reporter.reportUserException(
-            KSCrashWatchdogEventKey.watchdgodEvent,
-            reason: "0x8badf00d, main thread blocked for \(String(format: "%.3f", event.duration)) seconds.",
-            language: nil,
-            lineOfCode: nil,
-            stackTrace: nil,
-            logAllThreads: true,
-            terminateProgram: false
-        )
-
-        // `reportUserException` is synchronous and non-fatal, so the report is already on disk
-        // and its id can be read from the store here instead of from a KSCrash callback.
-        // KSCrash callbacks may run while every other thread is suspended, where taking locks
-        // or touching weak references can deadlock the process.
-        guard let reportId = currentReportIds().subtracting(existingIds).max() else {
-            return
-        }
-
-        let isStale = watchdogData.withLock {
-            guard $0.generation == generation else {
-                return true
-            }
-            $0.reportID = reportId
-            return false
-        }
-
-        // The hang ended (or a new one started) while the report was being written.
-        if isStale {
-            reporter.reportStore?.deleteReport(with: reportId)
-        }
-    }
-
-    /// Hang ended: delete the synthetic report, if present.
-    public func watchdogEventEnded(_ event: WatchdogEvent) {
-        deleteWatchdogReport(nextEvent: nil)
-    }
-
-    /// Deletes the most recent synthetic watchdog report (if any) and clears
-    /// in-flight state under `watchdogData`.
-    /// - Returns: The generation that a report written for `nextEvent` must match to be kept.
-    @discardableResult
-    private func deleteWatchdogReport(nextEvent: WatchdogEvent?) -> UInt64 {
-
-        let (reportId, generation) = watchdogData.withLock {
-            let reportId = $0.reportID
-            $0.event = nextEvent
-            $0.reportID = nil
-            $0.generation &+= 1
-            return (reportId, $0.generation)
-        }
-        if let wid = reportId {
-            reporter.reportStore?.deleteReport(with: wid)
-        }
-        return generation
-    }
-
-    /// Ids of all the reports currently stored by KSCrash.
-    private func currentReportIds() -> Set<Int64> {
-        guard let ids = reporter.reportStore?.reportIDs else {
-            return []
-        }
-        return Set(ids.map { $0.int64Value })
-    }
+    /// No longer has any effect. See `watchdogEventStarted(_:)`.
+    @available(*, deprecated, message: "Watchdog reports are no longer written. This method does nothing.")
+    public func watchdogEventEnded(_ event: WatchdogEvent) {}
 }
 
 // KSCrash report format support
@@ -394,25 +290,5 @@ extension Dictionary where Key == String, Value == Any {
             return name == KSCrashReporter.KSCrashWatchdogEventKey.watchdgodEvent
         }
         return false
-    }
-
-    /// Updates the crashed thread to a specific thread index.
-    mutating fileprivate func changeCrashedThread(to: Int) {
-        guard var crashData = self["crash"] as? [String: Any],
-            var threadsData = crashData["threads"] as? [[String: Any]]
-        else {
-            return
-        }
-
-        for i in 0..<threadsData.count {
-            if let threadIndex = threadsData[i]["index"] as? Int {
-                let isTarget = threadIndex == to
-                threadsData[i]["crashed"] = isTarget
-                threadsData[i]["current_thread"] = isTarget
-            }
-        }
-
-        crashData["threads"] = threadsData
-        self["crash"] = crashData
     }
 }

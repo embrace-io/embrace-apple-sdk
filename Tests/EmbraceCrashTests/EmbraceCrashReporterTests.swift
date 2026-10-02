@@ -341,52 +341,24 @@
 
             wait(for: [expectation], timeout: .defaultTimeout)
         }
-    }
 
-    // MARK: - Watchdog events
+        func testOnWatchdogEventReport_fetchUnsentCrashReports_shouldDeleteItAndKeepRealCrashes() throws {
+            givenCrashReporter()
 
-    extension EmbraceCrashReporterTests {
-
-        func test_watchdogEventStarted_writesReport() throws {
-            let ksReporter = givenKSCrashReporter()
-
-            ksReporter.watchdogEventStarted(WatchdogEvent(timestamp: Date(), duration: 2))
-
-            XCTAssertEqual(try reportFileCount(), 1)
-        }
-
-        func test_watchdogEventEnded_deletesReport() throws {
-            let ksReporter = givenKSCrashReporter()
-            let event = WatchdogEvent(timestamp: Date(), duration: 2)
-
-            ksReporter.watchdogEventStarted(event)
-            XCTAssertEqual(try reportFileCount(), 1)
-
-            ksReporter.watchdogEventEnded(event)
-            XCTAssertEqual(try reportFileCount(), 0)
-        }
-
-        func test_watchdogEventStarted_replacesPreviousReport() throws {
-            let ksReporter = givenKSCrashReporter()
-
-            ksReporter.watchdogEventStarted(WatchdogEvent(timestamp: Date(), duration: 2))
-            ksReporter.watchdogEventStarted(WatchdogEvent(timestamp: Date(), duration: 3))
-            XCTAssertEqual(try reportFileCount(), 1)
-
-            ksReporter.watchdogEventEnded(WatchdogEvent(timestamp: Date(), duration: 3))
-            XCTAssertEqual(try reportFileCount(), 0)
-        }
-
-        func test_watchdogEventEnded_doesntDeleteOtherReports() throws {
-            let ksReporter = givenKSCrashReporter()
+            // given a real crash report alongside a leftover synthetic watchdog report
             try copyReport(named: "crash_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
-            let event = WatchdogEvent(timestamp: Date(), duration: 2)
+            try copyReport(named: "watchdog_event_report", toFilePath: "/Reports/appId-report-0000000000000002.json")
 
-            ksReporter.watchdogEventStarted(event)
-            XCTAssertEqual(try reportFileCount(), 2)
+            let expectation = XCTestExpectation()
+            crashReporter.fetchUnsentCrashReports { reports in
+                XCTAssertEqual(reports.count, 1)
+                XCTAssertEqual(reports[0].internalId, 1)
+                self.thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
 
-            ksReporter.watchdogEventEnded(event)
-            XCTAssertEqual(try reportFileCount(), 1)
+                expectation.fulfill()
+            }
+
+            wait(for: [expectation], timeout: .defaultTimeout)
         }
     }
 
@@ -410,21 +382,6 @@
             } catch let ex {
                 XCTFail(ex.localizedDescription)
             }
-        }
-
-        /// Calls the watchdog handlers directly instead of posting hang notifications, so reporters
-        /// kept alive by other test cases don't react to them.
-        fileprivate func givenKSCrashReporter() -> KSCrashReporter {
-            let ksReporter = KSCrashReporter()
-            crashReporter = EmbraceCrashReporter(reporter: ksReporter, logger: logger)
-            crashReporter.install(context: context)
-            return ksReporter
-        }
-
-        fileprivate func reportFileCount() throws -> Int {
-            let basePath = try XCTUnwrap(crashReporter.basePath)
-            let files = (try? FileManager.default.contentsOfDirectory(atPath: basePath + "/Reports")) ?? []
-            return files.filter { $0.hasSuffix(".json") }.count
         }
 
         fileprivate func givenCrashReporter() {
