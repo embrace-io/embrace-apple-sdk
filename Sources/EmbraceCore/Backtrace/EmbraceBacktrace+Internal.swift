@@ -109,6 +109,70 @@ extension EmbraceBacktraceFrame {
     }
 }
 
+/// A custom backtracer's suspend-window walk, resolved to a plain C function before the suspend.
+///
+/// An `@objc` method's IMP takes the receiver and `_cmd` ahead of the declared arguments. The
+/// receiver is a raw pointer rather than `AnyObject` so the SDK's call adds no retain/release (the
+/// callee's `@objc` thunk may still retain `self` in unoptimized builds; that is lock-free in practice).
+private enum SuspendedBacktraceIMP {
+    typealias MachThreadIMP =
+        @convention(c) (
+            UnsafeMutableRawPointer, Selector, thread_t, UnsafeMutablePointer<FrameAddress>, Int
+        ) -> Int
+    typealias PThreadIMP =
+        @convention(c) (
+            UnsafeMutableRawPointer, Selector, pthread_t, UnsafeMutablePointer<FrameAddress>, Int
+        ) -> Int
+
+    // Each case carries its selector (the IMP's `_cmd`) so the call reads no statics in the window.
+
+    /// `backtrace(ofMachThread:into:capacity:)`: needs no pthread lookup in the window.
+    case machThread(MachThreadIMP, Selector)
+    /// `backtrace(of:into:capacity:)`: for backtracers that don't implement the mach-port variant.
+    /// The implementation may still take the pthread lock to resolve the mach port.
+    case pthread(PThreadIMP, Selector)
+
+    /// Resolves `backtracer`'s walk, preferring the mach-port variant.
+    ///
+    /// Must be called *before* `thread_suspend`: the lookup itself takes the ObjC runtime lock. The
+    /// lookup uses the receiver's dynamic class, so it sees the same implementation `objc_msgSend`
+    /// would (including subclass overrides and KVO / isa-swizzled classes).
+    ///
+    /// Returns `nil` when the class implements neither method, e.g. an `NSProxy` that relies on
+    /// message forwarding. Forwarding can't run in the window, so that backtracer can't walk a
+    /// suspended thread.
+    init?(resolving backtracer: Backtracer) {
+        guard let cls = object_getClass(backtracer) else {
+            return nil
+        }
+        let machThreadSelector = #selector(Backtracer.backtrace(ofMachThread:into:capacity:))
+        let pthreadSelector = #selector(Backtracer.backtrace(of:into:capacity:))
+        if let method = class_getInstanceMethod(cls, machThreadSelector) {
+            self = .machThread(unsafeBitCast(method_getImplementation(method), to: MachThreadIMP.self), machThreadSelector)
+        } else if let method = class_getInstanceMethod(cls, pthreadSelector) {
+            self = .pthread(unsafeBitCast(method_getImplementation(method), to: PThreadIMP.self), pthreadSelector)
+        } else {
+            return nil
+        }
+    }
+
+    /// Calls the resolved walk. Safe inside the suspend window: a direct C call, no dispatch.
+    func callAsFunction(
+        _ receiver: UnsafeMutableRawPointer,
+        thread: pthread_t,
+        machThread: thread_t,
+        into buffer: UnsafeMutablePointer<FrameAddress>,
+        capacity: Int
+    ) -> Int {
+        switch self {
+        case .machThread(let imp, let selector):
+            return imp(receiver, selector, machThread, buffer, capacity)
+        case .pthread(let imp, let selector):
+            return imp(receiver, selector, thread, buffer, capacity)
+        }
+    }
+}
+
 extension EmbraceBacktrace {
     @discardableResult
     static private func emb_thread_suspend(_ thread: mach_port_t) -> kern_return_t {
@@ -130,6 +194,10 @@ extension EmbraceBacktrace {
 }
 
 extension EmbraceBacktrace {
+
+    /// Set the first time a backtracer can't be resolved for a suspended-thread walk, so the error
+    /// is logged once per process rather than on every hang sample.
+    private static let didReportUnresolvableBacktracer = EmbraceAtomic<Bool>(false)
 
     /// Number of Embrace capture-plumbing frames on top of a stack walked on the *current* thread
     /// (self-capture, `canSuspend == false`): the `Backtracer` call and the `_takeSnapshot` /
@@ -170,6 +238,7 @@ extension EmbraceBacktrace {
         // call through the existential is an `objc_msgSend`, which on a cold method cache takes the
         // ObjC runtime lock. If the suspended thread holds that lock, the walk never returns and the
         // process deadlocks. Calling the concrete type is a vtable dispatch instead: no locks.
+        // A custom `Backtracer` avoids `objc_msgSend` the same way, through `SuspendedBacktraceIMP` below.
         let ksBacktracer = backtracer as? KSCrashBacktracing
 
         // get the mach thread to take the snapshot of
@@ -182,10 +251,34 @@ extension EmbraceBacktrace {
 
         let addresses: [UInt]
         if canSuspend {
+            // A custom backtracer is called through its IMP, looked up here, outside the window,
+            // where taking the runtime lock is harmless.
+            let customIMP: SuspendedBacktraceIMP?
+            if ksBacktracer != nil {
+                customIMP = nil
+            } else if let imp = SuspendedBacktraceIMP(resolving: backtracer) {
+                customIMP = imp
+            } else {
+                // Nothing is suspended yet, so logging here is safe.
+                if !didReportUnresolvableBacktracer.exchange(true) {
+                    Embrace.logger.error(
+                        "[EmbraceBacktrace] \(type(of: backtracer)) implements neither "
+                            + "backtrace(ofMachThread:into:capacity:) nor backtrace(of:into:capacity:) "
+                            + "as a method of its class. Message forwarding (e.g. NSProxy) can't run while "
+                            + "a thread is suspended, so hang and main-thread log stack traces will be empty."
+                    )
+                }
+                return []
+            }
+            // Passed unretained so the SDK adds no retain/release in the window; `backtracer` is kept alive
+            // by this frame (and by `Embrace.Options`) until the walk returns.
+            let receiver = Unmanaged.passUnretained(backtracer as AnyObject).toOpaque()
+            defer { withExtendedLifetime(backtracer) {} }
+
             // Deadlock hazard: if the suspended thread holds the allocator lock, any `malloc` in the
             // suspend window hangs the process. So allocate the buffer before the suspend and do all
-            // heap work (copy/slice) after the resume — only the alloc-free
-            // `backtrace(of:into:capacity:)` runs in the window.
+            // heap work (copy/slice) after the resume — only the alloc-free walk
+            // (`backtrace(ofMachThread:…)`, or a custom backtracer's resolved IMP) runs in the window.
             let buffer = UnsafeMutablePointer<FrameAddress>.allocate(capacity: entries)
             defer { buffer.deallocate() }
 
@@ -199,11 +292,14 @@ extension EmbraceBacktrace {
             #endif
             let count: Int
             if let ksBacktracer {
-                count = ksBacktracer.backtrace(of: thread, into: buffer, capacity: entries)
+                // The mach port was resolved before the suspend: no pthread lookup in the window.
+                count = ksBacktracer.backtrace(ofMachThread: machThread, into: buffer, capacity: entries)
             } else {
-                // Custom `Backtracer`: still an `objc_msgSend`, with the risk described above. It
-                // can't be made safe while `Backtracer` is `@objc`.
-                count = backtracer.backtrace(of: thread, into: buffer, capacity: entries)
+                // Custom `Backtracer`: a plain C call to the IMP resolved above. No `objc_msgSend`,
+                // no method-cache lookup.
+                count =
+                    customIMP?(receiver, thread: thread, machThread: machThread, into: buffer, capacity: entries)
+                    ?? 0
             }
             #if DEBUG
                 EmbraceBacktraceSuspendWindowProbe.didExit?()
@@ -211,8 +307,8 @@ extension EmbraceBacktrace {
             // ───── END SUSPEND WINDOW ─────
             emb_thread_resume(machThread)
 
-            addresses =
-                Array(UnsafeBufferPointer(start: buffer, count: max(0, count)))
+            addresses  // Clamped: a custom backtracer reporting more than `entries` must not over-read `buffer`.
+            = Array(UnsafeBufferPointer(start: buffer, count: min(max(0, count), entries)))
                 .dropFirst(sdkFrameSkip)
                 .prefix(entries)
                 .compactMap { $0 as UInt }
