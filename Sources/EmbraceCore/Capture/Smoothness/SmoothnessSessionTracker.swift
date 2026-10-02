@@ -351,6 +351,10 @@
         /// `SessionController` posts this asynchronously on the main thread.
         ///
         /// The checks here are early exits only; `open` repeats them under the lock.
+        ///
+        /// Opens now rather than at the part's start time. Frames are only accumulated from here, so a
+        /// backdated span would count the unmeasured gap as smooth. And the previous part ends at exactly
+        /// the part's start time, so a span starting there would also be fetched into its payload.
         @objc private func sessionPartDidStart(_ notification: Notification) {
             guard let session = notification.object as? EmbraceSession,
                 session.state == .foreground,
@@ -359,7 +363,7 @@
                 return
             }
 
-            open(partId: session.id, at: session.startTime)
+            open(partId: session.id, at: Date())
         }
 
         /// Catches the cold-start swap to foreground, which posts no `.embraceSessionPartDidStart`.

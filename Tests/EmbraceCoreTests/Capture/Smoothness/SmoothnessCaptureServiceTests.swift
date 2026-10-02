@@ -279,13 +279,36 @@
         func test_foregroundPartStart_opensSmoothnessSpan() throws {
             startService()
 
-            let session = startPart(.foreground)
+            let before = Date()
+            startPart(.foreground)
+            let after = Date()
 
             let span = try XCTUnwrap(smoothnessSpans.first)
             XCTAssertEqual(smoothnessSpans.count, 1)
             XCTAssertEqual(span.type, .smoothness)
-            XCTAssertEqual(span.startTime, session.startTime)
+            XCTAssertGreaterThanOrEqual(span.startTime, before)
+            XCTAssertLessThanOrEqual(span.startTime, after)
             XCTAssertNil(span.endTime)
+        }
+
+        /// P-H1: the previous part ends at exactly the part's start time, so a span backdated to it would
+        /// also be fetched into the previous part's payload.
+        func test_foregroundPartStart_opensSpanAfterPartStartTime() throws {
+            startService()
+
+            let session = MockSession(
+                id: .random,
+                processId: .random,
+                state: .foreground,
+                traceId: "",
+                spanId: "",
+                startTime: Date().addingTimeInterval(-1)
+            )
+            currentSession = session
+            notificationCenter.post(name: .embraceSessionPartDidStart, object: session)
+
+            let span = try XCTUnwrap(smoothnessSpans.first)
+            XCTAssertGreaterThan(span.startTime, session.startTime)
         }
 
         func test_partWillEnd_endsSpanAtPartEndTime() throws {
@@ -1717,6 +1740,35 @@
             XCTAssertFalse(nextSpans.contains { $0["span_id"] as? String == spanId })
             XCTAssertEqual(nextSpans.count, 1)
             XCTAssertEqual(nextSpans.first.flatMap { attribute(CommonSemantics.keyPartId, of: $0) }, next.id.stringValue)
+        }
+
+        /// P-H1: with an async controller queue, the ending part's payload can be fetched after the next
+        /// part's span is stored. That span must not match the ending part, which ends at the next part's
+        /// start time.
+        func test_foregroundToForeground_nextPartSpanIsNotFetchedForEndingPart() throws {
+            let part = try XCTUnwrap(controller.startSession(state: .foreground))
+            drainMain()
+
+            let next = try XCTUnwrap(controller.startSession(state: .foreground))
+            drainMain()
+            XCTAssertEqual(service.tracker?.openPartId, next.id)
+
+            // The ended part's record is removed once its payload is built, so rebuild it to fetch as the
+            // upload would have if it had run now.
+            let endedPart = MockSession(
+                id: part.id,
+                processId: part.processId,
+                state: .foreground,
+                traceId: part.traceId,
+                spanId: part.spanId,
+                startTime: part.startTime,
+                endTime: next.startTime
+            )
+            let spans = storage.fetchSpans(for: endedPart).filter { $0.name == SpanSemantics.Smoothness.name }
+
+            // The next part's span is stored and still open, and isn't fetched for the ended part.
+            XCTAssertFalse(storage.fetchSpans(for: next).filter { $0.name == SpanSemantics.Smoothness.name && $0.endTime == nil }.isEmpty)
+            XCTAssertTrue(spans.allSatisfy { $0.endTime != nil })
         }
     }
 

@@ -363,7 +363,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         XCTAssertEqual(results[0].context.spanId, "test")
     }
 
-    func test_withSpanStartAtIsEqualToSessionEnd_returnsEmptyArray() throws {
+    func test_withSpanStartAtIsEqualToSessionEnd_returnsSpan() throws {
         // session  :      ---------------|
         // span     :                     |----
         let boundary: Date = .relative(-5)
