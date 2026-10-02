@@ -74,6 +74,8 @@ import Foundation
         ///   - debuggerAttached: Whether a debugger is attached. The service disables itself if so.
         ///   - environment: Checked for `EMBAllowWatchdogInDebugger=1`, which keeps it enabled anyway.
         ///   - ignoresRemoteConfig: Runs whether or not remote config enables smoothness.
+        ///   - attachesDisplayLink: Whether the frame timing source runs a real `CADisplayLink`. Tests
+        ///     pass `false` and drive frames through the tracker.
         init(
             currentSession: @escaping () -> EmbraceSession?,
             notificationCenter: NotificationCenter,
@@ -83,7 +85,8 @@ import Foundation
             checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval,
             debuggerAttached: @escaping () -> Bool = isDebuggerAttached,
             environment: [String: String] = ProcessInfo.processInfo.environment,
-            ignoresRemoteConfig: Bool = false
+            ignoresRemoteConfig: Bool = false,
+            attachesDisplayLink: Bool = true
         ) {
             self.currentSession = currentSession
             self.notificationCenter = notificationCenter
@@ -94,6 +97,7 @@ import Foundation
             self.debuggerAttached = debuggerAttached
             self.environment = environment
             self.ignoresRemoteConfig = ignoresRemoteConfig
+            self.attachesDisplayLink = attachesDisplayLink
             super.init()
 
             notificationCenter.addObserver(
@@ -276,7 +280,7 @@ import Foundation
                 self?.checkpointSpan(partId: partId, stats: stats)
             }
 
-            let source = FrameTimingSource()
+            let source = FrameTimingSource(notificationCenter: notificationCenter, attachesDisplayLink: attachesDisplayLink)
             source.onTick = Self.makeTickHandler(classifier: classifier)
 
             // Before the store, so nothing can open the part in between; opens are delivered on main.
@@ -354,6 +358,7 @@ import Foundation
         private let debuggerAttached: () -> Bool
         private let environment: [String: String]
         private let ignoresRemoteConfig: Bool
+        private let attachesDisplayLink: Bool
         private let checkpointQueue = DispatchQueue(label: "io.embrace.smoothness.checkpoint", qos: .utility)
 
         /// Raw notification name to avoid a direct UIKit dependency.

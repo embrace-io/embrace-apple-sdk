@@ -49,16 +49,24 @@
         /// Creates a new `FrameTimingSource` and immediately begins observing frame timing.
         ///
         /// Must be called on the main thread.
-        init() {
+        ///
+        /// - Parameters:
+        ///   - notificationCenter: Observed for will-enter-foreground, which re-arms the comparison.
+        ///   - attachesDisplayLink: Whether to drive ticks from a `CADisplayLink`. Tests pass `false` and
+        ///     deliver ticks through `handleTick`, so no real frame can land while they spin the run loop.
+        init(notificationCenter: NotificationCenter = .default, attachesDisplayLink: Bool = true) {
+            self.notificationCenter = notificationCenter
             self.proxy = DisplayLinkProxy()
 
-            let link = CADisplayLink(target: proxy, selector: #selector(DisplayLinkProxy.tick(_:)))
-            link.add(to: .main, forMode: .common)
-            self.displayLink = link
+            if attachesDisplayLink {
+                let link = CADisplayLink(target: proxy, selector: #selector(DisplayLinkProxy.tick(_:)))
+                link.add(to: .main, forMode: .common)
+                self.displayLink = link
+            }
 
             proxy.source = self
 
-            NotificationCenter.default.addObserver(
+            notificationCenter.addObserver(
                 self,
                 selector: #selector(resetOnForeground),
                 name: FrameTimingSource.willEnterForegroundNotification,
@@ -67,12 +75,18 @@
         }
 
         deinit {
-            NotificationCenter.default.removeObserver(self)
+            notificationCenter.removeObserver(self)
             displayLink?.invalidate()
+        }
+
+        /// Whether ticks are driven by a live `CADisplayLink`.
+        var isDisplayLinkAttached: Bool {
+            displayLink != nil
         }
 
         // MARK: - Private
 
+        private let notificationCenter: NotificationCenter
         private let proxy: DisplayLinkProxy
         private var displayLink: CADisplayLink?
 
@@ -84,7 +98,7 @@
         private var previousFrameInterval: CFTimeInterval = 0
 
         /// Raw notification name to avoid a direct UIKit dependency.
-        private static let willEnterForegroundNotification =
+        static let willEnterForegroundNotification =
             Notification.Name("UIApplicationWillEnterForegroundNotification")
 
         /// Resets state on foreground so the first tick after a background/foreground

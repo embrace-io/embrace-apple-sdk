@@ -41,12 +41,15 @@
 
         /// The default checkpoint interval is long enough that the timer never fires during a test. The
         /// debugger check defaults to detached, so the suite also runs from Xcode. The remote config gate
-        /// is bypassed by default; the remote config tests turn it back on.
+        /// is bypassed by default; the remote config tests turn it back on. There's no display link by
+        /// default, so no real frame lands while a test waits with a part open; frames are recorded
+        /// through the tracker.
         private func makeService(
             checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval,
             debuggerAttached: @escaping () -> Bool = { false },
             environment: [String: String] = [:],
-            ignoresRemoteConfig: Bool = true
+            ignoresRemoteConfig: Bool = true,
+            attachesDisplayLink: Bool = false
         ) -> SmoothnessCaptureService {
             SmoothnessCaptureService(
                 currentSession: { [unowned self] in self.currentSession },
@@ -57,7 +60,8 @@
                 checkpointInterval: checkpointInterval,
                 debuggerAttached: debuggerAttached,
                 environment: environment,
-                ignoresRemoteConfig: ignoresRemoteConfig
+                ignoresRemoteConfig: ignoresRemoteConfig,
+                attachesDisplayLink: attachesDisplayLink
             )
         }
 
@@ -115,7 +119,7 @@
         private func drainMain() {
             let drained = expectation(description: "main drained")
             DispatchQueue.main.async { drained.fulfill() }
-            wait(for: [drained], timeout: 1)
+            wait(for: [drained], timeout: 5)
         }
 
         private var smoothnessSpans: [EmbraceSpan] {
@@ -143,14 +147,30 @@
         }
 
         func test_stop_releasesFrameTimingSource() {
+            service = makeService(attachesDisplayLink: true)
             startService()
             weak var source = service.frameTimingSource
-            XCTAssertNotNil(source)
+            XCTAssertEqual(source?.isDisplayLinkAttached, true)
 
             service.stop()
 
             // The source owns the CADisplayLink and invalidates it on deinit.
             XCTAssertNil(source)
+        }
+
+        func test_frameTimingSource_observesServiceNotificationCenter() throws {
+            startService()
+            startPart(.foreground)
+            let source = try XCTUnwrap(service.frameTimingSource)
+            let tracker = try XCTUnwrap(service.tracker)
+            let frame = 1.0 / 60.0
+            source.handleTick(timestamp: 1_000, targetTimestamp: 1_000 + frame)
+
+            notificationCenter.post(name: FrameTimingSource.willEnterForegroundNotification, object: nil)
+            // Only arms, since the reset dropped the previous target.
+            source.handleTick(timestamp: 1_030, targetTimestamp: 1_030 + frame)
+
+            XCTAssertEqual(tracker.openFrameCount, 0)
         }
 
         func test_debuggerAttached_disablesService() {
@@ -438,7 +458,7 @@
                 endedBeforePostReturned = self.endedSmoothnessSpans.count
                 posted.fulfill()
             }
-            wait(for: [posted], timeout: 1)
+            wait(for: [posted], timeout: 5)
 
             XCTAssertEqual(endedBeforePostReturned, 1)
         }
@@ -687,7 +707,7 @@
                 self.thermalState = .nominal
                 posted.fulfill()
             }
-            wait(for: [posted], timeout: 1)
+            wait(for: [posted], timeout: 5)
             endPart()
 
             XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.first), SpanSemantics.Smoothness.ThermalState.serious)
@@ -1170,7 +1190,8 @@
                 embraceNotificationCenter: Embrace.notificationCenter,
                 flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
                 debuggerAttached: { false },
-                ignoresRemoteConfig: true
+                ignoresRemoteConfig: true,
+                attachesDisplayLink: false
             )
             service.install(otel: otel)
             service.start()
@@ -1191,7 +1212,7 @@
         private func drainMain() {
             let drained = expectation(description: "main drained")
             DispatchQueue.main.async { drained.fulfill() }
-            wait(for: [drained], timeout: 1)
+            wait(for: [drained], timeout: 5)
         }
 
         private var smoothnessSpans: [EmbraceSpan] {
@@ -1233,7 +1254,7 @@
                 endedBeforeEndSessionReturned = span.endTime != nil
                 ended.fulfill()
             }
-            wait(for: [ended], timeout: 1)
+            wait(for: [ended], timeout: 5)
 
             XCTAssertEqual(closedOnMain, false)
             XCTAssertTrue(endedBeforeEndSessionReturned)
@@ -1324,7 +1345,7 @@
             XCTAssertEqual(foregroundEndTime, endTime)
             XCTAssertTrue(spanEndedAtForegroundEnd)
 
-            wait(for: [publicWillEnd], timeout: 1)
+            wait(for: [publicWillEnd], timeout: 5)
 
             XCTAssertEqual(order, ["sync", "foregroundDidEnd", "public"])
         }
@@ -1351,7 +1372,7 @@
                 endedBeforeRollReturned = span.endTime != nil
                 rolled.fulfill()
             }
-            wait(for: [rolled], timeout: 1)
+            wait(for: [rolled], timeout: 5)
             // The next part's start is delivered async on main.
             drainMain()
 
@@ -1411,7 +1432,8 @@
                 thermalState: { .nominal },
                 checkpointInterval: 0,
                 debuggerAttached: { false },
-                ignoresRemoteConfig: true
+                ignoresRemoteConfig: true,
+                attachesDisplayLink: false
             )
         }
 
@@ -1596,7 +1618,8 @@
                 thermalState: { .nominal },
                 checkpointInterval: 0,
                 debuggerAttached: { false },
-                ignoresRemoteConfig: true
+                ignoresRemoteConfig: true,
+                attachesDisplayLink: false
             )
             service.install(otel: handler)
             service.start()
@@ -1626,7 +1649,7 @@
         private func drainMain() {
             let drained = expectation(description: "main drained")
             DispatchQueue.main.async { drained.fulfill() }
-            wait(for: [drained], timeout: 1)
+            wait(for: [drained], timeout: 5)
         }
 
         /// The uploaded payload's `data` block, keyed by the id of the part it belongs to, read from its

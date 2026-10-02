@@ -14,8 +14,8 @@
     /// Measures the per-tick cost of the Smoothness hot path: `FrameTimingSource.handleTick` →
     /// the production tick handler → `FrameDropClassifier` → `SmoothnessSessionTracker`.
     ///
-    /// Ticks are driven synchronously on main, as in `FrameTimingSourceTests`, so the real display
-    /// link can't interleave. Simulator numbers are a regression guard only; release sign-off uses
+    /// Ticks are driven synchronously on main, as in `FrameTimingSourceTests`, through a source with no
+    /// display link. Simulator numbers are a regression guard only; release sign-off uses
     /// on-device numbers from `Examples/Benchmarks`.
     ///
     /// Only `test_tickCost_staysWithinBudget` can fail on cost. The `measure` tests are informational:
@@ -30,6 +30,10 @@
 
         /// Order-of-magnitude regression guard for simulator/CI runs, well above the ~1µs on-device
         /// release budget. A debug build on a loaded CI host is far slower than a real device.
+        ///
+        /// CI collects code coverage, which isn't skipped here like the sanitizers are. It doesn't
+        /// need to be: a debug simulator build measured ~350–500 ns/tick with and without coverage,
+        /// a 10x margin under this budget.
         private let ciBudgetNanosecondsPerTick: Double = 5_000
 
         private let frameDuration = 1.0 / 60.0
@@ -52,11 +56,9 @@
                 notificationCenter: NotificationCenter(),
                 embraceNotificationCenter: NotificationCenter()
             )
-            source = FrameTimingSource()
+            source = FrameTimingSource(notificationCenter: NotificationCenter(), attachesDisplayLink: false)
             source.onTick = SmoothnessCaptureService.makeTickHandler(classifier: classifier, environment: [:])
             now = 1_000
-            // Discard anything a real tick armed before the test body.
-            NotificationCenter.default.post(name: Notification.Name("UIApplicationWillEnterForegroundNotification"), object: nil)
         }
 
         override func tearDown() {

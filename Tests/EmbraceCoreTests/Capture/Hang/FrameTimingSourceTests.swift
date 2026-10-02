@@ -10,8 +10,9 @@
 
     @testable import EmbraceCore
 
-    /// Ticks are driven through `handleTick` synchronously on main. The real display link can't
-    /// interleave, since it only fires on a run loop turn, and none happens inside a test body.
+    /// Ticks are driven through `handleTick` synchronously on main. The source under test has no
+    /// display link, and observes a private notification center, so nothing outside the test can
+    /// tick or re-arm it.
     final class FrameTimingSourceTests: XCTestCase {
 
         private let frameDuration = 1.0 / 60.0
@@ -26,12 +27,10 @@
         override func setUp() {
             super.setUp()
             notificationCenter = NotificationCenter()
-            source = FrameTimingSource()
+            source = FrameTimingSource(notificationCenter: notificationCenter, attachesDisplayLink: false)
             ticks = []
             now = 1_000
             source.onTick = { [unowned self] tick in self.ticks.append(tick) }
-            // Discard anything a real tick armed before the test body.
-            postWillEnterForeground()
         }
 
         override func tearDown() {
@@ -52,12 +51,35 @@
             now += interval
         }
 
-        /// `FrameTimingSource` only observes the default center.
         private func postWillEnterForeground() {
-            NotificationCenter.default.post(name: Notification.Name("UIApplicationWillEnterForegroundNotification"), object: nil)
+            notificationCenter.post(name: FrameTimingSource.willEnterForegroundNotification, object: nil)
         }
 
         // MARK: - Tests
+
+        func testWillEnterForegroundOnOtherCenterIsIgnored() {
+            tick()
+            skip(backgroundGap)
+
+            NotificationCenter.default.post(name: FrameTimingSource.willEnterForegroundNotification, object: nil)
+            tick()
+
+            XCTAssertEqual(delays.count, 1)
+            XCTAssertEqual(delays.first ?? 0, backgroundGap, accuracy: 1e-6)
+        }
+
+        func testDisplayLinkIsAttachedByDefault() {
+            weak var liveSource: FrameTimingSource?
+            autoreleasepool {
+                let live = FrameTimingSource(notificationCenter: notificationCenter)
+                liveSource = live
+                XCTAssertTrue(live.isDisplayLinkAttached)
+                XCTAssertFalse(source.isDisplayLinkAttached)
+            }
+
+            // The display link holds its target through a weak proxy, so it doesn't keep the source alive.
+            XCTAssertNil(liveSource)
+        }
 
         func testFirstTickOnlyArms() {
             tick()
