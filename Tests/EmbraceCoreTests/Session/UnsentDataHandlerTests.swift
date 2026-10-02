@@ -953,10 +953,12 @@ class UnsentDataHandlerTests: XCTestCase {
         let logUploader = SpyEmbraceLogUploader()
         logUploader.shouldCompleteLogUploads = false
 
+        // (a synchronous queue makes the log upload start before the session recovery)
         let logController = LogController(
             storage: storage,
             upload: logUploader,
-            controller: MockSessionController()
+            controller: MockSessionController(),
+            unsentLogsQueue: MockQueue()
         )
         logController.sdkStateProvider = sdkStateProvider
         logController.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }

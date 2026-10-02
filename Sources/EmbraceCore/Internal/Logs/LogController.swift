@@ -63,7 +63,7 @@ class LogController: LogControllable {
     }
 
     /// Serial queue used to chain the uploads of the logs persisted by previous processes.
-    private let unsentLogsQueue = DispatchQueue(label: "io.embrace.logs.unsent", qos: .utility)
+    private let unsentLogsQueue: DispatchableQueue
 
     static let attachmentLimit: Int = 5
     static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
@@ -71,11 +71,13 @@ class LogController: LogControllable {
     init(
         storage: Storage?,
         upload: EmbraceLogUploader?,
-        controller: SessionControllable
+        controller: SessionControllable,
+        unsentLogsQueue: DispatchableQueue = .with(label: "io.embrace.logs.unsent", qos: .utility)
     ) {
         self.storage = storage
         self.upload = upload
         self.sessionController = controller
+        self.unsentLogsQueue = unsentLogsQueue
     }
 
     func uploadAllPersistedLogs(_ completion: (() -> Void)? = nil) {
