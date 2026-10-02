@@ -31,6 +31,11 @@ class SingleLogRecordProcessor: LogRecordProcessor {
             return
         }
 
+        forward(logRecord)
+    }
+
+    /// Sends the log to the processors and exporters without checking whether the SDK is enabled.
+    func forward(_ logRecord: ReadableLogRecord) {
         let processors = self.processors
         processors.forEach {
             $0.onEmit(logRecord: logRecord)

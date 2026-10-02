@@ -40,19 +40,25 @@ extension DefaultEmbraceLogSharedState {
         sdkStateProvider: EmbraceSDKStateProvider,
         resource: Resource? = nil
     ) -> DefaultEmbraceLogSharedState {
-        var exporters: [LogRecordExporter] = [
+        let embraceExporters: [LogRecordExporter] = [
             StorageEmbraceLogExporter(
                 logBatcher: batcher
             )
         ]
 
+        var exporters: [LogRecordExporter] = []
         if let exporter = exporter {
             exporters.append(exporter)
         }
 
         return DefaultEmbraceLogSharedState(
             config: DefaultEmbraceLoggerConfig(),
-            processors: .default(processors: processors, exporters: exporters, sdkStateProvider: sdkStateProvider),
+            processors: .default(
+                embraceExporters: embraceExporters,
+                processors: processors,
+                exporters: exporters,
+                sdkStateProvider: sdkStateProvider
+            ),
             resourceProvider: ResourceStorageExporter(storage: storage, resource: resource)
         )
     }
