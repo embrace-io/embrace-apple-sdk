@@ -81,15 +81,24 @@ public class LowPowerModeCaptureService: CaptureService {
             return
         }
 
-        _currentSpan.withLock {
-            $0 = builder.startSpan()
+        // start the span before taking the lock, since starting it runs the span processors synchronously.
+        // if another span was stored concurrently, end it after releasing the lock so it doesn't leak.
+        let span = builder.startSpan()
+        let previous = _currentSpan.withLock {
+            let previous = $0
+            $0 = span
+            return previous
         }
+        previous?.end()
     }
 
     func endSpan() {
-        _currentSpan.withLock {
-            $0?.end()
+        // end the span after releasing the lock, since ending it runs the span processors synchronously
+        let span = _currentSpan.withLock {
+            let span = $0
             $0 = nil
+            return span
         }
+        span?.end()
     }
 }

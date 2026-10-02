@@ -110,6 +110,37 @@
             }
         }
 
+        func test_onViewDidDisappear_endsSpansOutsideOfLock() {
+            // given a handler with cached spans
+            let id = "test"
+            handler.data.safeValue.parentSpans[id] = createTTFRSpan()
+            handler.data.safeValue.viewDidLoadSpans[id] = createViewDidLoadSpan()
+            handler.data.safeValue.viewWillAppearSpans[id] = createViewWillAppearSpan()
+            handler.data.safeValue.viewIsAppearingSpans[id] = createViewIsAppearingSpan()
+            handler.data.safeValue.viewDidAppearSpans[id] = createViewDidAppearSpan()
+            handler.data.safeValue.uiReadySpans[id] = createUiReadySpan()
+
+            // and a span processor that checks if the handler's lock is free when a span ends
+            let lockWasFree = EmbraceMutex<[Bool]>([])
+            otel.spanProcessor.onEndCallback = { [handler] _ in
+                let isFree = isLockFree(handler!.data)
+                lockWasFree.withLock { $0.append(isFree) }
+            }
+            defer { otel.spanProcessor.onEndCallback = nil }
+
+            // when the view controller disappears
+            let vc = MockViewController()
+            vc.emb_instrumentation_state = .init(identifier: id)
+            handler.onViewDidDisappear(vc)
+
+            // then all spans are ended without holding the lock
+            wait(timeout: .longTimeout) {
+                lockWasFree.safeValue.count == 6
+            }
+            XCTAssertEqual(lockWasFree.safeValue, Array(repeating: true, count: 6))
+            XCTAssertTrue(cacheIsEmpty())
+        }
+
         func test_onViewDidLoad_deactivatedService() {
             // given a handler that is not active
             dataSource.serviceState = .paused
@@ -521,6 +552,16 @@
 
     class MockInteractableViewController: MockViewController, InteractableViewController {
 
+    }
+
+    /// Tries to take the lock from another thread, returns false if it couldn't within the timeout.
+    private func isLockFree<T>(_ mutex: EmbraceMutex<T>, timeout: TimeInterval = 0.5) -> Bool {
+        let semaphore = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            mutex.withLock { _ in }
+            semaphore.signal()
+        }
+        return semaphore.wait(timeout: .now() + timeout) == .success
     }
 
 #endif

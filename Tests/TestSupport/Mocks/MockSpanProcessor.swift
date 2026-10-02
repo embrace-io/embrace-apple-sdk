@@ -39,6 +39,12 @@ public class MockSpanProcessor: SpanProcessor {
         return _didForceFlush
     }
 
+    /// Called synchronously from `onStart`, outside of the processor's own lock.
+    public var onStartCallback: ((ReadableSpan) -> Void)?
+
+    /// Called synchronously from `onEnd`, outside of the processor's own lock.
+    public var onEndCallback: ((ReadableSpan) -> Void)?
+
     public init() {}
 
     public let isStartRequired: Bool = true
@@ -46,6 +52,8 @@ public class MockSpanProcessor: SpanProcessor {
     public let isEndRequired: Bool = true
 
     public func onStart(parentContext: SpanContext?, span: ReadableSpan) {
+        onStartCallback?(span)
+
         let data = span.toSpanData()
         lock.lock()
         defer { lock.unlock() }
@@ -53,6 +61,8 @@ public class MockSpanProcessor: SpanProcessor {
     }
 
     public func onEnd(span: ReadableSpan) {
+        onEndCallback?(span)
+
         let data = span.toSpanData()
         lock.lock()
         defer { lock.unlock() }
