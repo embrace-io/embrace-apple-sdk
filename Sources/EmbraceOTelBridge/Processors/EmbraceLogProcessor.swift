@@ -24,12 +24,19 @@ import OpenTelemetrySdk
 /// child processor/exporter forwarding is dispatched to a dedicated utility queue, matching
 /// `EmbraceSpanProcessor`. The calling thread is often an SDK queue, so a slow or re-entrant
 /// child exporter then only delays this queue instead of stalling (or trapping) that SDK queue.
+/// `criticalResourceGroup` (set by the bridge after `Embrace.setup` completes) is waited on before
+/// any child forwarding begins, ensuring children never receive logs before critical SDK resources
+/// are ready.
 ///
 /// `forceFlush` and `shutdown` block the caller until the queue drains, so they must not be
 /// called from a child's own callbacks: `queue.sync` on the current queue traps.
 class EmbraceLogProcessor: LogRecordProcessor {
 
     weak var delegate: EmbraceLogProcessorDelegate?
+
+    /// Set by `EmbraceOTelBridge.setup(delegate:metadataProvider:criticalResourceGroup:)`
+    /// after `Embrace.setup()` completes. Child forwarding waits on this group before proceeding.
+    var criticalResourceGroup: DispatchGroup?
 
     private let childProcessors: [LogRecordProcessor]
     private let childExporters: [LogRecordExporter]
@@ -62,6 +69,8 @@ class EmbraceLogProcessor: LogRecordProcessor {
         }
 
         processorQueue.async { [self, log] in
+            criticalResourceGroup?.wait()
+
             let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "log-processor-onemit")
             childProcessors.forEach { $0.onEmit(logRecord: log) }
             mkProcessSpan.end()

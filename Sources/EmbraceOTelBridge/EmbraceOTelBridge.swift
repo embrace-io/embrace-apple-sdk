@@ -119,7 +119,7 @@ final package class EmbraceOTelBridge {
     // MARK: - Configuration
 
     /// Called after `Embrace.setup()` completes to attach the Core-side delegate, metadata provider,
-    /// and the `captureServicesGroup` that gates child span forwarding until the SDK is ready.
+    /// and the `captureServicesGroup` that gates child span and log forwarding until the SDK is ready.
     package func setup(
         delegate: any EmbraceOTelDelegate,
         metadataProvider: any EmbraceMetadataProvider,
@@ -128,6 +128,7 @@ final package class EmbraceOTelBridge {
         self.delegate = delegate
         self.metadataProvider = metadataProvider
         spanProcessor.criticalResourceGroup = criticalResourceGroup
+        logProcessor.criticalResourceGroup = criticalResourceGroup
     }
 }
 

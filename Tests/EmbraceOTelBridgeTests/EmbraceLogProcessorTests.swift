@@ -163,6 +163,35 @@ final class EmbraceLogProcessorTests: XCTestCase {
         XCTAssertEqual(childExporter.exportedLogs.map(\.body), (0..<50).map { .string("\($0)") })
     }
 
+    func test_onEmit_waitsForCriticalResourceGroupBeforeForwardingToChildren() {
+        let childExporter = CapturingLogExporter()
+        let processor = EmbraceLogProcessor(delegate: mockDelegate, childExporters: [childExporter])
+        let group = DispatchGroup()
+        group.enter()
+        processor.criticalResourceGroup = group
+        let logger = LoggerProviderSdk(logRecordProcessors: [processor])
+            .loggerBuilder(instrumentationScopeName: "test").build()
+
+        logger.logRecordBuilder().setBody(.string("early")).emit()
+
+        // The delegate still hears about the log straight away; only children are gated.
+        XCTAssertEqual(mockDelegate.emittedLogs.count, 1)
+
+        // Queue a marker behind the gated job: it can only run once the group is left.
+        let drained = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            processor.waitForAllWork()
+            drained.signal()
+        }
+        // timed-wait: window for something that must not happen; the queue must stay blocked while the group is entered.
+        XCTAssertEqual(drained.wait(timeout: .now() + 0.5), .timedOut)
+        XCTAssertTrue(childExporter.exportedLogs.isEmpty)
+
+        group.leave()
+        XCTAssertEqual(drained.wait(timeout: .now() + TimeInterval.defaultTimeout), .success)
+        XCTAssertEqual(childExporter.exportedLogs.count, 1)
+    }
+
     // A child exporter that re-enters the SDK queue it was called from (for example by starting a
     // URLSession task, which the network capture handles with `queue.sync`) traps if it runs on that queue.
     func test_onEmit_fromAnSDKQueue_childExporterRunsOffThatQueue() {
