@@ -4,6 +4,10 @@
 
 import Foundation
 
+#if !EMBRACE_COCOAPOD_BUILDING_SDK
+    import EmbraceCommonInternal
+#endif
+
 /// A single frame in a captured backtrace.
 ///
 /// A frame optionally contains symbolication information (`symbol`) and the
@@ -134,15 +138,15 @@ struct EmbraceBacktrace: Codable {
     ///   - threadIndex: The expected index of this thread in the list of all threads (ie: main = 0).
     /// - Returns: A backtrace snapshot containing exactly one `EmbraceBacktraceThread`.
     ///
-    /// - Note: The `timestamp` is sourced from `CLOCK_MONOTONIC_RAW` via
-    ///   `clock_gettime_nsec_np`, which is suitable for measuring intervals.
+    /// - Note: The `timestamp` is sourced from `EmbraceMonotonicTime`, which is suitable for
+    ///   measuring intervals but is not a wall-clock time.
     // `@inline(never)`: keeps this a stable frame in self-capture stacks so `selfCaptureFrameSkip`
     // is optimization-independent. See that constant.
     @inline(never)
     static func backtrace(of thread: pthread_t, threadIndex: Int = 0) -> EmbraceBacktrace {
         EmbraceBacktrace(
             timestampUnits: .nanoseconds,
-            timestamp: clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW),
+            timestamp: EmbraceMonotonicTime.nanos(),
             threads: takeSnapshot(of: thread, threadIndex: threadIndex)
         )
     }

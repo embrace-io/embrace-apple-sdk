@@ -61,6 +61,11 @@ public class SessionRecord: NSManagedObject {
     /// Termination reason — set only on the last part of a terminated user session.
     @NSManaged public var userSessionTerminationReason: String?
 
+    /// Milliseconds the device wall clock moved relative to the time that actually elapsed during
+    /// this part. Written when the part ends, so it stays `nil` on an in-progress part and on any
+    /// part recovered from an earlier process.
+    @NSManaged public var clockDriftMs: NSNumber?
+
     /// Note that this must be called within a `perform` on the CoreData context.
     class func create(
         context: NSManagedObjectContext,
@@ -139,7 +144,8 @@ public class SessionRecord: NSManagedObject {
             userSessionInactivityTimeout: userSessionInactivityTimeout?.doubleValue,
             userSessionLastForegroundEnd: userSessionLastForegroundEnd,
             userSessionPartIndex: userSessionPartIndex,
-            userSessionTerminationReason: userSessionTerminationReason.flatMap { TerminationReason(rawValue: $0) }
+            userSessionTerminationReason: userSessionTerminationReason.flatMap { TerminationReason(rawValue: $0) },
+            clockDriftMs: clockDriftMs.map { EMBInt($0.int64Value) }
         )
     }
 }
@@ -244,6 +250,11 @@ extension SessionRecord: EmbraceStorageRecord {
         userSessionTerminationReasonAttribute.attributeType = .stringAttributeType
         userSessionTerminationReasonAttribute.isOptional = true
 
+        let clockDriftAttribute = NSAttributeDescription()
+        clockDriftAttribute.name = "clockDriftMs"
+        clockDriftAttribute.attributeType = .integer64AttributeType
+        clockDriftAttribute.isOptional = true
+
         entity.properties = [
             idAttribute,
             processIdAttribute,
@@ -264,7 +275,8 @@ extension SessionRecord: EmbraceStorageRecord {
             userSessionInactivityTimeoutAttribute,
             userSessionLastForegroundEndAttribute,
             userSessionPartIndexAttribute,
-            userSessionTerminationReasonAttribute
+            userSessionTerminationReasonAttribute,
+            clockDriftAttribute
         ]
 
         return entity
@@ -292,4 +304,5 @@ struct ImmutableSessionRecord: EmbraceSession {
     let userSessionLastForegroundEnd: Date?
     let userSessionPartIndex: EMBInt
     let userSessionTerminationReason: TerminationReason?
+    let clockDriftMs: EMBInt?
 }

@@ -9,7 +9,7 @@
     /// A single backtrace of the main thread captured *while the main thread was blocked*.
     struct MainThreadStackSample {
 
-        /// Capture time in `CLOCK_MONOTONIC_RAW` nanoseconds — identical to `backtrace.timestamp`.
+        /// Capture time in `EmbraceMonotonicTime` nanoseconds — identical to `backtrace.timestamp`.
         ///
         /// Used to reconcile the sample against the CADisplayLink-confirmed hang window: the window
         /// is derived from the same clock (see `HangCaptureService.hangEnded`), so a sample is
@@ -53,7 +53,7 @@
         func resume()
 
         /// Buffered during-block samples whose capture `timestamp` falls within `range`
-        /// (`CLOCK_MONOTONIC_RAW` ns), ordered oldest to newest.
+        /// (`EmbraceMonotonicTime` ns), ordered oldest to newest.
         func samples(in range: ClosedRange<UInt64>) -> [MainThreadStackSample]
     }
 

@@ -73,6 +73,10 @@ class SessionController: SessionControllable {
     let queue: DispatchableQueue
     var firstSession = true
 
+    /// Measures how much the device clock moved during each part. Anchored when the SDK starts and
+    /// re-anchored every time a part ends, so each part reports only its own interval.
+    let clock: EmbraceClock
+
     init(
         storage: EmbraceStorage,
         upload: EmbraceUpload?,
@@ -80,12 +84,14 @@ class SessionController: SessionControllable {
         config: EmbraceConfig?,
         heartbeatInterval: TimeInterval = SessionHeartbeat.defaultInterval,
         queue: DispatchableQueue = .with(label: "com.embrace.session_controller_upload"),
-        heartbeatQueue: DispatchQueue = DispatchQueue(label: "com.embrace.session_heartbeat")
+        heartbeatQueue: DispatchQueue = DispatchQueue(label: "com.embrace.session_heartbeat"),
+        clock: EmbraceClock = EmbraceClock()
     ) {
         self.storage = storage
         self.upload = upload
         self.uploader = uploader
         self.config = config
+        self.clock = clock
 
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
         self.queue = queue
@@ -457,12 +463,19 @@ class SessionController: SessionControllable {
         // foreground-end timestamp on the part record AND on the in-memory user-session
         // snapshot so the next `attachPart` can compute the inactivity cutoff.
         let isForeground = inProgressSession.state == SessionState.foreground
+
+        // Measure how far the device clock moved during this part and re-anchor, so the next part
+        // reports only its own interval. Taken here rather than earlier so a part that is dropped
+        // above (SDK disabled, background session disabled) neither reports nor consumes a reading.
+        let clockDriftMs = clock.measureDriftAndReanchor()
+
         let sessionToUpload: EmbraceSession? = storage?.updateSession(
             session: inProgressSession,
             endTime: now,
             cleanExit: true,
             // nil will not overwrite previously-set userSessionLastForegroundEnd value
-            userSessionLastForegroundEnd: isForeground ? now : nil
+            userSessionLastForegroundEnd: isForeground ? now : nil,
+            clockDriftMs: clockDriftMs
         )
 
         if isForeground {

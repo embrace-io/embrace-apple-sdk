@@ -27,7 +27,7 @@ internal class SymbolCache {
 
     func retrieve(_ address: UInt64) -> EmbraceBacktraceFrame? {
         return cache.withLock {
-            $0[address]?.accessDate = clock_gettime_nsec_np(CLOCK_MONOTONIC)
+            $0[address]?.accessDate = EmbraceMonotonicTime.nanos()
             return $0[address]?.frame
         }
     }
@@ -35,7 +35,7 @@ internal class SymbolCache {
     func store(_ frame: EmbraceBacktraceFrame, for address: UInt64) {
         cache.withLock {
             $0[address] = Item(
-                accessDate: clock_gettime_nsec_np(CLOCK_MONOTONIC),
+                accessDate: EmbraceMonotonicTime.nanos(),
                 frame: frame,
                 address: address
             )
