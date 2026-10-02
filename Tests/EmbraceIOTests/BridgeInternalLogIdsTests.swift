@@ -14,8 +14,8 @@ import XCTest
 
 /// Covers the lifetime of the IDs the OTel bridge uses to recognize its own outbound logs.
 ///
-/// Those IDs are only needed while the log is being emitted: the OTel log processor chain runs
-/// synchronously inside `emit()`. This test drives the full public logging path to confirm that
+/// Those IDs are only needed while the log is being emitted: the root log processor checks them
+/// synchronously inside `emit()`, and only child forwarding is deferred to its queue. This test drives the full public logging path to confirm that
 /// nothing is retained afterwards, and that scoping the IDs to the emit window did not break the
 /// deduplication they exist for — each log must still reach the pipeline exactly once.
 final class BridgeInternalLogIdsTests: XCTestCase {

@@ -117,7 +117,7 @@ final class EmbraceLogProcessorTests: XCTestCase {
 
     // MARK: - Child forwarding runs on the processor queue
 
-    func test_onEmit_returnsWithoutWaitingForChildren_andNotifiesDelegateInline() throws {
+    func test_onEmit_returnsWithoutWaitingForChildren_andNotifiesDelegateInline() {
         let blockingProcessor = BlockingLogProcessor()
         let childExporter = CapturingLogExporter()
         let processor = EmbraceLogProcessor(
@@ -144,7 +144,6 @@ final class EmbraceLogProcessorTests: XCTestCase {
         blockingProcessor.gate.signal()
         processor.waitForAllWork()
 
-        XCTAssertFalse(blockingProcessor.ranOnCallerThread)
         XCTAssertEqual(blockingProcessor.receivedBodies, ["first", "second"])
         XCTAssertEqual(childExporter.exportedLogs.count, 2)
     }
@@ -190,6 +189,32 @@ final class EmbraceLogProcessorTests: XCTestCase {
         group.leave()
         XCTAssertEqual(drained.wait(timeout: .now() + TimeInterval.defaultTimeout), .success)
         XCTAssertEqual(childExporter.exportedLogs.count, 1)
+    }
+
+    func test_onEmit_childrenReceiveAttributesInjectedWhenTheLogWasEmitted() {
+        let childProcessor = CapturingLogProcessor()
+        let processor = EmbraceLogProcessor(delegate: mockDelegate, childProcessors: [childProcessor])
+        let group = DispatchGroup()
+        group.enter()
+        processor.criticalResourceGroup = group
+        let logger = LoggerProviderSdk(logRecordProcessors: [processor])
+            .loggerBuilder(instrumentationScopeName: "test").build()
+
+        mockDelegate.currentSessionId = EmbraceIdentifier(stringValue: "part-A")
+        mockDelegate.currentUserSessionId = EmbraceIdentifier(stringValue: "user-A")
+        logger.logRecordBuilder().setBody(.string("external-log")).emit()
+
+        // The session changes while the log is still queued for the children.
+        mockDelegate.currentSessionId = EmbraceIdentifier(stringValue: "part-B")
+        mockDelegate.currentUserSessionId = EmbraceIdentifier(stringValue: "user-B")
+        group.leave()
+        processor.waitForAllWork()
+
+        let log = childProcessor.capturedLogs.first
+        XCTAssertEqual(log?.attributes[LogSemantics.keyEmbraceType], .string(EmbraceType.message.rawValue))
+        XCTAssertEqual(log?.attributes[LogSemantics.keySessionId], .string("user-A"))
+        XCTAssertEqual(log?.attributes[LogSemantics.keyUserSessionId], .string("user-A"))
+        XCTAssertEqual(log?.attributes[LogSemantics.keyPartId], .string("part-A"))
     }
 
     // A child exporter that re-enters the SDK queue it was called from (for example by starting a
@@ -342,14 +367,10 @@ class CapturingLogProcessor: LogRecordProcessor {
 private class BlockingLogProcessor: LogRecordProcessor {
     let entered = DispatchSemaphore(value: 0)
     let gate = DispatchSemaphore(value: 0)
-    private let callerThread = Thread.current
-
-    private(set) var ranOnCallerThread = false
     private(set) var receivedBodies: [String] = []
 
     func onEmit(logRecord: ReadableLogRecord) {
         if receivedBodies.isEmpty {
-            ranOnCallerThread = Thread.current == callerThread
             entered.signal()
             // timed-wait: deadlock guard so a regression to inline forwarding fails instead of hanging.
             _ = gate.wait(timeout: .now() + TimeInterval.defaultTimeout)

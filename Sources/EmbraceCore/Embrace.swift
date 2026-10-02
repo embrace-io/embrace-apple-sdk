@@ -69,8 +69,8 @@ package class Embrace {
     let captureServices: CaptureServices
 
     /// Entered on init and left exactly once, when `start()` resolves (either by starting the
-    /// SDK or by finding it disabled). OTel child span forwarding waits on this group, so it
-    /// must never stay entered once `start()` has run, or forwarding would block forever.
+    /// SDK or by finding it disabled). OTel child span and log forwarding waits on this group, so
+    /// it must never stay entered once `start()` has run, or forwarding would block forever.
     package let captureServicesGroup: DispatchGroup
 
     /// Tracks whether `captureServicesGroup` was already left. Guarded by `_syncLock`.
@@ -315,7 +315,7 @@ package class Embrace {
             guard config.isSDKEnabled else {
                 Embrace.logger.warning("Embrace can't start when disabled!")
 
-                // Nothing else will release the group, and OTel child span forwarding waits on it.
+                // Nothing else will release the group, and OTel child span and log forwarding waits on it.
                 releaseCaptureServicesGroup()
                 return self
             }

@@ -239,6 +239,30 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         XCTAssertTrue(bridge.inFlightInternalLogIds.isEmpty)
     }
 
+    func test_setup_gatesLogChildrenOnCriticalResourceGroup_andWaitForAllWorkDrainsThem() {
+        let exporter = ThreadSafeMockLogExporter()
+        let bridge = EmbraceOTelBridge(logExporters: [exporter])
+        let group = DispatchGroup()
+        group.enter()
+        bridge.setup(delegate: mockDelegate, metadataProvider: mockMetadata, criticalResourceGroup: group)
+
+        bridge.createLog(MockEmbraceLog())
+
+        // Only the log processor's queue can block here: its job waits on the group.
+        let drained = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            bridge.waitForAllWork()
+            drained.signal()
+        }
+        // timed-wait: window for something that must not happen; the log queue must stay gated while the group is entered.
+        XCTAssertEqual(drained.wait(timeout: .now() + 0.5), .timedOut)
+        XCTAssertTrue(exporter.exportedLogs.isEmpty)
+
+        group.leave()
+        XCTAssertEqual(drained.wait(timeout: .now() + TimeInterval.defaultTimeout), .success)
+        XCTAssertEqual(exporter.exportedLogs.count, 1)
+    }
+
     private func makeReadableLogRecord(id: String?) -> ReadableLogRecord {
         var attributes: [String: AttributeValue] = [:]
         if let id {

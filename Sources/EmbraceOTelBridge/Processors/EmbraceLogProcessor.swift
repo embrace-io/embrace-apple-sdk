@@ -24,12 +24,14 @@ import OpenTelemetrySdk
 /// child processor/exporter forwarding is dispatched to a dedicated utility queue, matching
 /// `EmbraceSpanProcessor`. The calling thread is often an SDK queue, so a slow or re-entrant
 /// child exporter then only delays this queue instead of stalling (or trapping) that SDK queue.
-/// `criticalResourceGroup` (set by the bridge after `Embrace.setup` completes) is waited on before
-/// any child forwarding begins, ensuring children never receive logs before critical SDK resources
-/// are ready.
+/// Once the bridge has set `criticalResourceGroup` (after `Embrace.setup` completes), child
+/// forwarding waits on it, so children don't receive logs before critical SDK resources are
+/// ready. Logs forwarded before it is set are not gated.
 ///
-/// `forceFlush` and `shutdown` block the caller until the queue drains, so they must not be
-/// called from a child's own callbacks: `queue.sync` on the current queue traps.
+/// `forceFlush`, `shutdown` and `waitForAllWork` block the caller until the queue drains. If logs
+/// are queued while `criticalResourceGroup` is still entered, that includes waiting for the group
+/// to be left. They must not be called from a child's own callbacks: `forceFlush` and `shutdown`
+/// trap (`queue.sync` on the current queue) and `waitForAllWork` deadlocks.
 class EmbraceLogProcessor: LogRecordProcessor {
 
     weak var delegate: EmbraceLogProcessorDelegate?
@@ -82,7 +84,7 @@ class EmbraceLogProcessor: LogRecordProcessor {
     }
 
     func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult {
-        processorQueue.sync {
+        return processorQueue.sync {
             let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "log-processor-forceflush")
             let processorResults = childProcessors.map { $0.forceFlush(explicitTimeout: explicitTimeout) }
             mkProcessSpan.end()
@@ -99,8 +101,8 @@ class EmbraceLogProcessor: LogRecordProcessor {
         }
     }
 
-    /// Drains the internal processor queue synchronously by enqueuing an empty barrier and
-    /// waiting. Used by benchmark/test harnesses to ensure all queued log work is processed
+    /// Drains the internal processor queue synchronously by enqueuing an empty block on the
+    /// serial queue and waiting for it. Used by benchmark/test harnesses to ensure all queued log work is processed
     /// before measurements are taken.
     func waitForAllWork() {
         let group = DispatchGroup()

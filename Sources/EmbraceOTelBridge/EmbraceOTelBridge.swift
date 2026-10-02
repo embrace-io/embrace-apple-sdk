@@ -291,9 +291,9 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
 
     package func createLog(_ log: EmbraceLog) {
         let logId = log.id
-        // Track the ID so the inbound processor can skip it. The processor consults this set from
-        // inside `emit()`, which dispatches to the processor chain synchronously, so the entry is
-        // only needed until this function returns.
+        // Track the ID so the inbound processor can skip it. The processor's `isInternalLog` check
+        // runs synchronously inside `emit()` (only child forwarding is deferred to its queue), so
+        // the entry is only needed until this function returns.
         internalLogIds.withLock { $0.insert(logId) }
         defer { internalLogIds.withLock { $0.remove(logId) } }
 
