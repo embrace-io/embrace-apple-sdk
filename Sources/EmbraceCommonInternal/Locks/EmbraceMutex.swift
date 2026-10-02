@@ -36,6 +36,24 @@ public final class EmbraceMutex<Value>: @unchecked Sendable {
         return try mutate(&storage)
     }
 
+    /// Executes the given closure with inout access to the protected value only if the lock can be acquired
+    /// without blocking. Mirrors `Mutex.withLockIfAvailable(_:)`.
+    ///
+    /// This never waits for the lock, so it isn't meant to be retried in a loop.
+    ///
+    /// - Parameter mutate: A closure that receives inout access to the stored value.
+    /// - Returns: The result of the closure, or `nil` if the lock was already held by any thread.
+    ///
+    /// - Throws: Rethrows any error thrown by the `mutate` closure.
+    @discardableResult
+    public func withLockIfAvailable<T>(_ mutate: (inout Value) throws -> T) rethrows -> T? {
+        guard lock.tryLock() else {
+            return nil
+        }
+        defer { lock.unlock() }
+        return try mutate(&storage)
+    }
+
     private let lock: UnfairLock
     private var storage: Value
 }
