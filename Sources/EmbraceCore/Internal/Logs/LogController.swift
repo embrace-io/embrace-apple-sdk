@@ -143,8 +143,15 @@ class LogController: LogControllable {
             }
         case .main where severity == .warn || severity == .error:
             if EmbraceBacktrace.isAvailable {
+                // A remote-thread capture comes back empty when it could not be taken (e.g. another
+                // stack walk was in flight), so an empty capture attaches no stack at all.
                 let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), threadIndex: 0)
-                addStacktraceBlock = { $0.addBacktrace(backtrace) }
+                if backtrace.hasFrames {
+                    addStacktraceBlock = { $0.addBacktrace(backtrace) }
+                } else {
+                    addStacktraceBlock = nil
+                    Embrace.logger.debug("stackTraceBehavior .main capture returned no frames; log sent without a stack")
+                }
             } else {
                 addStacktraceBlock = nil
                 Embrace.logger.warning("stackTraceBehavior .main is unavailable without EmbraceBacktrace")
