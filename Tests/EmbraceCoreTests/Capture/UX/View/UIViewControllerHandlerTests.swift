@@ -125,7 +125,7 @@
             // and a span processor that checks if the handler's lock is free when a span ends
             let lockWasFree = EmbraceMutex<[Bool]>([])
             otel.spanProcessor.onEndCallback = { [handler] _ in
-                let isFree = isLockFree(handler!.data)
+                let isFree = handler!.data.isLockFree
                 lockWasFree.withLock { $0.append(isFree) }
             }
             defer { otel.spanProcessor.onEndCallback = nil }
@@ -562,12 +562,6 @@
 
     class MockInteractableViewController: MockViewController, InteractableViewController {
 
-    }
-
-    /// Tries to take the lock without blocking, returns false if it's being held.
-    /// Span processors are called synchronously, so this tells if the caller is still holding the lock.
-    private func isLockFree<T>(_ mutex: EmbraceMutex<T>) -> Bool {
-        mutex.withLockIfAvailable { _ in } != nil
     }
 
 #endif

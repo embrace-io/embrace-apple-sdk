@@ -199,7 +199,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         // and a span processor that checks if the service's lock is free when a span ends
         var lockWasFree: Bool?
         otel.spanProcessor.onEndCallback = { _ in
-            lockWasFree = isLockFree(service._currentSpan)
+            lockWasFree = service._currentSpan.isLockFree
         }
         defer { otel.spanProcessor.onEndCallback = nil }
 
@@ -223,7 +223,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         // and a span processor that checks if the service's lock is free when a span starts
         var lockWasFree: Bool?
         otel.spanProcessor.onStartCallback = { _ in
-            lockWasFree = isLockFree(service._currentSpan)
+            lockWasFree = service._currentSpan.isLockFree
         }
         defer { otel.spanProcessor.onStartCallback = nil }
 
@@ -254,7 +254,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         // and a span processor that checks if the service's lock is free when a span ends
         var lockWasFree: [Bool] = []
         otel.spanProcessor.onEndCallback = { _ in
-            lockWasFree.append(isLockFree(service._currentSpan))
+            lockWasFree.append(service._currentSpan.isLockFree)
         }
         defer { otel.spanProcessor.onEndCallback = nil }
 
@@ -293,9 +293,3 @@ class LowPowerModeCollectorTests: XCTestCase {
 }
 
 // swiftlint:enable force_cast
-
-/// Tries to take the lock without blocking, returns false if it's being held.
-/// Span processors are called synchronously, so this tells if the caller is still holding the lock.
-private func isLockFree<T>(_ mutex: EmbraceMutex<T>) -> Bool {
-    mutex.withLockIfAvailable { _ in } != nil
-}
