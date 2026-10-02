@@ -42,9 +42,6 @@ import UserNotifications
             lock.unlock()
         }
 
-        // read the current delegate before swizzling, since the swizzled getter returns the proxied delegate
-        let currentDelegate = UNUserNotificationCenter.current().delegate
-
         initializeSwizzlers()
 
         swizzlers.forEach {
@@ -55,13 +52,12 @@ import UserNotifications
             }
         }
 
-        // call set delegate manually to set the proxy
-        UNUserNotificationCenter.current().delegate = currentDelegate
+        // Run any delegate the app set before Embrace started through the swizzled setter.
+        UNUserNotificationCenter.current().delegate = UNUserNotificationCenter.current().delegate
     }
 
     private func initializeSwizzlers() {
         swizzlers.append(UNUserNotificationCenterSetDelegateSwizzler(proxy: proxy))
-        swizzlers.append(UNUserNotificationCenterGetDelegateSwizzler(proxy: proxy))
     }
 }
 
@@ -90,32 +86,6 @@ struct UNUserNotificationCenterSetDelegateSwizzler: Swizzlable {
                     proxy.originalDelegate = delegate
                 }
                 originalImplementation(center, Self.selector, proxy)
-            }
-        }
-    }
-}
-
-/// Hides the proxy from callers of `UNUserNotificationCenter.delegate` by returning the delegate it forwards to.
-/// This way, code that reads the delegate to re-assign or wrap it never feeds the proxy back into itself.
-struct UNUserNotificationCenterGetDelegateSwizzler: Swizzlable {
-    typealias ImplementationType =
-        @convention(c) (UNUserNotificationCenter, Selector) -> UNUserNotificationCenterDelegate?
-    typealias BlockImplementationType =
-        @convention(block) (UNUserNotificationCenter) -> UNUserNotificationCenterDelegate?
-    static var selector: Selector = #selector(getter: UNUserNotificationCenter.delegate)
-    var baseClass: AnyClass
-    let proxy: UNUserNotificationCenterDelegateProxy
-
-    init(proxy: UNUserNotificationCenterDelegateProxy, baseClass: AnyClass = UNUserNotificationCenter.self) {
-        self.baseClass = baseClass
-        self.proxy = proxy
-    }
-
-    func install() throws {
-        try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
-            return { center in
-                let delegate = originalImplementation(center, Self.selector)
-                return delegate is UNUserNotificationCenterDelegateProxy ? proxy.originalDelegate : delegate
             }
         }
     }
