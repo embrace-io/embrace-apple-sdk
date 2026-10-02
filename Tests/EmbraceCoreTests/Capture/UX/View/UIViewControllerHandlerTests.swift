@@ -11,6 +11,7 @@
     import EmbraceOTelInternal
     import TestSupport
     import EmbraceCommonInternal
+    import EmbraceSemantics
 
     class UIViewControllerHandlerTests: XCTestCase {
 
@@ -119,6 +120,7 @@
             handler.data.safeValue.viewIsAppearingSpans[id] = createViewIsAppearingSpan()
             handler.data.safeValue.viewDidAppearSpans[id] = createViewDidAppearSpan()
             handler.data.safeValue.uiReadySpans[id] = createUiReadySpan()
+            handler.data.safeValue.alreadyFinishedUiReadyIds.insert(id)
 
             // and a span processor that checks if the handler's lock is free when a span ends
             let lockWasFree = EmbraceMutex<[Bool]>([])
@@ -139,6 +141,14 @@
             }
             XCTAssertEqual(lockWasFree.safeValue, Array(repeating: true, count: 6))
             XCTAssertTrue(cacheIsEmpty())
+
+            // and all of them are ended as abandoned
+            let endedSpans = otel.spanProcessor.endedSpans
+            XCTAssertEqual(endedSpans.count, 6)
+            for span in endedSpans {
+                XCTAssertTrue(span.status.isError, "\(span.name) should have an error status")
+                XCTAssertEqual(span.attributes[SpanSemantics.keyErrorCode], .string("user_abandon"), span.name)
+            }
         }
 
         func test_onViewDidLoad_deactivatedService() {
@@ -555,7 +565,8 @@
     }
 
     /// Tries to take the lock from another thread, returns false if it couldn't within the timeout.
-    private func isLockFree<T>(_ mutex: EmbraceMutex<T>, timeout: TimeInterval = 0.5) -> Bool {
+    /// The timeout is kept low so 6 failed attempts still fit in `.longTimeout`.
+    private func isLockFree<T>(_ mutex: EmbraceMutex<T>, timeout: TimeInterval = 0.7) -> Bool {
         let semaphore = DispatchSemaphore(value: 0)
         DispatchQueue.global().async {
             mutex.withLock { _ in }

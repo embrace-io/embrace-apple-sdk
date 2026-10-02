@@ -199,12 +199,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         // and a span processor that checks if the service's lock is free when a span ends
         var lockWasFree: Bool?
         otel.spanProcessor.onEndCallback = { _ in
-            let semaphore = DispatchSemaphore(value: 0)
-            DispatchQueue.global().async {
-                service._currentSpan.withLock { _ in }
-                semaphore.signal()
-            }
-            lockWasFree = semaphore.wait(timeout: .now() + 0.5) == .success
+            lockWasFree = isLockFree(service._currentSpan)
         }
         defer { otel.spanProcessor.onEndCallback = nil }
 
@@ -228,12 +223,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         // and a span processor that checks if the service's lock is free when a span starts
         var lockWasFree: Bool?
         otel.spanProcessor.onStartCallback = { _ in
-            let semaphore = DispatchSemaphore(value: 0)
-            DispatchQueue.global().async {
-                service._currentSpan.withLock { _ in }
-                semaphore.signal()
-            }
-            lockWasFree = semaphore.wait(timeout: .now() + 0.5) == .success
+            lockWasFree = isLockFree(service._currentSpan)
         }
         defer { otel.spanProcessor.onStartCallback = nil }
 
@@ -255,21 +245,31 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // and a span that another thread stores while a new one is being started
         let raced = EmbraceOTel().buildSpan(name: "raced", type: .lowPower).startSpan()
+        var racedSpanWasStored: Bool?
         otel.spanProcessor.onStartCallback = { _ in
             let semaphore = DispatchSemaphore(value: 0)
             DispatchQueue.global().async {
                 service._currentSpan.safeValue = raced
                 semaphore.signal()
             }
-            _ = semaphore.wait(timeout: .now() + 0.5)
+            racedSpanWasStored = semaphore.wait(timeout: .now() + 0.7) == .success
         }
         defer { otel.spanProcessor.onStartCallback = nil }
+
+        // and a span processor that checks if the service's lock is free when a span ends
+        var lockWasFree: [Bool] = []
+        otel.spanProcessor.onEndCallback = { _ in
+            lockWasFree.append(isLockFree(service._currentSpan))
+        }
+        defer { otel.spanProcessor.onEndCallback = nil }
 
         // when a span is started
         service.startSpan()
 
-        // then the raced span is ended and replaced by the new one
+        // then the raced span is ended without holding the lock and replaced by the new one
+        XCTAssertEqual(racedSpanWasStored, true)
         XCTAssertTrue((raced as! ReadableSpan).hasEnded)
+        XCTAssertEqual(lockWasFree, [true])
         XCTAssertNotNil(service.currentSpan)
         XCTAssertEqual(service.currentSpan?.name, "emb-device-low-power")
         XCTAssertFalse((service.currentSpan as! ReadableSpan).hasEnded)
@@ -298,3 +298,13 @@ class LowPowerModeCollectorTests: XCTestCase {
 }
 
 // swiftlint:enable force_cast
+
+/// Tries to take the lock from another thread, returns false if it couldn't within the timeout.
+private func isLockFree<T>(_ mutex: EmbraceMutex<T>, timeout: TimeInterval = 0.7) -> Bool {
+    let semaphore = DispatchSemaphore(value: 0)
+    DispatchQueue.global().async {
+        mutex.withLock { _ in }
+        semaphore.signal()
+    }
+    return semaphore.wait(timeout: .now() + timeout) == .success
+}
