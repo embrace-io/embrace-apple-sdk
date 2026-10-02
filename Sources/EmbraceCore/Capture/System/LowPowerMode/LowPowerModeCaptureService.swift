@@ -93,12 +93,6 @@ public class LowPowerModeCaptureService: CaptureService {
     }
 
     func endSpan() {
-        // end the span after releasing the lock, since `end()` calls the span processors' `onEnd` inline
-        let span = _currentSpan.withLock {
-            let span = $0
-            $0 = nil
-            return span
-        }
-        span?.end()
+        _currentSpan.takeValue()?.end()
     }
 }
