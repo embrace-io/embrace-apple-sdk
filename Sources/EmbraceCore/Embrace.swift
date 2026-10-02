@@ -183,6 +183,15 @@ package class Embrace {
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options, configuration: config.configurable)
 
+        // Persist the critical resources before anything else touches the storage.
+        // The backend drops payloads without them, and since the storage context is serial,
+        // enqueuing them first guarantees every later read sees them without blocking this thread.
+        let criticalResources = AppInfoCaptureService.criticalResources.merging(DeviceInfoCaptureService.criticalResources) { current, _ in current }
+        storage.addCriticalResources(
+            criticalResources,
+            processId: ProcessIdentifier.current
+        )
+
         // initialize session controller
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
 

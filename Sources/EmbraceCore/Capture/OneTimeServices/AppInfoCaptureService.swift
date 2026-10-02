@@ -12,22 +12,26 @@ import Foundation
 
 class AppInfoCaptureService: ResourceCaptureService {
 
-    override func onStart() {
-
-        let isPreWarm = ProcessInfo.processInfo.environment["ActivePrewarm"] == "1" ? "true" : "false"
-
-        //
-        // Critical Resources
-        //
-        var criticalResourcesMap: [String: String] = [
+    /// App resources the backend requires on every payload.
+    /// These are not captured by `onStart()`, they are persisted by the SDK during `Embrace.init`
+    /// so they are guaranteed to be stored before any other telemetry is.
+    static var criticalResources: [String: String] {
+        var map: [String: String] = [
             // sdk version
             AppResourceKey.sdkVersion.rawValue: EmbraceMeta.sdkVersion
         ]
 
         // app version
         if let appVersion = EMBDevice.appVersion {
-            criticalResourcesMap[AppResourceKey.appVersion.rawValue] = appVersion
+            map[AppResourceKey.appVersion.rawValue] = appVersion
         }
+
+        return map
+    }
+
+    override func onStart() {
+
+        let isPreWarm = ProcessInfo.processInfo.environment["ActivePrewarm"] == "1" ? "true" : "false"
 
         //
         // Required Resources
@@ -63,7 +67,6 @@ class AppInfoCaptureService: ResourceCaptureService {
                 processStartTime.nanosecondsSince1970Truncated)
         }
 
-        addCriticalResources(criticalResourcesMap)
         addRequiredResources(resourcesMap)
     }
 }

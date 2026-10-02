@@ -120,10 +120,14 @@ extension EmbraceStorage {
         coreData.save(allowMainQueue: allowMainQueue)
     }
 
-    /// Adds or updates all the given critical resources **synchronously**
+    /// Adds or updates all the given critical resources **asynchronously**.
+    ///
+    /// The operation is enqueued on the storage's serial context, so any read enqueued afterwards
+    /// is guaranteed to see these resources. To ensure they are present for all telemetry,
+    /// this should be called before any other storage operation is enqueued.
     public func addCriticalResources(_ map: [String: String], processId: EmbraceIdentifier = ProcessIdentifier.current) {
-        coreData.performOperation(allowMainQueue: true) { context in
-            _addResources(map, allowMainQueue: true, context: context, processId: processId)
+        coreData.performAsyncOperation { [self] context in
+            _addResources(map, allowMainQueue: false, context: context, processId: processId)
         }
     }
 
