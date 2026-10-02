@@ -564,15 +564,10 @@
 
     }
 
-    /// Tries to take the lock from another thread, returns false if it couldn't within the timeout.
-    /// The timeout is kept low so 6 failed attempts still fit in `.longTimeout`.
-    private func isLockFree<T>(_ mutex: EmbraceMutex<T>, timeout: TimeInterval = 0.7) -> Bool {
-        let semaphore = DispatchSemaphore(value: 0)
-        DispatchQueue.global().async {
-            mutex.withLock { _ in }
-            semaphore.signal()
-        }
-        return semaphore.wait(timeout: .now() + timeout) == .success
+    /// Tries to take the lock without blocking, returns false if it's being held.
+    /// Span processors are called synchronously, so this tells if the caller is still holding the lock.
+    private func isLockFree<T>(_ mutex: EmbraceMutex<T>) -> Bool {
+        mutex.withLockIfAvailable { _ in } != nil
     }
 
 #endif

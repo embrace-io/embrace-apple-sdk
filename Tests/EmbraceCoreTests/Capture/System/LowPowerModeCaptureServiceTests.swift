@@ -247,12 +247,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         let raced = EmbraceOTel().buildSpan(name: "raced", type: .lowPower).startSpan()
         var racedSpanWasStored: Bool?
         otel.spanProcessor.onStartCallback = { _ in
-            let semaphore = DispatchSemaphore(value: 0)
-            DispatchQueue.global().async {
-                service._currentSpan.safeValue = raced
-                semaphore.signal()
-            }
-            racedSpanWasStored = semaphore.wait(timeout: .now() + 0.7) == .success
+            racedSpanWasStored = service._currentSpan.withLockIfAvailable { $0 = raced } != nil
         }
         defer { otel.spanProcessor.onStartCallback = nil }
 
@@ -299,12 +294,8 @@ class LowPowerModeCollectorTests: XCTestCase {
 
 // swiftlint:enable force_cast
 
-/// Tries to take the lock from another thread, returns false if it couldn't within the timeout.
-private func isLockFree<T>(_ mutex: EmbraceMutex<T>, timeout: TimeInterval = 0.7) -> Bool {
-    let semaphore = DispatchSemaphore(value: 0)
-    DispatchQueue.global().async {
-        mutex.withLock { _ in }
-        semaphore.signal()
-    }
-    return semaphore.wait(timeout: .now() + timeout) == .success
+/// Tries to take the lock without blocking, returns false if it's being held.
+/// Span processors are called synchronously, so this tells if the caller is still holding the lock.
+private func isLockFree<T>(_ mutex: EmbraceMutex<T>) -> Bool {
+    mutex.withLockIfAvailable { _ in } != nil
 }
