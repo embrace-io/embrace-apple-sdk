@@ -62,17 +62,22 @@ class LogController: LogControllable {
         set { state.withLock { $0.limits = newValue } }
     }
 
+    /// Serial queue used to chain the uploads of the logs persisted by previous processes.
+    private let unsentLogsQueue: DispatchableQueue
+
     static let attachmentLimit: Int = 5
     static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
 
     init(
         storage: Storage?,
         upload: EmbraceLogUploader?,
-        controller: SessionControllable
+        controller: SessionControllable,
+        unsentLogsQueue: DispatchableQueue = .with(label: "io.embrace.logs.unsent", qos: .utility)
     ) {
         self.storage = storage
         self.upload = upload
         self.sessionController = controller
+        self.unsentLogsQueue = unsentLogsQueue
     }
 
     func uploadAllPersistedLogs(_ completion: (() -> Void)? = nil) {
@@ -241,67 +246,103 @@ extension LogController {
 }
 
 extension LogController {
+    /// A batch of persisted logs with the payloads it needs to be uploaded.
+    fileprivate struct PreparedLogsBatch {
+        let logs: [EmbraceLog]
+        let resourcePayload: ResourcePayload
+        let metadataPayload: MetadataPayload
+    }
+
+    /// Identifies the session (or process, when the session is unknown) a batch of logs belongs to.
+    fileprivate struct PayloadKey: Hashable {
+        let sessionId: String?
+        let processId: String
+    }
+
+    /// Uploads the given batches one at a time, without blocking the calling thread.
+    ///
+    /// The resource and metadata payloads of every batch are built synchronously before this method returns,
+    /// so callers can safely clean up the stored metadata afterwards. The uploads themselves are chained
+    /// asynchronously, so a missing upload completion only stalls the remaining log uploads.
     fileprivate func send(batches: [LogsBatch], completion: (() -> Void)? = nil) {
         guard sdkStateProvider?.isEnabled == true, !batches.isEmpty else {
             completion?()
             return
         }
 
-        // Process batches sequentially so each compressed payload
-        // is released before the next one is allocated.
-        let semaphore = DispatchSemaphore(value: 0)
+        let preparedBatches = prepare(batches: batches)
 
-        // Batches missing the required metadata are dropped, and a single private log
-        // is sent at the end reporting the total amount of logs lost. This avoids
-        // sending one private log per batch when many of them are dropped in a row.
+        unsentLogsQueue.async { [weak self] in
+            guard let self = self else {
+                completion?()
+                return
+            }
+
+            self.send(preparedBatches: preparedBatches, index: 0, completion: completion)
+        }
+    }
+
+    /// Builds the payloads for each batch, reusing them for batches that belong to the same session or process.
+    ///
+    /// Batches missing the required metadata are dropped, and a single private log
+    /// is sent reporting the total amount of logs lost. This avoids
+    /// sending one private log per batch when many of them are dropped in a row.
+    fileprivate func prepare(batches: [LogsBatch]) -> [PreparedLogsBatch] {
+        var payloads: [PayloadKey: (resource: ResourcePayload, metadata: MetadataPayload)] = [:]
+        var preparedBatches: [PreparedLogsBatch] = []
         var droppedLogCount = 0
 
         for batch in batches {
-            autoreleasepool {
-                guard !batch.logs.isEmpty, let processId = batch.logs[0].processId else {
-                    return
+            guard !batch.logs.isEmpty, let processId = batch.logs[0].processId else {
+                continue
+            }
+
+            // Since we always end batches when a session ends
+            // all the logs still in storage when the app starts should come
+            // from the last session before the app closes.
+            //
+            // We grab the first valid sessionId from the stored logs
+            // and assume all of them come from the same session.
+            //
+            // If we can't find a sessionId, we use the processId instead
+            var sessionId: EmbraceIdentifier?
+            if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
+                if let id = log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw {
+                    sessionId = EmbraceIdentifier(stringValue: id)
                 }
+            }
 
-                // Since we always end batches when a session ends
-                // all the logs still in storage when the app starts should come
-                // from the last session before the app closes.
-                //
-                // We grab the first valid sessionId from the stored logs
-                // and assume all of them come from the same session.
-                //
-                // If we can't find a sessionId, we use the processId instead
+            let key = PayloadKey(sessionId: sessionId?.stringValue, processId: processId.stringValue)
 
-                do {
-                    var sessionId: EmbraceIdentifier?
-                    if let log = batch.logs.first(where: { $0.attribute(forKey: LogSemantics.keySessionId) != nil }) {
-                        if let id = log.attribute(forKey: LogSemantics.keySessionId)?.valueRaw {
-                            sessionId = EmbraceIdentifier(stringValue: id)
-                        }
-                    }
-
-                    let resourcePayload = try createResourcePayload(sessionId: sessionId, processId: processId)
-                    let metadataPayload = try createMetadataPayload(sessionId: sessionId, processId: processId)
-
-                    // the backend drops payloads that are missing the required metadata,
-                    // so we discard these logs instead of uploading them
-                    guard resourcePayload.hasRequiredMetadata else {
-                        droppedLogCount += batch.logs.count
-                        storage?.remove(logs: batch.logs)
-                        return
-                    }
-
-                    send(
-                        logs: batch.logs,
-                        resourcePayload: resourcePayload,
-                        metadataPayload: metadataPayload,
-                        completion: { semaphore.signal() }
+            do {
+                let payload: (resource: ResourcePayload, metadata: MetadataPayload)
+                if let cached = payloads[key] {
+                    payload = cached
+                } else {
+                    payload = (
+                        resource: try createResourcePayload(sessionId: sessionId, processId: processId),
+                        metadata: try createMetadataPayload(sessionId: sessionId, processId: processId)
                     )
-
-                    semaphore.wait()
-
-                } catch let exception {
-                    Error.couldntCreatePayload(reason: exception.localizedDescription).log()
+                    payloads[key] = payload
                 }
+
+                // the backend drops payloads that are missing the required metadata,
+                // so we discard these logs instead of uploading them
+                guard payload.resource.hasRequiredMetadata else {
+                    droppedLogCount += batch.logs.count
+                    storage?.remove(logs: batch.logs)
+                    continue
+                }
+
+                preparedBatches.append(
+                    PreparedLogsBatch(
+                        logs: batch.logs,
+                        resourcePayload: payload.resource,
+                        metadataPayload: payload.metadata
+                    )
+                )
+            } catch let exception {
+                Error.couldntCreatePayload(reason: exception.localizedDescription).log()
             }
         }
 
@@ -309,7 +350,39 @@ extension LogController {
             privateLogger?.sendPrivateLog("Logs dropped due to missing metadata: \(droppedLogCount)")
         }
 
-        completion?()
+        return preparedBatches
+    }
+
+    /// Uploads the batch at `index` and, once the upload module reports back, continues with the next one.
+    ///
+    /// Batches are processed sequentially so each compressed payload
+    /// is released before the next one is allocated.
+    /// Each step hops back to `unsentLogsQueue` so the payload encoding never runs on the upload module's queue,
+    /// and synchronous completions don't grow the stack.
+    fileprivate func send(preparedBatches: [PreparedLogsBatch], index: Int, completion: (() -> Void)?) {
+        guard index < preparedBatches.count else {
+            completion?()
+            return
+        }
+
+        autoreleasepool {
+            let batch = preparedBatches[index]
+            send(
+                logs: batch.logs,
+                resourcePayload: batch.resourcePayload,
+                metadataPayload: batch.metadataPayload,
+                completion: { [weak self] in
+                    guard let self = self else {
+                        completion?()
+                        return
+                    }
+
+                    self.unsentLogsQueue.async {
+                        self.send(preparedBatches: preparedBatches, index: index + 1, completion: completion)
+                    }
+                }
+            )
+        }
     }
 
     fileprivate func send(
