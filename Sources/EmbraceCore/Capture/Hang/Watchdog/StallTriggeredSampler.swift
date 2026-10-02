@@ -54,6 +54,12 @@
     /// window that CADisplayLink later confirms.
     final class StallTriggeredSampler: MainThreadStackSampler {
 
+        /// Capture attempts allowed per stall episode. A capture can come back empty when another
+        /// remote-thread stack walk is in flight (the backtracer refuses to overlap them), so an
+        /// empty capture is retried on the next poll tick instead of costing the episode its stack.
+        /// The cap bounds how often main is suspended when captures keep failing.
+        static let maxCaptureAttemptsPerEpisode = 3
+
         private let shared = SharedPollState()
         private let config: PollConfig
         private weak var logger: InternalLogger?
@@ -236,6 +242,9 @@
         func run() {
             // The `busySince` value we last captured for. Loop-local: no synchronization needed.
             var lastSampledEpoch: UInt64 = 0
+            // The episode currently being retried and how many attempts it has used. Loop-local.
+            var attemptEpoch: UInt64 = 0
+            var attempts = 0
 
             while shared.running.load(order: .acquire) {
                 Self.sleep(nanos: config.pollNanos)
@@ -248,17 +257,33 @@
                 let now = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
                 guard now &- since >= config.triggerNanos else { continue }
 
-                lastSampledEpoch = since  // one snapshot per stall episode
-                captureSample()
+                if attemptEpoch != since {
+                    attemptEpoch = since
+                    attempts = 0
+                }
+                attempts += 1
+
+                // One snapshot per stall episode: the episode is done once a capture succeeds or the
+                // attempts run out.
+                if captureSample() || attempts >= StallTriggeredSampler.maxCaptureAttemptsPerEpisode {
+                    lastSampledEpoch = since
+                }
             }
         }
 
-        private func captureSample() {
-            guard EmbraceBacktrace.isAvailable else { return }
+        /// Captures and buffers one main-thread sample. Returns `false` when the capture came back
+        /// with no frames, in which case nothing is buffered and the caller may retry.
+        private func captureSample() -> Bool {
+            guard EmbraceBacktrace.isAvailable else { return true }
 
             let pre = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
             let backtrace = EmbraceBacktrace.backtrace(of: config.mainThread, threadIndex: 0)  // suspends main; alloc-free
             let post = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
+
+            guard backtrace.hasFrames else {
+                Embrace.logger.debug("[Hang] main-thread capture returned no frames; retrying on next poll")
+                return false
+            }
 
             let sample = MainThreadStackSample(
                 timestamp: backtrace.timestamp,
@@ -271,6 +296,7 @@
                     $0.removeFirst($0.count - config.bufferCap)
                 }
             }
+            return true
         }
 
         private static func sleep(nanos: UInt64) {
