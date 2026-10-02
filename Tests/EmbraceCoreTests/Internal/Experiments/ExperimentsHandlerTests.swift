@@ -30,10 +30,18 @@ final class ExperimentsHandlerTests: XCTestCase {
 
     /// Defaults to reporting inline, so tests that aren't about the debounce don't have to wait it
     /// out. The debounce tests pass their own interval.
+    ///
+    /// The handler's own queue is `qos: .utility`, which a loaded machine can starve for longer than
+    /// the millisecond-scale intervals the debounce tests use. These run at `.userInitiated` so the
+    /// timings under test are what the assertions measure, rather than how busy the runner is.
     private func handler(
         limits: ExperimentsLimits = ExperimentsLimits(),
         persistDebounceInterval: TimeInterval = 0,
-        maxPersistDelay: TimeInterval = ExperimentsHandler.defaultMaxPersistDelay
+        maxPersistDelay: TimeInterval = ExperimentsHandler.defaultMaxPersistDelay,
+        persistQueue: DispatchQueue = DispatchQueue(
+            label: "io.embrace.tests.experiments.persist",
+            qos: .userInitiated
+        )
     ) -> ExperimentsHandler {
         ExperimentsHandler(
             storage: storage,
@@ -41,7 +49,8 @@ final class ExperimentsHandlerTests: XCTestCase {
             configNotificationCenter: notificationCenter,
             logger: logger,
             persistDebounceInterval: persistDebounceInterval,
-            maxPersistDelay: maxPersistDelay
+            maxPersistDelay: maxPersistDelay,
+            persistQueue: persistQueue
         )
     }
 
