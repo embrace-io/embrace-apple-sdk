@@ -132,7 +132,7 @@ final class FrameDriver: NSObject {
     }
 }
 
-/// Shows, once a second, the values `BenchmarksUITests` reads back as static texts:
+/// Shows, once a second, the values `SmoothnessOverheadUITests` reads back as static texts:
 /// - `display-link-rate`: the probe display link's callbacks per second over the last second.
 /// - `display-refresh-rate`: the display's refresh rate over the last second.
 /// - `max-display-rate`: the screen's `maximumFramesPerSecond` (120 on ProMotion, 60 otherwise).
@@ -181,7 +181,7 @@ private struct ProbeLabels: ViewModifier {
     }
 }
 
-/// A long list with non-trivial rows, scrolled by `BenchmarksUITests` to measure hitches with
+/// A long list with non-trivial rows, scrolled by `SmoothnessOverheadUITests` to measure hitches with
 /// `SmoothnessCaptureService` on vs off.
 ///
 /// Runs a `FrameDriver` at `EMBFrameLoadFraction` (default 0.9) of every frame, or leaving

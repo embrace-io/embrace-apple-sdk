@@ -8,6 +8,7 @@
 
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
+        import EmbraceConfiguration
     #endif
 
     /// Detects main-thread hangs from `FrameTimingSource`'s frame-delay reports.
@@ -16,10 +17,6 @@
     /// to the `hangObserver`. Because `FrameTimingSource` only reports a delay once the hang is
     /// already over, the hang is reported retroactively.
     final class FrameRateMonitor {
-
-        /// Apple's own definition of a hang (≈ 250 ms).
-        /// See: https://developer.apple.com/documentation/xcode/understanding-hangs-in-your-app
-        static let defaultAppleHangThreshold: TimeInterval = 0.249
 
         /// Minimum frame delay (seconds) that is reported as a hang.
         let threshold: TimeInterval
@@ -33,7 +30,7 @@
         /// Creates a new `FrameRateMonitor` and immediately begins observing frame timing.
         ///
         /// Must be called on the main thread.
-        init(threshold: TimeInterval = FrameRateMonitor.defaultAppleHangThreshold) {
+        init(threshold: TimeInterval = HangLimits.defaultHangThreshold) {
             self.threshold = threshold
             self.timingSource = FrameTimingSource()
 

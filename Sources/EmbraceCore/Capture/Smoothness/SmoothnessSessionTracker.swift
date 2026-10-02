@@ -1,5 +1,5 @@
 //
-//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
 #if !os(watchOS) && !os(macOS)
@@ -8,6 +8,7 @@
 
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
+        import EmbraceConfiguration
         import EmbraceSemantics
     #endif
 
@@ -24,7 +25,6 @@
         /// The fixed frame rate all dropped-frame counts are normalized to.
         static let referenceFrameRate: Double = 60
 
-        let startTime: Date
         let endTime: Date
 
         /// Display link ticks (vsyncs) delivered while the session was open, not frames the app
@@ -127,7 +127,7 @@
         ///   - embraceNotificationCenter: Where `.embraceSessionPartWillEndSync` is posted.
         init(
             classifier: FrameDropClassifier,
-            hangThreshold: TimeInterval = FrameRateMonitor.defaultAppleHangThreshold,
+            hangThreshold: TimeInterval = HangLimits.defaultHangThreshold,
             currentSession: @escaping () -> EmbraceSession? = { Embrace.client?.sessionController.currentSession },
             notificationCenter: NotificationCenter = .default,
             embraceNotificationCenter: NotificationCenter = Embrace.notificationCenter
@@ -341,7 +341,6 @@
 
         private func stats(for session: OpenSession, endTime: Date) -> SmoothnessSessionStats {
             SmoothnessSessionStats(
-                startTime: session.startTime,
                 endTime: endTime,
                 frameCount: session.frameCount,
                 normalizedDroppedFrames: session.droppedDuration * SmoothnessSessionStats.referenceFrameRate,

@@ -2,23 +2,23 @@
 //  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
-import Foundation
-
-#if DEBUG
-    import os.signpost
-#endif
-
-#if !EMBRACE_COCOAPOD_BUILDING_SDK
-    import EmbraceCaptureService
-    import EmbraceCommonInternal
-    import EmbraceSemantics
-    import EmbraceConfiguration
-    import EmbraceStorageInternal
-#endif
-
 // Frame timing relies on `CADisplayLink`, which is unavailable on watchOS and can't be constructed
 // standalone on macOS.
 #if !os(watchOS) && !os(macOS)
+
+    import Foundation
+
+    #if DEBUG
+        import os.signpost
+    #endif
+
+    #if !EMBRACE_COCOAPOD_BUILDING_SDK
+        import EmbraceCaptureService
+        import EmbraceCommonInternal
+        import EmbraceSemantics
+        import EmbraceConfiguration
+        import EmbraceStorageInternal
+    #endif
 
     /// Service that measures rendering smoothness and emits one `smoothness` span per foreground session
     /// part.
@@ -342,7 +342,7 @@ import Foundation
         }
 
         private struct MutableData {
-            var hangThreshold: TimeInterval = HangLimits().hangThreshold
+            var hangThreshold: TimeInterval = HangLimits.defaultHangThreshold
             /// From `EmbraceConfigurable.isSmoothnessEnabled`. Off until a config says otherwise.
             var isRemotelyEnabled = false
             var pipeline: Pipeline?

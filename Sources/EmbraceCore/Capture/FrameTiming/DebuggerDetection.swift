@@ -1,5 +1,5 @@
 //
-//  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
 import Darwin
