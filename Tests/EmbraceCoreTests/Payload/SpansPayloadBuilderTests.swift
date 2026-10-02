@@ -415,13 +415,16 @@ final class SpansPayloadBuilderTests: XCTestCase {
             .system: 10
         ]
         storage.options.spanLimitDefault = 10
+
         defer {
             storage.options.spanLimits = oldLimits
             storage.options.spanLimitDefault = oldLimitDefault
         }
 
-        // given more than 800 spans
-        for _ in 1...6 {
+        // given 54 spans across six secondary types — 9 each, deliberately below
+        // `spanLimitDefault` so insert-time pruning (`removeOldSpanIfNeeded`) never fires and the
+        // payload fetch budget is the only cap under test here
+        for _ in 1...9 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -429,7 +432,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             )
         }
 
-        for _ in 1...6 {
+        for _ in 1...9 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -437,7 +440,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             )
         }
 
-        for _ in 1...6 {
+        for _ in 1...9 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -445,7 +448,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             )
         }
 
-        for _ in 1...6 {
+        for _ in 1...9 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -453,7 +456,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             )
         }
 
-        for _ in 1...6 {
+        for _ in 1...9 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -461,7 +464,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             )
         }
 
-        for _ in 1...6 {
+        for _ in 1...9 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -472,10 +475,112 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // when building the spans payload
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
-        // then the spans are retrieved correctly
-        XCTAssertEqual(closed.count, 31)  // 30 spans + session span
+        // then the payload is capped by the fetch budget: `spanLimitDefault` (10) per primary
+        // category, summed over the four categories = 30, plus the session span.
+        //
+        // Deliberately hard-coded. The budget is a function of `PrimaryType.allCases.count`, so
+        // adding a category silently raises it for every customer — that should fail here and force
+        // a human to look, rather than being absorbed by a self-adjusting expectation.
+        XCTAssertEqual(closed.count, 31)
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
+    }
+
+    func test_stateSpans_areNotSubjectToTheFetchLimit() throws {
+        // given a fetch budget of 30 (3 capped types x a default of 10), with performance spans
+        // exempt from insert-time pruning so the budget itself is what gets exhausted
+        let oldLimits = storage.options.spanLimits
+        let oldLimitDefault = storage.options.spanLimitDefault
+        storage.options.spanLimits = [
+            .performance: 1000
+        ]
+        storage.options.spanLimitDefault = 10
+
+        defer {
+            storage.options.spanLimits = oldLimits
+            storage.options.spanLimitDefault = oldLimitDefault
+        }
+
+        // when setting up more performance spans than the budget holds
+        for i in 1...40 {
+            _ = try addSpan(
+                startTime: Date(timeIntervalSince1970: 55),
+                endTime: Date(timeIntervalSince1970: 60),
+                name: "perf-\(i)",
+                type: .performance
+            )
+        }
+
+        // and a state span in the same session
+        _ = try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 60),
+            name: "emb-state-screen-automatic",
+            type: .state
+        )
+
+        // when building the spans payload
+        let (closed, _) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then the capped pool is full...
+        XCTAssertEqual(closed.filter { $0.name.hasPrefix("perf-") }.count, 30)
+
+        // ...and the state span is present on top of it, because it is fetched separately.
+        XCTAssertEqual(
+            closed.filter { $0.name == "emb-state-screen-automatic" }.count,
+            1,
+            "state spans must not compete with telemetry for the capped budget")
+        XCTAssertEqual(closed[0].name, "emb-session")
+
+        // 30 capped + 1 state + 1 session. A single shared fetch could return at most 30 + session,
+        // so this holds regardless of which rows an unsorted fetch happens to pick.
+        XCTAssertEqual(closed.count, 32)
+    }
+
+    func test_stateSpans_areNotDuplicatedInThePayload() throws {
+        // given a state span and plenty of budget
+        _ = try addSpan(
+            startTime: Date(timeIntervalSince1970: 55),
+            endTime: Date(timeIntervalSince1970: 60),
+            name: "emb-state-screen-automatic",
+            type: .state
+        )
+
+        // when building the spans payload
+        let (closed, _) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then it appears exactly once — the capped fetch must exclude what the typed fetch returns
+        XCTAssertEqual(closed.filter { $0.name == "emb-state-screen-automatic" }.count, 1)
+    }
+
+    func test_stateSpans_fromThePreviousPartAreNotIncluded() throws {
+        // given the previous part's state span, which ends exactly when this part starts (50)
+        let previousPartStateSpanId = String.randomSpanId()
+        _ = try addSpan(
+            startTime: Date(timeIntervalSince1970: 20),
+            endTime: Date(timeIntervalSince1970: 50),
+            id: previousPartStateSpanId,
+            name: "emb-state-screen-automatic",
+            type: .state,
+            sessionId: .random
+        )
+
+        // and this part's own, opened at its start
+        let ownStateSpanId = String.randomSpanId()
+        _ = try addSpan(
+            startTime: Date(timeIntervalSince1970: 50),
+            endTime: Date(timeIntervalSince1970: 100),
+            id: ownStateSpanId,
+            name: "emb-state-screen-automatic",
+            type: .state
+        )
+
+        // when building the spans payload
+        let (closed, _) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
+
+        // then only this part's state span is present
+        let stateSpans = closed.filter { $0.name == "emb-state-screen-automatic" }
+        XCTAssertEqual(stateSpans.map(\.spanId), [ownStateSpanId])
     }
 
     func test_multiple_session_spans() throws {

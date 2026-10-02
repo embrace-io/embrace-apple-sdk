@@ -7,7 +7,9 @@ import Foundation
 
 @testable import EmbraceCore
 
-public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
+// `open` so test targets can subclass it to interfere with span creation — the window in which the
+// SDK holds no lock, and therefore where the races worth testing live.
+open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
 
     // Appended from background queues (e.g. span delegate callbacks dispatched off the SUT's queues)
     // while tests read them on the main thread — see `TestLocked`.
@@ -21,7 +23,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
 
     public init() {}
 
-    public func _createSpan(
+    open func _createSpan(
         name: String,
         parentSpan: EmbraceSpan? = nil,
         type: EmbraceType,

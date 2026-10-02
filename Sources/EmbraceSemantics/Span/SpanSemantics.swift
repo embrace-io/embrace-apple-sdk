@@ -20,6 +20,8 @@ public struct SpanSemantics {
 
     public static let keyAutoTerminationCode = "emb.auto_termination.code"
 
+    public static let keyLinkType = "emb.link_type"
+
     /// Experiments and feature flags the user is enrolled in during the current process.
     public static let keyExperiments = CommonSemantics.keyExperiments
 }
