@@ -13,9 +13,11 @@ import OpenTelemetrySdk
 
 class DeviceInfoCaptureService: ResourceCaptureService {
 
-    override func onStart() {
-
-        let criticalResources: [String: String] = [
+    /// Device resources the backend requires on every payload.
+    /// These are not captured by `onStart()`, they are persisted by the SDK during `Embrace.init`
+    /// so they are guaranteed to be stored before any other telemetry is.
+    static var criticalResources: [String: String] {
+        [
             // os type
             // Should always be "darwin" as can be seen in semantic convention docs:
             // https://opentelemetry.io/docs/specs/semconv/resource/os/
@@ -25,6 +27,9 @@ class DeviceInfoCaptureService: ResourceCaptureService {
             DeviceResourceKey.osVariant.rawValue: EMBDevice.operatingSystemType,
             SemanticConventions.Os.name.rawValue: EMBDevice.operatingSystemType
         ]
+    }
+
+    override func onStart() {
 
         let resourcesMap: [String: String] = [
             // jailbroken
@@ -52,7 +57,6 @@ class DeviceInfoCaptureService: ResourceCaptureService {
             DeviceResourceKey.architecture.rawValue: EMBDevice.architecture
         ]
 
-        addCriticalResources(criticalResources)
         addRequiredResources(resourcesMap)
     }
 }
