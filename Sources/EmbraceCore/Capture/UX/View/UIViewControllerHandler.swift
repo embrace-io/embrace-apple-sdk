@@ -412,7 +412,7 @@
         private func forcefullyEndSpans(id: String, time: Date) {
 
             // remove the spans while holding the lock but end them after releasing it,
-            // since ending a span runs the span processors synchronously
+            // since `end()` calls the span processors' `onEnd` inline
             let spans: [Span] = data.withLock {
                 let spans = [
                     $0.viewDidLoadSpans.removeValue(forKey: id),
