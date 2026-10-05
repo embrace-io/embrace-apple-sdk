@@ -172,7 +172,8 @@ extension EmbraceBacktrace {
         // process deadlocks. Calling the concrete type is a vtable dispatch instead: no locks.
         let ksBacktracer = backtracer as? KSCrashBacktracing
 
-        // get the mach thread to take the snapshot of
+        // Get the mach thread to take the snapshot of. Must happen before the suspend:
+        // `pthread_mach_thread_np` takes libpthread's thread-list lock, which the target may hold.
         let machThread = pthread_mach_thread_np(thread)
         let canSuspend = pthread_self() != thread
 
@@ -194,15 +195,18 @@ extension EmbraceBacktrace {
                 return []
             }
             // ───── SUSPEND WINDOW: allocation-free / async-signal-safe only ─────
+            // No malloc, no ObjC or Swift runtime, no locks, and no pthread calls on other threads
+            // (libpthread validates handles under its thread-list lock, which the target may hold).
             #if DEBUG
                 EmbraceBacktraceSuspendWindowProbe.willEnter?()
             #endif
             let count: Int
             if let ksBacktracer {
-                count = ksBacktracer.backtrace(of: thread, into: buffer, capacity: entries)
+                count = ksBacktracer.backtrace(ofMachThread: machThread, into: buffer, capacity: entries)
             } else {
                 // Custom `Backtracer`: still an `objc_msgSend`, with the risk described above. It
-                // can't be made safe while `Backtracer` is `@objc`.
+                // can't be made safe while `Backtracer` is `@objc`. It also only gets the `pthread_t`,
+                // so it must not pass it to pthread functions (see the protocol docs).
                 count = backtracer.backtrace(of: thread, into: buffer, capacity: entries)
             }
             #if DEBUG

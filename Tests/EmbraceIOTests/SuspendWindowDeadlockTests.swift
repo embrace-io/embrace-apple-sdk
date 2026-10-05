@@ -243,6 +243,96 @@
                 )
             }
         }
+
+        /// Runs `body` in a loop on a victim thread and samples it repeatedly, so a suspend lands
+        /// inside whatever lock `body` takes.
+        private func assertNoDeadlockWhileVictimHammers(
+            _ what: String,
+            body: @escaping () -> Void,
+            file: StaticString = #filePath,
+            line: UInt = #line
+        ) throws {
+            let running = EmbraceAtomic<Bool>(true)
+            let ready = DispatchSemaphore(value: 0)
+            let finished = DispatchSemaphore(value: 0)
+            let box = PThreadBox()
+
+            let victim = Thread {
+                box.value = pthread_self()
+                ready.signal()
+                while running.load(order: .relaxed) {
+                    body()
+                }
+                finished.signal()
+            }
+            victim.name = "emb.deadlock.pthread"
+            victim.start()
+            ready.wait()
+            // Wait for the victim to stop running `body`, so callers can tear down what it uses.
+            // Bounded: after a deadlock the victim stays suspended and never gets here.
+            defer {
+                running.store(false, order: .relaxed)
+                _ = finished.wait(timeout: .now() + 5)
+            }
+
+            let target = try XCTUnwrap(box.value, "victim did not publish its pthread_t", file: file, line: line)
+
+            for iteration in 0..<200 where !sampleCompletes(victim: target) {
+                // Stop at the first stall: the sampler is wedged with the victim suspended, so every
+                // later iteration would just wait out its own timeout.
+                XCTFail(
+                    "Sampling stalled on iteration \(iteration) while the victim hammered \(what) — the "
+                        + "suspend-window walk is calling into libpthread on the target thread (deadlock).",
+                    file: file,
+                    line: line
+                )
+                break
+            }
+        }
+
+        /// The victim holds libpthread's thread-list lock inside `pthread_create` and `pthread_join`
+        /// (the launch-time hang pattern). Resolving the target's mach port inside the window takes
+        /// that same lock.
+        func test_noDeadlock_victimHammersPthreadCreateJoin() throws {
+            try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
+
+            try assertNoDeadlockWhileVictimHammers("pthread_create + pthread_join") {
+                var child: pthread_t?
+                guard pthread_create(&child, nil, { _ in nil }, nil) == 0, let child else { return }
+                pthread_join(child, nil)
+            }
+        }
+
+        /// Querying *another* thread's handle also validates it under the thread-list lock.
+        func test_noDeadlock_victimHammersPthreadMachThreadNp() throws {
+            try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
+
+            let ready = DispatchSemaphore(value: 0)
+            let mayExit = DispatchSemaphore(value: 0)
+            let finished = DispatchSemaphore(value: 0)
+            let box = PThreadBox()
+
+            // A parked thread whose handle the victim keeps querying.
+            let other = Thread {
+                box.value = pthread_self()
+                ready.signal()
+                mayExit.wait()
+                finished.signal()
+            }
+            other.name = "emb.deadlock.parked"
+            other.start()
+            ready.wait()
+            defer {
+                mayExit.signal()
+                finished.wait()
+            }
+
+            let otherThread = try XCTUnwrap(box.value, "parked thread did not publish its pthread_t")
+
+            try assertNoDeadlockWhileVictimHammers("pthread_mach_thread_np(otherThread)") {
+                _ = pthread_mach_thread_np(otherThread)
+            }
+        }
     }
 
 #endif
