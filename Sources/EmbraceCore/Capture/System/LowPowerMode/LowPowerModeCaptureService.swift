@@ -71,21 +71,29 @@ public final class LowPowerModeCaptureService: CaptureService {
 
         let reason = wasManuallyFetched ? SpanSemantics.LowPower.systemQuery : SpanSemantics.LowPower.systemNotification
 
-        _currentSpan.withLock {
-            $0 = try? otel?.createInternalSpan(
+        guard
+            let builder = buildSpan(
                 name: SpanSemantics.LowPower.name,
                 type: .lowPower,
-                attributes: [
-                    SpanSemantics.LowPower.keyStartReason: reason
-                ]
+                attributes: [SpanSemantics.LowPower.keyStartReason: reason]
             )
+        else {
+            Embrace.logger.warning("Error trying to create low power mode span!")
+            return
         }
+
+        // start the span before taking the lock, since `startSpan()` calls the span processors' `onStart` inline.
+        // if another span was stored while this one was starting, end it after releasing the lock so it isn't left open.
+        let span = builder.startSpan()
+        let previous = _currentSpan.withLock {
+            let previous = $0
+            $0 = span
+            return previous
+        }
+        previous?.end()
     }
 
     func endSpan() {
-        _currentSpan.withLock {
-            $0?.end()
-            $0 = nil
-        }
+        _currentSpan.takeValue()?.end()
     }
 }

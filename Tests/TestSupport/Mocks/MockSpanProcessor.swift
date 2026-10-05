@@ -14,6 +14,36 @@ public class MockSpanProcessor: SpanProcessor {
     @TestLocked public private(set) var didShutdown = false
     @TestLocked public private(set) var didForceFlush = false
 
+    private var _onStartCallback: ((ReadableSpan) -> Void)?
+    /// Called synchronously from `onStart`, outside of the processor's own lock.
+    public var onStartCallback: ((ReadableSpan) -> Void)? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _onStartCallback
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _onStartCallback = newValue
+        }
+    }
+
+    private var _onEndCallback: ((ReadableSpan) -> Void)?
+    /// Called synchronously from `onEnd`, outside of the processor's own lock.
+    public var onEndCallback: ((ReadableSpan) -> Void)? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return _onEndCallback
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            _onEndCallback = newValue
+        }
+    }
+
     public init() {}
 
     public let isStartRequired: Bool = true
@@ -21,11 +51,21 @@ public class MockSpanProcessor: SpanProcessor {
     public let isEndRequired: Bool = true
 
     public func onStart(parentContext: SpanContext?, span: ReadableSpan) {
-        startedSpans.append(span.toSpanData())
+        onStartCallback?(span)
+
+        let data = span.toSpanData()
+        lock.lock()
+        defer { lock.unlock() }
+        _startedSpans.append(data)
     }
 
     public func onEnd(span: ReadableSpan) {
-        endedSpans.append(span.toSpanData())
+        onEndCallback?(span)
+
+        let data = span.toSpanData()
+        lock.lock()
+        defer { lock.unlock() }
+        _endedSpans.append(data)
     }
 
     public func forceFlush(timeout: TimeInterval?) {
