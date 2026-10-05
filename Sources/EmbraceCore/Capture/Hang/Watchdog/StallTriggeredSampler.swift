@@ -265,8 +265,16 @@
 
                 // One snapshot per stall episode: the episode is done once a capture succeeds or the
                 // attempts run out.
-                if captureSample() || attempts >= StallTriggeredSampler.maxCaptureAttemptsPerEpisode {
+                let captured = captureSample()
+                if captured || attempts >= StallTriggeredSampler.maxCaptureAttemptsPerEpisode {
                     lastSampledEpoch = since
+                }
+                if !captured {
+                    Embrace.logger.debug(
+                        attempts >= StallTriggeredSampler.maxCaptureAttemptsPerEpisode
+                            ? "[Hang] main-thread capture returned no frames \(attempts) times; no stack for this stall"
+                            : "[Hang] main-thread capture returned no frames; retrying on next poll"
+                    )
                 }
             }
         }
