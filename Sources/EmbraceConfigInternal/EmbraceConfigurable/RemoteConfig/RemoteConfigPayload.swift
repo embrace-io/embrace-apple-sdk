@@ -43,7 +43,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
     var hangLimitsHangThreshold: TimeInterval
     var hangLimitsHangPerSession: UInt
-    var hangLimitsReportsWatchdogEvents: Bool
     var hangLimitsSampleTriggerThreshold: TimeInterval
     var hangLimitsSamplePollInterval: TimeInterval
 
@@ -106,7 +105,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         enum HangLimitsCodingKeys: String, CodingKey {
             case hangThreshold = "hang_threshold"
             case hangPerSession = "hang_per_session"
-            case reportsWatchdogEvents = "reports_watchdog_events"
             case sampleTriggerThreshold = "sample_trigger_threshold"
             case samplePollInterval = "sample_poll_interval"
         }
@@ -266,12 +264,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
                     forKey: CodingKeys.HangLimitsCodingKeys.hangPerSession
                 ) ?? defaultPayload.hangLimitsHangPerSession
 
-            hangLimitsReportsWatchdogEvents =
-                try hangLimitsContainer.decodeIfPresent(
-                    Bool.self,
-                    forKey: CodingKeys.HangLimitsCodingKeys.reportsWatchdogEvents
-                ) ?? defaultPayload.hangLimitsReportsWatchdogEvents
-
             hangLimitsSampleTriggerThreshold =
                 try hangLimitsContainer.decodeIfPresent(
                     TimeInterval.self,
@@ -286,7 +278,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         } else {
             hangLimitsHangThreshold = defaultPayload.hangLimitsHangThreshold
             hangLimitsHangPerSession = defaultPayload.hangLimitsHangPerSession
-            hangLimitsReportsWatchdogEvents = defaultPayload.hangLimitsReportsWatchdogEvents
             hangLimitsSampleTriggerThreshold = defaultPayload.hangLimitsSampleTriggerThreshold
             hangLimitsSamplePollInterval = defaultPayload.hangLimitsSamplePollInterval
         }
@@ -491,7 +482,6 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         hangLimitsHangThreshold = HangLimits.defaultHangThreshold
         hangLimitsHangPerSession = HangLimits.defaultHangPerSession
-        hangLimitsReportsWatchdogEvents = HangLimits.defaultReportsWatchdogEvents
         hangLimitsSampleTriggerThreshold = HangLimits.defaultSampleTriggerThreshold
         hangLimitsSamplePollInterval = HangLimits.defaultSamplePollInterval
 

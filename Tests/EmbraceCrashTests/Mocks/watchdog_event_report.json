@@ -1,0 +1,29 @@
+{
+    "report": {
+        "version": "3.9.0",
+        "id": "5B1E7C2D-9A4F-4E3B-8D6C-1F2A3B4C5D6E",
+        "process_name": "",
+        "timestamp": 1696619964760585,
+        "type": "standard"
+    },
+    "user": {
+        "emb-app": "1.0.0",
+        "emb-sdk": "6.0.0",
+        "emb-sid": "18EDB6CE-90C2-456B-97CB-91E0F5941CCA"
+    },
+    "crash": {
+        "error": {
+            "type": "user",
+            "reason": "0x8badf00d, main thread blocked for 0.300 seconds.",
+            "user_reported": {
+                "name": "watchdog_event"
+            },
+            "signal": {
+                "signal": 6,
+                "name": "SIGABRT",
+                "code": 0
+            }
+        },
+        "threads": []
+    }
+}

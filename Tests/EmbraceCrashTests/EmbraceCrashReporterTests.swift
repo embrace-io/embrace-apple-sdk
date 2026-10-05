@@ -316,6 +316,25 @@
             thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
             thenShouldntExistReport(withName: "appId-report-0000000000000003.json")
         }
+
+        func testOnWatchdogEventReport_fetchUnsentCrashReports_shouldDeleteItAndKeepRealCrashes() throws {
+            givenCrashReporter()
+
+            // given a real crash report alongside a leftover synthetic watchdog report
+            try copyReport(named: "crash_report", toFilePath: "/Reports/appId-report-0000000000000001.json")
+            try copyReport(named: "watchdog_event_report", toFilePath: "/Reports/appId-report-0000000000000002.json")
+
+            let expectation = XCTestExpectation()
+            crashReporter.fetchUnsentCrashReports { reports in
+                XCTAssertEqual(reports.count, 1)
+                XCTAssertEqual(reports[0].internalId, 1)
+                self.thenShouldntExistReport(withName: "appId-report-0000000000000002.json")
+
+                expectation.fulfill()
+            }
+
+            wait(for: [expectation], timeout: .defaultTimeout)
+        }
     }
 
     extension EmbraceCrashReporterTests {
