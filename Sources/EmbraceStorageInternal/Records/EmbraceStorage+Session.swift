@@ -22,6 +22,10 @@ extension EmbraceStorage {
     ///   - endTime: `Date` of when the session ended (optional)
     ///   - lastHeartbeatTime: `Date` of the last heartbeat for the session (optional).
     ///   - crashReportId: Identifier of the crash report linked with this session
+    ///   - sessionNumber: Number of the session. Ignored when `sessionNumberCounterKey` is set.
+    ///   - sessionNumberCounterKey: Key of a permanent counter resource. When set, the counter is incremented
+    ///   on the storage queue and its new value becomes the stored session's number, so the caller never waits
+    ///   on storage. The returned record then has a `sessionNumber` of 0; fetch the stored session to read it.
     ///   - completion: A block called when the sesson has been added to storage
     /// - Returns: The newly stored `SessionRecord`
     @discardableResult
@@ -39,12 +43,13 @@ extension EmbraceStorage {
         cleanExit: Bool = false,
         appTerminated: Bool = false,
         sessionNumber: EMBInt = 0,
+        sessionNumberCounterKey: String? = nil,
         completion: (() -> Void)? = nil
     ) -> EmbraceSession? {
 
         let hbTime = lastHeartbeatTime ?? Date()
 
-        coreData.performAsyncOperation { [self] _ in
+        coreData.performAsyncOperation { [self] context in
 
             defer {
                 if let completion {
@@ -53,6 +58,11 @@ extension EmbraceStorage {
                     }
                 }
             }
+
+            let number =
+                sessionNumberCounterKey.map {
+                    incrementCountForPermanentResource(key: $0, context: context)
+                } ?? sessionNumber
 
             let created = SessionRecord.create(
                 context: coreData.context,
@@ -67,7 +77,7 @@ extension EmbraceStorage {
                 coldStart: coldStart,
                 cleanExit: cleanExit,
                 appTerminated: appTerminated,
-                sessionNumber: sessionNumber
+                sessionNumber: number
             )
             guard created else {
                 logger.critical("Failed to create new session!")
@@ -90,7 +100,7 @@ extension EmbraceStorage {
             coldStart: coldStart,
             cleanExit: cleanExit,
             appTerminated: appTerminated,
-            sessionNumber: sessionNumber
+            sessionNumber: sessionNumberCounterKey == nil ? sessionNumber : 0
         )
     }
 

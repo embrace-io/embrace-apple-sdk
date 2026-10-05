@@ -127,11 +127,15 @@ class SpansPayloadBuilder {
             return nil
         }
 
+        // The stored record is the source of truth for the session number: it's assigned on the storage queue
+        // when the session is added, so the in-memory session returned by `addSession` doesn't carry it.
+        let storedSessionNumber = session.id.flatMap { storage.fetchSession(id: $0)?.sessionNumber }
+
         return SessionSpanUtils.payload(
             from: session,
             spanData: adjustedSpanData,
             properties: customProperties,
-            sessionNumber: session.sessionNumber,
+            sessionNumber: storedSessionNumber ?? session.sessionNumber,
             experiments: experiments
         )
     }
