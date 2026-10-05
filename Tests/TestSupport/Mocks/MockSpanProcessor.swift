@@ -14,35 +14,10 @@ public class MockSpanProcessor: SpanProcessor {
     @TestLocked public private(set) var didShutdown = false
     @TestLocked public private(set) var didForceFlush = false
 
-    private var _onStartCallback: ((ReadableSpan) -> Void)?
-    /// Called synchronously from `onStart`, outside of the processor's own lock.
-    public var onStartCallback: ((ReadableSpan) -> Void)? {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _onStartCallback
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _onStartCallback = newValue
-        }
-    }
-
-    private var _onEndCallback: ((ReadableSpan) -> Void)?
-    /// Called synchronously from `onEnd`, outside of the processor's own lock.
-    public var onEndCallback: ((ReadableSpan) -> Void)? {
-        get {
-            lock.lock()
-            defer { lock.unlock() }
-            return _onEndCallback
-        }
-        set {
-            lock.lock()
-            defer { lock.unlock() }
-            _onEndCallback = newValue
-        }
-    }
+    /// Called synchronously from `onStart`, before the span is recorded.
+    @TestLocked public var onStartCallback: ((ReadableSpan) -> Void)?
+    /// Called synchronously from `onEnd`, before the span is recorded.
+    @TestLocked public var onEndCallback: ((ReadableSpan) -> Void)?
 
     public init() {}
 
@@ -53,19 +28,13 @@ public class MockSpanProcessor: SpanProcessor {
     public func onStart(parentContext: SpanContext?, span: ReadableSpan) {
         onStartCallback?(span)
 
-        let data = span.toSpanData()
-        lock.lock()
-        defer { lock.unlock() }
-        _startedSpans.append(data)
+        startedSpans.append(span.toSpanData())
     }
 
     public func onEnd(span: ReadableSpan) {
         onEndCallback?(span)
 
-        let data = span.toSpanData()
-        lock.lock()
-        defer { lock.unlock() }
-        _endedSpans.append(data)
+        endedSpans.append(span.toSpanData())
     }
 
     public func forceFlush(timeout: TimeInterval?) {

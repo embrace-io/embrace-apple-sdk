@@ -126,11 +126,11 @@
 
             // and a span processor that checks if the handler's lock is free when a span ends
             let lockWasFree = EmbraceMutex<[Bool]>([])
-            otel.spanProcessor.onEndCallback = { [handler] _ in
+            otel.onSpanEndedCallback = { [handler] _ in
                 let isFree = handler!.data.isLockFree
                 lockWasFree.withLock { $0.append(isFree) }
             }
-            defer { otel.spanProcessor.onEndCallback = nil }
+            defer { otel.onSpanEndedCallback = nil }
 
             // when the view controller disappears
             let vc = MockViewController()
@@ -145,11 +145,11 @@
             XCTAssertTrue(cacheIsEmpty())
 
             // and all of them are ended as abandoned
-            let endedSpans = otel.spanProcessor.endedSpans
+            let endedSpans = otel.endedSpans
             XCTAssertEqual(endedSpans.count, 6)
             for span in endedSpans {
-                XCTAssertTrue(span.status.isError, "\(span.name) should have an error status")
-                XCTAssertEqual(span.attributes[SpanSemantics.keyErrorCode], .string("user_abandon"), span.name)
+                XCTAssertEqual(span.status, .error, "\(span.name) should have an error status")
+                XCTAssertEqual(span.attributes[SpanSemantics.keyErrorCode] as? String, "user_abandon", span.name)
             }
         }
 

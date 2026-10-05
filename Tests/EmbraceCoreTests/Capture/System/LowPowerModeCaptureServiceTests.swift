@@ -191,16 +191,16 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // and a span processor that checks if the service's lock is free when a span ends
         var lockWasFree: Bool?
-        otel.spanProcessor.onEndCallback = { _ in
+        otel.onSpanEndedCallback = { _ in
             lockWasFree = service._currentSpan.isLockFree
         }
-        defer { otel.spanProcessor.onEndCallback = nil }
+        defer { otel.onSpanEndedCallback = nil }
 
         // when the span is ended
         service.endSpan()
 
         // then it is ended without holding the lock
-        XCTAssertTrue((span as! ReadableSpan).hasEnded)
+        XCTAssertNotNil(span!.endTime)
         XCTAssertEqual(lockWasFree, true)
         XCTAssertNil(service.currentSpan)
     }
@@ -215,10 +215,10 @@ class LowPowerModeCollectorTests: XCTestCase {
 
         // and a span processor that checks if the service's lock is free when a span starts
         var lockWasFree: Bool?
-        otel.spanProcessor.onStartCallback = { _ in
+        otel.onSpanStartedCallback = { _ in
             lockWasFree = service._currentSpan.isLockFree
         }
-        defer { otel.spanProcessor.onStartCallback = nil }
+        defer { otel.onSpanStartedCallback = nil }
 
         // when a span is started
         service.startSpan()
@@ -228,7 +228,7 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertNotNil(service.currentSpan)
     }
 
-    func test_startSpan_endsConcurrentlyStoredSpan() {
+    func test_startSpan_endsConcurrentlyStoredSpan() throws {
         // given an active service
         provider.isLowPowerModeEnabled = false
 
@@ -237,30 +237,30 @@ class LowPowerModeCollectorTests: XCTestCase {
         service.start()
 
         // and a span that another thread stores while a new one is being started
-        let raced = EmbraceOTel().buildSpan(name: "raced", type: .lowPower).startSpan()
+        let raced = try otel._createSpan(name: "raced", type: .lowPower, startTime: Date())
         var racedSpanWasStored: Bool?
-        otel.spanProcessor.onStartCallback = { _ in
+        otel.onSpanStartedCallback = { _ in
             racedSpanWasStored = service._currentSpan.withLockIfAvailable { $0 = raced } != nil
         }
-        defer { otel.spanProcessor.onStartCallback = nil }
+        defer { otel.onSpanStartedCallback = nil }
 
         // and a span processor that checks if the service's lock is free when a span ends
         var lockWasFree: [Bool] = []
-        otel.spanProcessor.onEndCallback = { _ in
+        otel.onSpanEndedCallback = { _ in
             lockWasFree.append(service._currentSpan.isLockFree)
         }
-        defer { otel.spanProcessor.onEndCallback = nil }
+        defer { otel.onSpanEndedCallback = nil }
 
         // when a span is started
         service.startSpan()
 
         // then the raced span is ended without holding the lock and replaced by the new one
         XCTAssertEqual(racedSpanWasStored, true)
-        XCTAssertTrue((raced as! ReadableSpan).hasEnded)
+        XCTAssertNotNil(raced.endTime)
         XCTAssertEqual(lockWasFree, [true])
         XCTAssertNotNil(service.currentSpan)
         XCTAssertEqual(service.currentSpan?.name, "emb-device-low-power")
-        XCTAssertFalse((service.currentSpan as! ReadableSpan).hasEnded)
+        XCTAssertNil(service.currentSpan?.endTime)
     }
 
     func test_shutdownService_endsSpan() {

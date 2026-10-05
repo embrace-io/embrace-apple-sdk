@@ -412,7 +412,7 @@
 
             // remove the spans while holding the lock but end them after releasing it,
             // since `end()` calls the span processors' `onEnd` inline
-            let spans: [Span] = data.withLock {
+            let spans: [EmbraceSpan] = data.withLock {
                 let spans = [
                     $0.viewDidLoadSpans.removeValue(forKey: id),
                     $0.viewWillAppearSpans.removeValue(forKey: id),
@@ -428,7 +428,7 @@
             }
 
             for span in spans {
-                span.end(errorCode: .userAbandon, time: time)
+                span.end(errorCode: .userAbandon, endTime: time)
             }
         }
 

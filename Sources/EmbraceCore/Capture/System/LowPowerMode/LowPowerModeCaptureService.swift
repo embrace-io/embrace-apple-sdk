@@ -71,8 +71,10 @@ public final class LowPowerModeCaptureService: CaptureService {
 
         let reason = wasManuallyFetched ? SpanSemantics.LowPower.systemQuery : SpanSemantics.LowPower.systemNotification
 
+        // create the span before taking the lock, since creating it calls the span processors' `onStart` inline.
+        // if another span was stored while this one was starting, end it after releasing the lock so it isn't left open.
         guard
-            let builder = buildSpan(
+            let span = createSpan(
                 name: SpanSemantics.LowPower.name,
                 type: .lowPower,
                 attributes: [SpanSemantics.LowPower.keyStartReason: reason]
@@ -82,9 +84,6 @@ public final class LowPowerModeCaptureService: CaptureService {
             return
         }
 
-        // start the span before taking the lock, since `startSpan()` calls the span processors' `onStart` inline.
-        // if another span was stored while this one was starting, end it after releasing the lock so it isn't left open.
-        let span = builder.startSpan()
         let previous = _currentSpan.withLock {
             let previous = $0
             $0 = span
