@@ -82,27 +82,28 @@ public class CoreDataWrapper {
                 description.type = NSSQLiteStoreType
                 description.url = options.storageMechanism.fileURL
                 description.setValue(journalMode.rawValue as NSString, forPragmaNamed: "journal_mode")
-                // This is the default value; however, we enforce it here so that the `CoreDataWrapper`
-                // is created synchronously in `Embrace.init`, allowing us to throw as needed and fail early.
+                // This is the default value; however, we enforce it here so that the store is added
+                // synchronously inside the first block on the context's queue (see below).
                 description.shouldAddStoreAsynchronously = false
                 container.persistentStoreDescriptions = [description]
 
             }
         }
 
-        // Even though this happens inside a block, by default it runs synchronously on the same thread
-        // (because `shouldAddStoreAsynchronously` defaults to `false`). We set it explicitly anyway to
-        // make it crystal clear and to guard against potential changes in future OS versions.
+        // Opening the store (attaching the SQLite file, WAL recovery, migrations) can take a long time
+        // on slow or busy devices, and this initializer runs on the main thread during `Embrace.setup()`.
+        // Instead, the store is loaded by the first block enqueued on the context's serial queue, so every
+        // later operation runs after it without the caller having to wait.
         //
-        // If the store cant be created or opened, we want to know immediately and fail fast.
-        // Otherwise, the container would appear as "initialized", but any later attempt to hit Core Data
-        // (fetch, save, etc.) would crash. Thats why we capture the error from `loadPersistentStores`
-        // and rethrow it here: better to throw during `Embrace.init` than to crash much later.
-        if let loadPersistentStoreError = loadPersistentStoreIfNeeded(logIfEmpty: false) {
-            throw loadPersistentStoreError
+        // If the load fails, the error is logged: fetches return no results and every save tries to load
+        // the store again before failing (see `saveIfNeeded`).
+        //
+        // The context is created manually because `newBackgroundContext()` warns when no store is loaded yet.
+        context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        context.persistentStoreCoordinator = container.persistentStoreCoordinator
+        context.perform { [self] in
+            loadPersistentStoreIfNeeded(logIfEmpty: false)
         }
-
-        context = container.newBackgroundContext()
     }
 
     @discardableResult
