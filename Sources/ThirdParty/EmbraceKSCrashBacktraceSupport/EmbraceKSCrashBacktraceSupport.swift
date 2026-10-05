@@ -52,8 +52,9 @@ public class KSCrashBacktracing {
         return addresses
     }
 
-    /// Fills `buffer` (which has room for `capacity` addresses) with the frame addresses of `thread`,
-    /// returning the number of addresses written. Ordered from the top frame to the bottom.
+    /// Fills `buffer` (which has room for `capacity` addresses) with the frame addresses of the thread
+    /// whose mach port is `machThread`, returning the number of addresses written. Ordered from the
+    /// top frame to the bottom.
     ///
     /// Unlike ``backtrace(of:)``, this returns nothing heap-allocated: the caller owns `buffer`. It
     /// exists so the walk can run while `thread` is **suspended** without the walker touching the
@@ -67,26 +68,31 @@ public class KSCrashBacktracing {
     ///   because `ksbt_captureBacktraceFromSuspendedMachThread` never reaches the binary-image cache
     ///   (`ksbic_init` is only reached via `ksbt_symbolicateAddress`), unlike ``backtrace(of:)`` and
     ///   ``resolve(address:)``.
+    /// - Important: It takes a mach port rather than a `pthread_t` because the caller must resolve the
+    ///   port *before* the suspend. `pthread_mach_thread_np` on another thread validates the handle
+    ///   under libpthread's process-wide thread-list lock, which the suspended thread may hold (inside
+    ///   `pthread_create`, `pthread_join` or thread exit); calling it in-window deadlocks the caller
+    ///   with the target left suspended.
     /// - Parameters:
-    ///   - thread: The target `pthread_t`. Must not be the calling thread (it is expected to be
+    ///   - machThread: The target's mach port. Must not be the calling thread (it is expected to be
     ///     suspended by the caller for the duration of the call). The `pthread_self()` workaround in
     ///     ``backtrace(of:)`` is intentionally NOT replicated here.
     ///   - buffer: Caller-owned storage for at least `capacity` addresses.
     ///   - capacity: The capacity of `buffer`, in elements.
     /// - Returns: The number of frame addresses written to `buffer` (`0...capacity`).
-    package func backtrace(
-        of thread: pthread_t,
+    package final func backtrace(
+        ofMachThread machThread: thread_t,
         into buffer: UnsafeMutablePointer<UInt>,
         capacity: Int
     ) -> Int {
         // Fills the caller's buffer from a stack-allocated context and cursor: no malloc, no runtime
-        // work.
+        // work, no libpthread.
         //
         // Use the already-suspended entry point: `captureBacktrace(thread:…)` is the running-thread
         // API, which re-suspends the target and logs via `fprintf` on error paths, both unsafe here.
         return Int(
             captureBacktraceFromSuspended(
-                machThread: pthread_mach_thread_np(thread),
+                machThread: machThread,
                 addresses: buffer,
                 count: Int32(capacity),
                 isTruncated: nil
