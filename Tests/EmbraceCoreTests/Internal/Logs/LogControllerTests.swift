@@ -134,6 +134,66 @@ class LogControllerTests: XCTestCase {
         try thenStorageShouldntCallRemoveLogs()
     }
 
+    // MARK: - Testing sequential uploads
+
+    func testUploaderNeverCompleting_onSetup_returnsWithoutWaitingForTheUpload() {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        var completed = false
+        sut.uploadAllPersistedLogs { completed = true }
+
+        XCTAssertEqual(upload.didCallUploadLogCount, 1)
+        XCTAssertEqual(upload.pendingLogCompletionsCount, 1)
+        XCTAssertFalse(completed)
+    }
+
+    func testUploaderNeverCompleting_onSetup_buildsAllPayloadsBeforeReturning() throws {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        sut.uploadAllPersistedLogs()
+
+        // each batch belongs to a different process, so both payloads are built before returning
+        let unwrappedStorage = try XCTUnwrap(storage)
+        XCTAssertEqual(unwrappedStorage.fetchResourcesForProcessIdCallCount, 2)
+    }
+
+    func testHavingMoreThanABatch_onSetup_uploadsTheNextBatchOnlyAfterThePreviousOneCompletes() {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        var completed = false
+        sut.uploadAllPersistedLogs { completed = true }
+        XCTAssertEqual(upload.didCallUploadLogCount, 1)
+
+        upload.completeNextPendingLogUpload()
+        XCTAssertEqual(upload.didCallUploadLogCount, 2)
+        XCTAssertFalse(completed)
+
+        upload.completeNextPendingLogUpload()
+        XCTAssertTrue(completed)
+    }
+
+    func testHavingMoreThanABatchFromTheSameSession_onSetup_buildsThePayloadsOnceAndUploadsAllBatches() throws {
+        let sessionId = EmbraceIdentifier.random
+        let processId = EmbraceIdentifier.random
+        let logs = (1...LogController.maxLogsPerBatch + 1).map { _ in
+            randomLogRecord(sessionId: sessionId, processId: processId)
+        }
+
+        givenStorage(withLogs: logs)
+        givenLogController()
+        whenInvokingSetup()
+
+        let unwrappedStorage = try XCTUnwrap(storage)
+        XCTAssertEqual(unwrappedStorage.fetchResourcesForSessionIdCallCount, 1)
+        thenLogUploadShouldUpload(times: 2)
+    }
+
     // MARK: - Testing dropped batches
 
     func testHavingLogsWithoutRequiredMetadata_onSetup_wontUploadAndRemovesThem() throws {
@@ -252,7 +312,7 @@ class LogControllerTests: XCTestCase {
         thenLogUploadShouldUpload(times: 1)
     }
 
-    func test_batchPayloadTypes() {
+    func test_batchPayloadTypes() throws {
         givenStorage(withLogs: [
             randomLogRecord(type: "test"),
             randomLogRecord(type: "test"),
@@ -262,7 +322,7 @@ class LogControllerTests: XCTestCase {
         givenLogController()
         whenInvokingSetup()
         thenLogUploadShouldUpload(times: 1)
-        thenPayloadTypesIsSet(["test", "type", "sys.log"])
+        try thenPayloadTypesIsSet(["test", "type", "sys.log"])
     }
 
     // MARK: LogController.Error tests
@@ -398,7 +458,8 @@ extension LogControllerTests {
         sut = .init(
             storage: nil,
             upload: upload,
-            controller: sessionController
+            controller: sessionController,
+            unsentLogsQueue: MockQueue()
         )
 
         sut.sdkStateProvider = sdkStateProvider
@@ -422,7 +483,8 @@ extension LogControllerTests {
         sut = .init(
             storage: storage,
             upload: upload,
-            controller: sessionController
+            controller: sessionController,
+            unsentLogsQueue: MockQueue()
         )
 
         sut.sdkStateProvider = sdkStateProvider
@@ -441,6 +503,11 @@ extension LogControllerTests {
         upload = .init()
         upload.stubbedLogCompletion = .failure(RandomError())
         upload.stubbedAttachmentCompletion = .failure(RandomError())
+    }
+
+    fileprivate func givenNeverCompletingLogUploader() {
+        upload = .init()
+        upload.shouldCompleteLogUploads = false
     }
 
     fileprivate func givenSDKEnabled(_ sdkEnabled: Bool = true) {
@@ -572,13 +639,12 @@ extension LogControllerTests {
         XCTAssertTrue(upload.didCallUploadLog)
     }
 
-    fileprivate func thenPayloadTypesIsSet(_ types: [String]) {
+    fileprivate func thenPayloadTypesIsSet(_ types: [String]) throws {
         guard types.count > 0 else {
             return
         }
 
-        XCTAssertNotNil(upload.logPayloadTypes)
-        let payloadTypes = upload.logPayloadTypes!.components(separatedBy: ",")
+        let payloadTypes = try XCTUnwrap(upload.logPayloadTypes).components(separatedBy: ",")
 
         XCTAssertEqual(types.count, payloadTypes.count)
 
@@ -698,6 +764,7 @@ extension LogControllerTests {
 
     fileprivate func randomLogRecord(
         sessionId: EmbraceIdentifier? = nil,
+        processId: EmbraceIdentifier = .random,
         type: String = "test"
     ) -> EmbraceLog {
 
@@ -710,7 +777,7 @@ extension LogControllerTests {
 
         return MockLog(
             id: .random,
-            processId: .random,
+            processId: processId,
             severity: .info,
             body: UUID().uuidString,
             attributes: attributes
