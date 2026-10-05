@@ -502,7 +502,9 @@ final class SessionControllerTests: XCTestCase {
             lifespan: .permanent
         )
 
-        // when starting a session
+        // when starting a session on a controller created afterwards
+        let controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
         let session = controller.startSession(state: .foreground)
 
         // then sessionNumber continues from 6
@@ -510,6 +512,48 @@ final class SessionControllerTests: XCTestCase {
 
         let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
         XCTAssertEqual(resource?.value, "6")
+    }
+
+    func test_startSession_usesPreloadedCounter() throws {
+        // given an existing counter value of 5
+        storage.addMetadata(
+            key: SessionController.sessionNumberKey,
+            value: "5",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+
+        // and a controller whose preload has finished
+        let controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
+        storage.coreData.performOperation { _ in }
+
+        // when the stored counter changes behind the controller's back
+        storage.addMetadata(
+            key: SessionController.sessionNumberKey,
+            value: "100",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+
+        // then the session uses the preloaded value instead of reading storage again
+        let session = controller.startSession(state: .foreground)
+        XCTAssertEqual(session?.sessionNumber, 6)
+    }
+
+    func test_startSession_persistsCounterForNextController() throws {
+        // given two sessions started on one controller
+        controller.startSession(state: .foreground)
+        controller.startSession(state: .foreground)
+        controller.endSession()
+
+        // when a new controller starts a session (simulating a new process)
+        let controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
+        let session = controller.startSession(state: .foreground)
+
+        // then the counter continues from the persisted value
+        XCTAssertEqual(session?.sessionNumber, 3)
     }
 
     func test_heartbeat() throws {

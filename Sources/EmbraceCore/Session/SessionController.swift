@@ -31,6 +31,10 @@ class SessionController: SessionControllable {
     static let sessionNumberKey = "emb.session.upload_index"
 
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
+
+    /// In-memory copy of the persisted session counter, so starting a session never has to wait on storage.
+    /// `nil` until the stored value has been loaded.
+    private let _sessionNumber = EmbraceMutex<EMBInt?>(nil)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
 
     // Lock used for session boundaries. Will be shared at both start/end of session
@@ -79,6 +83,15 @@ class SessionController: SessionControllable {
 
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
         self.queue = queue
+
+        // Load the stored session counter ahead of the first session start.
+        storage.fetchCountForPermanentResource(key: Self.sessionNumberKey) { [weak self] value in
+            self?._sessionNumber.withLock { current in
+                if current == nil {
+                    current = value
+                }
+            }
+        }
 
         self.heartbeat.callback = { [weak self] in
             let span = EmbraceMetricKitSpan.begin(name: "heartbeat")
@@ -161,9 +174,7 @@ class SessionController: SessionControllable {
             SessionSpanUtils.setExperiments(span: span, value: experiments?.encodedExperiments)
 
             // increment session counter and create session record
-            let sessionNumber = storage.incrementCountForPermanentResource(
-                key: SessionController.sessionNumberKey
-            )
+            let sessionNumber = nextSessionNumberNoLock(storage: storage)
             let session = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,
@@ -195,6 +206,30 @@ class SessionController: SessionControllable {
         }
 
         return sessionInfo.session
+    }
+
+    /// Increments the session counter and persists the new value asynchronously.
+    /// Must be called while holding `lock` so increments are persisted in the same order they are generated.
+    private func nextSessionNumberNoLock(storage: EmbraceStorage) -> EMBInt {
+        // Fall back to a synchronous read if the stored value hasn't been loaded yet.
+        // This can only happen for a session started right after initialization.
+        if _sessionNumber.withLock({ $0 }) == nil {
+            let stored = storage.fetchCountForPermanentResource(key: Self.sessionNumberKey)
+            _sessionNumber.withLock { current in
+                if current == nil {
+                    current = stored
+                }
+            }
+        }
+
+        let next: EMBInt = _sessionNumber.withLock { current in
+            let next = (current ?? 0) + 1
+            current = next
+            return next
+        }
+
+        storage.setCountForPermanentResource(key: Self.sessionNumberKey, value: next)
+        return next
     }
 
     /// Ends the session session taking into account that the lock is held externally
