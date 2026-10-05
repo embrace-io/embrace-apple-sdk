@@ -512,15 +512,28 @@ class LogControllerTests: XCTestCase {
         thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
-    func testWarningLog_withMainStacktrace_whenCaptureSucceeds_addsStackTraceToAttributes() throws {
-        try XCTSkipIfSanitizing("KSCrash stack walking is incompatible with sanitizer instrumentation")
-        givenLogController()
+    #if !os(watchOS)
+        func testWarningLog_withMainStacktrace_whenCaptureSucceeds_addsStackTraceToAttributes() throws {
+            try XCTSkipIfSanitizing("KSCrash stack walking is incompatible with sanitizer instrumentation")
+            givenLogController()
 
-        var createdLog: EmbraceLog?
-        whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main) { createdLog = $0 }
+            var createdLog: EmbraceLog?
+            whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main) { createdLog = $0 }
 
-        thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
-    }
+            thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
+        }
+    #else
+        // watchOS can't suspend another thread, so a remote-thread capture always returns no frames.
+        func testWarningLog_withMainStacktrace_onWatchOS_doesntAddStackTraceToAttributes() throws {
+            try XCTSkipIfSanitizing("KSCrash stack walking is incompatible with sanitizer instrumentation")
+            givenLogController()
+
+            var createdLog: EmbraceLog?
+            whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main) { createdLog = $0 }
+
+            thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
+        }
+    #endif
 
     func testWarningLog_withMainStacktrace_whenCaptureIsEmpty_doesntAddStackTraceToAttributes() throws {
         try XCTSkipIfSanitizing("KSCrash stack walking is incompatible with sanitizer instrumentation")
