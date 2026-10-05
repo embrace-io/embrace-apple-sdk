@@ -169,7 +169,8 @@ extension EmbraceBacktrace {
         // Resolve the concrete type before suspending. `Backtracer` is an `@objc` protocol, so a
         // call through the existential is an `objc_msgSend`, which on a cold method cache takes the
         // ObjC runtime lock. If the suspended thread holds that lock, the walk never returns and the
-        // process deadlocks. Calling the concrete type is a vtable dispatch instead: no locks.
+        // process deadlocks. Calling the concrete type's `final` method is a direct call instead: no
+        // `objc_msgSend`, no locks.
         let ksBacktracer = backtracer as? KSCrashBacktracing
 
         // Get the mach thread to take the snapshot of. Must happen before the suspend:
@@ -185,8 +186,8 @@ extension EmbraceBacktrace {
         if canSuspend {
             // Deadlock hazard: if the suspended thread holds the allocator lock, any `malloc` in the
             // suspend window hangs the process. So allocate the buffer before the suspend and do all
-            // heap work (copy/slice) after the resume — only the alloc-free
-            // `backtrace(of:into:capacity:)` runs in the window.
+            // heap work (copy/slice) after the resume — only the alloc-free buffer walk runs in the
+            // window (`backtrace(ofMachThread:into:capacity:)` for the built-in backtracer).
             let buffer = UnsafeMutablePointer<FrameAddress>.allocate(capacity: entries)
             defer { buffer.deallocate() }
 

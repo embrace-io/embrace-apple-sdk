@@ -130,12 +130,15 @@ public typealias FrameAddress = UInt
     /// - Important: The implementation MUST be allocation-free and async-signal-safe: no `malloc`,
     ///   no Obj-C/Swift runtime work, no lock acquisition. It is called between `thread_suspend` and
     ///   `thread_resume` of a thread that is not the caller.
-    /// - Important: Do not pass `thread` to pthread functions, including `pthread_mach_thread_np`.
-    ///   libpthread validates the handle under a process-wide lock that the suspended thread may be
-    ///   holding (it does inside `pthread_create`, `pthread_join` and other pthread calls), which
-    ///   deadlocks the process. The built-in backtracer is handed a mach port resolved before the
-    ///   suspend and is not affected.
-    /// - Note: Following the rule above is not sufficient for a *custom* implementation. Because this
+    /// - Important: Do not pass `thread` to libpthread functions that look up another thread's
+    ///   handle (`pthread_mach_thread_np`, `pthread_threadid_np`, `pthread_getname_np`, …).
+    ///   libpthread validates such handles under a process-wide thread-list lock, which the
+    ///   suspended thread may hold (for example inside `pthread_create`, `pthread_join` or thread
+    ///   exit). The caller then blocks forever with `thread` left suspended. This protocol offers no
+    ///   lock-free way to get `thread`'s mach port, so a custom implementation that needs one carries
+    ///   this risk. The SDK's built-in backtracer does not: the SDK calls it through an internal entry
+    ///   point that takes a port resolved before the suspend.
+    /// - Note: Following the rules above is not sufficient for a *custom* implementation. Because this
     ///   protocol is `@objc`, the SDK reaches a custom backtracer through `objc_msgSend`, and that
     ///   dispatch itself takes the ObjC runtime lock when the method cache is cold — inside the
     ///   suspend window. If the suspended thread holds that lock, the process deadlocks regardless of

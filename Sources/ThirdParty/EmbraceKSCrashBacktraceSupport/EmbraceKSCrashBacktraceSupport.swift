@@ -37,8 +37,23 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
         return addresses
     }
 
+    /// - Warning: Calls `pthread_mach_thread_np(thread)`, which takes libpthread's thread-list lock.
+    ///   If `thread` was suspended while holding that lock, this never returns. The SDK doesn't call
+    ///   this entry point; it uses `backtrace(ofMachThread:into:capacity:)` with a port resolved
+    ///   before the suspend.
     public func backtrace(
         of thread: pthread_t,
+        into buffer: UnsafeMutablePointer<FrameAddress>,
+        capacity: Int
+    ) -> Int {
+        return backtrace(ofMachThread: pthread_mach_thread_np(thread), into: buffer, capacity: capacity)
+    }
+
+    /// Same as ``backtrace(of:into:capacity:)``, but takes the target's mach port so nothing in the
+    /// suspend window has to touch libpthread. `final` and non-`@objc` so the call is direct, with
+    /// no `objc_msgSend` (which can take the ObjC runtime lock).
+    package final func backtrace(
+        ofMachThread machThread: thread_t,
         into buffer: UnsafeMutablePointer<FrameAddress>,
         capacity: Int
     ) -> Int {
@@ -46,21 +61,6 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
         // work. The `pthread_self()` workaround in `backtrace(of:)` is intentionally not repeated —
         // this entry point only walks a suspended thread, never the caller.
         //
-        //
-        // Note: `pthread_mach_thread_np` takes libpthread's thread-list lock, so this entry point is
-        // only safe if the suspended thread isn't holding it. The SDK calls
-        // `backtrace(ofMachThread:into:capacity:)` instead, with a port resolved before the suspend.
-        return backtrace(ofMachThread: pthread_mach_thread_np(thread), into: buffer, capacity: capacity)
-    }
-
-    /// Same as ``backtrace(of:into:capacity:)``, but takes the target's mach port so nothing in the
-    /// suspend window has to touch libpthread. `final` and non-`@objc` so the call is direct: no
-    /// `objc_msgSend`, no vtable.
-    package final func backtrace(
-        ofMachThread machThread: thread_t,
-        into buffer: UnsafeMutablePointer<FrameAddress>,
-        capacity: Int
-    ) -> Int {
         // Use the already-suspended entry point: `captureBacktrace(thread:…)` is the running-thread
         // API, which re-suspends the target and logs via `fprintf` on error paths, both unsafe here.
         return Int(
