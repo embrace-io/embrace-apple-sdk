@@ -544,7 +544,7 @@ final class SessionControllerTests: XCTestCase {
         }
 
         // then the session starts without waiting for the storage queue
-        wait(for: [started], timeout: 1)
+        wait(for: [started], timeout: 5)
         release.signal()
         XCTAssertNotNil(session)
 

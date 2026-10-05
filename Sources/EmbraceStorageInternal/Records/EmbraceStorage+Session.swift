@@ -11,7 +11,7 @@ import Foundation
 
 extension EmbraceStorage {
 
-    /// Adds a session to the storage synchronously.
+    /// Adds a session to the storage asynchronously; the record is created and saved on the storage queue.
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - processId: `ProcessIdentifier` of the session
@@ -24,10 +24,10 @@ extension EmbraceStorage {
     ///   - crashReportId: Identifier of the crash report linked with this session
     ///   - sessionNumber: Number of the session. Ignored when `sessionNumberCounterKey` is set.
     ///   - sessionNumberCounterKey: Key of a permanent counter resource. When set, the counter is incremented
-    ///   on the storage queue and its new value becomes the stored session's number, so the caller never waits
-    ///   on storage. The returned record then has a `sessionNumber` of 0; fetch the stored session to read it.
-    ///   - completion: A block called when the sesson has been added to storage
-    /// - Returns: The newly stored `SessionRecord`
+    ///     in the same storage-queue block that creates the record, and its new value becomes the stored
+    ///     session's number. The returned copy then has a `sessionNumber` of 0; fetch the stored session to read it.
+    ///   - completion: A block called when the session has been added to storage
+    /// - Returns: An in-memory copy of the session built from the given values, returned before the record is stored.
     @discardableResult
     public func addSession(
         id: EmbraceIdentifier,

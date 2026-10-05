@@ -264,6 +264,66 @@ class CoreDataWrapperTests: XCTestCase {
             logger.loggedMessages.contains {
                 $0.level == .critical && $0.message.contains("Error loading persistent stores")
             })
+        XCTAssertFalse(wrapper.isStoreLoaded)
+    }
+
+    func test_isStoreLoaded() throws {
+        // given a wrapper with a store on disk
+        let options = CoreDataWrapper.Options(
+            storageMechanism: try makeOnDiskStorageMechanism(),
+            enableBackgroundTasks: false,
+            entities: [MockRecord.entityDescription]
+        )
+        wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
+
+        // then the store is reported as loaded
+        XCTAssertTrue(wrapper.isStoreLoaded)
+    }
+
+    func test_save_whenTheStoreFailedToLoad_failsWithoutTrying() throws {
+        // given a wrapper whose store failed to load
+        let storageMechanism = try makeOnDiskStorageMechanism()
+        try FileManager.default.createDirectory(at: storageMechanism.fileURL!, withIntermediateDirectories: true)
+
+        let logger = MockLogger()
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
+        wrapper = try CoreDataWrapper(options: options, logger: logger, isTesting: false)
+
+        // when inserting and saving
+        let saved = wrapper.performOperation { context in
+            _ = MockRecord.create(context: context, id: "test")
+            return self.wrapper.saveIfNeeded()
+        }
+
+        // then the save fails without attempting it (which would raise and log a save failure)
+        XCTAssertFalse(saved)
+        XCTAssertFalse(logger.loggedMessages.contains { $0.message.contains("CoreData save failed") })
+
+        // and the pending record is still visible to fetches
+        let request = NSFetchRequest<MockRecord>(entityName: MockRecord.entityName)
+        XCTAssertEqual(wrapper.fetch(withRequest: request).count, 1)
+    }
+
+    func test_failedLoad_isNotRetried_whenTheStoreBecomesAvailable() throws {
+        // given a wrapper whose store failed to load
+        let storageMechanism = try makeOnDiskStorageMechanism()
+        try FileManager.default.createDirectory(at: storageMechanism.fileURL!, withIntermediateDirectories: true)
+
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
+        wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
+        XCTAssertFalse(wrapper.isStoreLoaded)
+
+        // when the store becomes loadable and a record is saved
+        try FileManager.default.removeItem(at: storageMechanism.fileURL!)
+        wrapper.performAsyncOperation(save: true) { context in
+            _ = MockRecord.create(context: context, id: "test")
+        }
+
+        // then the store is not attached late (records created meanwhile would duplicate stored ones)
+        XCTAssertFalse(wrapper.isStoreLoaded)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: storageMechanism.fileURL!.path))
     }
 
     private func makeOnDiskStorageMechanism() throws -> StorageMechanism {

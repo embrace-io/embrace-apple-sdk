@@ -46,7 +46,7 @@ public class MetadataHandler: NSObject {
         // tmp core data stack
         // only created if the db file is found
         // the entire data gets migrated to the real db and the file is removed
-        // that means this should only be executed once
+        // that means this should only be executed once (the file is kept if its store fails to load)
         let coreDataStackName = "EmbraceMetadataTmp"
         if let url = storage?.options.storageMechanism.baseUrl,
             FileManager.default.fileExists(atPath: url.appendingPathComponent(coreDataStackName + ".sqlite").path)
@@ -268,6 +268,11 @@ extension MetadataHandler {
         guard let coreData = coreData,
             let storage = storage
         else {
+            return
+        }
+
+        // keep the file if it can't be read, so it isn't removed without being migrated
+        guard coreData.isStoreLoaded else {
             return
         }
 

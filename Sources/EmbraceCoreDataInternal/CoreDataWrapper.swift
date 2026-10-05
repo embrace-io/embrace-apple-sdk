@@ -28,6 +28,10 @@ public class CoreDataWrapper {
     }
 
     private let isTesting: Bool
+
+    /// Set when the initial store load fails. Only accessed on the context's queue.
+    private var initialLoadFailed = false
+
     static let modelCache: EmbraceMutex<[String: NSManagedObjectModel]> = EmbraceMutex([:])
 
     public init(
@@ -82,8 +86,9 @@ public class CoreDataWrapper {
                 description.type = NSSQLiteStoreType
                 description.url = options.storageMechanism.fileURL
                 description.setValue(journalMode.rawValue as NSString, forPragmaNamed: "journal_mode")
-                // This is the default value; however, we enforce it here so that the store is added
-                // synchronously inside the first block on the context's queue (see below).
+                // This is the default value; however, we enforce it here because the store must be added
+                // synchronously inside the first block on the context's queue (see below). Otherwise that
+                // block would return before the store exists and later operations would run without it.
                 description.shouldAddStoreAsynchronously = false
                 container.persistentStoreDescriptions = [description]
 
@@ -91,18 +96,31 @@ public class CoreDataWrapper {
         }
 
         // Opening the store (attaching the SQLite file, WAL recovery, migrations) can take a long time
-        // on slow or busy devices, and this initializer runs on the main thread during `Embrace.setup()`.
-        // Instead, the store is loaded by the first block enqueued on the context's serial queue, so every
-        // later operation runs after it without the caller having to wait.
+        // on slow or busy devices, and this initializer typically runs on the main thread (`Embrace.setup()`).
+        // So instead of loading it here, the store is loaded by the first block enqueued on the context's
+        // serial queue, and every later operation runs after it. Async operations return immediately, but
+        // synchronous ones (`performOperation`, `fetch*`, `count`, `delete*`, `save()`) issued before the load
+        // finishes wait for it.
         //
-        // If the load fails, the error is logged: fetches return no results and every save tries to load
-        // the store again before failing (see `saveIfNeeded`).
+        // If the load fails, the error is logged and the wrapper keeps working without a store for the rest
+        // of the process: nothing is persisted, fetches only see objects still pending in the context, and
+        // saves return `false` without trying. The load is not retried, so a store that becomes available
+        // later is never attached next to the objects created in the meantime (which would duplicate records).
+        // See `isStoreLoaded`.
         //
         // The context is created manually because `newBackgroundContext()` warns when no store is loaded yet.
         context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         context.persistentStoreCoordinator = container.persistentStoreCoordinator
         context.perform { [self] in
-            loadPersistentStoreIfNeeded(logIfEmpty: false)
+            initialLoadFailed = loadPersistentStoreIfNeeded(logIfEmpty: false) != nil
+        }
+    }
+
+    /// Whether the persistent store is loaded.
+    /// Synchronous: waits for the initial load (and any other pending operation) to finish.
+    public var isStoreLoaded: Bool {
+        performOperation(allowMainQueue: true) { _ in
+            !container.persistentStoreCoordinator.persistentStores.isEmpty
         }
     }
 
@@ -297,6 +315,12 @@ extension CoreDataWrapper {
 
         guard context.hasChanges else {
             return true
+        }
+
+        // Without a store the save can only fail (raising, and logging, every time).
+        // The initial load isn't retried: see `init`.
+        guard !initialLoadFailed else {
+            return false
         }
 
         // For some reason, persistent stores seem to go away sometimes,

@@ -303,8 +303,8 @@ extension EmbraceStorage {
     }
 
     /// Increments the numeric value of a permanent resource for the given key and returns the new value.
-    /// If no record exists (or its value is not numeric) the count starts from 0.
-    /// Must be called on the storage context's queue.
+    /// A missing record is created and a non-numeric value is overwritten: both count as 0, so the first value is 1.
+    /// Doesn't save the context. Must be called on the storage context's queue.
     func incrementCountForPermanentResource(key: String, context: NSManagedObjectContext) -> EMBInt {
         let request = fetchMetadataRequest(key: key, type: .requiredResource, lifespan: .permanent)
 

@@ -161,7 +161,8 @@ class SessionController: SessionControllable {
             SessionSpanUtils.setExperiments(span: span, value: experiments?.encodedExperiments)
 
             // create session record
-            // the session counter is incremented on the storage queue, so this never waits on storage
+            // the session number is assigned on the storage queue, so this doesn't wait on storage
+            // and the returned session's `sessionNumber` is 0 (see `SpansPayloadBuilder`)
             let session = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,
