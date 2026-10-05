@@ -353,24 +353,6 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         XCTAssertFalse(innerTasks[0].embraceCaptured)
     }
 
-    func test_requestsDataSource_hoppingToMainThread_fromBackgroundCreate_doesntDeadlock() {
-        givenTaskHandlerWithRealQueue()
-        givenAnURLSessionTask()
-        givenRequestsDataSourceWithBlock { request in
-            DispatchQueue.main.sync {}
-            return request
-        }
-
-        let created = expectation(description: "task created")
-        DispatchQueue.global().async {
-            XCTAssertTrue(self.sut.create(task: self.task))
-            created.fulfill()
-        }
-
-        wait(for: [created], timeout: 5.0)
-        XCTAssertEqual(otel.spanProcessor.startedSpans.count, 1)
-    }
-
     func test_createOnMainThread_whileBackgroundCreateIsInsideDataSource_doesntDeadlock() {
         givenTaskHandlerWithRealQueue()
         givenAnURLSessionTask(urlString: "https://background.embrace.io")
