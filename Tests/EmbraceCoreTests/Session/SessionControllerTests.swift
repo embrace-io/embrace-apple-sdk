@@ -322,12 +322,11 @@ final class SessionControllerTests: XCTestCase {
         // when ending the session
         controller.endSession()
 
-        // then should force end current batch without blocking the caller
+        // then should force end current batch
         XCTAssertTrue(batcher.didCallForceEndCurrentBatch)
-        XCTAssertFalse(try XCTUnwrap(batcher.forceEndCurrentBatchParameters).waitUntilFinished)
 
         // then the ending session's ID should be passed so logs are attributed correctly
-        XCTAssertNotNil(try XCTUnwrap(batcher.forceEndCurrentBatchParameters).sessionId)
+        XCTAssertNotNil(batcher.forceEndCurrentBatchSessionId)
     }
 
     // MARK: update

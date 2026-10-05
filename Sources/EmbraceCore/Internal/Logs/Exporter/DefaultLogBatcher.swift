@@ -20,7 +20,7 @@ protocol LogBatcherDelegate: AnyObject {
 protocol LogBatcher: AnyObject {
     func addLogRecord(logRecord: ReadableLogRecord)
     func renewBatch(withLogs logRecords: [EmbraceLog])
-    func forceEndCurrentBatch(waitUntilFinished: Bool, sessionId: EmbraceIdentifier?)
+    func forceEndCurrentBatch(sessionId: EmbraceIdentifier?)
     var limits: LogsLimits { get }
 }
 
@@ -80,29 +80,16 @@ class DefaultLogBatcher: LogBatcher {
 }
 
 extension DefaultLogBatcher {
-    /// Forces the current batch to end and renews it, optionally waiting for completion.
+    /// Asynchronously forces the current batch to end and renews it.
     ///
-    /// This method ensures that any pending logs are flushed by rewewing the batch.
-    /// If `waitUntilFinished` is `true`, the method blocks the calling thread until the operation on the internal queue completes.
+    /// This method ensures that any pending logs are flushed by renewing the batch.
+    /// It never blocks the caller: the work is scheduled on the internal queue.
     ///
     /// - Parameters:
-    ///   - waitUntilFinished: indicates whether the method should block until the batch operation finishes. Default is `true`.
-    func forceEndCurrentBatch(waitUntilFinished: Bool = true, sessionId: EmbraceIdentifier? = nil) {
-        let group = DispatchGroup()
-
-        if waitUntilFinished {
-            group.enter()
-        }
-
+    ///   - sessionId: the identifier of the session the finished batch's logs belong to.
+    func forceEndCurrentBatch(sessionId: EmbraceIdentifier? = nil) {
         processorQueue.async {
             self.renewBatchInternal(sessionId: sessionId)
-            if waitUntilFinished {
-                group.leave()
-            }
-        }
-
-        if waitUntilFinished {
-            group.wait()
         }
     }
 
