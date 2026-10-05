@@ -237,7 +237,7 @@ class SessionController: SessionControllable {
 
         // end log batches — session ID captured now so batchFinished attributes correctly
         // even if it runs after the session has been swapped.
-        logBatcher?.forceEndCurrentBatch(waitUntilFinished: false, sessionId: inProgressSession.id)
+        logBatcher?.forceEndCurrentBatch(sessionId: inProgressSession.id)
 
         // end span
         if let inProgressSessionSpan {
