@@ -20,6 +20,7 @@ class LogControllerTests: XCTestCase {
     private let sdkStateProvider = MockEmbraceSDKStateProvider()
     private var privateLogger: SpyPrivateLogger!
     private let loggingQueue = DispatchQueue(label: "loggingQueue")
+    private var captureFailures: ScriptedCaptureFailures?
 
     override func setUp() {
         givenEmbraceLogUploader()
@@ -27,6 +28,12 @@ class LogControllerTests: XCTestCase {
         givenSessionControllerWithSession()
         givenPrivateLogger()
         givenStorage()
+    }
+
+    override func tearDown() {
+        captureFailures?.uninstall()
+        captureFailures = nil
+        super.tearDown()
     }
 
     // MARK: - Testing `setup` method
@@ -444,6 +451,27 @@ class LogControllerTests: XCTestCase {
         thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
+    func testWarningLog_withMainStacktrace_whenCaptureSucceeds_addsStackTraceToAttributes() throws {
+        try XCTSkipIfSanitizing("KSCrash stack walking is incompatible with sanitizer instrumentation")
+        givenLogController()
+
+        var createdLog: EmbraceLog?
+        whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main) { createdLog = $0 }
+
+        thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
+    }
+
+    func testWarningLog_withMainStacktrace_whenCaptureIsEmpty_doesntAddStackTraceToAttributes() throws {
+        try XCTSkipIfSanitizing("KSCrash stack walking is incompatible with sanitizer instrumentation")
+        givenEmptyCaptures()
+        givenLogController()
+
+        var createdLog: EmbraceLog?
+        whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main) { createdLog = $0 }
+
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
+    }
+
     func testInfoLogs_createLogByWithCustomStacktrace_wontAddStackTraceToAttributes() throws {
         givenLogController()
 
@@ -472,6 +500,11 @@ extension LogControllerTests {
         sut.sdkStateProvider = sdkStateProvider
         sut.privateLogger = privateLogger
         sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
+    }
+
+    fileprivate func givenEmptyCaptures() {
+        captureFailures = ScriptedCaptureFailures(failures: .max)
+        captureFailures?.install()
     }
 
     fileprivate func givenLogController() {
@@ -574,6 +607,20 @@ extension LogControllerTests {
             stackTraceBehavior: stackTraceBehavior,
             completion: completion
         )
+        waitForLoggingQueue()
+    }
+
+    /// Creates the log from a background thread, so a `.main` stack trace is a remote-thread capture.
+    fileprivate func whenCreatingLogOffMainThread(
+        severity: EmbraceLogSeverity,
+        stackTraceBehavior: EmbraceStackTraceBehavior,
+        completion: ((EmbraceLog?) -> Void)? = nil
+    ) {
+        let callerQueue = DispatchQueue(label: "logCallerQueue")
+        callerQueue.async {
+            self.sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior, completion: completion)
+        }
+        callerQueue.sync {}
         waitForLoggingQueue()
     }
 
