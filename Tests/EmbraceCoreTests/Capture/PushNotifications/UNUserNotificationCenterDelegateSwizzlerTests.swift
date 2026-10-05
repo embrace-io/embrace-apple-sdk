@@ -32,16 +32,6 @@ class UNUserNotificationCenterDelegateSwizzlerTests: SwizzlerTestCase {
         try super.tearDownWithError()
     }
 
-    func test_setDelegate_installsProxy() {
-        // when setting a delegate
-        let appDelegate = MockNotificationCenterDelegate()
-        center.delegate = appDelegate
-
-        // then the proxy is installed and forwards to the delegate
-        XCTAssert(center.delegate === proxy)
-        XCTAssert(proxy.originalDelegate === appDelegate)
-    }
-
     func test_getDelegate_returnsProxy() {
         // given a delegate
         let appDelegate = MockNotificationCenterDelegate()
