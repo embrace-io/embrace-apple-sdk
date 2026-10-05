@@ -13,7 +13,8 @@ import Foundation
     public static let defaultHangThreshold: TimeInterval = 0.249
     /// Default maximum number of captured hangs per session.
     public static let defaultHangPerSession: UInt = 20
-    /// Default for collecting watchdog reports for hangs that do not recover.
+    /// Default for collecting watchdog reports for hangs that do not recover. No longer has any effect.
+    @available(*, deprecated, message: "Watchdog reports are no longer collected. This value has no effect.")
     public static let defaultReportsWatchdogEvents = false
     /// Default trigger for the during-block sampler.
     public static let defaultSampleTriggerThreshold: TimeInterval = 0.15
@@ -47,8 +48,12 @@ import Foundation
     /// Maximum number of captured hangs in a session.
     public let hangPerSession: UInt
 
-    /// Collects crash reports for Hangs that do not recover.
-    public let reportsWatchdogEvents: Bool
+    /// Collects crash reports for Hangs that do not recover. No longer has any effect: hangs are detected
+    /// after the main thread recovers, so they can't capture a watchdog termination. Watchdog terminations
+    /// are reported through MetricKit instead.
+    @available(*, deprecated, message: "Watchdog reports are no longer collected. This value has no effect.")
+    public var reportsWatchdogEvents: Bool { storedReportsWatchdogEvents }
+    private let storedReportsWatchdogEvents: Bool
 
     /// How long (in seconds) the main thread must be continuously busy before the during-block
     /// sampler snapshots it. Capped at ``sampleTriggerFraction`` of `hangThreshold` — a fixed headroom
@@ -65,7 +70,7 @@ import Foundation
     public init(
         hangThreshold: TimeInterval = HangLimits.defaultHangThreshold,
         hangPerSession: UInt = HangLimits.defaultHangPerSession,
-        reportsWatchdogEvents: Bool = HangLimits.defaultReportsWatchdogEvents,
+        reportsWatchdogEvents: Bool = false,
         sampleTriggerThreshold: TimeInterval = HangLimits.defaultSampleTriggerThreshold,
         samplePollInterval: TimeInterval = HangLimits.defaultSamplePollInterval
     ) {
@@ -74,7 +79,7 @@ import Foundation
 
         self.hangThreshold = resolvedHangThreshold
         self.hangPerSession = hangPerSession
-        self.reportsWatchdogEvents = reportsWatchdogEvents
+        self.storedReportsWatchdogEvents = reportsWatchdogEvents
         self.sampleTriggerThreshold = HangLimits.resolvedSampleTrigger(
             sampleTriggerThreshold, hangThreshold: resolvedHangThreshold)
         self.samplePollInterval = HangLimits.clamped(
@@ -122,7 +127,7 @@ import Foundation
         var hasher = Hasher()
         hasher.combine(hangThreshold)
         hasher.combine(hangPerSession)
-        hasher.combine(reportsWatchdogEvents)
+        hasher.combine(storedReportsWatchdogEvents)
         hasher.combine(sampleTriggerThreshold)
         hasher.combine(samplePollInterval)
         return hasher.finalize()
@@ -134,7 +139,7 @@ import Foundation
         }
         return hangThreshold == other.hangThreshold
             && hangPerSession == other.hangPerSession
-            && reportsWatchdogEvents == other.reportsWatchdogEvents
+            && storedReportsWatchdogEvents == other.storedReportsWatchdogEvents
             && sampleTriggerThreshold == other.sampleTriggerThreshold
             && samplePollInterval == other.samplePollInterval
     }

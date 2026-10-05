@@ -98,7 +98,6 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.metricKitHangCaptureEnabled, true)
         XCTAssertEqual(payload.hangLimitsHangThreshold, 0.5)
         XCTAssertEqual(payload.hangLimitsHangPerSession, 100)
-        XCTAssertEqual(payload.hangLimitsReportsWatchdogEvents, true)
         XCTAssertEqual(payload.hangLimitsSampleTriggerThreshold, 0.2)
         XCTAssertEqual(payload.hangLimitsSamplePollInterval, 0.03)
         XCTAssertEqual(payload.maxExperimentCount, 1000)

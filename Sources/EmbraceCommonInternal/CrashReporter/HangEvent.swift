@@ -15,6 +15,7 @@ import Foundation
 ///
 /// These values can be used to correlate hang reports with
 /// other telemetry such as spans, metrics, or crash reports.
+@available(*, deprecated, message: "Watchdog events are no longer posted.")
 public struct WatchdogEvent {
 
     /// The timestamp at which the hang was first detected.
@@ -51,17 +52,20 @@ extension Notification.Name {
     ///
     /// The notification’s `object` is a `WatchdogEvent` representing the
     /// initial hang state (timestamp and starting duration).
+    @available(*, deprecated, message: "Watchdog events are no longer posted.")
     public static let hangEventStarted = Notification.Name("io.embrace.hang.started")
 
     /// Posted when a hang event remains ongoing and its duration updates.
     ///
     /// The notification’s `object` is a `WatchdogEvent` containing the
     /// current timestamp and the updated duration.
+    @available(*, deprecated, message: "Watchdog events are no longer posted.")
     public static let hangEventUpdated = Notification.Name("io.embrace.hang.updated")
 
     /// Posted when a hang ends, indicating that the main thread recovered.
     ///
     /// The notification’s `object` is a `WatchdogEvent` representing the
     /// final timestamp and total hang duration.
+    @available(*, deprecated, message: "Watchdog events are no longer posted.")
     public static let hangEventEnded = Notification.Name("io.embrace.hang.ended")
 }
