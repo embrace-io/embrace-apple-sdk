@@ -232,6 +232,19 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         thenSpanHasTheCorrectPath("https://www.test.com")
     }
 
+    func test_requestsDataSource_spanName() {
+        givenTaskHandler()
+        givenRequestsDataSourceWithBlock { originalRequest in
+            var request = originalRequest
+            request.url = URL(string: "https://www.test.com/redacted")
+            return request
+        }
+        givenAnURLSessionTask(urlString: "https://embrace.io/sensitive/path", method: "GET")
+        whenInvokingCreate()
+        thenSpanName(is: "GET /redacted")
+        XCTAssertFalse(otel.spanProcessor.startedSpans.contains { $0.name.contains("sensitive") })
+    }
+
     func test_requestsDataSource_method() {
         givenTaskHandler()
         givenRequestsDataSourceWithBlock { originalRequest in

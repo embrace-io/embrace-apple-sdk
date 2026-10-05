@@ -147,7 +147,8 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
          - HTTP Name attribute: https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
          - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
          */
-        let name = httpMethod.isEmpty ? url.path : "\(httpMethod) \(url.path)"
+        let path = request.url?.path ?? url.path
+        let name = httpMethod.isEmpty ? path : "\(httpMethod) \(path)"
         let networkSpan = otel.buildSpan(
             name: name,
             type: .networkRequest,
