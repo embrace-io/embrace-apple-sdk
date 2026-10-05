@@ -289,7 +289,6 @@
             let post = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)
 
             guard backtrace.hasFrames else {
-                Embrace.logger.debug("[Hang] main-thread capture returned no frames; retrying on next poll")
                 return false
             }
 
