@@ -57,7 +57,7 @@ class LogController: LogBatcherDelegate {
 
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(onSessionEnd),
+            selector: #selector(onSessionEnd(notification:)),
             name: Notification.Name.embraceSessionPartWillEnd,
             object: nil
         )
@@ -67,8 +67,10 @@ class LogController: LogBatcherDelegate {
         NotificationCenter.default.removeObserver(self)
     }
 
-    @objc func onSessionEnd() {
-        batcher.forceEndCurrentBatch(waitUntilFinished: true)
+    @objc func onSessionEnd(notification: Notification) {
+        // The notification is delivered asynchronously, so the session controller may already be on
+        // another session (or none) by now. Use the ending session carried by the notification instead.
+        batcher.forceEndCurrentBatch(endingSession: notification.object as? EmbraceSession)
     }
 
     func uploadAllPersistedLogs(_ completion: (() -> Void)? = nil) {
@@ -221,10 +223,10 @@ class LogController: LogBatcherDelegate {
 }
 
 extension LogController {
-    func batchFinished(withLogs logs: [EmbraceLog]) {
+    func batchFinished(withLogs logs: [EmbraceLog], session: EmbraceSession?) {
         guard sdkStateProvider?.isEnabled == true,
             logs.isEmpty == false,
-            let session = sessionController?.currentSession
+            let session = session ?? sessionController?.currentSession
         else {
             return
         }

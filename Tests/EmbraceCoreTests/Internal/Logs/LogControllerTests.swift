@@ -291,6 +291,23 @@ class LogControllerTests: XCTestCase {
         try thenFetchesMetadataFromStorage(userSessionId: sessionController.currentSession?.userSessionId)
     }
 
+    func testHavingEndingSession_onBatchFinished_usesItInsteadOfCurrentSession() throws {
+        givenLogController()
+        let endingSession = randomSession()
+        whenInvokingBatchFinished(withLogs: [randomLogRecord()], session: endingSession)
+        try thenFetchesResourcesFromStorage(userSessionId: endingSession.userSessionId)
+        try thenFetchesMetadataFromStorage(userSessionId: endingSession.userSessionId)
+    }
+
+    func testHavingEndingSessionButNoCurrentSession_onBatchFinished_uploadsLogs() throws {
+        givenSessionControllerWithoutSession()
+        givenLogController()
+        let endingSession = randomSession()
+        whenInvokingBatchFinished(withLogs: [randomLogRecord()], session: endingSession)
+        try thenFetchesResourcesFromStorage(userSessionId: endingSession.userSessionId)
+        thenLogUploadShouldUpload(times: 1)
+    }
+
     func testSDKDisabledHavingLogs_onBatchFinished_ontTryToUploadAnything() throws {
         givenSDKEnabled(false)
         givenLogController()
@@ -542,7 +559,11 @@ extension LogControllerTests {
 
     fileprivate func givenSessionControllerWithSession() {
         sessionController = .init()
-        sessionController.currentSession = MockSession(
+        sessionController.currentSession = randomSession()
+    }
+
+    fileprivate func randomSession() -> MockSession {
+        MockSession(
             id: .random,
             processId: .random,
             state: .foreground,
@@ -580,8 +601,8 @@ extension LogControllerTests {
         sut.uploadAllPersistedLogs()
     }
 
-    fileprivate func whenInvokingBatchFinished(withLogs logs: [EmbraceLog]) {
-        sut.batchFinished(withLogs: logs)
+    fileprivate func whenInvokingBatchFinished(withLogs logs: [EmbraceLog], session: EmbraceSession? = nil) {
+        sut.batchFinished(withLogs: logs, session: session)
     }
 
     fileprivate func whenAttachmentLimitIsReached() {
