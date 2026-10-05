@@ -18,6 +18,7 @@ class UNUserNotificationCenterDelegateSwizzlerTests: SwizzlerTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
+        continueAfterFailure = false
 
         // `UNUserNotificationCenter.current()` is not available in unit tests, so the swizzler
         // is installed on a fake class exposing the same `delegate` property.
