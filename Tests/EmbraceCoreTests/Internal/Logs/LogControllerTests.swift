@@ -31,6 +31,11 @@ class LogControllerTests: XCTestCase {
         givenStorage()
     }
 
+    override func tearDown() {
+        Embrace.client = nil
+        super.tearDown()
+    }
+
     // MARK: - Testing `setup` method
 
     func testOnNotHavingStorage_onSetup_wontDoAnything() {
@@ -359,6 +364,20 @@ class LogControllerTests: XCTestCase {
         thenLogHasAnEmbbededStackTraceInTheAttributes()
     }
 
+    func testWarningLog_withMainStacktrace_whenCaptureSucceeds_addsStackTraceToAttributes() throws {
+        try givenEmbraceClient(backtracer: ScriptedBacktracer(failures: 0))
+        givenLogController()
+        whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main)
+        try thenLastLog(hasStackTrace: true)
+    }
+
+    func testWarningLog_withMainStacktrace_whenCaptureIsEmpty_doesntAddStackTraceToAttributes() throws {
+        try givenEmbraceClient(backtracer: ScriptedBacktracer(failures: .max))
+        givenLogController()
+        whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main)
+        try thenLastLog(hasStackTrace: false)
+    }
+
     func testInfoLogs_createLogByWithCustomStacktrace_wontAddStackTraceToAttributes() throws {
         givenLogController()
         let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
@@ -386,6 +405,17 @@ extension LogControllerTests {
         sut.privateLogger = privateLogger
         sut.otel = otelBridge
         sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
+    }
+
+    fileprivate func givenEmbraceClient(backtracer: Backtracer) throws {
+        let options = Embrace.Options(
+            appId: "myApp",
+            captureServices: [],
+            crashReporter: nil,
+            backtracer: backtracer,
+            symbolicator: nil
+        )
+        Embrace.client = try Embrace(options: options, embraceStorage: EmbraceStorage.createInMemoryDb())
     }
 
     fileprivate func givenLogController() {
@@ -485,6 +515,16 @@ extension LogControllerTests {
         stackTraceBehavior: StackTraceBehavior = .default
     ) {
         sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior, queue: loggingQueue)
+        waitForLoggingQueue()
+    }
+
+    /// Creates the log from a background thread, so a `.main` stack trace is a remote-thread capture.
+    fileprivate func whenCreatingLogOffMainThread(severity: LogSeverity, stackTraceBehavior: StackTraceBehavior) {
+        let callerQueue = DispatchQueue(label: "logCallerQueue")
+        callerQueue.async {
+            self.sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior, queue: self.loggingQueue)
+        }
+        callerQueue.sync {}
         waitForLoggingQueue()
     }
 
@@ -598,6 +638,11 @@ extension LogControllerTests {
         XCTAssertEqual(log!.body!.description, "test")
         XCTAssertEqual(log!.severity, .info)
         XCTAssertEqual(log!.attributes["emb.type"]!.description, "sys.log")
+    }
+
+    fileprivate func thenLastLog(hasStackTrace: Bool) throws {
+        let log = try XCTUnwrap(otelBridge.otel.logs.last)
+        XCTAssertEqual(log.attributes["emb.stacktrace.ios"] != nil, hasStackTrace)
     }
 
     fileprivate func thenLogHasAnEmbbededStackTraceInTheAttributes() {
