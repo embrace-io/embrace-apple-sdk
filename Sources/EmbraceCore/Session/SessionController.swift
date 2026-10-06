@@ -414,10 +414,12 @@ class SessionController: SessionControllable {
     /// Increments the per-part counter and persists the new value asynchronously.
     /// Must be called while holding `lock` so increments are persisted in the same order they are generated.
     private func nextSessionPartNumberNoLock(storage: EmbraceStorage) -> EMBInt {
-        // Fall back to a synchronous read if the stored value hasn't been loaded yet.
-        // This can only happen for a part started right after initialization.
+        // If the preload queued in `init` hasn't run yet, wait for it. The storage context is serial,
+        // so the preload's completion has set the counter by the time this returns, and the assignment
+        // below is only a defensive fallback. Waiting on the main queue is fine here: this only happens
+        // for a part started before the preload ran, which `Embrace.start` already prevents.
         if _sessionPartNumber.withLock({ $0 }) == nil {
-            let stored = storage.fetchCountForPermanentResource(key: Self.sessionPartNumberKey)
+            let stored = storage.fetchCountForPermanentResource(key: Self.sessionPartNumberKey, allowMainQueue: true)
             _sessionPartNumber.withLock { current in
                 if current == nil {
                     current = stored

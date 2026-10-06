@@ -327,10 +327,9 @@ extension EmbraceStorage {
     /// Returns 0 if no record exists or if its value is not numeric.
     ///
     /// This blocks the calling thread until every operation already queued on the storage context finishes.
-    /// It is allowed on the main queue because callers only use it as a fallback when an asynchronous
-    /// preload of the same value hasn't completed yet.
-    public func fetchCountForPermanentResource(key: String) -> EMBInt {
-        coreData.performOperation(allowMainQueue: true) { context in
+    /// Pass `allowMainQueue: true` to skip the main-thread warning when calling it from the main queue is intended.
+    public func fetchCountForPermanentResource(key: String, allowMainQueue: Bool = false) -> EMBInt {
+        coreData.performOperation(allowMainQueue: allowMainQueue) { context in
             countForPermanentResource(key: key, context: context)
         }
     }
