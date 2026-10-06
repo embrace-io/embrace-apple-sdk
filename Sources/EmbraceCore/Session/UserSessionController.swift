@@ -318,9 +318,9 @@ final class UserSessionController {
     /// Stamps the termination reason on the just-closed part record (if any) and posts the
     /// `embraceUserSessionDidEnd` notification.
     ///
-    /// - Important: MUST be called OUTSIDE `_state.withLock`. Performs a synchronous Core Data
-    ///   fetch via `backfillTerminationReasonOnLatestPart`; holding the mutex across it would
-    ///   block `currentUserSession` readers on the heartbeat and bg-split paths.
+    /// - Important: MUST be called OUTSIDE `_state.withLock`. It calls back into
+    ///   `SessionController`, and keeping that call outside the mutex avoids lock-order
+    ///   inversions with `SessionController.lock`.
     private func internalEndUserSession(
         snapshot: ImmutableUserSession,
         reason: TerminationReason,

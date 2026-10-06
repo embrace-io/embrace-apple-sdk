@@ -269,6 +269,22 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual((storage.fetchAll() as [SessionRecord]).count, 0)
     }
 
+    func test_backfillTerminationReason_ignoresPartAddedAfterCall() throws {
+        let first = controller.startSession(state: .foreground)
+        controller.endSession()
+
+        // The backfill is queued before the next part is added, so it must resolve to `first`.
+        controller.backfillTerminationReasonOnLatestPart(.manual)
+        let second = controller.startSession(state: .foreground)
+
+        let drained = expectation(description: "storage drained")
+        storage.coreData.performAsyncOperation { _ in drained.fulfill() }
+        wait(for: [drained], timeout: 1)
+
+        XCTAssertEqual(storage.fetchSession(id: first!.id)?.userSessionTerminationReason, .manual)
+        XCTAssertNil(storage.fetchSession(id: second!.id)?.userSessionTerminationReason)
+    }
+
     func test_rollPartForUserSessionExpiry_endsOldStartsNewSameStateNewUserSession() throws {
         let first = controller.startSession(state: .foreground)
         let firstUserSessionId = first?.userSessionId

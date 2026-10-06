@@ -304,6 +304,29 @@ extension EmbraceStorage {
             userSessionTerminationReason: userSessionTerminationReason
         )
     }
+
+    /// Asynchronously stamps the given user session termination reason on the newest stored session,
+    /// unless that session already has one.
+    ///
+    /// The lookup runs on the storage context when the operation executes, so the "newest" session is
+    /// resolved against every operation queued before this call, and none queued after it.
+    package func setUserSessionTerminationReasonOnLatestSessionIfNeeded(_ reason: TerminationReason) {
+        coreData.performAsyncOperation { [self] _ in
+
+            let request = SessionRecord.createFetchRequest()
+            request.fetchLimit = 1
+            request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: false)]
+
+            guard let latest = coreData.fetch(withRequest: request).first,
+                latest.userSessionTerminationReason == nil
+            else {
+                return
+            }
+
+            latest.userSessionTerminationReason = reason.rawValue
+            coreData.save()
+        }
+    }
 }
 
 extension EmbraceSession {
