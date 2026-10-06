@@ -10,7 +10,7 @@ import XCTest
 @testable import EmbraceOTelInternal
 @testable import OpenTelemetrySdk
 
-/// Covers the calls that block their caller on `processorQueue`: `forceFlush`, `shutdown` and the synchronous span flush.
+/// Covers the calls that could block their caller on `processorQueue`: `forceFlush`, `shutdown` and the span flush.
 ///
 /// A regression in these turns into a hang, so every call that could hang runs on a background queue
 /// and is awaited with a bounded wait. A broken build then fails the test instead of stalling the suite.
@@ -80,7 +80,7 @@ final class EmbraceSpanProcessorBlockingTests: XCTestCase {
         givenProcessor(withClosedGroup: true)
         let span = startSpan()
 
-        // when flushing a span synchronously
+        // when flushing a span
         XCTAssertTrue(completesInTime { self.processor.flush(span: span) })
 
         // then it's exported once the group is left
@@ -126,22 +126,22 @@ final class EmbraceSpanProcessorBlockingTests: XCTestCase {
         XCTAssertTrue(exporter.isShutdown)
     }
 
-    func test_flushSpan_fromProcessorQueue_runsInline() throws {
+    func test_flushSpan_fromProcessorQueue_doesNotTrap() throws {
         // given a span
         givenProcessor()
         let span = startSpan()
         drainProcessorQueue()
 
-        // when it's flushed synchronously from processorQueue
-        var exportedAfterFlush: Bool?
+        // when it's flushed from processorQueue
         processor.processorQueue.async { [unowned self] in
             processor.flush(span: span)
-            exportedAfterFlush = exporter.exportedSpans[span.context.spanId] != nil
         }
-        drainProcessorQueue()
 
-        // then the export ran inline instead of trapping
-        XCTAssertEqual(exportedAfterFlush, true)
+        // then the export is queued and runs once the current block finishes
+        // (drained twice: once for the outer block, once for the export it queued)
+        drainProcessorQueue()
+        drainProcessorQueue()
+        XCTAssertNotNil(exporter.exportedSpans[span.context.spanId])
     }
 
     // MARK: - Timeout
@@ -182,6 +182,23 @@ final class EmbraceSpanProcessorBlockingTests: XCTestCase {
     }
 
     // MARK: - Critical resource group open
+
+    func test_flushSpan_whenChildProcessorIsBlocked_doesNotBlock() throws {
+        // given a started processor whose child processor is stuck in onStart
+        givenProcessor()
+        let release = DispatchSemaphore(value: 0)
+        childProcessor.onStartHandler = { release.wait() }
+        let span = startSpan()
+
+        // when flushing the span
+        // then the caller isn't held behind the stuck callback
+        XCTAssertTrue(completesInTime { self.processor.flush(span: span) })
+
+        // and the span is exported once the callback returns
+        release.signal()
+        drainProcessorQueue()
+        XCTAssertNotNil(exporter.exportedSpans[span.context.spanId])
+    }
 
     func test_forceFlush_whenCriticalResourceGroupIsOpen_waitsForQueuedWork() throws {
         // given a processor with an open critical resource group and started spans

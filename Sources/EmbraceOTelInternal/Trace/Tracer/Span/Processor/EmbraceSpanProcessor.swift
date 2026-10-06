@@ -167,9 +167,11 @@ package class EmbraceSpanProcessor: SpanProcessor {
         }
 
         // exporters
+        // The export is queued instead of awaited: callers don't need the result, and waiting would block them
+        // behind every pending processor and exporter callback, including slow or stuck ones.
         let mkSpan = EmbraceMetricKitSpan.begin(name: "export-flush")
         let data = span.toSpanData()
-        processIncompletedSpanData(data, span: span, sync: true) {
+        processIncompletedSpanData(data, span: span, sync: false) {
             mkSpan.end()
         }
     }
