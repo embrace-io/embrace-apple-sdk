@@ -474,7 +474,8 @@ import OpenTelemetrySdk
     }
 
     /// Removes old-version data, then starts sending the data left by earlier launches and adds the otel resources.
-    /// Called on `processingQueue` when the SDK starts. The data is only sent if both stores loaded.
+    /// Called on `processingQueue` when the SDK starts. If either store failed to load, nothing is sent and the
+    /// otel resources aren't added either; the old-version data is still removed.
     /// - Parameter completion: Called once the unsent data was handed to the upload module, or skipped.
     ///   It doesn't wait for the otel resources to be added.
     func sendUnsentData(completion: (() -> Void)? = nil) {

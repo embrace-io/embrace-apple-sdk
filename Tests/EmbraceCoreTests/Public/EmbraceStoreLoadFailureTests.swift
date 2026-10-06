@@ -173,8 +173,8 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         let client = try makeClient(storage: stalledStorage)
         try client.start()
 
-        // then neither waits for the storage to load
-        XCTAssertLessThan(Date().timeIntervalSince(start), 1)
+        // then neither waits for the storage to load (the bound leaves CI headroom but stays below the 3s release)
+        XCTAssertLessThan(Date().timeIntervalSince(start), 2)
         XCTAssertEqual(client.state, .started)
 
         // and the storage loads once the lock is released
