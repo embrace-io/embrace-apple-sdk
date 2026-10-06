@@ -27,7 +27,7 @@ extension EmbraceStorage {
     ///     in the same storage-queue block that creates the record, and its new value becomes the stored
     ///     session's number. The returned copy then has a `sessionNumber` of 0; fetch the stored session to read it.
     ///   - completion: A block called when the session has been added to storage
-    /// - Returns: An in-memory copy of the session built from the given values, returned before the record is stored.
+    /// - Returns: An in-memory copy of the session built from the given values, returned without waiting for the record to be stored.
     @discardableResult
     public func addSession(
         id: EmbraceIdentifier,
@@ -224,7 +224,8 @@ extension EmbraceStorage {
     }
 
     /// Updates values for the given session id
-    /// - Returns: Immutable copy of the modified `SessionRecord`, if any
+    /// - Returns: An in-memory copy of the given session with the given values applied, if it has an id.
+    ///   The record is updated asynchronously, and values only set by the storage (like the session number) aren't refreshed.
     @discardableResult
     public func updateSession(
         session: EmbraceSession,

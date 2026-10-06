@@ -66,6 +66,7 @@ extension Embrace {
         }
     }
 
+    /// Attributes describing the load error. The `emb.store_load.*` keys are customer-visible; keep them stable.
     static func storeLoadErrorAttributes(store: String, error: Error) -> [String: String] {
         let nsError = error as NSError
         var attributes = [

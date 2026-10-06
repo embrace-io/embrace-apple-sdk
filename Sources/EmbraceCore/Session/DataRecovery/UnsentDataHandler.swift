@@ -411,23 +411,46 @@ class UnsentDataHandler {
         upload: EmbraceUpload?,
         completion: UnsentDataHandlerCompletion? = nil
     ) {
+        sendCriticalLogs(
+            takeCriticalLogs(fileUrl: fileUrl, pendingFileUrl: pendingFileUrl),
+            upload: upload,
+            completion: completion
+        )
+    }
+
+    /// Reads and removes the critical logs left by the previous launch, and removes any orphan pending-logs file.
+    ///
+    /// Must be called before anything in this launch can log a `.critical`: the first one moves this launch's
+    /// pending logs to `fileUrl`, replacing the previous launch's file. Upload them with `sendCriticalLogs(_:upload:)`.
+    static func takeCriticalLogs(fileUrl: URL?, pendingFileUrl: URL? = nil) -> String? {
         // any pending-logs left over from a prior run that didn't fire a .critical
         // is orphan staging data — by spec there's nothing to upload, just discard.
         if let pendingFileUrl = pendingFileUrl {
             try? FileManager.default.removeItem(at: pendingFileUrl)
         }
 
-        guard let upload = upload,
-            let fileUrl = fileUrl
-        else {
-            completion?()
-            return
+        guard let fileUrl = fileUrl else {
+            return nil
         }
 
         // always remove the logs from previous session
         defer { try? FileManager.default.removeItem(at: fileUrl) }
 
         guard let logs = try? String(contentsOf: fileUrl), !logs.isEmpty else {
+            return nil
+        }
+        return logs
+    }
+
+    /// Uploads the critical logs taken with `takeCriticalLogs`.
+    static func sendCriticalLogs(
+        _ logs: String?,
+        upload: EmbraceUpload?,
+        completion: UnsentDataHandlerCompletion? = nil
+    ) {
+        guard let upload = upload,
+            let logs = logs
+        else {
             completion?()
             return
         }

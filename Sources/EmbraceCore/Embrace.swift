@@ -60,13 +60,14 @@ import OpenTelemetrySdk
         }
     }
 
-    /// Returns true if the SDK is started and was not disabled through remote configurations.
+    /// Returns true if the SDK is started, was not disabled through remote configurations, and none of its stores failed to load.
     @objc public var isSDKEnabled: Bool {
         let remoteConfigEnabled = config.isSDKEnabled
         return state == .started && remoteConfigEnabled && storesLoaded.load()
     }
 
-    /// Cleared when one of the SDK's stores fails to load, which stops the SDK (see `storeFailedToLoad`).
+    /// True until one of the SDK's stores fails to load (including while they're still loading).
+    /// Cleared by `storeFailedToLoad`, which disables and stops the SDK.
     private let storesLoaded = EmbraceAtomic<Bool>(true)
 
     /// Returns the version of the Embrace SDK.
@@ -192,20 +193,24 @@ import OpenTelemetrySdk
         // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
 
+        // take the critical logs from the previous session, and clean up any orphan pending-logs file.
+        // This must happen before the upload cache starts loading: if it fails, the `.critical` it logs
+        // replaces the previous session's file with this one's.
+        let previousCriticalLogs = UnsentDataHandler.takeCriticalLogs(
+            fileUrl: EmbraceFileSystem.criticalLogsURL,
+            pendingFileUrl: EmbraceFileSystem.pendingLogsURL
+        )
+
         // initialize upload module
         self.upload = try Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
 
-        // send critical logs from previous session, and clean up any orphan pending-logs file
-        UnsentDataHandler.sendCriticalLogs(
-            fileUrl: EmbraceFileSystem.criticalLogsURL,
-            pendingFileUrl: EmbraceFileSystem.pendingLogsURL,
-            upload: upload
-        )
+        // send critical logs from previous session
+        UnsentDataHandler.sendCriticalLogs(previousCriticalLogs, upload: upload)
 
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options, configuration: config.configurable)
 
-        // Persist the critical resources before anything else touches the storage.
+        // Persist the critical resources before any other storage operation (only the store load runs before them).
         // The backend drops payloads without them, and since the storage context is serial,
         // enqueuing them first guarantees every later read sees them without blocking this thread.
         let criticalResources = AppInfoCaptureService.criticalResources.merging(DeviceInfoCaptureService.criticalResources) { current, _ in current }
@@ -272,8 +277,8 @@ import OpenTelemetrySdk
             stateProvider: self
         )
 
-        // The stores load in the background (see `CoreDataWrapper`). If either fails, stop the SDK,
-        // as it used to happen when they were loaded here and the failure made `setup` throw.
+        // The stores load asynchronously (see `CoreDataWrapper`). The SDK can't work without them,
+        // so if either fails, report it and stop the SDK (see `storeFailedToLoad`).
         storage.coreData.onInitialLoad { [weak self] error in
             if let error {
                 self?.storeFailedToLoad("storage", error: error)
@@ -346,7 +351,8 @@ import OpenTelemetrySdk
 
     /// Method used to start the Embrace SDK.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
-    /// - Note: This method won't do anything if the Embrace SDK was already started or if it was disabled via the remote configurations.
+    /// - Note: This method won't do anything if the Embrace SDK was already started, if it was disabled via the remote configurations,
+    ///         or if one of its stores failed to load. A store that fails to load after the SDK started stops it.
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     @objc public func start() throws -> Embrace {
@@ -379,7 +385,7 @@ import OpenTelemetrySdk
             }
 
             guard storesLoaded.load() else {
-                Embrace.logger.warning("Embrace can't start because its storage failed to load!")
+                Embrace.logger.warning("Embrace can't start because one of its stores failed to load!")
                 return self
             }
 
@@ -413,22 +419,7 @@ import OpenTelemetrySdk
                 self.captureServicesGroup.leave()
 
                 self.processingQueue.async { [weak self] in
-                    // fetch crash reports and link them to sessions
-                    // then upload them
-                    UnsentDataHandler.sendUnsentData(
-                        storage: self?.storage,
-                        upload: self?.upload,
-                        otel: self,
-                        logController: self?.logController,
-                        currentSessionId: self?.sessionController.currentSession?.id,
-                        crashReporter: self?.captureServices.crashReporter
-                    )
-
-                    // remove old versions data
-                    self?.cleanUpOldVersionsData()
-
-                    // add otel resources as metadata
-                    self?.addOtelResources()
+                    self?.sendUnsentData()
                 }
 
                 // retry any remaining cached upload data
@@ -477,6 +468,37 @@ import OpenTelemetrySdk
         }
     }
 
+    /// Sends the data left by earlier launches, then cleans up. Called on `processingQueue` when the SDK starts.
+    /// - Parameter completion: Called once the data was handed to the upload module, or skipped.
+    func sendUnsentData(completion: (() -> Void)? = nil) {
+        // The data from earlier launches is read from the storage, which may still be loading.
+        // If it failed to load, nothing can be read: crash reports would be sent without the
+        // resources the backend requires, and deleted. They're kept for a later launch instead.
+        // This waits for the load on the calling queue, which must not be the main one.
+        guard storage.coreData.isStoreLoaded else {
+            completion?()
+            return
+        }
+
+        // fetch crash reports and link them to sessions
+        // then upload them
+        UnsentDataHandler.sendUnsentData(
+            storage: storage,
+            upload: upload,
+            otel: self,
+            logController: logController,
+            currentSessionId: sessionController.currentSession?.id,
+            crashReporter: captureServices.crashReporter,
+            completion: completion
+        )
+
+        // remove old versions data
+        cleanUpOldVersionsData()
+
+        // add otel resources as metadata
+        addOtelResources()
+    }
+
     /// Must be called on the main thread while holding `_syncLock` for writing, with the SDK started.
     private func stopNoLock() {
         state = .stopped
@@ -487,10 +509,12 @@ import OpenTelemetrySdk
         metricKit.uninstall()
     }
 
-    /// Stops the SDK for the rest of the process because one of its stores failed to load.
-    /// If the SDK hasn't started yet, `start()` won't start it.
+    /// Disables the SDK for the rest of the process because one of its stores failed to load.
+    /// `isSDKEnabled` becomes false immediately. If the SDK is started, it's then stopped on the main thread;
+    /// if it hasn't started yet, it stays `.initialized` and `start()` won't start it.
     ///
-    /// Before stopping, the failure is reported with an error log (see `sendStoreLoadFailureLog`).
+    /// The failure is reported with an error log (see `sendStoreLoadFailureLog`), which can't be sent when
+    /// the store that failed is the upload cache. Only the first failure is handled.
     func storeFailedToLoad(_ store: String, error: Error) {
         guard storesLoaded.exchange(false) else {
             return

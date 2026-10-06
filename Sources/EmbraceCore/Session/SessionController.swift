@@ -162,7 +162,8 @@ class SessionController: SessionControllable {
 
             // create session record
             // the session number is assigned on the storage queue, so this doesn't wait on storage
-            // and the returned session's `sessionNumber` is 0 (see `SpansPayloadBuilder`)
+            // and the returned session (also posted and kept as `currentSession`) has `sessionNumber` 0
+            // (see `SpansPayloadBuilder`)
             let session = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,

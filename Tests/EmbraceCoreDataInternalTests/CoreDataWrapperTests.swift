@@ -212,17 +212,21 @@ class CoreDataWrapperTests: XCTestCase {
         XCTAssertEqual(sqlite3_exec(db, "BEGIN EXCLUSIVE", nil, nil, nil), SQLITE_OK)
 
         // when creating the wrapper
+        let start = Date()
         wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
 
-        // then it returns before the store is loaded
-        XCTAssertTrue(wrapper.container.persistentStoreCoordinator.persistentStores.isEmpty)
+        // then it returns while the load is stalled
+        XCTAssertLessThan(Date().timeIntervalSince(start), 1)
 
-        // and operations run once the store is loaded
-        XCTAssertEqual(sqlite3_exec(db, "COMMIT", nil, nil, nil), SQLITE_OK)
-        let storeCount = wrapper.performOperation { _ in
-            self.wrapper.container.persistentStoreCoordinator.persistentStores.count
+        // and operations queued meanwhile run against the store once it's loaded
+        wrapper.performAsyncOperation(save: true) { context in
+            _ = MockRecord.create(context: context, id: "test")
         }
-        XCTAssertEqual(storeCount, 1)
+        XCTAssertEqual(sqlite3_exec(db, "COMMIT", nil, nil, nil), SQLITE_OK)
+
+        let result = wrapper.fetch(withRequest: NSFetchRequest<MockRecord>(entityName: MockRecord.entityName))
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.objectID.isTemporaryID, false)
     }
 
     func test_init_operationsWorkRightAfterInit() throws {

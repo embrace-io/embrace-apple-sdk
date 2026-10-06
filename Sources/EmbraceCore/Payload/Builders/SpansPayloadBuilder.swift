@@ -128,7 +128,8 @@ class SpansPayloadBuilder {
         }
 
         // The stored record is the source of truth for the session number: it's assigned on the storage queue
-        // when the session is added, so in-memory copies (from `addSession`/`updateSession`) carry 0.
+        // when the session is added with a counter key, so the in-memory copy kept by `SessionController`
+        // (and the copies `updateSession` derives from it) carries 0.
         let storedSessionNumber = session.id.flatMap { storage.fetchSession(id: $0)?.sessionNumber }
 
         return SessionSpanUtils.payload(
