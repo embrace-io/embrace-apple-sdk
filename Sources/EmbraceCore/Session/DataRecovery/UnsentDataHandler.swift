@@ -405,6 +405,8 @@ class UnsentDataHandler {
         storage.cleanMetadata()
     }
 
+    /// Takes and uploads the critical logs in one call. `Embrace.init` uses `takeCriticalLogs` and
+    /// `sendCriticalLogs(_:upload:)` separately instead, so the logs are taken before the upload module exists.
     static func sendCriticalLogs(
         fileUrl: URL?,
         pendingFileUrl: URL? = nil,

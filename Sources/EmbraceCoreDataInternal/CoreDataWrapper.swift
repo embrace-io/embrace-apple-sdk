@@ -106,14 +106,15 @@ public class CoreDataWrapper {
         //
         // If the load fails, the error is logged and the wrapper keeps working without a store for the rest
         // of the process: nothing is persisted, fetches only see objects still pending in the context, and
-        // `saveIfNeeded()` returns `false` without trying. The load is not retried, so a store that becomes available
+        // `saveIfNeeded()` returns `false` without trying when there are changes. The load is not retried, so a store that becomes available
         // later is never attached next to the objects created in the meantime (which would duplicate records).
         // See `isStoreLoaded`.
         //
         // The context is created manually because `newBackgroundContext()` warns when no store is loaded yet.
         context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         context.persistentStoreCoordinator = container.persistentStoreCoordinator
-        // Enqueued as a tracked operation so the load is covered by a background task assertion.
+        // Enqueued as a tracked operation so that, if the app is backgrounded mid-load, the `WorkTracker`
+        // background task assertion waits for it.
         performAsyncOperation("loadPersistentStore") { [self] _ in
             initialLoadError = loadPersistentStoreIfNeeded(logIfEmpty: false)
         }

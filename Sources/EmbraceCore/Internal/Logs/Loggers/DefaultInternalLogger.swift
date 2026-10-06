@@ -23,8 +23,9 @@ import OSLog
 ///                       a `.critical` is logged. All subsequent custom-export lines
 ///                       append here.
 ///
-/// On next launch, `UnsentDataHandler.sendCriticalLogs` uploads `critical-logs` and
-/// deletes any orphan `pending-logs`. If no `.critical` ever fired, no file is uploaded.
+/// On next launch, `Embrace.init` reads and deletes `critical-logs` (and any orphan `pending-logs`)
+/// with `UnsentDataHandler.takeCriticalLogs`, before anything can log a `.critical`, and uploads
+/// them with `UnsentDataHandler.sendCriticalLogs(_:upload:)`. If no `.critical` ever fired, nothing is uploaded.
 ///
 /// Writes use POSIX `open`/`write`/`fsync`/`close` directly instead of `FileHandle`.
 /// POSIX returns error codes; `FileHandle`'s legacy API raises `NSException` on failure,

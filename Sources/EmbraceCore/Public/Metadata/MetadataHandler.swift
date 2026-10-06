@@ -272,6 +272,7 @@ extension MetadataHandler {
         }
 
         // keep the file if its store or the storage failed to load, so a later launch can still migrate it
+        // (waits for both loads; only reached when the legacy file exists)
         guard coreData.isStoreLoaded, storage.coreData.isStoreLoaded else {
             return
         }

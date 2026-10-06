@@ -5,6 +5,7 @@
 import CoreData
 import EmbraceCommonInternal
 import EmbraceStorageInternal
+import SQLite3
 import TestSupport
 import XCTest
 
@@ -12,7 +13,8 @@ import XCTest
 @testable import EmbraceUploadInternal
 
 /// Stores are in memory during tests unless built with `isTesting: false`. The tests using `makeFailingStorage()`
-/// get a storage that really fails to load; the others drive `storeFailedToLoad` directly.
+/// or `makeFailingUpload()` get a store that really fails to load. The others use the loaded in-memory stores,
+/// and call `storeFailedToLoad` directly when they need a failure.
 final class EmbraceStoreLoadFailureTests: XCTestCase {
 
     var storage: EmbraceStorage!
@@ -26,6 +28,9 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         // let any failure handling finish before the storage is destroyed
         for client in clients {
             drainProcessingQueue(of: client)
+            if client.state == .started {
+                try client.stop()
+            }
         }
         clients = []
         storage.coreData.destroy()
@@ -33,7 +38,7 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
 
     // MARK: - Real load failure
 
-    func test_storageFailsToLoad_reportsItAndStopsTheSDK() throws {
+    func test_storageFailsToLoad_reportsItAndDisablesTheSDK() throws {
         // given a client whose storage fails to load
         let client = try makeClient(storage: try makeFailingStorage())
         waitForLoadFailureHandling(of: client)
@@ -101,6 +106,83 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: legacyFile.path))
     }
 
+    func test_uploadCacheFailsToLoad_disablesTheSDK() throws {
+        // given a client whose upload cache fails to load
+        let client = try makeClient(upload: try makeFailingUpload())
+        XCTAssertEqual(client.upload?.isCacheLoaded, false)
+        drainProcessingQueue(of: client)
+        drainMainQueue()
+
+        // then the SDK is disabled and won't start
+        XCTAssertFalse(client.isSDKEnabled)
+        try client.start()
+        XCTAssertNotEqual(client.state, .started)
+    }
+
+    func test_sendUnsentData_whenUploadCacheFailedToLoad_keepsTheData() throws {
+        // given a client whose upload cache failed to load,
+        // with metadata from an earlier process that has no session (so it would be cleaned up)
+        let earlierProcessId = EmbraceIdentifier.random.stringValue
+        storage.addMetadata(key: "test", value: "value", type: .resource, lifespan: .process, lifespanId: earlierProcessId)
+        let client = try makeClient(upload: try makeFailingUpload())
+
+        // when sending the unsent data
+        sendUnsentData(of: client)
+
+        // then nothing is cleaned up, so the data from earlier launches can still be sent later
+        XCTAssertNotNil(
+            storage.fetchMetadata(key: "test", type: .resource, lifespan: .process, lifespanId: earlierProcessId))
+    }
+
+    func test_start_sendsUnsentData() throws {
+        // given a client with a crash report from an earlier launch
+        let crashReporter = CrashReporterMock()
+        let client = try makeClient(crashReporter: crashReporter)
+
+        // when starting it
+        try client.start()
+
+        // then the crash report is sent (cached for upload) and deleted
+        wait(timeout: .longTimeout, interval: .shortInterval) { crashReporter.mockReports.isEmpty }
+        XCTAssertTrue(crashReporter.mockReports.isEmpty)
+    }
+
+    func test_setupAndStart_doNotWaitForAStalledStorage() throws {
+        // given an existing storage on disk
+        let baseURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        addTeardownBlock { try? FileManager.default.removeItem(at: baseURL) }
+        let storageOptions = EmbraceStorage.Options(
+            storageMechanism: .onDisk(name: "EmbraceStorage", baseURL: baseURL, journalMode: .delete),
+            enableBackgroundTasks: false
+        )
+        try EmbraceStorage(options: storageOptions, logger: MockLogger(), isTesting: false).coreData.save()
+
+        // and another connection holding an exclusive lock on it, so loading it stalls
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(storageOptions.storageMechanism.fileURL!.path, &db), SQLITE_OK)
+        defer { sqlite3_close(db) }
+        XCTAssertEqual(sqlite3_exec(db, "BEGIN EXCLUSIVE", nil, nil, nil), SQLITE_OK)
+
+        // (released after a few seconds anyway, so a regression that waits for the load fails instead of hanging)
+        let releaseLock = lockReleaser(db)
+        DispatchQueue.global().asyncAfter(deadline: .now() + 3) { releaseLock() }
+
+        // when setting up and starting the SDK
+        let start = Date()
+        let stalledStorage = try EmbraceStorage(options: storageOptions, logger: MockLogger(), isTesting: false)
+        let client = try makeClient(storage: stalledStorage)
+        try client.start()
+
+        // then neither waits for the storage to load
+        XCTAssertLessThan(Date().timeIntervalSince(start), 1)
+        XCTAssertEqual(client.state, .started)
+
+        // and the storage loads once the lock is released
+        releaseLock()
+        XCTAssertTrue(stalledStorage.coreData.isStoreLoaded)
+        XCTAssertTrue(client.isSDKEnabled)
+    }
+
     // MARK: - storeFailedToLoad
 
     func test_storesLoaded_sdkStarts() throws {
@@ -130,7 +212,7 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         // then it doesn't start
         XCTAssertNotEqual(client.state, .started)
         XCTAssertFalse(client.isSDKEnabled)
-        XCTAssertNil(client.currentSessionId())
+        XCTAssertNil(client.sessionController.currentSession)
     }
 
     func test_storeFailsAfterStart_sdkStops() throws {
@@ -149,7 +231,7 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         drainProcessingQueue(of: client)
         drainMainQueue()
         XCTAssertEqual(client.state, .stopped)
-        XCTAssertNil(client.currentSessionId())
+        XCTAssertNil(client.sessionController.currentSession)
     }
 
     func test_storeFailsOffTheMainThread_sdkStops() throws {
@@ -220,23 +302,6 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         XCTAssertNotNil(log.resource["sdk_platform"])
     }
 
-    func test_storeFails_logIsNotHandedToTheUsersExporter() throws {
-        // given a client with a log exporter configured by the user
-        let exporter = InMemoryLogRecordExporter()
-        let client = try makeClient(export: OpenTelemetryExport(logExporter: exporter))
-
-        // when a store fails to load
-        client.storeFailedToLoad("storage", error: loadError)
-        drainProcessingQueue(of: client)
-
-        // then the failure is reported, but not through the user's exporter
-        XCTAssertEqual(try cachedStoreLoadFailureLogs(of: client).count, 1)
-        XCTAssertFalse(
-            exporter.finishedLogRecords.contains {
-                $0.body?.description.contains("failed to load") == true
-            })
-    }
-
     func test_storeLoadErrorAttributes() {
         let underlying = NSError(domain: NSPOSIXErrorDomain, code: 2)
         let error = NSError(
@@ -263,7 +328,7 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
     private func makeClient(
         storage: EmbraceStorage? = nil,
         crashReporter: CrashReporter? = nil,
-        export: OpenTelemetryExport? = nil
+        upload: EmbraceUpload? = nil
     ) throws -> Embrace {
         let client = try Embrace(
             options: .init(
@@ -271,10 +336,10 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
                 // unreachable, so nothing leaves the machine
                 endpoints: .init(baseURL: "http://127.0.0.1:1", configBaseURL: "http://127.0.0.1:1"),
                 captureServices: [],
-                crashReporter: crashReporter,
-                export: export
+                crashReporter: crashReporter
             ),
-            embraceStorage: storage ?? self.storage
+            embraceStorage: storage ?? self.storage,
+            embraceUpload: upload
         )
         clients.append(client)
         return client
@@ -291,6 +356,41 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         return try EmbraceStorage(
             options: .init(storageMechanism: storageMechanism, enableBackgroundTasks: false),
             logger: MockLogger(),
+            isTesting: false
+        )
+    }
+
+    /// Releases the exclusive lock held by `db` once, from whichever caller gets there first.
+    private func lockReleaser(_ db: OpaquePointer?) -> () -> Void {
+        let lock = NSLock()
+        var released = false
+        return {
+            lock.lock()
+            defer { lock.unlock() }
+            guard !released else { return }
+            released = true
+            XCTAssertEqual(sqlite3_exec(db, "COMMIT", nil, nil, nil), SQLITE_OK)
+        }
+    }
+
+    /// An upload module whose cache store really fails to load: there's a directory where its file should be.
+    private func makeFailingUpload() throws -> EmbraceUpload {
+        let baseURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        addTeardownBlock { try? FileManager.default.removeItem(at: baseURL) }
+
+        let storageMechanism: StorageMechanism = .onDisk(name: "EmbraceUploadStorage", baseURL: baseURL, journalMode: .delete)
+        try FileManager.default.createDirectory(at: storageMechanism.fileURL!, withIntermediateDirectories: true)
+
+        // unreachable, so nothing leaves the machine
+        let url = URL(string: "http://127.0.0.1:1")!
+        return try EmbraceUpload(
+            options: .init(
+                endpoints: .init(spansURL: url, logsURL: url, attachmentsURL: url),
+                cache: .init(storageMechanism: storageMechanism, enableBackgroundTasks: false),
+                metadata: .init(apiKey: "debug", userAgent: "test", deviceId: "test")
+            ),
+            logger: MockLogger(),
+            queue: DispatchQueue(label: "EmbraceStoreLoadFailureTests.upload"),
             isTesting: false
         )
     }

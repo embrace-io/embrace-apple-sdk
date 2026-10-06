@@ -180,6 +180,7 @@ import OpenTelemetrySdk
         options: Embrace.Options,
         logControllable: LogControllable? = nil,
         embraceStorage: EmbraceStorage? = nil,
+        embraceUpload: EmbraceUpload? = nil,
         otelResources: Resource? = nil
     ) throws {
 
@@ -193,16 +194,16 @@ import OpenTelemetrySdk
         // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
 
-        // take the critical logs from the previous session, and clean up any orphan pending-logs file.
-        // This must happen before the upload cache starts loading: if it fails, the `.critical` it logs
-        // replaces the previous session's file with this one's.
+        // Take the previous launch's critical logs (and remove any orphan pending-logs file) before anything here can
+        // log a `.critical`: `createUpload` and both stores' loads can, and the first one replaces the previous
+        // launch's file with this one's.
         let previousCriticalLogs = UnsentDataHandler.takeCriticalLogs(
             fileUrl: EmbraceFileSystem.criticalLogsURL,
             pendingFileUrl: EmbraceFileSystem.pendingLogsURL
         )
 
         // initialize upload module
-        self.upload = try Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
+        self.upload = try embraceUpload ?? Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
 
         // send critical logs from previous session
         UnsentDataHandler.sendCriticalLogs(previousCriticalLogs, upload: upload)
@@ -407,6 +408,10 @@ import OpenTelemetrySdk
                 // save latest session in memory before its sent and deleted
                 // this will be used to link metric kit payloads to the session
                 storage.fetchLatestSession { [self] session in
+                    // the SDK may have been stopped meanwhile (e.g. one of its stores failed to load)
+                    guard isSDKEnabled else {
+                        return
+                    }
                     metricKit.lastSession = session
                     metricKit.install()
                 }
@@ -468,14 +473,21 @@ import OpenTelemetrySdk
         }
     }
 
-    /// Sends the data left by earlier launches, then cleans up. Called on `processingQueue` when the SDK starts.
-    /// - Parameter completion: Called once the data was handed to the upload module, or skipped.
+    /// Removes old-version data, then starts sending the data left by earlier launches and adds the otel resources.
+    /// Called on `processingQueue` when the SDK starts. The data is only sent if both stores loaded.
+    /// - Parameter completion: Called once the unsent data was handed to the upload module, or skipped.
+    ///   It doesn't wait for the otel resources to be added.
     func sendUnsentData(completion: (() -> Void)? = nil) {
-        // The data from earlier launches is read from the storage, which may still be loading.
-        // If it failed to load, nothing can be read: crash reports would be sent without the
-        // resources the backend requires, and deleted. They're kept for a later launch instead.
-        // This waits for the load on the calling queue, which must not be the main one.
-        guard storage.coreData.isStoreLoaded else {
+        // remove old versions data (files only, it doesn't need the stores)
+        cleanUpOldVersionsData()
+
+        // The data from earlier launches is read from the storage and uploaded through the upload cache, and either
+        // may still be loading. If one failed to load, everything is kept for a later launch instead: without the
+        // storage, crash reports would be sent without the resources the backend requires, and deleted; without the
+        // upload cache, nothing is sent but the metadata the unsent logs need would be cleaned up.
+        // This waits for the loads on the calling queue, which must not be the main one.
+        guard storage.coreData.isStoreLoaded, upload?.isCacheLoaded ?? true else {
+            Embrace.logger.warning("Not sending the data from earlier launches: one of the SDK's stores isn't loaded.")
             completion?()
             return
         }
@@ -491,9 +503,6 @@ import OpenTelemetrySdk
             crashReporter: captureServices.crashReporter,
             completion: completion
         )
-
-        // remove old versions data
-        cleanUpOldVersionsData()
 
         // add otel resources as metadata
         addOtelResources()

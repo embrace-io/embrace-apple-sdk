@@ -47,17 +47,20 @@ public class EmbraceUpload: EmbraceLogUploader {
     ///   - options: `EmbraceUpload.Options` instance
     ///   - logger: `InternalLogger` instance
     ///   - queue: `DispatchQueue` to be used as the coordination queue
+    ///   - isTesting: Forces an in-memory cache store when true. Defaults to whether the process is running tests;
+    ///     tests that need the on-disk store pass false.
     public init(
         options: Options,
         logger: InternalLogger,
-        queue: DispatchQueue
+        queue: DispatchQueue,
+        isTesting: Bool = ProcessInfo.processInfo.isTesting
     ) throws {
 
         self.options = options
         self.logger = logger
         self.queue = queue
 
-        cache = try EmbraceUploadCache(options: options.cache, logger: logger)
+        cache = try EmbraceUploadCache(options: options.cache, logger: logger, isTesting: isTesting)
 
         urlSession = URLSession(configuration: options.urlSessionConfiguration)
 
@@ -90,6 +93,12 @@ public class EmbraceUpload: EmbraceLogUploader {
     }
 
     // MARK: - Public API
+
+    /// Whether the cache's store is loaded.
+    /// Synchronous: waits for the initial load to finish, which can block the calling thread for the whole load.
+    public var isCacheLoaded: Bool {
+        cache.coreData.isStoreLoaded
+    }
 
     /// Asynchronously calls `completion` on the cache's context queue once its store has finished loading,
     /// passing the load error, or `nil` if it loaded.

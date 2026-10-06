@@ -211,6 +211,10 @@ class CoreDataWrapperTests: XCTestCase {
         defer { sqlite3_close(db) }
         XCTAssertEqual(sqlite3_exec(db, "BEGIN EXCLUSIVE", nil, nil, nil), SQLITE_OK)
 
+        // (released after a few seconds anyway, so a regression that waits for the load fails instead of hanging)
+        let releaseLock = lockReleaser(db)
+        DispatchQueue.global().asyncAfter(deadline: .now() + 3) { releaseLock() }
+
         // when creating the wrapper
         let start = Date()
         wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
@@ -222,7 +226,7 @@ class CoreDataWrapperTests: XCTestCase {
         wrapper.performAsyncOperation(save: true) { context in
             _ = MockRecord.create(context: context, id: "test")
         }
-        XCTAssertEqual(sqlite3_exec(db, "COMMIT", nil, nil, nil), SQLITE_OK)
+        releaseLock()
 
         let result = wrapper.fetch(withRequest: NSFetchRequest<MockRecord>(entityName: MockRecord.entityName))
         XCTAssertEqual(result.count, 1)
@@ -365,6 +369,19 @@ class CoreDataWrapperTests: XCTestCase {
         // then the store is not attached late (records created meanwhile would duplicate stored ones)
         XCTAssertFalse(wrapper.isStoreLoaded)
         XCTAssertFalse(FileManager.default.fileExists(atPath: storageMechanism.fileURL!.path))
+    }
+
+    /// Releases the exclusive lock held by `db` once, from whichever caller gets there first.
+    private func lockReleaser(_ db: OpaquePointer?) -> () -> Void {
+        let lock = NSLock()
+        var released = false
+        return {
+            lock.lock()
+            defer { lock.unlock() }
+            guard !released else { return }
+            released = true
+            XCTAssertEqual(sqlite3_exec(db, "COMMIT", nil, nil, nil), SQLITE_OK)
+        }
     }
 
     private func makeOnDiskStorageMechanism() throws -> StorageMechanism {
