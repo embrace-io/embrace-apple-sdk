@@ -1033,6 +1033,30 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(session?.sessionNumber, 6)
     }
 
+    func test_startSession_doesNotWaitOnBusyStorageQueue() throws {
+        // given a controller whose preload has finished. `userSessionController` is left nil on purpose,
+        // so only the part-start path is exercised and not the user-session bookkeeping.
+        let controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
+        storage.waitForPendingCoreDataOperations()
+
+        // and a storage queue that stays busy until the test releases it
+        let release = DispatchSemaphore(value: 0)
+        defer { release.signal() }
+        storage.coreData.performAsyncOperation { _ in release.wait() }
+
+        // when a part starts
+        let started = expectation(description: "startSession returned")
+        DispatchQueue.global().async {
+            controller.startSession(state: .foreground)
+            started.fulfill()
+        }
+
+        // then it returns without waiting for the storage queue
+        wait(for: [started], timeout: .defaultTimeout)
+    }
+
     func test_startSession_persistsCounterForNextController() throws {
         // given two parts started on one controller
         controller.startSession(state: .foreground)
