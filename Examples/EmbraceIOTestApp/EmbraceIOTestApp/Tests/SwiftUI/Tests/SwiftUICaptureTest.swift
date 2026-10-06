@@ -12,17 +12,31 @@ import SwiftUI
 class SwiftUICaptureTest: PayloadTest {
     var testRelevantPayloadNames: [String] {
         var spans = [
-            "emb-swiftui.view.\(viewName).body",
             "emb-swiftui.view.\(viewName).time-to-first-render",
-            "emb-swiftui.view.\(viewName).render-loop",
             "emb-swiftui.view.\(viewName).appear",
             "emb-swiftui.view.\(viewName).disappear"
         ]
+        if tracksBodyEvaluations {
+            spans.append("emb-swiftui.view.\(viewName).body")
+            spans.append("emb-swiftui.view.\(viewName).render-loop")
+        }
         if contentComplete {
             spans.append("emb-swiftui.view.\(viewName).time-to-first-content-complete")
         }
 
         return spans
+    }
+
+    /// Body and render-loop spans are opt-in, so they are only expected from the capture paths
+    /// that pass `trackBodyEvaluations: true`. The `@EmbraceTrace` macro takes no arguments and
+    /// therefore has no opt-in, so it emits neither.
+    private var tracksBodyEvaluations: Bool {
+        switch captureType {
+        case .manual, .embraceView:
+            return true
+        case .macro:
+            return false
+        }
     }
     private var viewName: String {
         switch captureType {

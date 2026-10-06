@@ -112,6 +112,47 @@ final class RemoteConfigTests: XCTestCase {
         XCTAssertFalse(config.traceparentInjectionEnabled)
     }
 
+    /// Load-bearing: `RemoteConfig` is the only conformer that really implements this — the protocol
+    /// supplies a `false` default — so if its implementation were ever dropped or renamed the flag
+    /// would silently return `false` forever, which is indistinguishable from "not rolled out yet".
+    /// Asserting `true` at threshold 100 is what makes that detectable.
+    func test_isStateCaptureEnabled() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        // then isStateCaptureEnabled returns the correct values based on pct_state_enabled_v2
+        config.payload.stateCaptureThreshold = 100
+        XCTAssertTrue(config.isStateCaptureEnabled)
+
+        config.payload.stateCaptureThreshold = nil
+        XCTAssertFalse(config.isStateCaptureEnabled)
+
+        config.payload.stateCaptureThreshold = 51
+        XCTAssertTrue(config.isStateCaptureEnabled)
+
+        config.payload.stateCaptureThreshold = 49
+        XCTAssertFalse(config.isStateCaptureEnabled)
+    }
+
+    /// See the note on `test_isStateCaptureEnabled` — same reasoning applies here.
+    func test_isScreenTrackingEnabled() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        // then isScreenTrackingEnabled returns the correct values based on pct_screen_tracking_enabled
+        config.payload.screenTrackingThreshold = 100
+        XCTAssertTrue(config.isScreenTrackingEnabled)
+
+        config.payload.screenTrackingThreshold = nil
+        XCTAssertFalse(config.isScreenTrackingEnabled)
+
+        config.payload.screenTrackingThreshold = 51
+        XCTAssertTrue(config.isScreenTrackingEnabled)
+
+        config.payload.screenTrackingThreshold = 49
+        XCTAssertFalse(config.isScreenTrackingEnabled)
+    }
+
     func test_SpanEventsLimits() {
         // given a config
         let config = RemoteConfig(options: options, logger: logger)
