@@ -37,6 +37,10 @@ class SessionController: SessionControllable {
     static let sessionPartNumberKey = "emb.session_part_number"
 
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
+
+    /// In-memory copy of the persisted per-part counter, so starting a part never has to wait on storage.
+    /// `nil` until the stored value has been loaded.
+    private let _sessionPartNumber = EmbraceMutex<EMBInt?>(nil)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
 
     // Lock used for session boundaries. Will be shared at both start/end of session
@@ -89,6 +93,15 @@ class SessionController: SessionControllable {
 
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
         self.queue = queue
+
+        // Load the stored per-part counter ahead of the first part start.
+        storage.fetchCountForPermanentResource(key: Self.sessionPartNumberKey) { [weak self] value in
+            self?._sessionPartNumber.withLock { current in
+                if current == nil {
+                    current = value
+                }
+            }
+        }
 
         self.heartbeat.callback = { [weak self] in
             let span = EmbraceMetricKitSpan.begin(name: "heartbeat")
@@ -232,7 +245,9 @@ class SessionController: SessionControllable {
         }
         span.end(endTime: tailEnd)
 
-        let sessionPartNumber = storage.incrementCountForPermanentResource(key: SessionController.sessionPartNumberKey)
+        let sessionPartNumber = lock.locked {
+            nextSessionPartNumberNoLock(storage: storage)
+        }
 
         storage.addSession(
             id: newId,
@@ -353,9 +368,7 @@ class SessionController: SessionControllable {
 
             // Permanent per-part counter — bumped on every new part record and stamped onto
             // the part's `sessionNumber` column.
-            let sessionPartNumber = storage.incrementCountForPermanentResource(
-                key: SessionController.sessionPartNumberKey
-            )
+            let sessionPartNumber = nextSessionPartNumberNoLock(storage: storage)
 
             let session = storage.addSession(
                 id: newId,
@@ -396,6 +409,32 @@ class SessionController: SessionControllable {
         }
 
         return sessionInfo.session
+    }
+
+    /// Increments the per-part counter and persists the new value asynchronously.
+    /// Must be called while holding `lock` so increments are persisted in the same order they are generated.
+    private func nextSessionPartNumberNoLock(storage: EmbraceStorage) -> EMBInt {
+        // If the preload queued in `init` hasn't run yet, wait for it. The storage context is serial,
+        // so the preload's completion has set the counter by the time this returns, and the assignment
+        // below is only a defensive fallback. Waiting on the main queue is fine here: this only happens
+        // for a part started before the preload ran, which `Embrace.start` already prevents.
+        if _sessionPartNumber.withLock({ $0 }) == nil {
+            let stored = storage.fetchCountForPermanentResource(key: Self.sessionPartNumberKey, allowMainQueue: true)
+            _sessionPartNumber.withLock { current in
+                if current == nil {
+                    current = stored
+                }
+            }
+        }
+
+        let next: EMBInt = _sessionPartNumber.withLock { current in
+            let next = (current ?? 0) + 1
+            current = next
+            return next
+        }
+
+        storage.setCountForPermanentResource(key: Self.sessionPartNumberKey, value: next)
+        return next
     }
 
     /// Ends the session session taking into account that the lock is held externally
