@@ -24,7 +24,7 @@ on:
         type: string
         default: ''
       test_timeout_minutes:
-        description: 'Time limit for the BrowserStack test run, in minutes. The wait gives up 5 minutes earlier, so it fails with an error instead of the job being killed.'
+        description: 'Time limit for the BrowserStack test run, in minutes. Must be more than 5: the wait gives up 5 minutes earlier, so it fails with an error instead of the job being killed.'
         required: false
         type: number
         default: 40
@@ -185,7 +185,14 @@ jobs:
           ONLY_TESTING: ${{ inputs.only_testing }}
           SKIP_TESTING: ${{ inputs.skip_testing }}
           BUILD_NAME: Benchmarks UI Tests - ${{ github.sha }}
+          TEST_TIMEOUT_MINUTES: ${{ inputs.test_timeout_minutes }}
         run: |
+          # Checked before the build starts, so a bad value doesn't leave a build running.
+          if [ "$TEST_TIMEOUT_MINUTES" -le 5 ]; then
+            echo "::error::test_timeout_minutes must be more than 5, got $TEST_TIMEOUT_MINUTES"
+            exit 1
+          fi
+
           # Execute tests on a single iOS device. The test filters are comma-separated lists,
           # sent as arrays only when set.
           BUILD_BODY=$(jq -n \
