@@ -56,6 +56,16 @@ jobs:
       test_suite_url: ${{ steps.upload_test_suite.outputs.test_suite_url }}
 
     steps:
+      - name: Validate Inputs
+        # Checked first, so a bad value fails before the app is archived and uploaded.
+        env:
+          TEST_TIMEOUT_MINUTES: ${{ inputs.test_timeout_minutes }}
+        run: |
+          if ! [[ "$TEST_TIMEOUT_MINUTES" =~ ^[0-9]+$ ]] || [ "$TEST_TIMEOUT_MINUTES" -le 5 ]; then
+            echo "::error::test_timeout_minutes must be a whole number more than 5, got $TEST_TIMEOUT_MINUTES"
+            exit 1
+          fi
+
       - name: Select Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_26.5.app
@@ -185,16 +195,9 @@ jobs:
           ONLY_TESTING: ${{ inputs.only_testing }}
           SKIP_TESTING: ${{ inputs.skip_testing }}
           BUILD_NAME: Benchmarks UI Tests - ${{ github.sha }}
-          TEST_TIMEOUT_MINUTES: ${{ inputs.test_timeout_minutes }}
         run: |
-          # Checked before the build starts, so a bad value doesn't leave a build running.
-          if [ "$TEST_TIMEOUT_MINUTES" -le 5 ]; then
-            echo "::error::test_timeout_minutes must be more than 5, got $TEST_TIMEOUT_MINUTES"
-            exit 1
-          fi
-
           # Execute tests on a single iOS device. The test filters are comma-separated lists,
-          # sent as arrays only when set.
+          # sent as trimmed arrays only when set.
           BUILD_BODY=$(jq -n \
             --arg device "$DEVICE" \
             --arg app "$APP_URL" \
@@ -214,8 +217,8 @@ jobs:
               video: false,
               enableResultBundle: true
             }
-            + (if $only != "" then {"only-testing": ($only | split(","))} else {} end)
-            + (if $skip != "" then {"skip-testing": ($skip | split(","))} else {} end)')
+            + (if $only != "" then {"only-testing": ($only | split(",") | map(gsub("^\\s+|\\s+$"; "")))} else {} end)
+            + (if $skip != "" then {"skip-testing": ($skip | split(",") | map(gsub("^\\s+|\\s+$"; "")))} else {} end)')
           echo "Build request: $BUILD_BODY"
 
           BUILD_RESPONSE=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
