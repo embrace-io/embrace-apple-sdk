@@ -79,15 +79,12 @@ jobs:
           brew install xcbeautify
 
       - name: Archive Benchmarks App
-        # Release, so the measured app runs the SDK optimized, as it ships. A Debug (-Onone) build
-        # overstates its cost. The UI test runner below stays Debug: it runs in its own process, so
-        # it doesn't affect the measurements, and BenchmarksTests' @testable import needs Debug.
         run: |
           xcodebuild archive \
             -workspace Examples/Benchmarks/Benchmarks.xcworkspace \
             -scheme Benchmarks \
             -sdk iphoneos \
-            -configuration Release \
+            -configuration Debug \
             -archivePath build/Benchmarks.xcarchive \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
