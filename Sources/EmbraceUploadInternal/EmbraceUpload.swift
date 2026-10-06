@@ -91,6 +91,11 @@ public class EmbraceUpload: EmbraceLogUploader {
 
     // MARK: - Public API
 
+    /// Asynchronously calls `completion` once the cache's store has finished loading, passing whether it loaded.
+    public func onCacheLoaded(_ completion: @escaping (_ loaded: Bool) -> Void) {
+        cache.coreData.onInitialLoad(completion)
+    }
+
     /// Attempts to upload all the available cached data.
     /// Called at process launch and on internet reconnection.
     public func retryCachedData(_ completion: (() -> Void)? = nil) {

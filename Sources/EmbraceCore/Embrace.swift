@@ -63,8 +63,11 @@ import OpenTelemetrySdk
     /// Returns true if the SDK is started and was not disabled through remote configurations.
     @objc public var isSDKEnabled: Bool {
         let remoteConfigEnabled = config.isSDKEnabled
-        return state == .started && remoteConfigEnabled
+        return state == .started && remoteConfigEnabled && storesLoaded.load()
     }
+
+    /// Cleared when one of the SDK's stores fails to load, which stops the SDK (see `storeFailedToLoad`).
+    private let storesLoaded = EmbraceAtomic<Bool>(true)
 
     /// Returns the version of the Embrace SDK.
     @objc public class var sdkVersion: String {
@@ -269,6 +272,19 @@ import OpenTelemetrySdk
             stateProvider: self
         )
 
+        // The stores load in the background (see `CoreDataWrapper`). If either fails, stop the SDK,
+        // as it used to happen when they were loaded here and the failure made `setup` throw.
+        storage.coreData.onInitialLoad { [weak self] loaded in
+            if !loaded {
+                self?.storeFailedToLoad("storage")
+            }
+        }
+        upload?.onCacheLoaded { [weak self] loaded in
+            if !loaded {
+                self?.storeFailedToLoad("upload cache")
+            }
+        }
+
         sessionController.sdkStateProvider = self
         logController?.sdkStateProvider = self
         logController?.privateLogger = self
@@ -362,6 +378,11 @@ import OpenTelemetrySdk
                 return self
             }
 
+            guard storesLoaded.load() else {
+                Embrace.logger.warning("Embrace can't start because its storage failed to load!")
+                return self
+            }
+
             let processStartSpan = createProcessStartSpan()
             defer { processStartSpan.end() }
 
@@ -448,16 +469,42 @@ import OpenTelemetrySdk
                 return self
             }
 
-            state = .stopped
-
-            sessionLifecycle.stop()
-            sessionController.clear()
-            captureServices.stop()
-            metricKit.uninstall()
+            stopNoLock()
 
             Embrace.logger.startup("Embrace SDK stopped successfully!")
 
             return self
+        }
+    }
+
+    /// Must be called on the main thread while holding `_syncLock` for writing, with the SDK started.
+    private func stopNoLock() {
+        state = .stopped
+
+        sessionLifecycle.stop()
+        sessionController.clear()
+        captureServices.stop()
+        metricKit.uninstall()
+    }
+
+    /// Stops the SDK for the rest of the process because one of its stores failed to load.
+    /// If the SDK hasn't started yet, `start()` won't start it.
+    func storeFailedToLoad(_ store: String) {
+        guard storesLoaded.exchange(false) else {
+            return
+        }
+
+        Embrace.logger.critical("Embrace SDK stopped because its \(store) failed to load")
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else {
+                return
+            }
+            Embrace._syncLock.lockedForWriting {
+                if self.state == .started {
+                    self.stopNoLock()
+                }
+            }
         }
     }
 

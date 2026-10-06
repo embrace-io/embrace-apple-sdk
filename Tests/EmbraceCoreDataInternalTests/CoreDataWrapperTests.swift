@@ -280,6 +280,43 @@ class CoreDataWrapperTests: XCTestCase {
         XCTAssertTrue(wrapper.isStoreLoaded)
     }
 
+    func test_onInitialLoad_reportsLoaded() throws {
+        // given a wrapper with a store on disk
+        let options = CoreDataWrapper.Options(
+            storageMechanism: try makeOnDiskStorageMechanism(),
+            enableBackgroundTasks: false,
+            entities: [MockRecord.entityDescription]
+        )
+        wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
+
+        // when waiting for the initial load
+        let reported = expectation(description: "load reported")
+        wrapper.onInitialLoad { loaded in
+            // then it reports the store as loaded
+            XCTAssertTrue(loaded)
+            reported.fulfill()
+        }
+        wait(for: [reported], timeout: 5)
+    }
+
+    func test_onInitialLoad_reportsFailure() throws {
+        // given a wrapper whose store fails to load
+        let storageMechanism = try makeOnDiskStorageMechanism()
+        try FileManager.default.createDirectory(at: storageMechanism.fileURL!, withIntermediateDirectories: true)
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
+        wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
+
+        // when waiting for the initial load
+        let reported = expectation(description: "load reported")
+        wrapper.onInitialLoad { loaded in
+            // then it reports the failure
+            XCTAssertFalse(loaded)
+            reported.fulfill()
+        }
+        wait(for: [reported], timeout: 5)
+    }
+
     func test_save_whenTheStoreFailedToLoad_failsWithoutTrying() throws {
         // given a wrapper whose store failed to load
         let storageMechanism = try makeOnDiskStorageMechanism()

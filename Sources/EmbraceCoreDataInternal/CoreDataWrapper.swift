@@ -124,6 +124,14 @@ public class CoreDataWrapper {
         }
     }
 
+    /// Asynchronously calls `completion` on the context's queue once the initial store load has finished,
+    /// passing whether the store is loaded.
+    public func onInitialLoad(_ completion: @escaping (_ loaded: Bool) -> Void) {
+        performAsyncOperation { [self] _ in
+            completion(!container.persistentStoreCoordinator.persistentStores.isEmpty)
+        }
+    }
+
     @discardableResult
     private func loadPersistentStoreIfNeeded(logIfEmpty: Bool = true) -> Error? {
         // if we have persistent stores just continue on
