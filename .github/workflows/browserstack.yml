@@ -196,8 +196,8 @@ jobs:
           SKIP_TESTING: ${{ inputs.skip_testing }}
           BUILD_NAME: Benchmarks UI Tests - ${{ github.sha }}
         run: |
-          # Execute tests on a single iOS device. The test filters are comma-separated lists,
-          # sent as trimmed arrays only when set.
+          # Execute tests on a single iOS device. The test filters are comma-separated lists, sent as
+          # trimmed arrays without empty entries, and only when something is left.
           BUILD_BODY=$(jq -n \
             --arg device "$DEVICE" \
             --arg app "$APP_URL" \
@@ -205,7 +205,8 @@ jobs:
             --arg buildName "$BUILD_NAME" \
             --arg only "$ONLY_TESTING" \
             --arg skip "$SKIP_TESTING" \
-            '{
+            'def filters($s): $s | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""));
+            {
               devices: [$device],
               app: $app,
               testSuite: $testSuite,
@@ -217,8 +218,8 @@ jobs:
               video: false,
               enableResultBundle: true
             }
-            + (if $only != "" then {"only-testing": ($only | split(",") | map(gsub("^\\s+|\\s+$"; "")))} else {} end)
-            + (if $skip != "" then {"skip-testing": ($skip | split(",") | map(gsub("^\\s+|\\s+$"; "")))} else {} end)')
+            + (filters($only) as $o | if ($o | length) > 0 then {"only-testing": $o} else {} end)
+            + (filters($skip) as $k | if ($k | length) > 0 then {"skip-testing": $k} else {} end)')
           echo "Build request: $BUILD_BODY"
 
           BUILD_RESPONSE=$(curl -u "$BROWSERSTACK_USERNAME:$BROWSERSTACK_ACCESS_KEY" \
