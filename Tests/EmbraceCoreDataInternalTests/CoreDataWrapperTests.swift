@@ -291,9 +291,9 @@ class CoreDataWrapperTests: XCTestCase {
 
         // when waiting for the initial load
         let reported = expectation(description: "load reported")
-        wrapper.onInitialLoad { loaded in
+        wrapper.onInitialLoad { error in
             // then it reports the store as loaded
-            XCTAssertTrue(loaded)
+            XCTAssertNil(error)
             reported.fulfill()
         }
         wait(for: [reported], timeout: 5)
@@ -309,9 +309,9 @@ class CoreDataWrapperTests: XCTestCase {
 
         // when waiting for the initial load
         let reported = expectation(description: "load reported")
-        wrapper.onInitialLoad { loaded in
+        wrapper.onInitialLoad { error in
             // then it reports the failure
-            XCTAssertFalse(loaded)
+            XCTAssertNotNil(error)
             reported.fulfill()
         }
         wait(for: [reported], timeout: 5)

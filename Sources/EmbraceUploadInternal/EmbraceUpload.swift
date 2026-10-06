@@ -91,8 +91,9 @@ public class EmbraceUpload: EmbraceLogUploader {
 
     // MARK: - Public API
 
-    /// Asynchronously calls `completion` once the cache's store has finished loading, passing whether it loaded.
-    public func onCacheLoaded(_ completion: @escaping (_ loaded: Bool) -> Void) {
+    /// Asynchronously calls `completion` once the cache's store has finished loading,
+    /// passing the load error, or `nil` if it loaded.
+    public func onCacheLoaded(_ completion: @escaping (_ error: Error?) -> Void) {
         cache.coreData.onInitialLoad(completion)
     }
 

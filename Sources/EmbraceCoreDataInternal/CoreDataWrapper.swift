@@ -30,7 +30,7 @@ public class CoreDataWrapper {
     private let isTesting: Bool
 
     /// Set when the initial store load fails. Only accessed on the context's queue.
-    private var initialLoadFailed = false
+    private var initialLoadError: Error?
 
     static let modelCache: EmbraceMutex<[String: NSManagedObjectModel]> = EmbraceMutex([:])
 
@@ -112,7 +112,7 @@ public class CoreDataWrapper {
         context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
         context.persistentStoreCoordinator = container.persistentStoreCoordinator
         context.perform { [self] in
-            initialLoadFailed = loadPersistentStoreIfNeeded(logIfEmpty: false) != nil
+            initialLoadError = loadPersistentStoreIfNeeded(logIfEmpty: false)
         }
     }
 
@@ -125,10 +125,10 @@ public class CoreDataWrapper {
     }
 
     /// Asynchronously calls `completion` on the context's queue once the initial store load has finished,
-    /// passing whether the store is loaded.
-    public func onInitialLoad(_ completion: @escaping (_ loaded: Bool) -> Void) {
+    /// passing the load error, or `nil` if the store loaded.
+    public func onInitialLoad(_ completion: @escaping (_ error: Error?) -> Void) {
         performAsyncOperation { [self] _ in
-            completion(!container.persistentStoreCoordinator.persistentStores.isEmpty)
+            completion(initialLoadError)
         }
     }
 
@@ -327,7 +327,7 @@ extension CoreDataWrapper {
 
         // Without a store the save can only fail (raising, and logging, every time).
         // The initial load isn't retried: see `init`.
-        guard !initialLoadFailed else {
+        guard initialLoadError == nil else {
             return false
         }
 

@@ -274,14 +274,14 @@ import OpenTelemetrySdk
 
         // The stores load in the background (see `CoreDataWrapper`). If either fails, stop the SDK,
         // as it used to happen when they were loaded here and the failure made `setup` throw.
-        storage.coreData.onInitialLoad { [weak self] loaded in
-            if !loaded {
-                self?.storeFailedToLoad("storage")
+        storage.coreData.onInitialLoad { [weak self] error in
+            if let error {
+                self?.storeFailedToLoad("storage", error: error)
             }
         }
-        upload?.onCacheLoaded { [weak self] loaded in
-            if !loaded {
-                self?.storeFailedToLoad("upload cache")
+        upload?.onCacheLoaded { [weak self] error in
+            if let error {
+                self?.storeFailedToLoad("upload cache", error: error)
             }
         }
 
@@ -489,20 +489,27 @@ import OpenTelemetrySdk
 
     /// Stops the SDK for the rest of the process because one of its stores failed to load.
     /// If the SDK hasn't started yet, `start()` won't start it.
-    func storeFailedToLoad(_ store: String) {
+    ///
+    /// Before stopping, the failure is reported with an error log (see `sendStoreLoadFailureLog`).
+    func storeFailedToLoad(_ store: String, error: Error) {
         guard storesLoaded.exchange(false) else {
             return
         }
 
         Embrace.logger.critical("Embrace SDK stopped because its \(store) failed to load")
 
-        DispatchQueue.main.async { [weak self] in
+        processingQueue.async { [weak self] in
             guard let self else {
                 return
             }
-            Embrace._syncLock.lockedForWriting {
-                if self.state == .started {
-                    self.stopNoLock()
+
+            self.sendStoreLoadFailureLog(store: store, error: error)
+
+            DispatchQueue.main.async {
+                Embrace._syncLock.lockedForWriting {
+                    if self.state == .started {
+                        self.stopNoLock()
+                    }
                 }
             }
         }
