@@ -273,19 +273,6 @@ class CoreDataWrapperTests: XCTestCase {
         XCTAssertFalse(wrapper.isStoreLoaded)
     }
 
-    func test_isStoreLoaded() throws {
-        // given a wrapper with a store on disk
-        let options = CoreDataWrapper.Options(
-            storageMechanism: try makeOnDiskStorageMechanism(),
-            enableBackgroundTasks: false,
-            entities: [MockRecord.entityDescription]
-        )
-        wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
-
-        // then the store is reported as loaded
-        XCTAssertTrue(wrapper.isStoreLoaded)
-    }
-
     func test_onInitialLoad_reportsLoaded() throws {
         // given a wrapper with a store on disk
         let options = CoreDataWrapper.Options(
