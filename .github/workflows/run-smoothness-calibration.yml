@@ -16,10 +16,7 @@ on:
 permissions:
   contents: read
 
-# BrowserStack runs one session at a time, but this group doesn't stop a calibration run overlapping
-# a device benchmark run, or a calibration run on another device. An overlapping build queues on
-# BrowserStack, and the queued time counts against the test job's time limit. Start one run at a
-# time, and not while On Device Benchmarks is running.
+# Don't overlap with other BrowserStack runs; queued time counts against the test job's time limit.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.device }}
   cancel-in-progress: true
@@ -41,7 +38,6 @@ jobs:
     name: Report Calibration
     needs: [browserstack]
     runs-on: ubuntu-latest
-    if: success()
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
