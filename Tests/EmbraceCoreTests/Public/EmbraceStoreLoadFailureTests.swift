@@ -13,8 +13,9 @@ import XCTest
 @testable import EmbraceUploadInternal
 
 /// Stores are in memory during tests unless built with `isTesting: false`. The tests using `makeFailingStorage()`
-/// or `makeFailingUpload()` get a store that really fails to load. The others use the loaded in-memory stores,
-/// and call `storeFailedToLoad` directly when they need a failure.
+/// or `makeFailingUpload()` get a store that really fails to load, and `test_setupAndStart_doNotWaitForAStalledStorage`
+/// one whose load is stalled. The others use the loaded in-memory stores, and call `storeFailedToLoad` directly when
+/// they need a failure.
 final class EmbraceStoreLoadFailureTests: XCTestCase {
 
     var storage: EmbraceStorage!
@@ -25,7 +26,8 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        // let the work `start()` queues (sending the unsent data) finish before the storage is destroyed
+        // drain the work `start()` queued on the processing queue before the storage is destroyed
+        // (it only hands the unsent data over: the sending itself may still be running on other queues)
         for client in clients {
             drainProcessingQueue(of: client)
             if client.state == .started {
@@ -331,9 +333,9 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         wait(for: [drained], timeout: 5)
     }
 
+    /// Drains the processing queue, then whatever it has handed to the upload queue so far.
     private func drainProcessingQueue(of client: Embrace) {
         client.processingQueue.sync {}
-        // the uploads are cached on the upload queue
         client.upload?.queue.sync {}
     }
 }

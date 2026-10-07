@@ -95,7 +95,8 @@ public class EmbraceUpload: EmbraceLogUploader {
     // MARK: - Public API
 
     /// Whether the cache's store is loaded.
-    /// Synchronous: waits for the initial load to finish, which can block the calling thread for the whole load.
+    /// Synchronous: waits for the initial load (and any other pending operation) to finish,
+    /// which can block the calling thread for the whole load.
     public var isCacheLoaded: Bool {
         cache.coreData.isStoreLoaded
     }

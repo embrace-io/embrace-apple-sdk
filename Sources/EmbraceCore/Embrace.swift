@@ -371,6 +371,11 @@ import OpenTelemetrySdk
 
             defer { span.end() }
 
+            guard state != .stopped else {
+                Embrace.logger.warning("The Embrace SDK can't be started after it was stopped!")
+                return self
+            }
+
             guard state == .initialized else {
                 Embrace.logger.warning("The Embrace SDK can only be started once!")
                 return self
@@ -399,8 +404,11 @@ import OpenTelemetrySdk
                 // save latest session in memory before its sent and deleted
                 // this will be used to link metric kit payloads to the session
                 storage.fetchLatestSession { [self] session in
-                    // the SDK may have been stopped meanwhile (e.g. one of its stores failed to load)
-                    guard isSDKEnabled else {
+                    // The SDK may have been stopped meanwhile. A storage that failed to load stops it only once the
+                    // main thread gets to it, which can be after this runs, so check the load result too (already
+                    // known here: this fetch ran after the load). Otherwise MetricKit could deliver an earlier
+                    // launch's diagnostic into a storage that drops it.
+                    guard isSDKEnabled, storage.coreData.isStoreLoaded else {
                         return
                     }
                     metricKit.lastSession = session
@@ -474,7 +482,8 @@ import OpenTelemetrySdk
         cleanUpOldVersionsData()
 
         // The data from earlier launches is read from the storage and uploaded through the upload cache, and either
-        // may still be loading. If one failed to load, everything is kept for a later launch instead: without the
+        // may still be loading. If one failed to load, that data (crash reports, sessions, logs and metadata) is kept
+        // for a later launch instead: without the
         // storage, crash reports would be sent without the resources the backend requires, and deleted; without the
         // upload cache, nothing is sent but the metadata the unsent logs need would be cleaned up.
         // This waits for the loads on the calling queue, which must not be the main one.
