@@ -528,24 +528,25 @@ final class SessionControllerTests: XCTestCase {
 
     func test_startSession_doesNotWaitOnStorage() throws {
         // given a storage queue that is busy (e.g. still opening the store at launch)
-        let release = DispatchSemaphore(value: 0)
-        storage.coreData.performAsyncOperation { _ in release.wait() }
+        let semaphore = DispatchSemaphore(value: 0)
+        storage.coreData.performAsyncOperation { _ in semaphore.wait() }
+
+        // (released anyway after a while, so a regression that waits for the storage queue fails instead of hanging)
+        let released = EmbraceAtomic<Bool>(false)
+        let release: () -> Bool = {
+            guard !released.exchange(true) else { return false }
+            semaphore.signal()
+            return true
+        }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 10) { _ = release() }
 
         // when creating a controller and starting a session
         let controller = SessionController(storage: storage, upload: nil, config: nil)
         controller.sdkStateProvider = sdkStateProvider
+        let session = controller.startSession(state: .foreground)
 
-        // (off the test thread, so a regression fails on the timeout instead of hanging)
-        let started = expectation(description: "session started")
-        var session: EmbraceSession?
-        DispatchQueue.global().async {
-            session = controller.startSession(state: .foreground)
-            started.fulfill()
-        }
-
-        // then the session starts without waiting for the storage queue
-        wait(for: [started], timeout: 5)
-        release.signal()
+        // then the session started without waiting for the storage queue: it's still busy
+        XCTAssertTrue(release(), "starting the session waited for the storage queue")
         XCTAssertNotNil(session)
 
         // and gets its number once the storage queue catches up

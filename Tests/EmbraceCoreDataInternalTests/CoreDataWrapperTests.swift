@@ -211,22 +211,20 @@ class CoreDataWrapperTests: XCTestCase {
         defer { sqlite3_close(db) }
         XCTAssertEqual(sqlite3_exec(db, "BEGIN EXCLUSIVE", nil, nil, nil), SQLITE_OK)
 
-        // (released after a few seconds anyway, so a regression that waits for the load fails instead of hanging)
+        // (released anyway after a while, so a regression that waits for the load fails instead of hanging)
         let releaseLock = lockReleaser(db)
-        DispatchQueue.global().asyncAfter(deadline: .now() + 3) { releaseLock() }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 10) { _ = releaseLock() }
 
-        // when creating the wrapper
-        let start = Date()
+        // when creating the wrapper, and queueing an operation while the load is stalled
         wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
-
-        // then it returns while the load is stalled
-        XCTAssertLessThan(Date().timeIntervalSince(start), 1)
-
-        // and operations queued meanwhile run against the store once it's loaded
         wrapper.performAsyncOperation(save: true) { context in
             _ = MockRecord.create(context: context, id: "test")
         }
-        releaseLock()
+
+        // then the initializer returned while the lock was still held
+        XCTAssertTrue(releaseLock(), "the initializer waited for the store to load")
+
+        // and the operation queued meanwhile ran against the store once it loaded
 
         let result = wrapper.fetch(withRequest: NSFetchRequest<MockRecord>(entityName: MockRecord.entityName))
         XCTAssertEqual(result.count, 1)
@@ -297,14 +295,19 @@ class CoreDataWrapperTests: XCTestCase {
         )
         wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
 
-        // when waiting for the initial load
-        let reported = expectation(description: "load reported")
+        // when registering for the initial load result
+        var reported = false
+        var reportedError: Error?
         wrapper.onInitialLoad { error in
-            // then it reports the store as loaded
-            XCTAssertNil(error)
-            reported.fulfill()
+            reported = true
+            reportedError = error
         }
-        wait(for: [reported], timeout: 5)
+
+        // then, once the context's queue gets to it, it reports the store as loaded
+        // (`isStoreLoaded` runs on the same serial queue, after the callback)
+        XCTAssertTrue(wrapper.isStoreLoaded)
+        XCTAssertTrue(reported)
+        XCTAssertNil(reportedError)
     }
 
     func test_onInitialLoad_reportsFailure() throws {
@@ -315,14 +318,19 @@ class CoreDataWrapperTests: XCTestCase {
             storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
         wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
 
-        // when waiting for the initial load
-        let reported = expectation(description: "load reported")
+        // when registering for the initial load result
+        var reported = false
+        var reportedError: Error?
         wrapper.onInitialLoad { error in
-            // then it reports the failure
-            XCTAssertNotNil(error)
-            reported.fulfill()
+            reported = true
+            reportedError = error
         }
-        wait(for: [reported], timeout: 5)
+
+        // then, once the context's queue gets to it, it reports the failure
+        // (`isStoreLoaded` runs on the same serial queue, after the callback)
+        XCTAssertFalse(wrapper.isStoreLoaded)
+        XCTAssertTrue(reported)
+        XCTAssertNotNil(reportedError)
     }
 
     func test_save_whenTheStoreFailedToLoad_failsWithoutTrying() throws {
@@ -372,15 +380,17 @@ class CoreDataWrapperTests: XCTestCase {
     }
 
     /// Releases the exclusive lock held by `db` once, from whichever caller gets there first.
-    private func lockReleaser(_ db: OpaquePointer?) -> () -> Void {
+    /// The returned closure returns whether that call released it.
+    private func lockReleaser(_ db: OpaquePointer?) -> () -> Bool {
         let lock = NSLock()
         var released = false
         return {
             lock.lock()
             defer { lock.unlock() }
-            guard !released else { return }
+            guard !released else { return false }
             released = true
             XCTAssertEqual(sqlite3_exec(db, "COMMIT", nil, nil, nil), SQLITE_OK)
+            return true
         }
     }
 

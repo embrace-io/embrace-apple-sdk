@@ -2,13 +2,11 @@
 //  Copyright © 2024 Embrace Mobile, Inc. All rights reserved.
 //
 
-import CoreData
 import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceCommonInternal
     import EmbraceStorageInternal
-    import EmbraceCoreDataInternal
 #endif
 
 @objc public enum MetadataLifespan: Int {
@@ -31,7 +29,6 @@ public class MetadataHandler: NSObject {
     weak var storage: EmbraceStorage?
     weak var sessionController: SessionControllable?
 
-    private let coreData: CoreDataWrapper?
     internal let synchronizationQueue: DispatchableQueue
 
     init(
@@ -43,33 +40,15 @@ public class MetadataHandler: NSObject {
         self.sessionController = sessionController
         self.synchronizationQueue = syncronizationQueue
 
-        // tmp core data stack
-        // only created if the db file is found
-        // the entire data gets migrated to the real db and the file is removed
-        // that means this should only be executed once (the file is kept if a store fails to load)
-        let coreDataStackName = "EmbraceMetadataTmp"
-        if let url = storage?.options.storageMechanism.baseUrl,
-            FileManager.default.fileExists(atPath: url.appendingPathComponent(coreDataStackName + ".sqlite").path)
-        {
-
-            let options = CoreDataWrapper.Options(
-                storageMechanism: .onDisk(name: coreDataStackName, baseURL: url, journalMode: .delete),
-                entities: [MetadataRecordTmp.entityDescription]
-            )
-
-            do {
-                self.coreData = try CoreDataWrapper(options: options, logger: Embrace.logger)
-            } catch {
-                Embrace.logger.error("Error setting up temp metadata database!:\n\(error.localizedDescription)")
-                self.coreData = nil
+        // Remove the legacy temporary metadata database, if a device still has it.
+        // Its data is no longer migrated.
+        if let url = storage?.options.storageMechanism.baseUrl {
+            for suffix in [".sqlite", ".sqlite-shm", ".sqlite-wal"] {
+                try? FileManager.default.removeItem(at: url.appendingPathComponent("EmbraceMetadataTmp" + suffix))
             }
-        } else {
-            self.coreData = nil
         }
 
         super.init()
-
-        cloneDataBase()
     }
 
     /// Adds a resource with the given key, value and lifespan.
@@ -258,55 +237,6 @@ extension MetadataLifespan {
         case .session: return .session
         case .process: return .process
         case .permanent: return .permanent
-        }
-    }
-}
-
-// tmp core data stack
-extension MetadataHandler {
-    func cloneDataBase() {
-        guard let coreData = coreData,
-            let storage = storage
-        else {
-            return
-        }
-
-        // keep the file if its store or the storage failed to load, so a later launch can still migrate it
-        // (waits for both loads; only reached when the legacy file exists)
-        guard coreData.isStoreLoaded, storage.coreData.isStoreLoaded else {
-            return
-        }
-
-        let request = NSFetchRequest<MetadataRecordTmp>(entityName: MetadataRecordTmp.entityName)
-
-        coreData.fetchAndPerform(withRequest: request) { oldRecords in
-            for record in oldRecords {
-                guard let type = MetadataRecordType(rawValue: record.type),
-                    let lifespan = MetadataRecordLifespan(rawValue: record.lifespan)
-                else {
-                    continue
-                }
-
-                storage.addMetadata(
-                    key: record.key,
-                    value: record.value,
-                    type: type,
-                    lifespan: lifespan,
-                    lifespanId: record.lifespanId
-                )
-            }
-        }
-
-        // remove temporary db file
-        switch coreData.options.storageMechanism {
-        case .onDisk:
-            if let url = coreData.options.storageMechanism.fileURL {
-                do {
-                    try FileManager.default.removeItem(at: url)
-                } catch {}
-            }
-
-        default: return
         }
     }
 }

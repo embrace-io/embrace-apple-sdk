@@ -25,7 +25,7 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        // let any failure handling finish before the storage is destroyed
+        // let the work `start()` queues (sending the unsent data) finish before the storage is destroyed
         for client in clients {
             drainProcessingQueue(of: client)
             if client.state == .started {
@@ -38,7 +38,7 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
 
     // MARK: - Real load failure
 
-    func test_storageFailsToLoad_reportsItAndDisablesTheSDK() throws {
+    func test_storageFailsToLoad_disablesTheSDK() throws {
         // given a client whose storage fails to load
         let client = try makeClient(storage: try makeFailingStorage())
         waitForLoadFailureHandling(of: client)
@@ -46,17 +46,7 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         // then the SDK is disabled and won't start
         XCTAssertFalse(client.isSDKEnabled)
         try client.start()
-        XCTAssertNotEqual(client.state, .started)
-
-        // and the failure is reported with the real load error and the metadata the backend requires
-        let log = try XCTUnwrap(cachedStoreLoadFailureLogs(of: client).first)
-        XCTAssertEqual(log.attributes["emb.store_load.store"], "storage")
-        XCTAssertEqual(log.attributes["emb.store_load.error_domain"], NSCocoaErrorDomain)
-        XCTAssertNotNil(log.attributes["emb.store_load.error_code"])
-        XCTAssertNotNil(log.attributes["emb.store_load.sqlite_error_code"])
-        XCTAssertEqual(log.resource["app_version"] as? String, AppInfoCaptureService.criticalResources[AppResourceKey.appVersion.rawValue])
-        XCTAssertEqual(log.resource["sdk_version"] as? String, EmbraceMeta.sdkVersion)
-        XCTAssertNotNil(log.resource["sdk_platform"])
+        XCTAssertEqual(client.state, .stopped)
     }
 
     func test_sendUnsentData_whenStorageFailedToLoad_keepsCrashReports() throws {
@@ -92,31 +82,16 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         XCTAssertEqual(crashLogs.count, 1)
     }
 
-    func test_storageFailsToLoad_legacyMetadataFileIsKept() throws {
-        // given a storage that fails to load, with a legacy metadata file to migrate next to it
-        let failingStorage = try makeFailingStorage()
-        let legacyFile = try XCTUnwrap(failingStorage.options.storageMechanism.baseUrl)
-            .appendingPathComponent("EmbraceMetadataTmp.sqlite")
-        try Data().write(to: legacyFile)
-
-        // when the metadata handler tries to migrate it
-        _ = MetadataHandler(storage: failingStorage, sessionController: nil)
-
-        // then the file is kept for a later launch, since nothing could be migrated
-        XCTAssertTrue(FileManager.default.fileExists(atPath: legacyFile.path))
-    }
-
     func test_uploadCacheFailsToLoad_disablesTheSDK() throws {
         // given a client whose upload cache fails to load
         let client = try makeClient(upload: try makeFailingUpload())
         XCTAssertEqual(client.upload?.isCacheLoaded, false)
-        drainProcessingQueue(of: client)
         drainMainQueue()
 
         // then the SDK is disabled and won't start
         XCTAssertFalse(client.isSDKEnabled)
         try client.start()
-        XCTAssertNotEqual(client.state, .started)
+        XCTAssertEqual(client.state, .stopped)
     }
 
     func test_sendUnsentData_whenUploadCacheFailedToLoad_keepsTheData() throws {
@@ -163,22 +138,20 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         defer { sqlite3_close(db) }
         XCTAssertEqual(sqlite3_exec(db, "BEGIN EXCLUSIVE", nil, nil, nil), SQLITE_OK)
 
-        // (released after a few seconds anyway, so a regression that waits for the load fails instead of hanging)
+        // (released anyway after a while, so a regression that waits for the load fails instead of hanging)
         let releaseLock = lockReleaser(db)
-        DispatchQueue.global().asyncAfter(deadline: .now() + 3) { releaseLock() }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 10) { _ = releaseLock() }
 
         // when setting up and starting the SDK
-        let start = Date()
         let stalledStorage = try EmbraceStorage(options: storageOptions, logger: MockLogger(), isTesting: false)
         let client = try makeClient(storage: stalledStorage)
         try client.start()
 
-        // then neither waits for the storage to load (the bound leaves CI headroom but stays below the 3s release)
-        XCTAssertLessThan(Date().timeIntervalSince(start), 2)
+        // then neither waited for the storage to load: the lock is still held
+        XCTAssertTrue(releaseLock(), "setup or start waited for the storage to load")
         XCTAssertEqual(client.state, .started)
 
         // and the storage loads once the lock is released
-        releaseLock()
         XCTAssertTrue(stalledStorage.coreData.isStoreLoaded)
         XCTAssertTrue(client.isSDKEnabled)
     }
@@ -202,15 +175,15 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
     func test_storeFailsBeforeStart_sdkDoesNotStart() throws {
         // given a client whose store failed to load before it was started
         let client = try makeClient()
-        client.storeFailedToLoad("storage", error: loadError)
-        drainProcessingQueue(of: client)
+        client.storeFailedToLoad("storage")
         drainMainQueue()
+        XCTAssertEqual(client.state, .stopped)
 
         // when starting it
         try client.start()
 
         // then it doesn't start
-        XCTAssertNotEqual(client.state, .started)
+        XCTAssertEqual(client.state, .stopped)
         XCTAssertFalse(client.isSDKEnabled)
         XCTAssertNil(client.sessionController.currentSession)
     }
@@ -222,13 +195,12 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         XCTAssertEqual(client.state, .started)
 
         // when one of its stores fails to load
-        client.storeFailedToLoad("upload cache", error: loadError)
+        client.storeFailedToLoad("upload cache")
 
         // then the SDK is disabled right away
         XCTAssertFalse(client.isSDKEnabled)
 
-        // and stopped once the failure is reported
-        drainProcessingQueue(of: client)
+        // and stopped on the main thread
         drainMainQueue()
         XCTAssertEqual(client.state, .stopped)
         XCTAssertNil(client.sessionController.currentSession)
@@ -241,89 +213,16 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
 
         // when a store fails to load, reported from a background queue as the stores do
         DispatchQueue.global().sync {
-            client.storeFailedToLoad("storage", error: loadError)
+            client.storeFailedToLoad("storage")
         }
 
         // then the SDK is disabled and stopped
         XCTAssertFalse(client.isSDKEnabled)
-        drainProcessingQueue(of: client)
         drainMainQueue()
         XCTAssertEqual(client.state, .stopped)
-    }
-
-    func test_storeFailsTwice_handledOnce() throws {
-        // given a started client
-        let client = try makeClient()
-        try client.start()
-
-        // when both stores fail to load
-        client.storeFailedToLoad("storage", error: loadError)
-        client.storeFailedToLoad("upload cache", error: loadError)
-        drainProcessingQueue(of: client)
-        drainMainQueue()
-
-        // then the SDK is stopped
-        XCTAssertEqual(client.state, .stopped)
-        XCTAssertFalse(client.isSDKEnabled)
-
-        // and only the first failure is reported
-        let logs = try cachedStoreLoadFailureLogs(of: client)
-        XCTAssertEqual(logs.count, 1)
-        XCTAssertEqual(logs.first?.attributes["emb.store_load.store"], "storage")
-    }
-
-    func test_storeFails_sendsErrorLogWithErrorAndMetadata() throws {
-        // given a client
-        let client = try makeClient()
-
-        // when its storage fails to load
-        client.storeFailedToLoad("storage", error: loadError)
-        drainProcessingQueue(of: client)
-
-        // then an error log reporting the failure is cached for upload
-        let logs = try cachedStoreLoadFailureLogs(of: client)
-        XCTAssertEqual(logs.count, 1)
-        let log = try XCTUnwrap(logs.first)
-        XCTAssertEqual(log.body, "Embrace SDK stopped because its storage failed to load")
-        XCTAssertEqual(log.severity, "ERROR")
-
-        // as a regular log the app's owner can see
-        XCTAssertNil(log.attributes["emb.private"])
-        XCTAssertEqual(log.attributes["emb.type"], "sys.log")
-
-        XCTAssertEqual(log.attributes["emb.store_load.store"], "storage")
-        XCTAssertEqual(log.attributes["emb.store_load.error_domain"], NSCocoaErrorDomain)
-        XCTAssertEqual(log.attributes["emb.store_load.error_code"], "256")
-        XCTAssertEqual(log.attributes["emb.store_load.sqlite_error_code"], "14")
-
-        // and it carries the metadata the backend requires
-        XCTAssertNotNil(log.resource["app_version"])
-        XCTAssertNotNil(log.resource["sdk_version"])
-        XCTAssertNotNil(log.resource["sdk_platform"])
-    }
-
-    func test_storeLoadErrorAttributes() {
-        let underlying = NSError(domain: NSPOSIXErrorDomain, code: 2)
-        let error = NSError(
-            domain: NSCocoaErrorDomain,
-            code: 256,
-            userInfo: [NSSQLiteErrorDomain: 14, NSUnderlyingErrorKey: underlying]
-        )
-
-        let attributes = Embrace.storeLoadErrorAttributes(store: "upload cache", error: error)
-
-        XCTAssertEqual(attributes["emb.store_load.store"], "upload cache")
-        XCTAssertEqual(attributes["emb.store_load.error_domain"], NSCocoaErrorDomain)
-        XCTAssertEqual(attributes["emb.store_load.error_code"], "256")
-        XCTAssertEqual(attributes["emb.store_load.sqlite_error_code"], "14")
-        XCTAssertEqual(attributes["emb.store_load.underlying_error"], "\(NSPOSIXErrorDomain) 2")
-        XCTAssertNotNil(attributes["emb.store_load.error_message"])
     }
 
     // MARK: - Helpers
-
-    /// The error Core Data reports when the store's path can't be opened.
-    private let loadError = NSError(domain: NSCocoaErrorDomain, code: 256, userInfo: [NSSQLiteErrorDomain: 14])
 
     private func makeClient(
         storage: EmbraceStorage? = nil,
@@ -361,15 +260,17 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
     }
 
     /// Releases the exclusive lock held by `db` once, from whichever caller gets there first.
-    private func lockReleaser(_ db: OpaquePointer?) -> () -> Void {
+    /// The returned closure returns whether that call released it.
+    private func lockReleaser(_ db: OpaquePointer?) -> () -> Bool {
         let lock = NSLock()
         var released = false
         return {
             lock.lock()
             defer { lock.unlock() }
-            guard !released else { return }
+            guard !released else { return false }
             released = true
             XCTAssertEqual(sqlite3_exec(db, "COMMIT", nil, nil, nil), SQLITE_OK)
+            return true
         }
     }
 
@@ -396,10 +297,9 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
     }
 
     /// Waits until the client has handled its storage's load failure: the load result is reported on the storage
-    /// queue (where `isStoreLoaded` waits), then the failure is reported on the processing queue.
+    /// queue (where `isStoreLoaded` waits), then the SDK is stopped on the main thread.
     private func waitForLoadFailureHandling(of client: Embrace) {
         XCTAssertFalse(client.storage.coreData.isStoreLoaded)
-        drainProcessingQueue(of: client)
         drainMainQueue()
     }
 
@@ -419,35 +319,7 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
 
     private func drainProcessingQueue(of client: Embrace) {
         client.processingQueue.sync {}
-        // the upload is cached on the upload queue
+        // the uploads are cached on the upload queue
         client.upload?.queue.sync {}
-    }
-
-    private struct CachedLog {
-        let body: String?
-        let severity: String?
-        let attributes: [String: String]
-        let resource: [String: Any]
-    }
-
-    private func cachedStoreLoadFailureLogs(of client: Embrace) throws -> [CachedLog] {
-        let records = try XCTUnwrap(client.upload?.cache.fetchAllUploadData())
-        return try records.filter { $0.type == EmbraceUploadType.log.rawValue }.compactMap { record in
-            let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: try record.data.gunzipped()) as? [String: Any])
-            let logs = (payload["data"] as? [String: Any])?["logs"] as? [[String: Any]] ?? []
-            return logs.first { ($0["body"] as? String)?.contains("failed to load") == true }.map { log in
-                CachedLog(
-                    body: log["body"] as? String,
-                    severity: log["severity_text"] as? String,
-                    attributes: Dictionary(
-                        (log["attributes"] as? [[String: String]] ?? []).compactMap { attribute in
-                            attribute["key"].map { ($0, attribute["value"] ?? "") }
-                        },
-                        uniquingKeysWith: { first, _ in first }
-                    ),
-                    resource: payload["resource"] as? [String: Any] ?? [:]
-                )
-            }
-        }
     }
 }

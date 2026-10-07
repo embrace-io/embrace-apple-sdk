@@ -281,13 +281,13 @@ import OpenTelemetrySdk
         // The stores load asynchronously (see `CoreDataWrapper`). The SDK can't work without them,
         // so if either fails, report it and stop the SDK (see `storeFailedToLoad`).
         storage.coreData.onInitialLoad { [weak self] error in
-            if let error {
-                self?.storeFailedToLoad("storage", error: error)
+            if error != nil {
+                self?.storeFailedToLoad("storage")
             }
         }
         upload?.onCacheLoaded { [weak self] error in
-            if let error {
-                self?.storeFailedToLoad("upload cache", error: error)
+            if error != nil {
+                self?.storeFailedToLoad("upload cache")
             }
         }
 
@@ -385,6 +385,8 @@ import OpenTelemetrySdk
                 return self
             }
 
+            // `storeFailedToLoad` moves the state to `.stopped` only once it gets to the main thread,
+            // so this catches a failure reported before that
             guard storesLoaded.load() else {
                 Embrace.logger.warning("Embrace can't start because one of its stores failed to load!")
                 return self
@@ -520,30 +522,31 @@ import OpenTelemetrySdk
     }
 
     /// Disables the SDK for the rest of the process because one of its stores failed to load.
-    /// `isSDKEnabled` becomes false immediately. If the SDK is started, it's then stopped on the main thread;
-    /// if it hasn't started yet, it stays `.initialized` and `start()` won't start it.
+    /// `isSDKEnabled` becomes false immediately, and `start()` won't start the SDK. Then, on the main thread,
+    /// the SDK is stopped if it started, or moved to `.stopped` if it hadn't.
     ///
-    /// The failure is reported with an error log (see `sendStoreLoadFailureLog`), which can't be sent when
-    /// the store that failed is the upload cache. Only the first failure is handled.
-    func storeFailedToLoad(_ store: String, error: Error) {
+    /// The failure is reported with a critical log (the store also logs one with the load error).
+    /// Only the first failure is handled.
+    func storeFailedToLoad(_ store: String) {
         guard storesLoaded.exchange(false) else {
             return
         }
 
         Embrace.logger.critical("Embrace SDK stopped because its \(store) failed to load")
 
-        processingQueue.async { [weak self] in
+        DispatchQueue.main.async { [weak self] in
             guard let self else {
                 return
             }
 
-            self.sendStoreLoadFailureLog(store: store, error: error)
-
-            DispatchQueue.main.async {
-                Embrace._syncLock.lockedForWriting {
-                    if self.state == .started {
-                        self.stopNoLock()
-                    }
+            Embrace._syncLock.lockedForWriting {
+                switch self.state {
+                case .started:
+                    self.stopNoLock()
+                case .initialized:
+                    self.state = .stopped
+                default:
+                    break
                 }
             }
         }
