@@ -269,6 +269,40 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual((storage.fetchAll() as [SessionRecord]).count, 0)
     }
 
+    func test_backfillTerminationReason_ignoresPartAddedAfterCall() throws {
+        let first = controller.startSession(state: .foreground)
+        controller.endSession()
+
+        // The backfill is queued before the next part is added, so it must resolve to `first`.
+        controller.backfillTerminationReasonOnLatestPart(.manual)
+        let second = controller.startSession(state: .foreground)
+
+        // `fetchSession` runs synchronously on the same serial context, after both operations above.
+        XCTAssertEqual(storage.fetchSession(id: first!.id)?.userSessionTerminationReason, .manual)
+        XCTAssertNil(storage.fetchSession(id: second!.id)?.userSessionTerminationReason)
+    }
+
+    func test_backfillTerminationReason_doesNotWaitOnStorage() throws {
+        let session = controller.startSession(state: .foreground)
+        controller.endSession()
+
+        // Hold the storage context: any synchronous storage call made before `gate.signal()` blocks.
+        let gate = DispatchSemaphore(value: 0)
+        storage.coreData.performAsyncOperation { _ in gate.wait() }
+        defer { gate.signal() }
+
+        // Call from another queue so a blocking backfill fails the test instead of hanging it.
+        let returned = expectation(description: "backfill returned while storage was busy")
+        DispatchQueue.global().async {
+            self.controller.backfillTerminationReasonOnLatestPart(.manual)
+            returned.fulfill()
+        }
+        wait(for: [returned], timeout: 1)
+
+        gate.signal()
+        XCTAssertEqual(storage.fetchSession(id: session!.id)?.userSessionTerminationReason, .manual)
+    }
+
     func test_rollPartForUserSessionExpiry_endsOldStartsNewSameStateNewUserSession() throws {
         let first = controller.startSession(state: .foreground)
         let firstUserSessionId = first?.userSessionId

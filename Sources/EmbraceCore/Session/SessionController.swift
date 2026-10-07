@@ -641,30 +641,23 @@ class SessionController: SessionControllable {
     /// part record via storage so the call works after `endSession` has already cleared the
     /// in-memory snapshot.
     ///
+    /// The write is asynchronous and never waits on the storage context, so it is safe to call
+    /// from the main thread and while holding `lock` (e.g. from `startSession`). Storage runs
+    /// operations in the order they are queued, so the lookup resolves to the part that was
+    /// latest at call time: a new part added after this call (as `startSession` does right
+    /// after `attachPart`) is not considered.
+    ///
     /// Idempotent: if the latest part already has a `userSessionTerminationReason`, the call
     /// is a no-op. This protects the bootstrap-driven expiry path from overwriting a reason
     /// the prior process recorded (e.g. `.manual` from a manual end that the process executed
     /// just before dying), and preserves the precedence rule that the first-set reason wins.
     ///
     /// **Lock contract:** this method MUST NOT acquire `SessionController.lock`. It is reached
-    /// from `UserSessionController.internalEndUserSession`, which itself runs under the
-    /// user-session controller's `_state` mutex (via `attachPart` and `endActiveUserSession`).
-    /// Holding `_state` while acquiring `lock` would create two failure modes:
-    ///   - When the caller is `SessionController.startSession`, `lock` is already held; trying
-    ///     to acquire it again from inside `_state` is a same-thread re-acquire of a
-    ///     non-reentrant `UnfairLock` (undefined behavior / hang).
-    ///   - Across threads, the chain `lock → _state` on one thread and `_state → lock` on
-    ///     another forms a classic lock-order inversion / deadlock.
-    /// Keep this method to storage-only writes. Storage has its own internal serialization
-    /// and does not interact with either lock.
+    /// from `SessionController.startSession` (via `attachPart`), where `lock` is already held,
+    /// and re-acquiring the non-reentrant `UnfairLock` on the same thread is undefined behavior.
+    /// Keep this method to storage-only writes.
     func backfillTerminationReasonOnLatestPart(_ reason: TerminationReason) {
-        guard let storage = storage,
-            let latest = storage.fetchLatestSession(),
-            latest.userSessionTerminationReason == nil
-        else {
-            return
-        }
-        storage.updateSession(session: latest, userSessionTerminationReason: reason)
+        storage?.setUserSessionTerminationReasonOnLatestSessionIfNeeded(reason)
     }
 }
 
