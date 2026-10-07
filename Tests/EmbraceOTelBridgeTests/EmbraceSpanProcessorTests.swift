@@ -221,13 +221,8 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         let t = TracerProviderSdk(spanProcessors: [processor]).get(instrumentationName: "test", instrumentationVersion: nil)
         t.spanBuilder(spanName: "pending").startSpan().end()
 
-        // when flushing, then the call returns without waiting for the group
-        let returned = expectation(description: "forceFlush returned")
-        DispatchQueue.global().async {
-            processor.forceFlush(timeout: nil)
-            returned.fulfill()
-        }
-        wait(for: [returned], timeout: 2)
+        // when flushing, then the call returns without waiting for the group and nothing is flushed yet
+        processor.forceFlush(timeout: nil)
         XCTAssertFalse(childProcessor.didForceFlush)
         XCTAssertFalse(childExporter.didFlush)
 
@@ -250,12 +245,7 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         let t = TracerProviderSdk(spanProcessors: [processor]).get(instrumentationName: "test", instrumentationVersion: nil)
         t.spanBuilder(spanName: "pending").startSpan().end()
 
-        let returned = expectation(description: "shutdown returned")
-        DispatchQueue.global().async {
-            processor.shutdown(explicitTimeout: nil)
-            returned.fulfill()
-        }
-        wait(for: [returned], timeout: 2)
+        processor.shutdown(explicitTimeout: nil)
         XCTAssertFalse(childProcessor.didShutdown)
 
         criticalResourceGroup.leave()
@@ -285,13 +275,8 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         let childExporter = BlockingFlushSpanExporter()
         let processor = EmbraceSpanProcessor(delegate: mockDelegate, childExporters: [childExporter])
 
-        // when flushing with a short timeout, then the call returns before the exporter finishes
-        let returned = expectation(description: "forceFlush returned")
-        DispatchQueue.global().async {
-            processor.forceFlush(timeout: 0.1)
-            returned.fulfill()
-        }
-        wait(for: [returned], timeout: 2)
+        // when flushing with no time to wait, then the call returns before the exporter finishes
+        processor.forceFlush(timeout: 0)
         XCTAssertFalse(childExporter.didFinishFlush)
 
         // and the flush still completes once the exporter is released
@@ -304,12 +289,7 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         let childExporter = BlockingFlushSpanExporter()
         let processor = EmbraceSpanProcessor(delegate: mockDelegate, childExporters: [childExporter])
 
-        let returned = expectation(description: "shutdown returned")
-        DispatchQueue.global().async {
-            processor.shutdown(explicitTimeout: 0.1)
-            returned.fulfill()
-        }
-        wait(for: [returned], timeout: 2)
+        processor.shutdown(explicitTimeout: 0)
         XCTAssertFalse(childExporter.didFinishShutdown)
 
         childExporter.release.signal()
@@ -317,8 +297,8 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         XCTAssertTrue(childExporter.didFinishShutdown)
     }
 
-    func test_defaultBlockingTimeout_isFiveSeconds() {
-        XCTAssertEqual(EmbraceSpanProcessor.defaultBlockingTimeout, 5)
+    func test_defaultBlockingTimeout_isOneSecond() {
+        XCTAssertEqual(EmbraceSpanProcessor.defaultBlockingTimeout, 1)
     }
 }
 
