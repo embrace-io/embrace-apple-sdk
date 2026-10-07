@@ -79,14 +79,15 @@ final class EmbraceSpanProcessorBlockingTests: XCTestCase {
         // given a processor whose queue is parked on a closed critical resource group
         givenProcessor(withClosedGroup: true)
         let span = startSpan()
+        markForFlush(span)
 
         // when flushing a span
         XCTAssertTrue(completesInTime { self.processor.flush(span: span) })
 
-        // then it's exported once the group is left
+        // then the flushed snapshot is exported once the group is left
         criticalResourceGroup.leave()
         drainProcessorQueue()
-        XCTAssertNotNil(exporter.exportedSpans[span.context.spanId])
+        XCTAssertTrue(exportedFlushedSnapshot(of: span))
     }
 
     // MARK: - Called from processorQueue
@@ -131,6 +132,7 @@ final class EmbraceSpanProcessorBlockingTests: XCTestCase {
         givenProcessor()
         let span = startSpan()
         drainProcessorQueue()
+        markForFlush(span)
 
         // when it's flushed from processorQueue
         processor.processorQueue.async { [unowned self] in
@@ -141,7 +143,7 @@ final class EmbraceSpanProcessorBlockingTests: XCTestCase {
         // (drained twice: once for the outer block, once for the export it queued)
         drainProcessorQueue()
         drainProcessorQueue()
-        XCTAssertNotNil(exporter.exportedSpans[span.context.spanId])
+        XCTAssertTrue(exportedFlushedSnapshot(of: span))
     }
 
     // MARK: - Timeout
@@ -189,15 +191,33 @@ final class EmbraceSpanProcessorBlockingTests: XCTestCase {
         let release = DispatchSemaphore(value: 0)
         childProcessor.onStartHandler = { release.wait() }
         let span = startSpan()
+        markForFlush(span)
 
         // when flushing the span
         // then the caller isn't held behind the stuck callback
         XCTAssertTrue(completesInTime { self.processor.flush(span: span) })
 
-        // and the span is exported once the callback returns
+        // and the flushed snapshot is exported once the callback returns
         release.signal()
         drainProcessorQueue()
-        XCTAssertNotNil(exporter.exportedSpans[span.context.spanId])
+        XCTAssertTrue(exportedFlushedSnapshot(of: span))
+    }
+
+    func test_flushSpan_whenCriticalResourceGroupIsOpen_exportsCurrentSnapshot() throws {
+        // given a started processor and a span whose start was already exported
+        givenProcessor(withClosedGroup: true)
+        criticalResourceGroup.leave()
+        let span = startSpan()
+        drainProcessorQueue()
+        XCTAssertFalse(exportedFlushedSnapshot(of: span))
+
+        // when the span changes and is flushed
+        markForFlush(span)
+        XCTAssertTrue(completesInTime { self.processor.flush(span: span) })
+
+        // then the flushed snapshot is exported
+        drainProcessorQueue()
+        XCTAssertTrue(exportedFlushedSnapshot(of: span))
     }
 
     func test_forceFlush_whenCriticalResourceGroupIsOpen_waitsForQueuedWork() throws {
@@ -247,6 +267,18 @@ extension EmbraceSpanProcessorBlockingTests {
             startTime: Date()
         )
     }
+
+    /// Sets an attribute that the span's start export doesn't carry, so only an export of a later snapshot, like the one `flush(span:)` takes, has it.
+    fileprivate func markForFlush(_ span: ReadableSpan) {
+        span.setAttribute(key: Self.flushMarkerKey, value: true)
+    }
+
+    /// Whether the exporter received a snapshot of `span` taken after `markForFlush(_:)`.
+    fileprivate func exportedFlushedSnapshot(of span: ReadableSpan) -> Bool {
+        exporter.exportedSpans[span.context.spanId]?.attributes[Self.flushMarkerKey] == .bool(true)
+    }
+
+    fileprivate static let flushMarkerKey = "test.flushed"
 
     /// Blocks until every block already queued on the processor queue has run.
     fileprivate func drainProcessorQueue() {

@@ -56,7 +56,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
     }
 
     /// Maximum time `forceFlush` and `shutdown` block their caller when no timeout is given.
-    static let defaultBlockingTimeout: TimeInterval = 5
+    static let defaultBlockingTimeout: TimeInterval = 1
 
     /// Whether the caller is already running on `processorQueue`, e.g. from inside a child processor or exporter callback.
     private var isOnProcessorQueue: Bool {
