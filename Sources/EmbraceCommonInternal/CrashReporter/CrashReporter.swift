@@ -106,6 +106,11 @@ import Foundation
 public typealias FrameAddress = UInt
 
 /// Captures stack backtraces for threads.
+///
+/// - Important: To walk a suspended thread, the SDK looks up the walk method on the backtracer's
+///   class (or a superclass) *before* suspending, and calls it directly. A backtracer that relies
+///   on message forwarding (`forwardingTargetForSelector:`, `forwardInvocation:`, an `NSProxy`)
+///   can't be called this way: the SDK logs an error and captures no frames for suspended threads.
 @objc public protocol Backtracer {
 
     /// Captures a backtrace for the provided thread.
@@ -128,29 +133,45 @@ public typealias FrameAddress = UInt
     /// allocator lock.
     ///
     /// - Important: The implementation MUST be allocation-free and async-signal-safe: no `malloc`,
-    ///   no Obj-C/Swift runtime work, no lock acquisition. It is called between `thread_suspend` and
-    ///   `thread_resume` of a thread that is not the caller.
-    /// - Important: Do not pass `thread` to libpthread functions that look up another thread's
-    ///   handle (`pthread_mach_thread_np`, `pthread_threadid_np`, `pthread_getname_np`, …).
-    ///   libpthread validates such handles under a process-wide thread-list lock, which the
-    ///   suspended thread may hold (for example inside `pthread_create`, `pthread_join` or thread
-    ///   exit). The caller then blocks forever with `thread` left suspended. This protocol offers no
-    ///   lock-free way to get `thread`'s mach port, so a custom implementation that needs one carries
-    ///   this risk. The SDK's built-in backtracer does not: the SDK calls it through an internal entry
-    ///   point that takes a port resolved before the suspend.
-    /// - Note: Following the rules above is not sufficient for a *custom* implementation. Because this
-    ///   protocol is `@objc`, the SDK reaches a custom backtracer through `objc_msgSend`, and that
-    ///   dispatch itself takes the ObjC runtime lock when the method cache is cold — inside the
-    ///   suspend window. If the suspended thread holds that lock, the process deadlocks regardless of
-    ///   what the implementation does. The built-in backtracer is called directly and is not affected.
+    ///   no Obj-C/Swift runtime work, no lock acquisition. It is called while `thread` is suspended.
+    ///   Resolving its mach port here (`pthread_mach_thread_np`) takes libpthread's thread-list lock
+    ///   and can deadlock, so prefer implementing ``backtrace(ofMachThread:into:capacity:)``; when it
+    ///   is implemented, the SDK never calls this method on a suspended thread.
     /// - Parameters:
     ///   - thread: The target `pthread_t`. Must not be the calling thread (it is expected to be
-    ///     suspended by the caller for the duration of the call).
+    ///     suspended by the caller for the duration of the call). Use it only as an opaque value,
+    ///     for example to compare against threads you resolved earlier.
     ///   - buffer: Caller-owned storage for at least `capacity` `FrameAddress` values.
     ///   - capacity: The capacity of `buffer`, in elements.
     /// - Returns: The number of frame addresses written to `buffer` (`0...capacity`).
     @objc func backtrace(
         of thread: pthread_t,
+        into buffer: UnsafeMutablePointer<FrameAddress>,
+        capacity: Int
+    ) -> Int
+
+    /// Fills `buffer` (which has room for `capacity` addresses) with the frame addresses of the
+    /// thread whose mach port is `thread`, returning the number of addresses written. Ordered from
+    /// the top frame to the bottom.
+    ///
+    /// This is the preferred way to walk a suspended thread. The SDK resolves the mach port before
+    /// suspending the thread, so the implementation needs no pthread lookup while it is suspended.
+    ///
+    /// - Important: The implementation MUST be allocation-free and async-signal-safe: no `malloc`,
+    ///   no Obj-C/Swift runtime work, no lock acquisition, and no `pthread_*` calls on other
+    ///   threads. It is called between `thread_suspend` and `thread_resume` of a thread that is not
+    ///   the caller, and if that thread holds a lock the implementation needs, the process
+    ///   deadlocks.
+    /// - Note: The SDK resolves the implementation before suspending the thread and calls it
+    ///   directly, so no `objc_msgSend` or method-cache lookup runs while the thread is suspended.
+    /// - Parameters:
+    ///   - thread: The target's mach port. Never the calling thread; it is suspended by the caller
+    ///     for the duration of the call.
+    ///   - buffer: Caller-owned storage for at least `capacity` `FrameAddress` values.
+    ///   - capacity: The capacity of `buffer`, in elements.
+    /// - Returns: The number of frame addresses written to `buffer` (`0...capacity`).
+    @objc optional func backtrace(
+        ofMachThread thread: thread_t,
         into buffer: UnsafeMutablePointer<FrameAddress>,
         capacity: Int
     ) -> Int
