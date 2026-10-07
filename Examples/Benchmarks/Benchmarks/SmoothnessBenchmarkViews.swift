@@ -19,58 +19,34 @@ enum SmoothnessProbe {
     }
 }
 
-/// Pins the display to 120Hz and, optionally, burns a fixed fraction of every frame's budget on the
-/// main thread.
+/// Pins the display to 120Hz and burns `loadFraction` of every frame on the main thread, so any
+/// per-tick SDK cost shows up as hitches instead of disappearing into idle time.
 ///
-/// The load keeps each frame close to its deadline, so any per-tick cost the SDK adds turns into
-/// measurable hitches instead of disappearing into idle headroom. It is either a fraction of each
-/// frame, or, with `headroom`, everything but a fixed amount of free time per frame. SDK cost is a
-/// fixed number of microseconds per tick, so a fixed headroom stays equally sensitive at 60Hz and
-/// 120Hz, where a fraction leaves twice as much free time at 60Hz.
+/// `injectedCost` (`EMBInjectedTickCostMicros`) adds a fixed cost per tick, the positive control
+/// in `SmoothnessOverheadUITests`.
 ///
-/// It can also inject a fixed cost into every tick (`EMBInjectedTickCostMicros`), standing in for
-/// SDK per-tick work of a known size. `SmoothnessOverheadUITests` uses it as a positive control:
-/// the overhead gate must catch it, or the gate can't see a cost of that size.
-///
-/// A second, probe display link is configured like the SDK's `FrameTimingSource` (default frame
-/// rate range, `.common` mode). It reports two rates:
-/// - `sampleProbeRate()`: callbacks per second, the rate the SDK's own display links actually ran
-///   at. Callbacks run on the main thread, so this drops when the main thread hitches.
-/// - `sampleRefreshRate()`: the display's refresh rate, from each callback's frame duration. It
-///   doesn't depend on callbacks being delivered, so hitches don't drag it down.
+/// A probe display link, configured like the SDK's `FrameTimingSource`, measures the refresh rate.
 final class FrameDriver: NSObject {
 
     /// Fraction (0...1) of each frame's duration to spend busy on the main thread.
     private let loadFraction: Double
-    /// If set, overrides `loadFraction`: stay busy for all but this much of each frame, in seconds.
-    private let headroom: CFTimeInterval?
     /// Extra fixed time, in seconds, to spend busy on the main thread every tick.
     private let injectedCost: CFTimeInterval
     private var link: CADisplayLink?
     private var probe: CADisplayLink?
-    private var probeTicks = 0
     private var probeFrameDurations: [CFTimeInterval] = []
-    private var lastSampleTicks = 0
-    private var lastSampleTime: CFTimeInterval = 0
 
     init(
         loadFraction: Double,
-        headroom: CFTimeInterval? = nil,
         injectedCost: CFTimeInterval = FrameDriver.injectedCostFromEnvironment
     ) {
         self.loadFraction = min(max(loadFraction, 0), 1)
-        self.headroom = headroom.map { max($0, 0) }
         self.injectedCost = max(injectedCost, 0)
     }
 
-    /// The scroll screen's load: `EMBFrameHeadroomMicros` if set, otherwise `EMBFrameLoadFraction`
-    /// (default 0.9).
+    /// The scroll screen's load: `EMBFrameLoadFraction` (default 0.9).
     static func scrollLoadFromEnvironment() -> FrameDriver {
-        let environment = ProcessInfo.processInfo.environment
-        return FrameDriver(
-            loadFraction: Double(environment["EMBFrameLoadFraction"] ?? "") ?? 0.9,
-            headroom: Double(environment["EMBFrameHeadroomMicros"] ?? "").map { $0 / 1_000_000 }
-        )
+        FrameDriver(loadFraction: Double(ProcessInfo.processInfo.environment["EMBFrameLoadFraction"] ?? "") ?? 0.9)
     }
 
     /// `EMBInjectedTickCostMicros` in seconds, or `0` if unset.
@@ -98,17 +74,6 @@ final class FrameDriver: NSObject {
         probe = nil
     }
 
-    /// Probe ticks per second since the previous call, or `0` on the first call.
-    func sampleProbeRate() -> Double {
-        let now = CACurrentMediaTime()
-        defer {
-            lastSampleTicks = probeTicks
-            lastSampleTime = now
-        }
-        guard lastSampleTime > 0, now > lastSampleTime else { return 0 }
-        return Double(probeTicks - lastSampleTicks) / (now - lastSampleTime)
-    }
-
     /// The display's refresh rate since the previous call, from the median frame duration, or `0`
     /// if no tick arrived.
     func sampleRefreshRate() -> Double {
@@ -119,21 +84,18 @@ final class FrameDriver: NSObject {
     }
 
     @objc private func tick(_ link: CADisplayLink) {
-        guard loadFraction > 0 || headroom != nil || injectedCost > 0 else { return }
-        let frameDuration = link.targetTimestamp - link.timestamp
-        let load = headroom.map { max(frameDuration - $0, 0) } ?? frameDuration * loadFraction
+        guard loadFraction > 0 || injectedCost > 0 else { return }
+        let load = (link.targetTimestamp - link.timestamp) * loadFraction
         let deadline = CACurrentMediaTime() + load + injectedCost
         while CACurrentMediaTime() < deadline {}
     }
 
     @objc private func probeTick(_ link: CADisplayLink) {
-        probeTicks += 1
         probeFrameDurations.append(link.targetTimestamp - link.timestamp)
     }
 }
 
 /// Shows, once a second, the values `SmoothnessOverheadUITests` reads back as static texts:
-/// - `display-link-rate`: the probe display link's callbacks per second over the last second.
 /// - `display-refresh-rate`: the display's refresh rate over the last second.
 /// - `max-display-rate`: the screen's `maximumFramesPerSecond` (120 on ProMotion, 60 otherwise).
 /// - `smoothness-frames`: `SmoothnessProbe.frameCount`, which proves whether the SDK is active.
@@ -141,7 +103,6 @@ final class FrameDriver: NSObject {
 private struct ProbeLabels: ViewModifier {
 
     let driver: FrameDriver
-    @State private var rate = "0"
     @State private var refreshRate = "0"
     @State private var maxRate = "0"
     @State private var smoothnessFrames = "0"
@@ -152,8 +113,6 @@ private struct ProbeLabels: ViewModifier {
         content
             .overlay(alignment: .topTrailing) {
                 VStack(alignment: .trailing, spacing: 0) {
-                    Text(rate)
-                        .accessibilityIdentifier("display-link-rate")
                     Text(refreshRate)
                         .accessibilityIdentifier("display-refresh-rate")
                     Text(maxRate)
@@ -167,7 +126,6 @@ private struct ProbeLabels: ViewModifier {
                 .padding(4)
             }
             .onReceive(timer) { _ in
-                rate = String(format: "%.1f", driver.sampleProbeRate())
                 refreshRate = String(format: "%.1f", driver.sampleRefreshRate())
                 maxRate = String(Self.maximumFramesPerSecond)
                 smoothnessFrames = String(SmoothnessProbe.frameCount)
@@ -184,9 +142,7 @@ private struct ProbeLabels: ViewModifier {
 /// A long list with non-trivial rows, scrolled by `SmoothnessOverheadUITests` to measure hitches with
 /// `SmoothnessCaptureService` on vs off.
 ///
-/// Runs a `FrameDriver` at `EMBFrameLoadFraction` (default 0.9) of every frame, or leaving
-/// `EMBFrameHeadroomMicros` free per frame, so the baseline is a screen with little headroom left
-/// rather than one that never hitches.
+/// Runs a `FrameDriver` at `EMBFrameLoadFraction` (default 0.9).
 struct SmoothnessScrollView: View {
 
     @State private var driver = FrameDriver.scrollLoadFromEnvironment()
@@ -216,9 +172,8 @@ struct SmoothnessScrollView: View {
     }
 }
 
-/// A continuously animating screen that keeps the display rendering every frame, so an idle
-/// window measures the steady-state CPU cost of the display link and tick handler. A load-free
-/// `FrameDriver` keeps it at 120Hz, and adds only the injected cost, if any.
+/// Animates every frame, so an idle window measures the steady-state CPU cost of the SDK's tick
+/// handler. Its `FrameDriver` adds no load, only the injected cost, if any.
 struct SmoothnessAnimationView: View {
 
     @State private var driver = FrameDriver(loadFraction: 0)

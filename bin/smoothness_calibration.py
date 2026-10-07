@@ -36,27 +36,26 @@ from smoothness_overhead import (
 
 DEVICE = os.getenv("DEVICE", "")
 
-# e.g. `testFraction60_1_off()` or `testHeadroom2000_3_cost250()`.
-CASE = re.compile(r"^test(?P<kind>Fraction|Headroom)(?P<value>\d+)_\d+_(?P<arm>off|cost25|cost250)(\(\))?$")
+# e.g. `testFraction60_1_off()` or `testFraction90_3_cost250()`.
+CASE = re.compile(r"^testFraction(?P<value>\d+)_\d+_(?P<arm>off|cost25|cost250)(\(\))?$")
 
 COSTS = ("cost25", "cost250")
 
 
 def load_settings(results):
-    """Returns {("Fraction"|"Headroom", value): {arm: {displayName: metric}}}."""
+    """Returns {fraction percent: {arm: {displayName: metric}}}."""
     settings = {}
     for metric in results:
         match = CASE.match(metric["name"].split("/")[-1])
         if not match:
             continue
-        key = (match["kind"], int(match["value"]))
+        key = int(match["value"])
         settings.setdefault(key, {}).setdefault(match["arm"], {})[metric["displayName"]] = metric
     return settings
 
 
 def label(key):
-    kind, value = key
-    return f"fraction {value / 100:.2f}" if kind == "Fraction" else f"headroom {value} µs"
+    return f"fraction {key / 100:.2f}"
 
 
 def z_score(cost, off):
@@ -157,8 +156,7 @@ def render(rows, suggestion):
         body.append("**No usable load.** None ran at the expected rate unthrottled and caught the 250 µs control.")
         return "\n".join(body)
 
-    kind, value = suggestion["key"]
-    env = f"EMBFrameLoadFraction={value / 100:.2f}" if kind == "Fraction" else f"EMBFrameHeadroomMicros={value}"
+    env = f"EMBFrameLoadFraction={suggestion['key'] / 100:.2f}"
     rate = round(suggestion["expected"])
     low, high = suggestion["off_mean"] / 2, suggestion["off_mean"] * 2
     body.append(f"**Suggested load:** {label(suggestion['key'])} (`{env}`).")

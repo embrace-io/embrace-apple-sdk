@@ -9,8 +9,7 @@ import XCTest
 /// The gate is only sensitive while the Off arm hitches a little: with too little load, added SDK
 /// cost disappears into idle headroom, and with too much, frames that already miss can't get much
 /// worse. This sweep scrolls the same screen at several loads, as a fraction of each frame
-/// (`EMBFrameLoadFraction`) or as a fixed free time per frame (`EMBFrameHeadroomMicros`), each with
-/// no added cost and with 25µs and 250µs injected per frame. `bin/smoothness_calibration.py` reports,
+/// (`EMBFrameLoadFraction`), each with no added cost and with 25µs and 250µs injected per frame. `bin/smoothness_calibration.py` reports,
 /// per load, the Off hitch ratio, how clearly each cost stands out from noise, and what the gate
 /// would say about it.
 ///
@@ -78,62 +77,10 @@ final class SmoothnessLoadCalibrationUITests: XCTestCase {
         scroll(.fraction(0.90), .cost250)
     }
 
-    // MARK: - Headroom1000
-
-    @MainActor
-    func testHeadroom1000_1_off() throws {
-        scroll(.headroomMicros(1_000), .off)
-    }
-
-    @MainActor
-    func testHeadroom1000_2_cost25() throws {
-        scroll(.headroomMicros(1_000), .cost25)
-    }
-
-    @MainActor
-    func testHeadroom1000_3_cost250() throws {
-        scroll(.headroomMicros(1_000), .cost250)
-    }
-
-    // MARK: - Headroom2000
-
-    @MainActor
-    func testHeadroom2000_1_off() throws {
-        scroll(.headroomMicros(2_000), .off)
-    }
-
-    @MainActor
-    func testHeadroom2000_2_cost25() throws {
-        scroll(.headroomMicros(2_000), .cost25)
-    }
-
-    @MainActor
-    func testHeadroom2000_3_cost250() throws {
-        scroll(.headroomMicros(2_000), .cost250)
-    }
-
-    // MARK: - Headroom4000
-
-    @MainActor
-    func testHeadroom4000_1_off() throws {
-        scroll(.headroomMicros(4_000), .off)
-    }
-
-    @MainActor
-    func testHeadroom4000_2_cost25() throws {
-        scroll(.headroomMicros(4_000), .cost25)
-    }
-
-    @MainActor
-    func testHeadroom4000_3_cost250() throws {
-        scroll(.headroomMicros(4_000), .cost250)
-    }
-
     // MARK: - Private
 
     private enum Load {
         case fraction(Double)
-        case headroomMicros(Int)
     }
 
     private enum Arm {
@@ -162,8 +109,6 @@ final class SmoothnessLoadCalibrationUITests: XCTestCase {
         switch load {
         case .fraction(let fraction):
             app.launchEnvironment["EMBFrameLoadFraction"] = String(fraction)
-        case .headroomMicros(let micros):
-            app.launchEnvironment["EMBFrameHeadroomMicros"] = String(micros)
         }
         if arm.injectedTickCostMicros > 0 {
             app.launchEnvironment["EMBInjectedTickCostMicros"] = String(arm.injectedTickCostMicros)

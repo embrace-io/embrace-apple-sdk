@@ -29,8 +29,7 @@ is missing), or if any iteration's thermal state reached serious, since the devi
 Every arm must also run at the expected refresh rate: the device's own maximum ("Max Display Rate"),
 or EXPECTED_HZ if set. A scenario is incomplete if any arm's average "Display Refresh Rate" is below
 RATE_MIN_FRACTION of it, or the arms' averages differ by more than RATE_MAX_SPREAD. The refresh rate
-comes from frame durations, so hitches don't lower it, unlike "Display Link Rate" (callbacks per
-second), which is shown as context.
+comes from frame durations, so hitches don't lower it.
 
 The hitch gate is only sensitive while the Off arm hitches a little. OFF_HITCH_BAND_<rate> (e.g.
 OFF_HITCH_BAND_120="0.5,20", in ms/s) sets the Off hitch ratio band for a device class, taken from
@@ -460,20 +459,6 @@ def evaluate(pairs):
         if baseline_row:
             passed &= baseline_ok
             gates.append(baseline_row)
-
-        # Context only: callbacks per second, which drop when the main thread hitches.
-        rate_on, rate_off = find(on, "Display Link Rate"), find(off, "Display Link Rate")
-        if rate_on and rate_off:
-            shown.add(rate_on["displayName"])
-            gates.append((
-                scenario,
-                f"{rate_on['displayName']} ({rate_on['unitOfMeasurement']})",
-                "ℹ️ context",
-                fmt(rate_off["avg"], 1),
-                fmt(rate_on["avg"], 1),
-                "",
-                "",
-            ))
 
         # e.g. the simulator emits scroll duration but no hitch metrics.
         if not gated:

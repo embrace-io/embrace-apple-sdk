@@ -164,7 +164,7 @@ final class SmoothnessOverheadUITests: XCTestCase {
                 XCTOSSignpostMetric.scrollingAndDecelerationMetric,
                 XCTCPUMetric(application: app),
                 XCTClockMetric(),
-                LabelMetric(app: app, labels: [.displayLinkRate, .displayRefreshRate, .maxDisplayRate, .smoothnessFrames, .thermalState])
+                LabelMetric(app: app, labels: [.displayRefreshRate, .maxDisplayRate, .smoothnessFrames, .thermalState])
             ],
             options: options
         ) {
@@ -191,7 +191,7 @@ final class SmoothnessOverheadUITests: XCTestCase {
             metrics: [
                 XCTCPUMetric(application: app),
                 XCTClockMetric(),
-                LabelMetric(app: app, labels: [.displayLinkRate, .displayRefreshRate, .maxDisplayRate, .smoothnessFrames, .thermalState])
+                LabelMetric(app: app, labels: [.displayRefreshRate, .maxDisplayRate, .smoothnessFrames, .thermalState])
             ],
             options: options
         ) {
@@ -302,15 +302,6 @@ final class LabelMetric: NSObject, XCTMetric {
 }
 
 extension LabelMetric.Label {
-
-    /// Callbacks per second over the last second, for a display link configured like the SDK's.
-    /// Drops when the main thread hitches, so it's context only.
-    static let displayLinkRate = LabelMetric.Label(
-        label: "display-link-rate",
-        identifier: "io.embrace.benchmarks.displayLinkRate",
-        displayName: "Display Link Rate",
-        unitSymbol: "Hz"
-    )
 
     /// The display's refresh rate over the last second, from frame durations, so hitches don't
     /// lower it. The script requires it to reach the device's maximum in every arm.
