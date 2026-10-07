@@ -206,6 +206,100 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         XCTAssertEqual(childProcessor.startedSpanNames, ["async-test"])
         XCTAssertEqual(childProcessor.endedSpanNames, ["async-test"])
     }
+
+    // MARK: - Blocking behavior of forceFlush and shutdown
+
+    func test_forceFlush_whileCriticalResourceGroupIsClosed_doesNotBlockAndRunsOnceReleased() {
+        let childProcessor = CapturingSpanProcessor()
+        let childExporter = CapturingSpanExporter()
+        let processor = EmbraceSpanProcessor(delegate: mockDelegate, childProcessors: [childProcessor], childExporters: [childExporter])
+        let criticalResourceGroup = DispatchGroup()
+        criticalResourceGroup.enter()
+        processor.criticalResourceGroup = criticalResourceGroup
+
+        // given span work parked on the queue behind the closed group
+        let t = TracerProviderSdk(spanProcessors: [processor]).get(instrumentationName: "test", instrumentationVersion: nil)
+        t.spanBuilder(spanName: "pending").startSpan().end()
+
+        // when flushing, then the call returns without waiting for the group and nothing is flushed yet
+        processor.forceFlush(timeout: nil)
+        XCTAssertFalse(childProcessor.didForceFlush)
+        XCTAssertFalse(childExporter.didFlush)
+
+        // and the flush still runs, after the pending span work, once the group is released
+        criticalResourceGroup.leave()
+        processor.waitForAllWork()
+        XCTAssertEqual(childProcessor.endedSpanNames, ["pending"])
+        XCTAssertTrue(childProcessor.didForceFlush)
+        XCTAssertTrue(childExporter.didFlush)
+    }
+
+    func test_shutdown_whileCriticalResourceGroupIsClosed_doesNotBlockAndRunsOnceReleased() {
+        let childProcessor = CapturingSpanProcessor()
+        let childExporter = CapturingSpanExporter()
+        let processor = EmbraceSpanProcessor(delegate: mockDelegate, childProcessors: [childProcessor], childExporters: [childExporter])
+        let criticalResourceGroup = DispatchGroup()
+        criticalResourceGroup.enter()
+        processor.criticalResourceGroup = criticalResourceGroup
+
+        let t = TracerProviderSdk(spanProcessors: [processor]).get(instrumentationName: "test", instrumentationVersion: nil)
+        t.spanBuilder(spanName: "pending").startSpan().end()
+
+        processor.shutdown(explicitTimeout: nil)
+        XCTAssertFalse(childProcessor.didShutdown)
+
+        criticalResourceGroup.leave()
+        processor.waitForAllWork()
+        XCTAssertTrue(childProcessor.didShutdown)
+        XCTAssertTrue(childExporter.didShutdown)
+    }
+
+    func test_forceFlushAndShutdown_fromChildCallback_runInline() {
+        // given a child processor that flushes and shuts down the root processor from its own callback
+        let childProcessor = ReentrantSpanProcessor()
+        let processor = EmbraceSpanProcessor(delegate: mockDelegate, childProcessors: [childProcessor])
+        childProcessor.root = processor
+        let t = TracerProviderSdk(spanProcessors: [processor]).get(instrumentationName: "test", instrumentationVersion: nil)
+
+        // when a span ends
+        t.spanBuilder(spanName: "reentrant").startSpan().end()
+        processor.waitForAllWork()
+
+        // then both calls ran inline instead of trapping on a sync dispatch onto the current queue
+        XCTAssertTrue(childProcessor.didForceFlush)
+        XCTAssertTrue(childProcessor.didShutdown)
+    }
+
+    func test_forceFlush_honorsTimeout() {
+        // given an exporter whose flush blocks until released
+        let childExporter = BlockingFlushSpanExporter()
+        let processor = EmbraceSpanProcessor(delegate: mockDelegate, childExporters: [childExporter])
+
+        // when flushing with no time to wait, then the call returns before the exporter finishes
+        processor.forceFlush(timeout: 0)
+        XCTAssertFalse(childExporter.didFinishFlush)
+
+        // and the flush still completes once the exporter is released
+        childExporter.release.signal()
+        processor.waitForAllWork()
+        XCTAssertTrue(childExporter.didFinishFlush)
+    }
+
+    func test_shutdown_honorsTimeout() {
+        let childExporter = BlockingFlushSpanExporter()
+        let processor = EmbraceSpanProcessor(delegate: mockDelegate, childExporters: [childExporter])
+
+        processor.shutdown(explicitTimeout: 0)
+        XCTAssertFalse(childExporter.didFinishShutdown)
+
+        childExporter.release.signal()
+        processor.waitForAllWork()
+        XCTAssertTrue(childExporter.didFinishShutdown)
+    }
+
+    func test_defaultBlockingTimeout_isOneSecond() {
+        XCTAssertEqual(EmbraceSpanProcessor.defaultBlockingTimeout, 1)
+    }
 }
 
 // MARK: - Mocks
@@ -277,5 +371,50 @@ class CapturingSpanExporter: SpanExporter {
 
     func shutdown(explicitTimeout: TimeInterval?) {
         didShutdown = true
+    }
+}
+
+/// Calls `forceFlush` and `shutdown` on the root processor from inside its own `onEnd`, which runs on the root's queue.
+class ReentrantSpanProcessor: SpanProcessor {
+    var isStartRequired: Bool { false }
+    var isEndRequired: Bool { true }
+
+    weak var root: EmbraceSpanProcessor?
+    @TestLocked var didForceFlush = false
+    @TestLocked var didShutdown = false
+
+    func onStart(parentContext: SpanContext?, span: ReadableSpan) {}
+
+    func onEnd(span: ReadableSpan) {
+        root?.forceFlush(timeout: nil)
+        root?.shutdown(explicitTimeout: nil)
+    }
+
+    func forceFlush(timeout: TimeInterval?) {
+        didForceFlush = true
+    }
+
+    func shutdown(explicitTimeout: TimeInterval?) {
+        didShutdown = true
+    }
+}
+
+/// Exporter whose `flush` and `shutdown` block until `release` is signaled.
+class BlockingFlushSpanExporter: SpanExporter {
+    let release = DispatchSemaphore(value: 0)
+    @TestLocked var didFinishFlush = false
+    @TestLocked var didFinishShutdown = false
+
+    func export(spans: [SpanData], explicitTimeout: TimeInterval?) -> SpanExporterResultCode { .success }
+
+    func flush(explicitTimeout: TimeInterval?) -> SpanExporterResultCode {
+        release.wait()
+        didFinishFlush = true
+        return .success
+    }
+
+    func shutdown(explicitTimeout: TimeInterval?) {
+        release.wait()
+        didFinishShutdown = true
     }
 }

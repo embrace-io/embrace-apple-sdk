@@ -144,4 +144,75 @@ final class EmbraceStorage_SpanTests: XCTestCase {
             ["network 0", "network 1", "network 2", "performance"]
         )
     }
+
+    // MARK: - upsertSpanAsync
+
+    func test_upsertSpanAsync_storesNewSpan() throws {
+        let span = MockSpan(name: "example", attributes: ["key": "value"])
+
+        storage.upsertSpanAsync(span)
+
+        // sync fetches run on the same serial context, so they wait for the async insert
+        let record = try XCTUnwrap(storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId))
+        XCTAssertEqual(record.name, "example")
+        XCTAssertEqual(record.attributes["key"] as? String, "value")
+    }
+
+    func test_upsertSpanAsync_onlyUpdate_doesNotInsertNewSpan() throws {
+        let span = MockSpan(name: "example")
+
+        storage.upsertSpanAsync(span, onlyUpdate: true)
+
+        XCTAssertNil(storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId))
+    }
+
+    func test_upsertSpanAsync_onlyUpdate_updatesExistingSpan() throws {
+        let span = MockSpan(name: "example")
+        storage.upsertSpan(span)
+
+        span.name = "updated"
+        storage.upsertSpanAsync(span, onlyUpdate: true)
+
+        let record = try XCTUnwrap(storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId))
+        XCTAssertEqual(record.name, "updated")
+    }
+
+    func test_upsertSpanAsync_appliesConfiguredLimitForType() throws {
+        storage.options.spanLimits[.performance] = 2
+
+        let base = Date()
+        for i in 0..<3 {
+            storage.upsertSpanAsync(MockSpan(name: "example \(i)", startTime: base.addingTimeInterval(Double(i))))
+        }
+
+        let request = SpanRecord.createFetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
+        let allRecords: [SpanRecord] = storage.coreData.fetch(withRequest: request)
+
+        XCTAssertEqual(allRecords.map(\.name), ["example 1", "example 2"])
+    }
+
+    func test_upsertSpanAsync_storesSpanStateAtCallTime() throws {
+        let span = MockSpan(name: "example")
+
+        // hold the context queue so the insert can only run after the span is mutated
+        let gate = DispatchSemaphore(value: 0)
+        defer { gate.signal() }
+        storage.coreData.context.perform {
+            gate.wait()
+        }
+
+        storage.upsertSpanAsync(span)
+
+        // mutate the span and persist the change through its own operation, like the SDK does
+        let event = try XCTUnwrap(span.addEvent(name: "event", type: nil, timestamp: Date(), attributes: [:]))
+        storage.addSpanEvent(id: span.context.spanId, traceId: span.context.traceId, event: event)
+
+        gate.signal()
+
+        // the event must be stored once, not duplicated by the insert reading the mutated span
+        let record = try XCTUnwrap(storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId))
+        XCTAssertEqual(record.events.count, 1)
+        XCTAssertEqual(record.events.first?.name, "event")
+    }
 }

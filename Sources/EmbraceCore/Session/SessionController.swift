@@ -37,6 +37,10 @@ class SessionController: SessionControllable {
     static let sessionPartNumberKey = "emb.session_part_number"
 
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
+
+    /// In-memory copy of the persisted per-part counter, so starting a part never has to wait on storage.
+    /// `nil` until the stored value has been loaded.
+    private let _sessionPartNumber = EmbraceMutex<EMBInt?>(nil)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
 
     // Lock used for session boundaries. Will be shared at both start/end of session
@@ -89,6 +93,15 @@ class SessionController: SessionControllable {
 
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
         self.queue = queue
+
+        // Load the stored per-part counter ahead of the first part start.
+        storage.fetchCountForPermanentResource(key: Self.sessionPartNumberKey) { [weak self] value in
+            self?._sessionPartNumber.withLock { current in
+                if current == nil {
+                    current = value
+                }
+            }
+        }
 
         self.heartbeat.callback = { [weak self] in
             let span = EmbraceMetricKitSpan.begin(name: "heartbeat")
@@ -232,7 +245,9 @@ class SessionController: SessionControllable {
         }
         span.end(endTime: tailEnd)
 
-        let sessionPartNumber = storage.incrementCountForPermanentResource(key: SessionController.sessionPartNumberKey)
+        let sessionPartNumber = lock.locked {
+            nextSessionPartNumberNoLock(storage: storage)
+        }
 
         storage.addSession(
             id: newId,
@@ -353,9 +368,7 @@ class SessionController: SessionControllable {
 
             // Permanent per-part counter — bumped on every new part record and stamped onto
             // the part's `sessionNumber` column.
-            let sessionPartNumber = storage.incrementCountForPermanentResource(
-                key: SessionController.sessionPartNumberKey
-            )
+            let sessionPartNumber = nextSessionPartNumberNoLock(storage: storage)
 
             let session = storage.addSession(
                 id: newId,
@@ -396,6 +409,32 @@ class SessionController: SessionControllable {
         }
 
         return sessionInfo.session
+    }
+
+    /// Increments the per-part counter and persists the new value asynchronously.
+    /// Must be called while holding `lock` so increments are persisted in the same order they are generated.
+    private func nextSessionPartNumberNoLock(storage: EmbraceStorage) -> EMBInt {
+        // If the preload queued in `init` hasn't run yet, wait for it. The storage context is serial,
+        // so the preload's completion has set the counter by the time this returns, and the assignment
+        // below is only a defensive fallback. Waiting on the main queue is fine here: this only happens
+        // for a part started before the preload ran, which `Embrace.start` already prevents.
+        if _sessionPartNumber.withLock({ $0 }) == nil {
+            let stored = storage.fetchCountForPermanentResource(key: Self.sessionPartNumberKey, allowMainQueue: true)
+            _sessionPartNumber.withLock { current in
+                if current == nil {
+                    current = stored
+                }
+            }
+        }
+
+        let next: EMBInt = _sessionPartNumber.withLock { current in
+            let next = (current ?? 0) + 1
+            current = next
+            return next
+        }
+
+        storage.setCountForPermanentResource(key: Self.sessionPartNumberKey, value: next)
+        return next
     }
 
     /// Ends the session session taking into account that the lock is held externally
@@ -602,30 +641,23 @@ class SessionController: SessionControllable {
     /// part record via storage so the call works after `endSession` has already cleared the
     /// in-memory snapshot.
     ///
+    /// The write is asynchronous and never waits on the storage context, so it is safe to call
+    /// from the main thread and while holding `lock` (e.g. from `startSession`). Storage runs
+    /// operations in the order they are queued, so the lookup resolves to the part that was
+    /// latest at call time: a new part added after this call (as `startSession` does right
+    /// after `attachPart`) is not considered.
+    ///
     /// Idempotent: if the latest part already has a `userSessionTerminationReason`, the call
     /// is a no-op. This protects the bootstrap-driven expiry path from overwriting a reason
     /// the prior process recorded (e.g. `.manual` from a manual end that the process executed
     /// just before dying), and preserves the precedence rule that the first-set reason wins.
     ///
     /// **Lock contract:** this method MUST NOT acquire `SessionController.lock`. It is reached
-    /// from `UserSessionController.internalEndUserSession`, which itself runs under the
-    /// user-session controller's `_state` mutex (via `attachPart` and `endActiveUserSession`).
-    /// Holding `_state` while acquiring `lock` would create two failure modes:
-    ///   - When the caller is `SessionController.startSession`, `lock` is already held; trying
-    ///     to acquire it again from inside `_state` is a same-thread re-acquire of a
-    ///     non-reentrant `UnfairLock` (undefined behavior / hang).
-    ///   - Across threads, the chain `lock → _state` on one thread and `_state → lock` on
-    ///     another forms a classic lock-order inversion / deadlock.
-    /// Keep this method to storage-only writes. Storage has its own internal serialization
-    /// and does not interact with either lock.
+    /// from `SessionController.startSession` (via `attachPart`), where `lock` is already held,
+    /// and re-acquiring the non-reentrant `UnfairLock` on the same thread is undefined behavior.
+    /// Keep this method to storage-only writes.
     func backfillTerminationReasonOnLatestPart(_ reason: TerminationReason) {
-        guard let storage = storage,
-            let latest = storage.fetchLatestSession(),
-            latest.userSessionTerminationReason == nil
-        else {
-            return
-        }
-        storage.updateSession(session: latest, userSessionTerminationReason: reason)
+        storage?.setUserSessionTerminationReasonOnLatestSessionIfNeeded(reason)
     }
 }
 
