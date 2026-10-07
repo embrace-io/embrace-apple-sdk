@@ -106,8 +106,9 @@ public class CoreDataWrapper {
         //
         // If the load fails, the error is logged and the wrapper keeps working without a store for the rest
         // of the process: nothing is persisted, fetches only see objects still pending in the context, and
-        // `saveIfNeeded()` returns `false` without trying when there are changes. The load is not retried, so a store that becomes available
-        // later is never attached next to the objects created in the meantime (which would duplicate records).
+        // `saveIfNeeded()` returns `false` without trying when there are changes. The load is not retried, so a
+        // store that becomes available later is never attached next to the objects created in the meantime
+        // (which would duplicate records).
         // See `isStoreLoaded`.
         //
         // The context is created manually because `newBackgroundContext()` warns when no store is loaded yet.
