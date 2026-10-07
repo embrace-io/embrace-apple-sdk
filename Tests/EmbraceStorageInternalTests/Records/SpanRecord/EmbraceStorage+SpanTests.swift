@@ -197,6 +197,7 @@ final class EmbraceStorage_SpanTests: XCTestCase {
 
         // hold the context queue so the insert can only run after the span is mutated
         let gate = DispatchSemaphore(value: 0)
+        defer { gate.signal() }
         storage.coreData.context.perform {
             gate.wait()
         }
