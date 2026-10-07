@@ -396,11 +396,12 @@ private class MockRecord: NSManagedObject {
 
     class func create(context: NSManagedObjectContext, id: String) -> MockRecord {
         // inserts must run on the context's queue, where the wrapper loads the store
+        var record: MockRecord!
         context.performAndWait {
-            let record = MockRecord(context: context)
+            record = MockRecord(context: context)
             record.id = id
-            return record
         }
+        return record
     }
 
     static let entityName = "MockRecord"
