@@ -40,24 +40,29 @@ class LogController: LogBatcherDelegate {
         static let attachmentSizeLimit: Int = 1_048_576  // 1 MiB
     }
 
+    /// Serial queue used to chain the uploads of the logs persisted by previous processes.
+    private let unsentLogsQueue: DispatchableQueue
+
     init(
         storage: Storage?,
         upload: EmbraceLogUploader?,
         sessionController: SessionControllable,
         batcher: LogBatcher = DefaultLogBatcher(),
-        queue: DispatchQueue
+        queue: DispatchQueue,
+        unsentLogsQueue: DispatchableQueue = .with(label: "io.embrace.logs.unsent", qos: .utility)
     ) {
         self.storage = storage
         self.upload = upload
         self.sessionController = sessionController
         self.batcher = batcher
         self.queue = queue
+        self.unsentLogsQueue = unsentLogsQueue
 
         self.batcher.delegate = self
 
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(onSessionEnd),
+            selector: #selector(onSessionEnd(notification:)),
             name: Notification.Name.embraceSessionPartWillEnd,
             object: nil
         )
@@ -67,8 +72,10 @@ class LogController: LogBatcherDelegate {
         NotificationCenter.default.removeObserver(self)
     }
 
-    @objc func onSessionEnd() {
-        batcher.forceEndCurrentBatch(waitUntilFinished: true)
+    @objc func onSessionEnd(notification: Notification) {
+        // The notification is delivered asynchronously, so the session controller may already be on
+        // another session (or none) by now. Use the ending session carried by the notification instead.
+        batcher.forceEndCurrentBatch(endingSession: notification.object as? EmbraceSession)
     }
 
     func uploadAllPersistedLogs(_ completion: (() -> Void)? = nil) {
@@ -132,8 +139,15 @@ class LogController: LogBatcherDelegate {
             let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), threadIndex: 0)
             addStacktraceBlock = { $0.addBacktrace(backtrace) }
         case .main where severity == .warn || severity == .error:
+            // A remote-thread capture comes back empty when it could not be taken (e.g. another
+            // stack walk was in flight), so an empty capture attaches no stack at all.
             let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), threadIndex: 0)
-            addStacktraceBlock = { $0.addBacktrace(backtrace) }
+            if backtrace.hasFrames {
+                addStacktraceBlock = { $0.addBacktrace(backtrace) }
+            } else {
+                addStacktraceBlock = nil
+                Embrace.logger.debug("stackTraceBehavior .main capture returned no frames; log sent without a stack")
+            }
         case .custom(let customStackTrace) where severity == .warn || severity == .error:
             let stackTrace = customStackTrace.frames
             addStacktraceBlock = { $0.addStackTrace(stackTrace) }
@@ -214,10 +228,10 @@ class LogController: LogBatcherDelegate {
 }
 
 extension LogController {
-    func batchFinished(withLogs logs: [EmbraceLog]) {
+    func batchFinished(withLogs logs: [EmbraceLog], session: EmbraceSession?) {
         guard sdkStateProvider?.isEnabled == true,
             logs.isEmpty == false,
-            let session = sessionController?.currentSession
+            let session = session ?? sessionController?.currentSession
         else {
             return
         }
@@ -248,69 +262,106 @@ extension LogController {
 }
 
 extension LogController {
+    /// A batch of persisted logs with the payloads it needs to be uploaded.
+    fileprivate struct PreparedLogsBatch {
+        let logs: [EmbraceLog]
+        let resourcePayload: ResourcePayload
+        let metadataPayload: MetadataPayload
+    }
+
+    /// Identifies the user session (or process, when the user session is unknown) a batch of logs belongs to.
+    fileprivate struct PayloadKey: Hashable {
+        let userSessionId: String?
+        let processId: String
+    }
+
+    /// Uploads the given batches one at a time, without blocking the calling thread.
+    ///
+    /// The resource and metadata payloads of every batch are built synchronously before this method returns,
+    /// so callers can safely clean up the stored metadata afterwards. The uploads themselves are chained
+    /// asynchronously, so a missing upload completion only stalls the remaining log uploads.
     fileprivate func send(batches: [LogsBatch], completion: (() -> Void)? = nil) {
         guard sdkStateProvider?.isEnabled == true, !batches.isEmpty else {
             completion?()
             return
         }
 
-        // Process batches sequentially so each compressed payload
-        // is released before the next one is allocated.
-        let semaphore = DispatchSemaphore(value: 0)
+        let preparedBatches = prepare(batches: batches)
 
-        // Batches missing the required metadata are dropped, and a single private log
-        // is sent at the end reporting the total amount of logs lost. This avoids
-        // sending one private log per batch when many of them are dropped in a row.
+        unsentLogsQueue.async { [weak self] in
+            guard let self = self else {
+                completion?()
+                return
+            }
+
+            self.send(preparedBatches: preparedBatches, index: 0, completion: completion)
+        }
+    }
+
+    /// Builds the payloads for each batch, reusing them for batches that belong to the same user session or process.
+    ///
+    /// Batches missing the required metadata are dropped, and a single private log
+    /// is sent reporting the total amount of logs lost. This avoids
+    /// sending one private log per batch when many of them are dropped in a row.
+    fileprivate func prepare(batches: [LogsBatch]) -> [PreparedLogsBatch] {
+        var payloads: [PayloadKey: (resource: ResourcePayload, metadata: MetadataPayload)] = [:]
+        var preparedBatches: [PreparedLogsBatch] = []
         var droppedLogCount = 0
 
         for batch in batches {
-            autoreleasepool {
-                guard !batch.logs.isEmpty else {
-                    return
+            guard !batch.logs.isEmpty else {
+                continue
+            }
+
+            // Since we always end batches when a session part ends
+            // all the logs still in storage when the app starts should come
+            // from the last user session before the app closes.
+            //
+            // We grab the first valid user session id from the stored logs
+            // and assume all of them come from the same user session.
+            //
+            // If we can't find one, we use the processId instead
+            let processId = batch.logs[0].processId
+
+            // `LogSemantics.keySessionId` holds the user session id, not the session part id
+            var userSessionId: EmbraceIdentifier?
+            if let log = batch.logs.first(where: { $0.attributes[LogSemantics.keySessionId] != nil }) {
+                if let value = log.attributes[LogSemantics.keySessionId] as? String {
+                    userSessionId = EmbraceIdentifier(stringValue: value)
                 }
+            }
 
-                // Since we always end batches when a session part ends
-                // all the logs still in storage when the app starts should come
-                // from the last user session before the app closes.
-                //
-                // We grab the first valid user session id from the stored logs
-                // and assume all of them come from the same user session.
-                //
-                // If we can't find one, we use the processId instead
-                let processId = batch.logs[0].processId
+            let key = PayloadKey(userSessionId: userSessionId?.stringValue, processId: processId.stringValue)
 
-                do {
-                    // `LogSemantics.keySessionId` holds the user session id, not the session part id
-                    var userSessionId: EmbraceIdentifier?
-                    if let log = batch.logs.first(where: { $0.attributes[LogSemantics.keySessionId] != nil }) {
-                        if let value = log.attributes[LogSemantics.keySessionId] as? String {
-                            userSessionId = EmbraceIdentifier(stringValue: value)
-                        }
-                    }
-
-                    let resourcePayload = try createResourcePayload(userSessionId: userSessionId, processId: processId)
-                    let metadataPayload = try createMetadataPayload(userSessionId: userSessionId, processId: processId)
-
-                    // the backend drops payloads that are missing the required metadata,
-                    // so we discard these logs instead of uploading them
-                    guard resourcePayload.hasRequiredMetadata else {
-                        droppedLogCount += batch.logs.count
-                        storage?.remove(logs: batch.logs)
-                        return
-                    }
-
-                    send(
-                        logs: batch.logs,
-                        resourcePayload: resourcePayload,
-                        metadataPayload: metadataPayload,
-                        completion: { semaphore.signal() }
+            do {
+                let payload: (resource: ResourcePayload, metadata: MetadataPayload)
+                if let cached = payloads[key] {
+                    payload = cached
+                } else {
+                    payload = (
+                        resource: try createResourcePayload(userSessionId: userSessionId, processId: processId),
+                        metadata: try createMetadataPayload(userSessionId: userSessionId, processId: processId)
                     )
-
-                    semaphore.wait()
-
-                } catch let exception {
-                    Error.couldntCreatePayload(reason: exception.localizedDescription).log()
+                    payloads[key] = payload
                 }
+
+                // the backend drops payloads that are missing the required metadata,
+                // so we discard these logs instead of uploading them
+                guard payload.resource.hasRequiredMetadata else {
+                    droppedLogCount += batch.logs.count
+                    storage?.remove(logs: batch.logs)
+                    continue
+                }
+
+                preparedBatches.append(
+                    PreparedLogsBatch(
+                        logs: batch.logs,
+                        resourcePayload: payload.resource,
+                        metadataPayload: payload.metadata
+                    )
+                )
+            } catch let exception {
+                Error.couldntCreatePayload(reason: exception.localizedDescription).log()
             }
         }
 
@@ -318,7 +369,39 @@ extension LogController {
             privateLogger?.sendPrivateLog("Logs dropped due to missing metadata: \(droppedLogCount)")
         }
 
-        completion?()
+        return preparedBatches
+    }
+
+    /// Uploads the batch at `index` and, once the upload module reports back, continues with the next one.
+    ///
+    /// Batches are processed sequentially so each compressed payload
+    /// is released before the next one is allocated.
+    /// Each step hops back to `unsentLogsQueue` so the payload encoding never runs on the upload module's queue,
+    /// and synchronous completions don't grow the stack.
+    fileprivate func send(preparedBatches: [PreparedLogsBatch], index: Int, completion: (() -> Void)?) {
+        guard index < preparedBatches.count else {
+            completion?()
+            return
+        }
+
+        autoreleasepool {
+            let batch = preparedBatches[index]
+            send(
+                logs: batch.logs,
+                resourcePayload: batch.resourcePayload,
+                metadataPayload: batch.metadataPayload,
+                completion: { [weak self] in
+                    guard let self = self else {
+                        completion?()
+                        return
+                    }
+
+                    self.unsentLogsQueue.async {
+                        self.send(preparedBatches: preparedBatches, index: index + 1, completion: completion)
+                    }
+                }
+            )
+        }
     }
 
     fileprivate func send(

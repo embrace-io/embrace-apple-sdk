@@ -20,6 +20,7 @@ class LogControllerTests: XCTestCase {
     private let sdkStateProvider = MockEmbraceSDKStateProvider()
     private var privateLogger: SpyPrivateLogger!
     private let loggingQueue = DispatchQueue(label: "loggingQueue")
+    private var captureFailures: ScriptedCaptureFailures?
 
     override func setUp() {
         givenEmbraceLogUploader()
@@ -27,6 +28,12 @@ class LogControllerTests: XCTestCase {
         givenSessionControllerWithSession()
         givenPrivateLogger()
         givenStorage()
+    }
+
+    override func tearDown() {
+        captureFailures?.uninstall()
+        captureFailures = nil
+        super.tearDown()
     }
 
     // MARK: - Testing `setup` method
@@ -105,7 +112,8 @@ class LogControllerTests: XCTestCase {
             storage: realStorage,
             upload: upload,
             sessionController: sessionController,
-            queue: loggingQueue
+            queue: loggingQueue,
+            unsentLogsQueue: MockQueue()
         )
         sut.sdkStateProvider = sdkStateProvider
         sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
@@ -178,6 +186,66 @@ class LogControllerTests: XCTestCase {
         whenInvokingSetup()
         thenLogUploaderShouldSendLogs()
         try thenStorageShouldntCallRemoveLogs()
+    }
+
+    // MARK: - Testing sequential uploads
+
+    func testUploaderNeverCompleting_onSetup_returnsWithoutWaitingForTheUpload() {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        var completed = false
+        sut.uploadAllPersistedLogs { completed = true }
+
+        XCTAssertEqual(upload.didCallUploadLogCount, 1)
+        XCTAssertEqual(upload.pendingLogCompletionsCount, 1)
+        XCTAssertFalse(completed)
+    }
+
+    func testUploaderNeverCompleting_onSetup_buildsAllPayloadsBeforeReturning() throws {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        sut.uploadAllPersistedLogs()
+
+        // each batch belongs to a different process, so both payloads are built before returning
+        let unwrappedStorage = try XCTUnwrap(storage)
+        XCTAssertEqual(unwrappedStorage.fetchResourcesForProcessIdCallCount, 2)
+    }
+
+    func testHavingMoreThanABatch_onSetup_uploadsTheNextBatchOnlyAfterThePreviousOneCompletes() {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        var completed = false
+        sut.uploadAllPersistedLogs { completed = true }
+        XCTAssertEqual(upload.didCallUploadLogCount, 1)
+
+        upload.completeNextPendingLogUpload()
+        XCTAssertEqual(upload.didCallUploadLogCount, 2)
+        XCTAssertFalse(completed)
+
+        upload.completeNextPendingLogUpload()
+        XCTAssertTrue(completed)
+    }
+
+    func testHavingMoreThanABatchFromTheSameSession_onSetup_buildsThePayloadsOnceAndUploadsAllBatches() throws {
+        let sessionId = EmbraceIdentifier.random
+        let processId = EmbraceIdentifier.random
+        let logs = (1...LogController.maxLogsPerBatch + 1).map { _ in
+            randomLogRecord(sessionId: sessionId, processId: processId)
+        }
+
+        givenStorage(withLogs: logs)
+        givenLogController()
+        whenInvokingSetup()
+
+        let unwrappedStorage = try XCTUnwrap(storage)
+        XCTAssertEqual(unwrappedStorage.fetchResourcesForUserSessionIdCallCount, 1)
+        thenLogUploadShouldUpload(times: 2)
     }
 
     // MARK: - Testing dropped batches
@@ -284,6 +352,23 @@ class LogControllerTests: XCTestCase {
         try thenFetchesMetadataFromStorage(userSessionId: sessionController.currentSession?.userSessionId)
     }
 
+    func testHavingEndingSession_onBatchFinished_usesItInsteadOfCurrentSession() throws {
+        givenLogController()
+        let endingSession = randomSession()
+        whenInvokingBatchFinished(withLogs: [randomLogRecord()], session: endingSession)
+        try thenFetchesResourcesFromStorage(userSessionId: endingSession.userSessionId)
+        try thenFetchesMetadataFromStorage(userSessionId: endingSession.userSessionId)
+    }
+
+    func testHavingEndingSessionButNoCurrentSession_onBatchFinished_uploadsLogs() throws {
+        givenSessionControllerWithoutSession()
+        givenLogController()
+        let endingSession = randomSession()
+        whenInvokingBatchFinished(withLogs: [randomLogRecord()], session: endingSession)
+        try thenFetchesResourcesFromStorage(userSessionId: endingSession.userSessionId)
+        thenLogUploadShouldUpload(times: 1)
+    }
+
     func testSDKDisabledHavingLogs_onBatchFinished_ontTryToUploadAnything() throws {
         givenSDKEnabled(false)
         givenLogController()
@@ -298,7 +383,7 @@ class LogControllerTests: XCTestCase {
         thenLogUploadShouldUpload(times: 1)
     }
 
-    func test_batchPayloadTypes() {
+    func test_batchPayloadTypes() throws {
         givenStorage(withLogs: [
             randomLogRecord(type: "test"),
             randomLogRecord(type: "test"),
@@ -308,7 +393,7 @@ class LogControllerTests: XCTestCase {
         givenLogController()
         whenInvokingSetup()
         thenLogUploadShouldUpload(times: 1)
-        thenPayloadTypesIsSet(["test", "type", "sys.log"])
+        try thenPayloadTypesIsSet(["test", "type", "sys.log"])
     }
 
     // MARK: LogController.Error tests
@@ -444,6 +529,40 @@ class LogControllerTests: XCTestCase {
         thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
+    #if !os(watchOS)
+        func testWarningLog_withMainStacktrace_whenCaptureSucceeds_addsStackTraceToAttributes() throws {
+            try XCTSkipIfSanitizing("KSCrash stack walking is incompatible with sanitizer instrumentation")
+            givenLogController()
+
+            var createdLog: EmbraceLog?
+            whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main) { createdLog = $0 }
+
+            thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
+        }
+    #else
+        // watchOS can't suspend another thread, so a remote-thread capture always returns no frames.
+        func testWarningLog_withMainStacktrace_onWatchOS_doesntAddStackTraceToAttributes() throws {
+            try XCTSkipIfSanitizing("KSCrash stack walking is incompatible with sanitizer instrumentation")
+            givenLogController()
+
+            var createdLog: EmbraceLog?
+            whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main) { createdLog = $0 }
+
+            thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
+        }
+    #endif
+
+    func testWarningLog_withMainStacktrace_whenCaptureIsEmpty_doesntAddStackTraceToAttributes() throws {
+        try XCTSkipIfSanitizing("KSCrash stack walking is incompatible with sanitizer instrumentation")
+        givenEmptyCaptures()
+        givenLogController()
+
+        var createdLog: EmbraceLog?
+        whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main) { createdLog = $0 }
+
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
+    }
+
     func testInfoLogs_createLogByWithCustomStacktrace_wontAddStackTraceToAttributes() throws {
         givenLogController()
 
@@ -466,7 +585,8 @@ extension LogControllerTests {
             storage: nil,
             upload: upload,
             sessionController: sessionController,
-            queue: loggingQueue
+            queue: loggingQueue,
+            unsentLogsQueue: MockQueue()
         )
 
         sut.sdkStateProvider = sdkStateProvider
@@ -474,12 +594,18 @@ extension LogControllerTests {
         sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
     }
 
+    fileprivate func givenEmptyCaptures() {
+        captureFailures = ScriptedCaptureFailures(failures: .max)
+        captureFailures?.install()
+    }
+
     fileprivate func givenLogController() {
         sut = .init(
             storage: storage,
             upload: upload,
             sessionController: sessionController,
-            queue: loggingQueue
+            queue: loggingQueue,
+            unsentLogsQueue: MockQueue()
         )
 
         sut.sdkStateProvider = sdkStateProvider
@@ -499,6 +625,11 @@ extension LogControllerTests {
         upload.stubbedAttachmentCompletion = .failure(RandomError())
     }
 
+    fileprivate func givenNeverCompletingLogUploader() {
+        upload = .init()
+        upload.shouldCompleteLogUploads = false
+    }
+
     fileprivate func givenSDKEnabled(_ sdkEnabled: Bool = true) {
         sdkStateProvider.isEnabled = sdkEnabled
     }
@@ -509,7 +640,11 @@ extension LogControllerTests {
 
     fileprivate func givenSessionControllerWithSession() {
         sessionController = .init()
-        sessionController.currentSession = MockSession(
+        sessionController.currentSession = randomSession()
+    }
+
+    fileprivate func randomSession() -> MockSession {
+        MockSession(
             id: .random,
             processId: .random,
             state: .foreground,
@@ -547,8 +682,8 @@ extension LogControllerTests {
         sut.uploadAllPersistedLogs()
     }
 
-    fileprivate func whenInvokingBatchFinished(withLogs logs: [EmbraceLog]) {
-        sut.batchFinished(withLogs: logs)
+    fileprivate func whenInvokingBatchFinished(withLogs logs: [EmbraceLog], session: EmbraceSession? = nil) {
+        sut.batchFinished(withLogs: logs, session: session)
     }
 
     fileprivate func whenAttachmentLimitIsReached() {
@@ -574,6 +709,20 @@ extension LogControllerTests {
             stackTraceBehavior: stackTraceBehavior,
             completion: completion
         )
+        waitForLoggingQueue()
+    }
+
+    /// Creates the log from a background thread, so a `.main` stack trace is a remote-thread capture.
+    fileprivate func whenCreatingLogOffMainThread(
+        severity: EmbraceLogSeverity,
+        stackTraceBehavior: EmbraceStackTraceBehavior,
+        completion: ((EmbraceLog?) -> Void)? = nil
+    ) {
+        let callerQueue = DispatchQueue(label: "logCallerQueue")
+        callerQueue.async {
+            self.sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior, completion: completion)
+        }
+        callerQueue.sync {}
         waitForLoggingQueue()
     }
 
@@ -631,13 +780,12 @@ extension LogControllerTests {
         XCTAssertTrue(upload.didCallUploadLog)
     }
 
-    fileprivate func thenPayloadTypesIsSet(_ types: [String]) {
+    fileprivate func thenPayloadTypesIsSet(_ types: [String]) throws {
         guard types.count > 0 else {
             return
         }
 
-        XCTAssertNotNil(upload.logPayloadTypes)
-        let payloadTypes = upload.logPayloadTypes!.components(separatedBy: ",")
+        let payloadTypes = try XCTUnwrap(upload.logPayloadTypes).components(separatedBy: ",")
 
         XCTAssertEqual(types.count, payloadTypes.count)
 
@@ -722,7 +870,11 @@ extension LogControllerTests {
         XCTAssertNotNil(log.attributes["emb.attachment_url"])
     }
 
-    fileprivate func randomLogRecord(sessionId: EmbraceIdentifier? = nil, type: String = "log") -> EmbraceLog {
+    fileprivate func randomLogRecord(
+        sessionId: EmbraceIdentifier? = nil,
+        processId: EmbraceIdentifier = .random,
+        type: String = "log"
+    ) -> EmbraceLog {
         var attributes: [String: String] = [:]
         if let sessionId = sessionId {
             attributes["session.id"] = sessionId.stringValue
@@ -730,7 +882,7 @@ extension LogControllerTests {
 
         attributes["emb.type"] = type
 
-        return MockLog(attributes: attributes, sessionId: sessionId)
+        return MockLog(attributes: attributes, sessionId: sessionId, processId: processId)
     }
 
     fileprivate func logsForMoreThanASingleBatch() -> [EmbraceLog] {

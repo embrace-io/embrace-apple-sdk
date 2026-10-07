@@ -16,9 +16,14 @@ public protocol LogRepository {
 
 extension EmbraceStorage {
 
+    /// Saves a log to the storage asynchronously, without blocking the calling thread.
+    ///
+    /// The operation runs on the storage's serial context, so any storage operation issued after
+    /// this call (fetching or removing logs) observes the saved record.
     public func saveLog(_ log: EmbraceLog) {
-        LogRecord.create(context: coreData.context, log: log)
-        coreData.save()
+        coreData.performAsyncOperation(save: true) { context in
+            LogRecord.create(context: context, log: log)
+        }
     }
 
     public func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier? = nil) -> [EmbraceLog] {

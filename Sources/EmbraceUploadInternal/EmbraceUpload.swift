@@ -122,7 +122,12 @@ public class EmbraceUpload: EmbraceLogUploader {
     ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
     public func uploadSpans(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
-            self?.uploadData(
+            guard let self = self else {
+                completion?(.failure(EmbraceUploadError.internalError(.uploaderUnavailable)))
+                return
+            }
+
+            self.uploadData(
                 id: id,
                 data: data,
                 type: .spans,
@@ -139,7 +144,12 @@ public class EmbraceUpload: EmbraceLogUploader {
     ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
     public func uploadLog(id: String, data: Data, payloadTypes: String = "", completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
-            self?.uploadData(
+            guard let self = self else {
+                completion?(.failure(EmbraceUploadError.internalError(.uploaderUnavailable)))
+                return
+            }
+
+            self.uploadData(
                 id: id,
                 data: data,
                 type: .log,
@@ -156,7 +166,12 @@ public class EmbraceUpload: EmbraceLogUploader {
     ///   - completion: Completion block called when the data is successfully cached, or when an `Error` occurs
     public func uploadAttachment(id: String, data: Data, completion: ((Result<(), Error>) -> Void)?) {
         queue.async { [weak self] in
-            self?.uploadData(
+            guard let self = self else {
+                completion?(.failure(EmbraceUploadError.internalError(.uploaderUnavailable)))
+                return
+            }
+
+            self.uploadData(
                 id: id,
                 data: data,
                 type: .attachment,

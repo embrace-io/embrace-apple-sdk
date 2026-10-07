@@ -160,13 +160,6 @@ import Foundation
 
             logger?.debug("[FrameRateMonitor] Hang started, at \(at) after \(Int(duration * 1000)) ms")
 
-            if limits.reportsWatchdogEvents {
-                NotificationCenter.default.post(
-                    name: .hangEventStarted,
-                    object: WatchdogEvent(timestamp: at, duration: duration)
-                )
-            }
-
             let canStart = limitData.withLock {
                 guard $0.hangsInSessionCount < $0.limits.hangPerSession else {
                     return false
@@ -203,13 +196,6 @@ import Foundation
 
         public func hangEnded(at: Date, duration: TimeInterval) {
             logger?.debug("[FrameRateMonitor] Hang ended at \(at) after \(Int(duration * 1000)) ms")
-
-            if limits.reportsWatchdogEvents {
-                NotificationCenter.default.post(
-                    name: .hangEventEnded,
-                    object: WatchdogEvent(timestamp: at, duration: duration)
-                )
-            }
 
             // Reconcile the CADisplayLink-confirmed hang with the sampler's during-block snapshots.
             // `duration` is a clock-agnostic interval, so subtracting it from a fresh

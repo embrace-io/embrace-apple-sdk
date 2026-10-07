@@ -16,6 +16,11 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
     @TestLocked public private(set) var events: [EmbraceSpanEvent] = []
     @TestLocked public private(set) var logs: [EmbraceLog] = []
 
+    /// Called synchronously when a span is created, like a span processor's `onStart`.
+    @TestLocked public var onSpanStartedCallback: ((EmbraceSpan) -> Void)?
+    /// Called synchronously when a span ends, like a span processor's `onEnd`.
+    @TestLocked public var onSpanEndedCallback: ((EmbraceSpan) -> Void)?
+
     public var currentSessionId: EmbraceIdentifier? = .random
     public var currentProcessId: EmbraceIdentifier = .random
 
@@ -53,6 +58,8 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
             attributes: attributes,
             delegate: self
         )
+
+        onSpanStartedCallback?(span)
 
         startedSpans.append(span)
         if endTime != nil {
@@ -105,6 +112,8 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
     }
 
     public func onSpanEnded(_ span: EmbraceSpan) {
+        onSpanEndedCallback?(span)
+
         endedSpans.append(span)
     }
 
