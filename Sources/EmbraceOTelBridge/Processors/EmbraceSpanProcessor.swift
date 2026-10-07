@@ -42,7 +42,7 @@ class EmbraceSpanProcessor: SpanProcessor {
     private let processorQueueKey = DispatchSpecificKey<Void>()
 
     /// Maximum time `forceFlush` and `shutdown` block their caller when no timeout is given.
-    static let defaultBlockingTimeout: TimeInterval = 5
+    static let defaultBlockingTimeout: TimeInterval = 1
 
     init(
         delegate: EmbraceSpanProcessorDelegate? = nil,
