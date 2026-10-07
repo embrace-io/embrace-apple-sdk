@@ -50,12 +50,11 @@ final class ExperimentsLogAttributeTests: XCTestCase {
     }
 
     private func createLog() -> [String: String] {
-        let expectation = expectation(description: "log created")
         let queue = DispatchQueue(label: "test")
 
         controller.createLog("message", severity: .info, queue: queue)
-        queue.async { expectation.fulfill() }
-        wait(for: [expectation], timeout: .defaultTimeout)
+        // The log is emitted from a block on `queue`, so it has been emitted once the queue drains.
+        queue.sync {}
 
         guard let log = otel.otel.logs.last else {
             return [:]

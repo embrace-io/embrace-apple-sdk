@@ -112,10 +112,14 @@ extension EmbraceStorage {
         coreData.save(allowMainQueue: allowMainQueue)
     }
 
-    /// Adds or updates all the given critical resources **synchronously**
+    /// Adds or updates all the given critical resources **asynchronously**.
+    ///
+    /// The operation is enqueued on the storage's serial context, so any read enqueued afterwards
+    /// is guaranteed to see these resources. To ensure they are present for all telemetry,
+    /// this should be called before any other storage operation is enqueued.
     public func addCriticalResources(_ map: [String: String], processId: EmbraceIdentifier = ProcessIdentifier.current) {
-        coreData.performOperation(allowMainQueue: true) { context in
-            _addResources(map, allowMainQueue: true, context: context, processId: processId)
+        coreData.performAsyncOperation { [self] context in
+            _addResources(map, allowMainQueue: false, context: context, processId: processId)
         }
     }
 
@@ -298,32 +302,52 @@ extension EmbraceStorage {
         return fetchMetadata(key: key, type: .requiredResource, lifespan: .permanent)
     }
 
-    /// Increments the numeric value by 1 of a permanent resource for the given key.
-    /// If no record exists it will create one with a value of 1.
-    public func incrementCountForPermanentResource(key: String) -> EMBInt {
-        coreData.performOperation(save: true) { context in
-            // fetch existing metadata
+    /// Synchronously fetches the numeric value of a permanent resource for the given key.
+    /// Returns 0 if no record exists or if its value is not numeric.
+    ///
+    /// This blocks the calling thread until every operation already queued on the storage context finishes.
+    public func fetchCountForPermanentResource(key: String) -> EMBInt {
+        coreData.performOperation(allowMainQueue: true) { context in
+            countForPermanentResource(key: key, context: context)
+        }
+    }
+
+    /// Asynchronously fetches the numeric value of a permanent resource for the given key.
+    /// The completion receives 0 if no record exists or if its value is not numeric.
+    /// The completion is called on the storage context's queue.
+    public func fetchCountForPermanentResource(key: String, completion: @escaping (EMBInt) -> Void) {
+        coreData.performAsyncOperation { [self] context in
+            completion(countForPermanentResource(key: key, context: context))
+        }
+    }
+
+    /// Asynchronously sets the numeric value of a permanent resource for the given key.
+    /// If no record exists it will create one.
+    public func setCountForPermanentResource(key: String, value: EMBInt) {
+        coreData.performAsyncOperation(save: true) { [self] context in
             let request = fetchMetadataRequest(key: key, type: .requiredResource, lifespan: .permanent)
 
-            // update it if it exists
             if let metadata = fetchMetadata(request: request, context: context) {
-                let val = (EMBInt(metadata.value) ?? 0) + 1
-                metadata.value = String(val)
-                return val
-                // create it with a value of 1 if it doesn't exist
+                metadata.value = String(value)
             } else {
-                let val: EMBInt = 1
                 _ = MetadataRecord.create(
                     context: context,
                     key: key,
-                    value: String(val),
+                    value: String(value),
                     type: .requiredResource,
                     lifespan: .permanent,
                     lifespanId: ""
                 )
-                return val
             }
         }
+    }
+
+    private func countForPermanentResource(key: String, context: NSManagedObjectContext) -> EMBInt {
+        let request = fetchMetadataRequest(key: key, type: .requiredResource, lifespan: .permanent)
+        guard let metadata = fetchMetadata(request: request, context: context) else {
+            return 0
+        }
+        return EMBInt(metadata.value) ?? 0
     }
 
     /// Returns immutable copies of all records with types `.requiredResource` or `.resource`

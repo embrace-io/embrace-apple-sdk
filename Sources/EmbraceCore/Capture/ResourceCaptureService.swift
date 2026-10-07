@@ -12,7 +12,6 @@ import OpenTelemetryApi
 
 protocol ResourceCaptureServiceHandler: AnyObject {
     func addRequiredResources(_ map: [String: String])
-    func addCriticalResources(_ map: [String: String])
 }
 
 class ResourceCaptureService: CaptureService {
@@ -21,18 +20,10 @@ class ResourceCaptureService: CaptureService {
     func addRequiredResources(_ map: [String: String]) {
         handler?.addRequiredResources(map)
     }
-
-    func addCriticalResources(_ map: [String: String]) {
-        handler?.addCriticalResources(map)
-    }
 }
 
 extension EmbraceStorage: ResourceCaptureServiceHandler {
     func addRequiredResources(_ map: [String: String]) {
         addRequiredResources(map, processId: ProcessIdentifier.current)
-    }
-
-    func addCriticalResources(_ map: [String: String]) {
-        addCriticalResources(map, processId: ProcessIdentifier.current)
     }
 }

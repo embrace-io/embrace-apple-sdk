@@ -30,7 +30,7 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
 }
 
 final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
-    private var spans: [URLSessionTask: Span] = [:]
+    private let spans = EmbraceMutex<[URLSessionTask: Span]>([:])
     private let queue: DispatchableQueue
     private let capturedDataQueue: DispatchableQueue
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
@@ -57,6 +57,14 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         return false
     }
 
+    /// Starts capturing the given task, creating a network span for it.
+    ///
+    /// This is called synchronously from the swizzled task creation and `resume` methods, on whatever
+    /// thread the app uses, so it never blocks on an internal queue. Calls into the requests data source,
+    /// OpenTelemetry and header injection are made without holding any lock, which allows them to
+    /// safely create or resume other tasks (re-entering this method).
+    ///
+    /// - Returns: `true` if the task was captured by this call.
     @discardableResult
     func create(task: URLSessionTask) -> Bool {
 
@@ -65,93 +73,106 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             return false
         }
 
-        var handled = false
-
-        queue.sync {
-            // don't capture if this task was already handled
-            guard task.embraceCaptured == false else {
-                return
-            }
-
-            // save start time for payload capture
-            task.embraceStartTime = Date()
-
-            // don't capture if the service is not active
-            guard self.dataSource?.serviceState == .active else {
-                return
-            }
-
-            // validate task
-            guard
-                var request = task.originalRequest,
-                let url = request.url,
-                let otel = self.dataSource?.otel
-            else {
-                return
-            }
-
-            // check ignored urls
-            guard shouldCapture(url: url) else {
-                return
-            }
-
-            // get modified request from data source
-            request = self.dataSource?.requestsDataSource?.modifiedRequest(for: request) ?? request
-
-            // flag as captured
-            task.embraceCaptured = true
-
-            // Probably this could be moved to a separate class
-            var attributes: [String: String] = [:]
-            attributes[SpanSemantics.NetworkRequest.keyUrl] = request.url?.absoluteString ?? "N/A"
-
-            let httpMethod = request.httpMethod?.uppercased() ?? ""
-            if !httpMethod.isEmpty {
-                attributes[SpanSemantics.NetworkRequest.keyMethod] = httpMethod
-            }
-
-            /*
-             Note: According to the OpenTelemetry specification, the attribute name should be ' {method} {http.route}.
-             The `{http.route}` corresponds to the template of the path so it's necessary to understand the templating system being employed.
-             For instance, a template for a request such as http://embrace.io/users/12345?hello=world
-             would be reported as /users/:userId (or /users/:userId? in other templating system).
-            
-             Until a decision is made regarding the method to convey this information and the heuristics to extract it,
-             the `.path` method will be utilized temporarily. This approach may introduce higher cardinality on the backend,
-             which is less than optimal.
-             It will be important to address this in the near future to enhance performance for the backend.
-            
-             Additional information can be found at:
-             - HTTP Name attribute: https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
-             - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
-             */
-            let name = httpMethod.isEmpty ? url.path : "\(httpMethod) \(url.path)"
-            let networkSpan = otel.buildSpan(
-                name: name,
-                type: .networkRequest,
-                attributes: attributes,
-                autoTerminationCode: nil
-            )
-
-            // This should be modified if we start doing this for streaming tasks.
-            if let bodySize = request.httpBody {
-                networkSpan.setAttribute(key: SpanSemantics.NetworkRequest.keyBodySize, value: bodySize.count)
-            }
-
-            let span = networkSpan.startSpan()
-            self.spans[task] = span
-
-            // tracing header
-            if let traceparent = self.addTracingHeader(task: task, span: span),
-                self.dataSource?.isNSFEligible == true
-            {
-                span.setAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: .string(traceparent))
-            }
-
-            handled = true
+        // Only tasks that haven't started yet are captured.
+        // Every capture point (task creation and `resume`) runs before the task starts, so the span is
+        // always stored before the task can finish. A task that is already running when first seen
+        // (e.g. a redundant `resume()` call) would get an inaccurate span that could also miss its finish.
+        guard task.state == .suspended else {
+            return false
         }
 
-        return handled
+        // save start time for payload capture
+        if task.embraceCaptured == false {
+            task.embraceStartTime = Date()
+        }
+
+        // don't capture if the service is not active
+        guard dataSource?.serviceState == .active else {
+            return false
+        }
+
+        // validate task
+        guard
+            var request = task.originalRequest,
+            let url = request.url,
+            let otel = dataSource?.otel
+        else {
+            return false
+        }
+
+        // check ignored urls
+        guard shouldCapture(url: url) else {
+            return false
+        }
+
+        // flag as captured, unless it was already handled.
+        // This happens before calling the requests data source so it's only called once per task,
+        // even if the task is created or resumed again from inside it.
+        let isFirstCapture = spans.withLock { _ -> Bool in
+            guard task.embraceCaptured == false else {
+                return false
+            }
+            task.embraceCaptured = true
+            return true
+        }
+
+        guard isFirstCapture else {
+            return false
+        }
+
+        // get modified request from data source
+        request = dataSource?.requestsDataSource?.modifiedRequest(for: request) ?? request
+
+        // Probably this could be moved to a separate class
+        var attributes: [String: String] = [:]
+        attributes[SpanSemantics.NetworkRequest.keyUrl] = request.url?.absoluteString ?? "N/A"
+
+        let httpMethod = request.httpMethod?.uppercased() ?? ""
+        if !httpMethod.isEmpty {
+            attributes[SpanSemantics.NetworkRequest.keyMethod] = httpMethod
+        }
+
+        /*
+         Note: According to the OpenTelemetry specification, the attribute name should be ' {method} {http.route}.
+         The `{http.route}` corresponds to the template of the path so it's necessary to understand the templating system being employed.
+         For instance, a template for a request such as http://embrace.io/users/12345?hello=world
+         would be reported as /users/:userId (or /users/:userId? in other templating system).
+        
+         Until a decision is made regarding the method to convey this information and the heuristics to extract it,
+         the `.path` method will be utilized temporarily. This approach may introduce higher cardinality on the backend,
+         which is less than optimal.
+         It will be important to address this in the near future to enhance performance for the backend.
+        
+         Additional information can be found at:
+         - HTTP Name attribute: https://opentelemetry.io/docs/specs/semconv/http/http-spans/#name
+         - HTTP Attributes: https://opentelemetry.io/docs/specs/semconv/attributes-registry/http/
+         */
+        let path = request.url?.path ?? url.path
+        let name = httpMethod.isEmpty ? path : "\(httpMethod) \(path)"
+        let networkSpan = otel.buildSpan(
+            name: name,
+            type: .networkRequest,
+            attributes: attributes,
+            autoTerminationCode: nil
+        )
+
+        // This should be modified if we start doing this for streaming tasks.
+        if let bodySize = request.httpBody {
+            networkSpan.setAttribute(key: SpanSemantics.NetworkRequest.keyBodySize, value: bodySize.count)
+        }
+
+        let span = networkSpan.startSpan()
+
+        // tracing header
+        if let traceparent = addTracingHeader(task: task, span: span),
+            dataSource?.isNSFEligible == true
+        {
+            span.setAttribute(key: SpanSemantics.NetworkRequest.keyTracingHeader, value: .string(traceparent))
+        }
+
+        spans.withLock { $0[task] = span }
+
+        return true
     }
 
     private func finish(task: URLSessionTask, data: Data?, bodySize: Int, error: (any Error)?) {
@@ -211,7 +232,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         }
 
         // stop if there was no span for this task
-        guard let span = self.spans.removeValue(forKey: task) else {
+        guard let span = self.spans.withLock({ $0.removeValue(forKey: task) }) else {
             return
         }
 

@@ -411,41 +411,25 @@
 
         private func forcefullyEndSpans(id: String, time: Date) {
 
-            data.withLock {
+            // remove the spans while holding the lock but end them after releasing it,
+            // since `end()` calls the span processors' `onEnd` inline
+            let spans: [Span] = data.withLock {
+                let spans = [
+                    $0.viewDidLoadSpans.removeValue(forKey: id),
+                    $0.viewWillAppearSpans.removeValue(forKey: id),
+                    $0.viewIsAppearingSpans.removeValue(forKey: id),
+                    $0.viewDidAppearSpans.removeValue(forKey: id),
+                    $0.uiReadySpans.removeValue(forKey: id),
+                    $0.parentSpans.removeValue(forKey: id)
+                ].compactMap { $0 }
 
-                if let viewDidLoadSpan = $0.viewDidLoadSpans[id] {
-                    viewDidLoadSpan.end(errorCode: .userAbandon, time: time)
-                }
-
-                if let viewWillAppearSpan = $0.viewWillAppearSpans[id] {
-                    viewWillAppearSpan.end(errorCode: .userAbandon, time: time)
-                }
-
-                if let viewIsAppearingSpan = $0.viewIsAppearingSpans[id] {
-                    viewIsAppearingSpan.end(errorCode: .userAbandon, time: time)
-                }
-
-                if let viewDidAppearSpan = $0.viewDidAppearSpans[id] {
-                    viewDidAppearSpan.end(errorCode: .userAbandon, time: time)
-                }
-
-                if let uiReadySpan = $0.uiReadySpans[id] {
-                    uiReadySpan.end(errorCode: .userAbandon, time: time)
-                }
-
-                if let parentSpan = $0.parentSpans[id] {
-                    parentSpan.end(errorCode: .userAbandon, time: time)
-                }
-
-                // clear
-                $0.parentSpans[id] = nil
-                $0.viewDidLoadSpans[id] = nil
-                $0.viewWillAppearSpans[id] = nil
-                $0.viewIsAppearingSpans[id] = nil
-                $0.viewDidAppearSpans[id] = nil
-                $0.uiReadySpans[id] = nil
                 $0.alreadyFinishedUiReadyIds.remove(id)
 
+                return spans
+            }
+
+            for span in spans {
+                span.end(errorCode: .userAbandon, time: time)
             }
         }
 

@@ -31,6 +31,11 @@ class LogControllerTests: XCTestCase {
         givenStorage()
     }
 
+    override func tearDown() {
+        Embrace.client = nil
+        super.tearDown()
+    }
+
     // MARK: - Testing `setup` method
 
     func testOnNotHavingStorage_onSetup_wontDoAnything() {
@@ -127,6 +132,66 @@ class LogControllerTests: XCTestCase {
         whenInvokingSetup()
         thenLogUploaderShouldSendLogs()
         try thenStorageShouldntCallRemoveLogs()
+    }
+
+    // MARK: - Testing sequential uploads
+
+    func testUploaderNeverCompleting_onSetup_returnsWithoutWaitingForTheUpload() {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        var completed = false
+        sut.uploadAllPersistedLogs { completed = true }
+
+        XCTAssertEqual(upload.didCallUploadLogCount, 1)
+        XCTAssertEqual(upload.pendingLogCompletionsCount, 1)
+        XCTAssertFalse(completed)
+    }
+
+    func testUploaderNeverCompleting_onSetup_buildsAllPayloadsBeforeReturning() throws {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        sut.uploadAllPersistedLogs()
+
+        // each batch belongs to a different process, so both payloads are built before returning
+        let unwrappedStorage = try XCTUnwrap(storage)
+        XCTAssertEqual(unwrappedStorage.fetchResourcesForProcessIdCallCount, 2)
+    }
+
+    func testHavingMoreThanABatch_onSetup_uploadsTheNextBatchOnlyAfterThePreviousOneCompletes() {
+        givenStorage(withLogs: logsForMoreThanASingleBatch())
+        givenNeverCompletingLogUploader()
+        givenLogController()
+
+        var completed = false
+        sut.uploadAllPersistedLogs { completed = true }
+        XCTAssertEqual(upload.didCallUploadLogCount, 1)
+
+        upload.completeNextPendingLogUpload()
+        XCTAssertEqual(upload.didCallUploadLogCount, 2)
+        XCTAssertFalse(completed)
+
+        upload.completeNextPendingLogUpload()
+        XCTAssertTrue(completed)
+    }
+
+    func testHavingMoreThanABatchFromTheSameSession_onSetup_buildsThePayloadsOnceAndUploadsAllBatches() throws {
+        let sessionId = EmbraceIdentifier.random
+        let processId = EmbraceIdentifier.random
+        let logs = (1...LogController.maxLogsPerBatch + 1).map { _ in
+            randomLogRecord(sessionId: sessionId, processId: processId)
+        }
+
+        givenStorage(withLogs: logs)
+        givenLogController()
+        whenInvokingSetup()
+
+        let unwrappedStorage = try XCTUnwrap(storage)
+        XCTAssertEqual(unwrappedStorage.fetchResourcesForSessionIdCallCount, 1)
+        thenLogUploadShouldUpload(times: 2)
     }
 
     // MARK: - Testing dropped batches
@@ -247,7 +312,7 @@ class LogControllerTests: XCTestCase {
         thenLogUploadShouldUpload(times: 1)
     }
 
-    func test_batchPayloadTypes() {
+    func test_batchPayloadTypes() throws {
         givenStorage(withLogs: [
             randomLogRecord(type: "test"),
             randomLogRecord(type: "test"),
@@ -257,7 +322,7 @@ class LogControllerTests: XCTestCase {
         givenLogController()
         whenInvokingSetup()
         thenLogUploadShouldUpload(times: 1)
-        thenPayloadTypesIsSet(["test", "type", "sys.log"])
+        try thenPayloadTypesIsSet(["test", "type", "sys.log"])
     }
 
     // MARK: LogController.Error tests
@@ -359,6 +424,20 @@ class LogControllerTests: XCTestCase {
         thenLogHasAnEmbbededStackTraceInTheAttributes()
     }
 
+    func testWarningLog_withMainStacktrace_whenCaptureSucceeds_addsStackTraceToAttributes() throws {
+        try givenEmbraceClient(backtracer: ScriptedBacktracer(failures: 0))
+        givenLogController()
+        whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main)
+        try thenLastLog(hasStackTrace: true)
+    }
+
+    func testWarningLog_withMainStacktrace_whenCaptureIsEmpty_doesntAddStackTraceToAttributes() throws {
+        try givenEmbraceClient(backtracer: ScriptedBacktracer(failures: .max))
+        givenLogController()
+        whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main)
+        try thenLastLog(hasStackTrace: false)
+    }
+
     func testInfoLogs_createLogByWithCustomStacktrace_wontAddStackTraceToAttributes() throws {
         givenLogController()
         let customStackTrace = try EmbraceStackTrace(frames: Thread.callStackSymbols)
@@ -379,7 +458,8 @@ extension LogControllerTests {
         sut = .init(
             storage: nil,
             upload: upload,
-            controller: sessionController
+            controller: sessionController,
+            unsentLogsQueue: MockQueue()
         )
 
         sut.sdkStateProvider = sdkStateProvider
@@ -388,11 +468,23 @@ extension LogControllerTests {
         sut.maxLogsPerBatchProvider = { LogController.maxLogsPerBatch }
     }
 
+    fileprivate func givenEmbraceClient(backtracer: Backtracer) throws {
+        let options = Embrace.Options(
+            appId: "myApp",
+            captureServices: [],
+            crashReporter: nil,
+            backtracer: backtracer,
+            symbolicator: nil
+        )
+        Embrace.client = try Embrace(options: options, embraceStorage: EmbraceStorage.createInMemoryDb())
+    }
+
     fileprivate func givenLogController() {
         sut = .init(
             storage: storage,
             upload: upload,
-            controller: sessionController
+            controller: sessionController,
+            unsentLogsQueue: MockQueue()
         )
 
         sut.sdkStateProvider = sdkStateProvider
@@ -411,6 +503,11 @@ extension LogControllerTests {
         upload = .init()
         upload.stubbedLogCompletion = .failure(RandomError())
         upload.stubbedAttachmentCompletion = .failure(RandomError())
+    }
+
+    fileprivate func givenNeverCompletingLogUploader() {
+        upload = .init()
+        upload.shouldCompleteLogUploads = false
     }
 
     fileprivate func givenSDKEnabled(_ sdkEnabled: Bool = true) {
@@ -488,6 +585,16 @@ extension LogControllerTests {
         waitForLoggingQueue()
     }
 
+    /// Creates the log from a background thread, so a `.main` stack trace is a remote-thread capture.
+    fileprivate func whenCreatingLogOffMainThread(severity: LogSeverity, stackTraceBehavior: StackTraceBehavior) {
+        let callerQueue = DispatchQueue(label: "logCallerQueue")
+        callerQueue.async {
+            self.sut.createLog("test", severity: severity, stackTraceBehavior: stackTraceBehavior, queue: self.loggingQueue)
+        }
+        callerQueue.sync {}
+        waitForLoggingQueue()
+    }
+
     fileprivate func whenCreatingLogWithAttachment() {
         sut.createLog("test", severity: .info, attachment: TestConstants.data, queue: loggingQueue)
         waitForLoggingQueue()
@@ -532,13 +639,12 @@ extension LogControllerTests {
         XCTAssertTrue(upload.didCallUploadLog)
     }
 
-    fileprivate func thenPayloadTypesIsSet(_ types: [String]) {
+    fileprivate func thenPayloadTypesIsSet(_ types: [String]) throws {
         guard types.count > 0 else {
             return
         }
 
-        XCTAssertNotNil(upload.logPayloadTypes)
-        let payloadTypes = upload.logPayloadTypes!.components(separatedBy: ",")
+        let payloadTypes = try XCTUnwrap(upload.logPayloadTypes).components(separatedBy: ",")
 
         XCTAssertEqual(types.count, payloadTypes.count)
 
@@ -600,6 +706,11 @@ extension LogControllerTests {
         XCTAssertEqual(log!.attributes["emb.type"]!.description, "sys.log")
     }
 
+    fileprivate func thenLastLog(hasStackTrace: Bool) throws {
+        let log = try XCTUnwrap(otelBridge.otel.logs.last)
+        XCTAssertEqual(log.attributes["emb.stacktrace.ios"] != nil, hasStackTrace)
+    }
+
     fileprivate func thenLogHasAnEmbbededStackTraceInTheAttributes() {
         wait {
             let log = self.otelBridge.otel.logs.first
@@ -653,6 +764,7 @@ extension LogControllerTests {
 
     fileprivate func randomLogRecord(
         sessionId: EmbraceIdentifier? = nil,
+        processId: EmbraceIdentifier = .random,
         type: String = "test"
     ) -> EmbraceLog {
 
@@ -665,7 +777,7 @@ extension LogControllerTests {
 
         return MockLog(
             id: .random,
-            processId: .random,
+            processId: processId,
             severity: .info,
             body: UUID().uuidString,
             attributes: attributes

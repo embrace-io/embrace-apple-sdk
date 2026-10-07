@@ -20,7 +20,7 @@ protocol LogBatcherDelegate: AnyObject {
 protocol LogBatcher: AnyObject {
     func addLogRecord(logRecord: ReadableLogRecord)
     func renewBatch(withLogs logRecords: [EmbraceLog])
-    func forceEndCurrentBatch(waitUntilFinished: Bool, sessionId: EmbraceIdentifier?)
+    func forceEndCurrentBatch(sessionId: EmbraceIdentifier?)
     var limits: LogsLimits { get }
 }
 
@@ -37,16 +37,30 @@ class DefaultLogBatcher: LogBatcher {
         delegate?.limits ?? .init()
     }
 
+    /// Schedules the work item that ends the current batch once it reaches its maximum age.
+    /// It's called on `processorQueue`, and the item must run there too.
+    typealias DeadlineScheduler = (_ delay: TimeInterval, _ item: DispatchWorkItem) -> Void
+    private let scheduleDeadline: DeadlineScheduler
+
+    /// - Parameters:
+    ///   - scheduleDeadline: Schedules the batch deadline. It defaults to `asyncAfter` on
+    ///     `processorQueue`; tests pass their own so they can fire the deadline themselves.
     init(
         repository: LogRepository,
         logLimits: LogBatchLimits,
         delegate: LogBatcherDelegate,
-        processorQueue: DispatchQueue = .init(label: "io.embrace.logBatcher")
+        processorQueue: DispatchQueue = .init(label: "io.embrace.logBatcher"),
+        scheduleDeadline: DeadlineScheduler? = nil
     ) {
         self.repository = repository
         self.logLimits = logLimits
         self.processorQueue = processorQueue
         self.delegate = delegate
+        self.scheduleDeadline =
+            scheduleDeadline ?? { delay, item in
+                let milliseconds = DispatchTimeInterval.milliseconds(Int(delay * 1000))
+                processorQueue.asyncAfter(deadline: .now() + milliseconds, execute: item)
+            }
     }
 
     func addLogRecord(logRecord: ReadableLogRecord) {
@@ -66,29 +80,16 @@ class DefaultLogBatcher: LogBatcher {
 }
 
 extension DefaultLogBatcher {
-    /// Forces the current batch to end and renews it, optionally waiting for completion.
+    /// Asynchronously forces the current batch to end and renews it.
     ///
-    /// This method ensures that any pending logs are flushed by rewewing the batch.
-    /// If `waitUntilFinished` is `true`, the method blocks the calling thread until the operation on the internal queue completes.
+    /// This method ensures that any pending logs are flushed by renewing the batch.
+    /// It never blocks the caller: the work is scheduled on the internal queue.
     ///
     /// - Parameters:
-    ///   - waitUntilFinished: indicates whether the method should block until the batch operation finishes. Default is `true`.
-    func forceEndCurrentBatch(waitUntilFinished: Bool = true, sessionId: EmbraceIdentifier? = nil) {
-        let group = DispatchGroup()
-
-        if waitUntilFinished {
-            group.enter()
-        }
-
+    ///   - sessionId: the identifier of the session the finished batch's logs belong to.
+    func forceEndCurrentBatch(sessionId: EmbraceIdentifier? = nil) {
         processorQueue.async {
             self.renewBatchInternal(sessionId: sessionId)
-            if waitUntilFinished {
-                group.leave()
-            }
-        }
-
-        if waitUntilFinished {
-            group.wait()
         }
     }
 
@@ -137,9 +138,7 @@ extension DefaultLogBatcher {
             self?.renewBatch()
         }
 
-        let lifespan = Int(self.logLimits.maxBatchAge * 1000)
-        let lifeInSeconds = DispatchTimeInterval.milliseconds(lifespan)
-        processorQueue.asyncAfter(deadline: .now() + lifeInSeconds, execute: item)
+        scheduleDeadline(self.logLimits.maxBatchAge, item)
 
         self.batchDeadlineWorkItem = item
     }
