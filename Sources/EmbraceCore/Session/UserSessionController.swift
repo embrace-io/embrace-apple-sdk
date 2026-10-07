@@ -319,8 +319,7 @@ final class UserSessionController {
     /// `embraceUserSessionDidEnd` notification.
     ///
     /// - Important: MUST be called OUTSIDE `_state.withLock`. It calls back into
-    ///   `SessionController`, and keeping that call outside the mutex avoids lock-order
-    ///   inversions with `SessionController.lock`.
+    ///   `SessionController`, and the mutex should only be held for in-memory state.
     private func internalEndUserSession(
         snapshot: ImmutableUserSession,
         reason: TerminationReason,

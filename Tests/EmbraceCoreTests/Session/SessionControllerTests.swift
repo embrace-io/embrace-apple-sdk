@@ -277,10 +277,7 @@ final class SessionControllerTests: XCTestCase {
         controller.backfillTerminationReasonOnLatestPart(.manual)
         let second = controller.startSession(state: .foreground)
 
-        let drained = expectation(description: "storage drained")
-        storage.coreData.performAsyncOperation { _ in drained.fulfill() }
-        wait(for: [drained], timeout: 1)
-
+        // `fetchSession` runs synchronously on the same serial context, after both operations above.
         XCTAssertEqual(storage.fetchSession(id: first!.id)?.userSessionTerminationReason, .manual)
         XCTAssertNil(storage.fetchSession(id: second!.id)?.userSessionTerminationReason)
     }
