@@ -197,12 +197,26 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         // when one of its stores fails to load
         client.storeFailedToLoad("upload cache")
 
-        // then the SDK is disabled right away
-        XCTAssertFalse(client.isSDKEnabled)
-
-        // and stopped on the main thread
+        // then it's stopped on the main thread
         drainMainQueue()
         XCTAssertEqual(client.state, .stopped)
+        XCTAssertFalse(client.isSDKEnabled)
+        XCTAssertNil(client.sessionController.currentSession)
+    }
+
+    func test_storeFailsRightBeforeStart_sdkStartsThenStops() throws {
+        // given a client whose store failure is reported, but not yet handled on the main thread
+        let client = try makeClient()
+        client.storeFailedToLoad("storage")
+
+        // when starting it before that
+        try client.start()
+
+        // then it starts, and is stopped once the failure is handled, as if the store failed after `start()`
+        XCTAssertEqual(client.state, .started)
+        drainMainQueue()
+        XCTAssertEqual(client.state, .stopped)
+        XCTAssertFalse(client.isSDKEnabled)
         XCTAssertNil(client.sessionController.currentSession)
     }
 
@@ -216,10 +230,10 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
             client.storeFailedToLoad("storage")
         }
 
-        // then the SDK is disabled and stopped
-        XCTAssertFalse(client.isSDKEnabled)
+        // then the SDK is stopped on the main thread
         drainMainQueue()
         XCTAssertEqual(client.state, .stopped)
+        XCTAssertFalse(client.isSDKEnabled)
     }
 
     // MARK: - Helpers

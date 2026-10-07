@@ -60,15 +60,11 @@ import OpenTelemetrySdk
         }
     }
 
-    /// Returns true if the SDK is started, was not disabled through remote configurations, and none of its stores failed to load.
+    /// Returns true if the SDK is started and was not disabled through remote configurations.
     @objc public var isSDKEnabled: Bool {
         let remoteConfigEnabled = config.isSDKEnabled
-        return state == .started && remoteConfigEnabled && storesLoaded.load()
+        return state == .started && remoteConfigEnabled
     }
-
-    /// True until one of the SDK's stores fails to load (including while they're still loading).
-    /// Cleared by `storeFailedToLoad`, which disables and stops the SDK.
-    private let storesLoaded = EmbraceAtomic<Bool>(true)
 
     /// Returns the version of the Embrace SDK.
     @objc public class var sdkVersion: String {
@@ -352,8 +348,8 @@ import OpenTelemetrySdk
 
     /// Method used to start the Embrace SDK.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
-    /// - Note: This method won't do anything if the Embrace SDK was already started, if it was disabled via the remote configurations,
-    ///         or if one of its stores failed to load. A store that fails to load after the SDK started stops it.
+    /// - Note: This method won't do anything if the Embrace SDK was already started or stopped, or if it was disabled via the remote
+    ///         configurations. A store that fails to load stops the SDK (see `storeFailedToLoad`).
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     @objc public func start() throws -> Embrace {
@@ -382,13 +378,6 @@ import OpenTelemetrySdk
 
             guard config.isSDKEnabled else {
                 Embrace.logger.warning("Embrace can't start when disabled!")
-                return self
-            }
-
-            // `storeFailedToLoad` moves the state to `.stopped` only once it gets to the main thread,
-            // so this catches a failure reported before that
-            guard storesLoaded.load() else {
-                Embrace.logger.warning("Embrace can't start because one of its stores failed to load!")
                 return self
             }
 
@@ -521,17 +510,13 @@ import OpenTelemetrySdk
         metricKit.uninstall()
     }
 
-    /// Disables the SDK for the rest of the process because one of its stores failed to load.
-    /// `isSDKEnabled` becomes false immediately, and `start()` won't start the SDK. Then, on the main thread,
-    /// the SDK is stopped if it started, or moved to `.stopped` if it hadn't.
+    /// Stops the SDK for the rest of the process because one of its stores failed to load.
+    /// On the main thread, the SDK is stopped if it started, or moved to `.stopped` if it hadn't, so `start()`
+    /// won't start it. A `start()` that runs before then starts the SDK, which is then stopped right away,
+    /// the same as when a store fails after `start()`.
     ///
     /// The failure is reported with a critical log (the store also logs one with the load error).
-    /// Only the first failure is handled.
     func storeFailedToLoad(_ store: String) {
-        guard storesLoaded.exchange(false) else {
-            return
-        }
-
         Embrace.logger.critical("Embrace SDK stopped because its \(store) failed to load")
 
         DispatchQueue.main.async { [weak self] in
