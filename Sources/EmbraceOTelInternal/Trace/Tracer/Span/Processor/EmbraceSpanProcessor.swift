@@ -20,6 +20,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
     let embraceExporter: StorageSpanExporter?
     let spanExporters: [SpanExporter]
     package let processorQueue = DispatchQueue(label: "io.embrace.spanprocessor", qos: .utility)
+    private let processorQueueKey = DispatchSpecificKey<Void>()
     let resourceProvider: (() -> Resource?)?
     private weak var logger: InternalLogger? = nil
     let sessionIdProvider: (() -> String?)?
@@ -50,6 +51,47 @@ package class EmbraceSpanProcessor: SpanProcessor {
         self.sessionIdProvider = sessionIdProvider
         self.resourceProvider = resourceProvider
         self.criticalResourceGroup = criticalResourceGroup
+
+        processorQueue.setSpecific(key: processorQueueKey, value: ())
+    }
+
+    /// Maximum time `forceFlush` and `shutdown` block their caller when no timeout is given.
+    static let defaultBlockingTimeout: TimeInterval = 1
+
+    /// Whether the caller is already running on `processorQueue`, e.g. from inside a child processor or exporter callback.
+    private var isOnProcessorQueue: Bool {
+        DispatchQueue.getSpecific(key: processorQueueKey) != nil
+    }
+
+    /// Whether the critical resource group has been left.
+    ///
+    /// Until then, every span block queued on `processorQueue` waits on the group, so a synchronous wait
+    /// behind them would last until the SDK finishes starting, and forever if the caller is the thread starting it.
+    private var isCriticalResourceGroupReady: Bool {
+        criticalResourceGroup?.wait(timeout: .now()) != .timedOut
+    }
+
+    /// Runs `work` on `processorQueue` and blocks the caller until it finishes or `timeout` elapses.
+    ///
+    /// - Runs `work` inline when already on `processorQueue`, since waiting on it from there would never return.
+    /// - Doesn't block while the critical resource group is still closed. `work` stays queued and runs once the SDK has started.
+    /// - When the wait times out, `work` still runs later on `processorQueue`.
+    private func performAndWait(timeout: TimeInterval?, _ work: @escaping () -> Void) {
+        if isOnProcessorQueue {
+            work()
+            return
+        }
+
+        guard isCriticalResourceGroupReady else {
+            processorQueue.async(execute: work)
+            return
+        }
+
+        let group = DispatchGroup()
+        processorQueue.async(group: group, execute: work)
+        if group.wait(timeout: .now() + (timeout ?? Self.defaultBlockingTimeout)) == .timedOut {
+            logger?.warning("Timed out waiting for span processors and exporters to finish.")
+        }
     }
 
     public func autoTerminateSpans() {
@@ -125,9 +167,11 @@ package class EmbraceSpanProcessor: SpanProcessor {
         }
 
         // exporters
+        // The export is queued instead of awaited: callers don't need the result, and waiting would block them
+        // behind every pending processor and exporter callback, including slow or stuck ones.
         let mkSpan = EmbraceMetricKitSpan.begin(name: "export-flush")
         let data = span.toSpanData()
-        processIncompletedSpanData(data, span: span, sync: true) {
+        processIncompletedSpanData(data, span: span, sync: false) {
             mkSpan.end()
         }
     }
@@ -137,20 +181,19 @@ package class EmbraceSpanProcessor: SpanProcessor {
             return
         }
 
-        // processors
         let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "process-forceflush")
+        let mkSpan = EmbraceMetricKitSpan.begin(name: "export-forceflush")
         let processors = self.spanProcessors
-        processorQueue.sync {
+        let exporters = self.spanExporters
+
+        performAndWait(timeout: timeout) {
+            // processors
             for processor in processors {
                 processor.forceFlush(timeout: timeout)
             }
             mkProcessSpan.end()
-        }
 
-        // exporters
-        let mkSpan = EmbraceMetricKitSpan.begin(name: "export-forceflush")
-        let exporters = self.spanExporters
-        processorQueue.sync {
+            // exporters
             for exporter in exporters {
                 _ = exporter.flush(explicitTimeout: timeout)
             }
@@ -163,7 +206,7 @@ package class EmbraceSpanProcessor: SpanProcessor {
         let processors = spanProcessors
         let exporters = spanExporters
 
-        processorQueue.sync {
+        performAndWait(timeout: explicitTimeout) {
             for var processor in processors {
                 processor.shutdown(explicitTimeout: explicitTimeout)
             }
@@ -262,11 +305,15 @@ package class EmbraceSpanProcessor: SpanProcessor {
             completion?()
         }
 
-        if sync {
+        if sync && isOnProcessorQueue {
+            block()
+        } else if sync && isCriticalResourceGroupReady {
             processorQueue.sync {
                 block()
             }
         } else {
+            // Exporting waits for the critical resource group, so a synchronous export before it's left
+            // would block the caller until the SDK finishes starting. Queue it behind the pending work instead.
             processorQueue.async { [self] in
                 criticalResourceGroup?.wait()
                 block()
