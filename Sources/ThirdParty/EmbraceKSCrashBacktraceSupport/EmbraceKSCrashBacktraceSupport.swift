@@ -37,6 +37,10 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
         return addresses
     }
 
+    /// - Warning: Calls `pthread_mach_thread_np(thread)`, which takes libpthread's thread-list lock.
+    ///   If `thread` was suspended while holding that lock, this never returns. The SDK doesn't call
+    ///   this entry point; it uses `backtrace(ofMachThread:into:capacity:)` with a port resolved
+    ///   before the suspend.
     public func backtrace(
         of thread: pthread_t,
         into buffer: UnsafeMutablePointer<FrameAddress>,

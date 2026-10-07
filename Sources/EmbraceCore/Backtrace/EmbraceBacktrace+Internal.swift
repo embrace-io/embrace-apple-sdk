@@ -241,7 +241,8 @@ extension EmbraceBacktrace {
         // A custom `Backtracer` avoids `objc_msgSend` the same way, through `SuspendedBacktraceIMP` below.
         let ksBacktracer = backtracer as? KSCrashBacktracing
 
-        // get the mach thread to take the snapshot of
+        // Get the mach thread to take the snapshot of. Must happen before the suspend:
+        // `pthread_mach_thread_np` takes libpthread's thread-list lock, which the target may hold.
         let machThread = pthread_mach_thread_np(thread)
         let canSuspend = pthread_self() != thread
 
@@ -287,6 +288,8 @@ extension EmbraceBacktrace {
                 return []
             }
             // ───── SUSPEND WINDOW: allocation-free / async-signal-safe only ─────
+            // No malloc, no ObjC or Swift runtime, no locks, and no pthread calls on other threads
+            // (libpthread validates handles under its thread-list lock, which the target may hold).
             #if DEBUG
                 EmbraceBacktraceSuspendWindowProbe.willEnter?()
             #endif
