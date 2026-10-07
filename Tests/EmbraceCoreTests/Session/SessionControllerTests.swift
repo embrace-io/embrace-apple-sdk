@@ -282,6 +282,27 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNil(storage.fetchSession(id: second!.id)?.userSessionTerminationReason)
     }
 
+    func test_backfillTerminationReason_doesNotWaitOnStorage() throws {
+        let session = controller.startSession(state: .foreground)
+        controller.endSession()
+
+        // Hold the storage context: any synchronous storage call made before `gate.signal()` blocks.
+        let gate = DispatchSemaphore(value: 0)
+        storage.coreData.performAsyncOperation { _ in gate.wait() }
+        defer { gate.signal() }
+
+        // Call from another queue so a blocking backfill fails the test instead of hanging it.
+        let returned = expectation(description: "backfill returned while storage was busy")
+        DispatchQueue.global().async {
+            self.controller.backfillTerminationReasonOnLatestPart(.manual)
+            returned.fulfill()
+        }
+        wait(for: [returned], timeout: 1)
+
+        gate.signal()
+        XCTAssertEqual(storage.fetchSession(id: session!.id)?.userSessionTerminationReason, .manual)
+    }
+
     func test_rollPartForUserSessionExpiry_endsOldStartsNewSameStateNewUserSession() throws {
         let first = controller.startSession(state: .foreground)
         let firstUserSessionId = first?.userSessionId
