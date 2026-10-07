@@ -90,7 +90,7 @@ final class BacktraceFrameSkipTests: XCTestCase {
     }
 
     /// Exercises the off-main / `canSuspend == true` path: allocate buffer → suspend → alloc-free
-    /// `backtrace(of:into:capacity:)` → resume → slice. Proves the alloc-free route returns the
+    /// `backtrace(ofMachThread:into:capacity:)` → resume → slice. Proves the alloc-free route returns the
     /// *target* thread's real frames with skip 0 (no SDK plumbing on top).
     ///
     /// Only meaningful where the feature ships: watchOS can't suspend threads and macOS is gated out.
@@ -224,7 +224,7 @@ final class BacktraceFrameSkipTests: XCTestCase {
                     """
                     An allocation occurred inside the thread-suspend window — the #423-class deadlock \
                     hazard. Inspect what runs between `willEnter`/`didExit` in `_takeSnapshot` (the \
-                    `backtracer.backtrace(of:into:capacity:)` call and anything it triggers).
+                    `backtracer.backtrace(ofMachThread:into:capacity:)` call and anything it triggers).
                     """
                 )
             }
