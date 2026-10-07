@@ -1,31 +1,24 @@
 name: Smoothness Overhead
 
-# Release sign-off for the Smoothness overhead gate (bin/smoothness_overhead.py). Run once on a 120Hz
-# ProMotion device and once on a 60Hz device.
+# Release sign-off for Smoothness: runs SmoothnessOverheadUITests on one BrowserStack device and fails
+# unless bin/smoothness_overhead.py shows the service's overhead is within budget.
 
 on:
   workflow_dispatch:
     inputs:
       device:
-        description: 'BrowserStack device, as <model>-<iOS version>. Sign-off needs a strict run on a 120Hz ProMotion device and one on a 60Hz device.'
+        description: 'BrowserStack device, as <model>-<iOS version>. Sign-off needs a passing run on a 120Hz ProMotion device and one on a 60Hz device.'
         required: false
         type: string
         default: 'iPhone 17 Pro-26'
-      strict:
-        description: 'Fail the job unless the Smoothness overhead gate passes. Keep on for release sign-off.'
-        required: false
-        type: boolean
-        default: true
 
 permissions:
   contents: read
 
-# BrowserStack runs one session at a time, but this group doesn't stop a run overlapping a device
-# benchmark run, or a run on another device. An overlapping build queues on BrowserStack, and the
-# queued time counts against the test job's time limit. Start one run at a time.
+# Holds a second run for the same device until the first finishes, so it doesn't queue on BrowserStack
+# and time out.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.device }}
-  cancel-in-progress: false
 
 jobs:
   browserstack:
@@ -62,6 +55,6 @@ jobs:
         env:
           PERF_PR: ${{ needs.browserstack.outputs.results }}
           DEVICE: ${{ inputs.device }}
-          STRICT: ${{ inputs.strict && '1' || '' }}
+          STRICT: '1'
         run: |
           python bin/smoothness_overhead.py
