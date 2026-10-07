@@ -37,20 +37,35 @@ public class KSCrashBacktracing: Backtracer, Symbolicator {
         return addresses
     }
 
+    /// - Warning: Calls `pthread_mach_thread_np(thread)`, which takes libpthread's thread-list lock.
+    ///   If `thread` was suspended while holding that lock, this never returns. The SDK doesn't call
+    ///   this entry point; it uses `backtrace(ofMachThread:into:capacity:)` with a port resolved
+    ///   before the suspend.
     public func backtrace(
         of thread: pthread_t,
         into buffer: UnsafeMutablePointer<FrameAddress>,
         capacity: Int
     ) -> Int {
+        // Only reached by callers outside the SDK, which uses `backtrace(ofMachThread:…)`.
+        // `pthread_mach_thread_np` takes libpthread's thread-list lock for a thread other than the
+        // caller; see the protocol docs.
+        return backtrace(ofMachThread: pthread_mach_thread_np(thread), into: buffer, capacity: capacity)
+    }
+
+    public func backtrace(
+        ofMachThread thread: thread_t,
+        into buffer: UnsafeMutablePointer<FrameAddress>,
+        capacity: Int
+    ) -> Int {
         // Fills the caller's buffer from a stack-allocated context and cursor: no malloc, no runtime
-        // work. The `pthread_self()` workaround in `backtrace(of:)` is intentionally not repeated —
-        // this entry point only walks a suspended thread, never the caller.
+        // work, no blocking locks (KSCrash's capture lock is a try-lock; contention yields 0 frames). The `pthread_self()` workaround in `backtrace(of:)` is intentionally not
+        // repeated — this entry point only walks a suspended thread, never the caller.
         //
         // Use the already-suspended entry point: `captureBacktrace(thread:…)` is the running-thread
         // API, which re-suspends the target and logs via `fprintf` on error paths, both unsafe here.
         return Int(
             captureBacktraceFromSuspended(
-                machThread: pthread_mach_thread_np(thread),
+                machThread: thread,
                 addresses: buffer,
                 count: Int32(capacity),
                 isTruncated: nil
