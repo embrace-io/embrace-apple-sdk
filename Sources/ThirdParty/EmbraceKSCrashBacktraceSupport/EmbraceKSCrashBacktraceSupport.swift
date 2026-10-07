@@ -57,7 +57,7 @@ public class KSCrashBacktracing {
     /// top frame to the bottom.
     ///
     /// Unlike ``backtrace(of:)``, this returns nothing heap-allocated: the caller owns `buffer`. It
-    /// exists so the walk can run while `thread` is **suspended** without the walker touching the
+    /// exists so the walk can run while the target is **suspended** without the walker touching the
     /// heap — a `malloc` here can deadlock the whole process if the suspended thread holds the
     /// allocator lock.
     ///
