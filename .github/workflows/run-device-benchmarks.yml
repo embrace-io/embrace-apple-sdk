@@ -2,30 +2,12 @@ name: On Device Benchmarks
 
 on:
   workflow_call:
-    inputs:
-      strict:
-        description: 'Fail the job unless the Smoothness overhead gate passes.'
-        required: false
-        type: boolean
-        default: false
   workflow_dispatch:
-    inputs:
-      device:
-        description: 'BrowserStack device, as <model>-<iOS version>. Smoothness overhead sign-off needs a strict run on a 120Hz ProMotion device and one on a 60Hz device.'
-        required: false
-        type: string
-        default: 'iPhone 17 Pro-26'
-      strict:
-        description: 'Fail the job unless the Smoothness overhead gate passes. Keep on for release sign-off.'
-        required: false
-        type: boolean
-        default: true
   pull_request:
     paths:
       - '.github/workflows/run-device-benchmarks.yml'
       - '.github/workflows/browserstack.yml'
       - 'bin/perfcomp.py'
-      - 'bin/smoothness_overhead.py'
       - 'Package.swift'
       - 'Sources/**'
       - 'Examples/Benchmarks/**'
@@ -33,11 +15,9 @@ on:
 permissions:
   contents: read
 
-# Keyed by device too, so the 120Hz and 60Hz sign-off runs on one ref don't share a group. Only PR
-# runs cancel a superseded run; a manual sign-off run always runs to completion.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.device || 'default' }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   THRESHOLD_PCT: 5.0
@@ -45,29 +25,22 @@ env:
   TITLE: "🚀 Device Benchmarks (PR vs Main)"
 
 jobs:
-  # BrowserStack runs one session at a time, so the device builds run one after another: PR, then
-  # main, then Smoothness. Each runs as its own BrowserStack build with its own time limit, so a slow
-  # Smoothness suite can't take the launch and span benchmarks down with it.
   browserstack-pr:
     name: Run BrowserStack Tests on PR
     # Dependabot runs get no repository secrets, so the BrowserStack credentials would be empty.
     # Check the PR author, not github.actor: a person re-running the checks becomes the actor.
-    # A manual sign-off run needs only the Smoothness suite.
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]' }}
+    if: ${{ github.event.pull_request.user.login != 'dependabot[bot]' }}
     uses: ./.github/workflows/browserstack.yml
     secrets:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
     with:
-      device: ${{ inputs.device || 'iPhone 17 Pro-26' }}
-      # The Smoothness overhead suite runs in browserstack-smoothness, and the load calibration sweep
-      # only from run-smoothness-calibration.yml.
+      # The Smoothness suites run from their own workflows.
       skip_testing: 'BenchmarksUITests/SmoothnessOverheadUITests,BenchmarksUITests/SmoothnessLoadCalibrationUITests'
 
   browserstack-main:
     name: Run BrowserStack Tests on Main
     needs: [browserstack-pr]
-    # Only the PR-vs-main comparison uses main's results.
     if: success()
     uses: ./.github/workflows/browserstack.yml
     secrets:
@@ -75,32 +48,13 @@ jobs:
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
     with:
       ref: main
-      device: ${{ inputs.device || 'iPhone 17 Pro-26' }}
       skip_testing: 'BenchmarksUITests/SmoothnessOverheadUITests,BenchmarksUITests/SmoothnessLoadCalibrationUITests'
-
-  browserstack-smoothness:
-    name: Run BrowserStack Smoothness Overhead Tests on PR
-    # Waits for the other builds only to keep to one BrowserStack session, so it runs whatever they
-    # did. On a manual run they're skipped, and it starts straight away.
-    needs: [browserstack-pr, browserstack-main]
-    if: ${{ !cancelled() && github.event.pull_request.user.login != 'dependabot[bot]' }}
-    uses: ./.github/workflows/browserstack.yml
-    secrets:
-      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
-      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
-    with:
-      device: ${{ inputs.device || 'iPhone 17 Pro-26' }}
-      only_testing: 'BenchmarksUITests/SmoothnessOverheadUITests'
-      # 12 tests, each launching the app and settling before up to 10 measured iterations. The
-      # BrowserStack build took about 21 minutes on an iPhone 17 Pro (2026-10-01).
-      test_timeout_minutes: 40
 
   compare-results:
     name: Compare Performance Results
     needs: [browserstack-pr, browserstack-main]
     runs-on: ubuntu-latest
-    # Posts to the PR, so it needs one.
-    if: success() && github.event_name == 'pull_request'
+    if: success()
     permissions:
       pull-requests: write
       contents: read
@@ -131,50 +85,3 @@ jobs:
           TITLE: ${{ env.TITLE }}
         run: |
           python bin/perfcomp.py
-
-  smoothness-overhead:
-    name: Compare Smoothness Overhead
-    # As its own job, it can't skip the PR-vs-main comparison, or be skipped by it. Checks its own
-    # dependency's result: success() also requires every job upstream of it to have succeeded, and on
-    # a manual run the PR and main builds are skipped.
-    needs: [browserstack-smoothness]
-    runs-on: ubuntu-latest
-    if: ${{ !cancelled() && needs.browserstack-smoothness.result == 'success' }}
-    permissions:
-      pull-requests: write
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Setup Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        run: |
-          pip install scipy pygithub
-
-      - name: Run Smoothness Overhead Comparison
-        # Only a strict (release sign-off) run can fail the job.
-        continue-on-error: ${{ !inputs.strict }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PERF_PR: ${{ needs.browserstack-smoothness.outputs.results }}
-          REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          ALPHA: ${{ env.ALPHA }}
-          DEVICE: ${{ inputs.device || 'iPhone 17 Pro-26' }}
-          # Overrides the workflow-level TITLE, which is also perfcomp's comment marker.
-          TITLE: "🎞️ Smoothness Overhead (on vs off)"
-          # Blocks on manual (release sign-off) runs; PR runs only report.
-          STRICT: ${{ inputs.strict && '1' || '' }}
-          # Off arm hitch ratio band (ms/s, "low,high") per device class, from a Smoothness Load
-          # Calibration run. Empty leaves the baseline as context only.
-          OFF_HITCH_BAND_120: ''
-          OFF_HITCH_BAND_60: ''
-        run: |
-          python bin/smoothness_overhead.py

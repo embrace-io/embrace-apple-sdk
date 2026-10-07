@@ -1,0 +1,67 @@
+name: Smoothness Overhead
+
+# Release sign-off for the Smoothness overhead gate (bin/smoothness_overhead.py). Run once on a 120Hz
+# ProMotion device and once on a 60Hz device.
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: 'BrowserStack device, as <model>-<iOS version>. Sign-off needs a strict run on a 120Hz ProMotion device and one on a 60Hz device.'
+        required: false
+        type: string
+        default: 'iPhone 17 Pro-26'
+      strict:
+        description: 'Fail the job unless the Smoothness overhead gate passes. Keep on for release sign-off.'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# BrowserStack runs one session at a time, but this group doesn't stop a run overlapping a device
+# benchmark run, or a run on another device. An overlapping build queues on BrowserStack, and the
+# queued time counts against the test job's time limit. Start one run at a time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.device }}
+  cancel-in-progress: false
+
+jobs:
+  browserstack:
+    name: Run Smoothness Overhead Tests on BrowserStack
+    uses: ./.github/workflows/browserstack.yml
+    secrets:
+      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+    with:
+      device: ${{ inputs.device }}
+      only_testing: 'BenchmarksUITests/SmoothnessOverheadUITests'
+
+  report:
+    name: Compare Smoothness Overhead
+    needs: [browserstack]
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install scipy
+
+      - name: Run Smoothness Overhead Comparison
+        env:
+          PERF_PR: ${{ needs.browserstack.outputs.results }}
+          DEVICE: ${{ inputs.device }}
+          STRICT: ${{ inputs.strict && '1' || '' }}
+        run: |
+          python bin/smoothness_overhead.py

@@ -39,13 +39,11 @@ a calibration run; a scenario outside it is incomplete. Unset, the Off hitch rat
 Gates look metrics up by their whole display name, allowing a qualifier in parentheses (see `find`).
 A name that matches more than one metric is an error, so a gate never silently picks one.
 
-Every other paired metric is reported for information. The result is posted as a PR comment
-(when PR_NUMBER is set) and written to the job summary.
+Every other paired metric is reported for information. The result is written to the job summary.
 
 By default the script only reports. With STRICT=1 (release sign-off runs) it exits non-zero unless
 the overall result passes: any failed, inconclusive, incomplete or missing row, or no results at all,
-blocks. Results the script can't evaluate are reported as such, and block only with STRICT=1; a
-failure to post the PR comment is only a warning.
+blocks. Results the script can't evaluate are reported as such, and block only with STRICT=1.
 """
 
 import math
@@ -64,7 +62,7 @@ CPU_MAX_DELTA_PP = float(os.getenv("CPU_MAX_DELTA_PP", "1.0"))
 
 # Scenarios whose screen runs a frame load; their CPU utilization is informational only.
 LOADED_SCENARIOS = {"testScrolling"}
-TITLE = os.getenv("TITLE") or "Smoothness Overhead (on vs off)"
+TITLE = "Smoothness Overhead (on vs off)"
 DEVICE = os.getenv("DEVICE", "")
 STRICT = os.getenv("STRICT") == "1"
 # The refresh rate every arm must reach. Defaults to the device's own maximum ("Max Display Rate").
@@ -500,8 +498,7 @@ def evaluate(pairs):
 
 
 def render(gates, info, passed, has_results):
-    marker = f"<!-- perf-check-comment: {TITLE} -->"
-    body = [marker, f"### {TITLE}"]
+    body = [f"### {TITLE}"]
     if DEVICE:
         body.append(f"Device: `{DEVICE}`")
     body.append(
@@ -548,8 +545,8 @@ def render(gates, info, passed, has_results):
 
 
 def render_error(error):
-    """The comment for a run the script couldn't evaluate, so the failure shows on the PR."""
-    body = [f"<!-- perf-check-comment: {TITLE} -->", f"### {TITLE}"]
+    """The report for a run the script couldn't evaluate, so the failure shows in the summary."""
+    body = [f"### {TITLE}"]
     if DEVICE:
         body.append(f"Device: `{DEVICE}`")
     body.append("")
@@ -558,24 +555,6 @@ def render_error(error):
         body.append("")
         body.append("**Strict mode: this run blocks.**")
     return "\n".join(body)
-
-
-def post_comment(markdown):
-    """Posts or updates the PR comment. A failure (e.g. a read-only token) is only a warning: the
-    job summary already has the result."""
-    from github import Github, GithubException
-
-    try:
-        gh = Github(os.environ["GITHUB_TOKEN"])
-        pr = gh.get_repo(os.environ["REPO"]).get_pull(int(os.environ["PR_NUMBER"]))
-        marker = markdown.splitlines()[0]
-        for comment in pr.get_issue_comments():
-            if marker in comment.body:
-                comment.edit(markdown)
-                return
-        pr.create_issue_comment(markdown)
-    except GithubException as error:
-        print(f"::warning::Couldn't post the Smoothness overhead comment: {error}", file=sys.stderr)
 
 
 def main():
@@ -589,7 +568,7 @@ def main():
         gates, info, passed = evaluate(pairs)
         markdown = render(gates, info, passed, bool(pairs))
     except Exception as error:
-        # Report instead of crashing, so the PR shows why there's no result.
+        # Report instead of crashing, so the summary shows why there's no result.
         pairs, passed = None, False
         markdown = render_error(error)
     print(markdown)
@@ -598,9 +577,6 @@ def main():
     if summary:
         with open(summary, "a") as f:
             f.write(markdown + "\n")
-
-    if os.getenv("PR_NUMBER"):
-        post_comment(markdown)
 
     # Exits only after reporting, so a blocked run still shows why.
     if STRICT and not (pairs and passed):
