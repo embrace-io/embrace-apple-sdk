@@ -40,10 +40,12 @@ public class StartupInstrumentation: NSObject {
     }
 
     func endSpans(_ endTime: Date) {
-        state.withLock {
-            $0.firstFrameSpan?.end(time: endTime)
-            $0.rootSpan?.end(time: endTime)
-        }
+        // Spans are ended outside of the lock because ending a span runs every span processor synchronously,
+        // and the lock can also be taken from the main thread through the public startup APIs.
+        let (firstFrameSpan, rootSpan) = state.withLock { ($0.firstFrameSpan, $0.rootSpan) }
+
+        firstFrameSpan?.end(time: endTime)
+        rootSpan?.end(time: endTime)
     }
 
     func buildMainSpans() {
@@ -114,54 +116,56 @@ public class StartupInstrumentation: NSObject {
             return
         }
 
-        state.withLock {
-            let attributes = [
-                SpanSemantics.Startup.keyPrewarmed: provider.isPrewarm ? "true" : "false"
-            ]
+        // Spans are recorded outside of the lock because starting and ending a span runs every span processor
+        // synchronously, and the lock can also be taken from the main thread through the public startup APIs.
+        let rootSpan = state.withLock { $0.rootSpan }
 
-            // app init
+        let attributes = [
+            SpanSemantics.Startup.keyPrewarmed: provider.isPrewarm ? "true" : "false"
+        ]
+
+        // app init
+        otel.recordCompletedSpan(
+            name: SpanSemantics.Startup.appInitName,
+            type: .startup,
+            parent: rootSpan,
+            startTime: provider.constructorClosestToMainTime,
+            endTime: appDidFinishLaunchingTime,
+            attributes: attributes,
+            events: [],
+            errorCode: nil
+        )
+
+        // sdk setup
+        if let sdkSetupStartTime = provider.sdkSetupStartTime,
+            let sdkSetupEndTime = provider.sdkSetupEndTime
+        {
             otel.recordCompletedSpan(
-                name: SpanSemantics.Startup.appInitName,
+                name: SpanSemantics.Startup.sdkSetup,
                 type: .startup,
-                parent: $0.rootSpan,
-                startTime: provider.constructorClosestToMainTime,
-                endTime: appDidFinishLaunchingTime,
+                parent: rootSpan,
+                startTime: sdkSetupStartTime,
+                endTime: sdkSetupEndTime,
                 attributes: attributes,
                 events: [],
                 errorCode: nil
             )
+        }
 
-            // sdk setup
-            if let sdkSetupStartTime = provider.sdkSetupStartTime,
-                let sdkSetupEndTime = provider.sdkSetupEndTime
-            {
-                otel.recordCompletedSpan(
-                    name: SpanSemantics.Startup.sdkSetup,
-                    type: .startup,
-                    parent: $0.rootSpan,
-                    startTime: sdkSetupStartTime,
-                    endTime: sdkSetupEndTime,
-                    attributes: attributes,
-                    events: [],
-                    errorCode: nil
-                )
-            }
-
-            // sdk startup
-            if let sdkStartStarTime = provider.sdkStartStartTime,
-                let sdkStartEndTime = provider.sdkStartEndTime
-            {
-                otel.recordCompletedSpan(
-                    name: SpanSemantics.Startup.sdkStart,
-                    type: .startup,
-                    parent: $0.rootSpan,
-                    startTime: sdkStartStarTime,
-                    endTime: sdkStartEndTime,
-                    attributes: attributes,
-                    events: [],
-                    errorCode: nil
-                )
-            }
+        // sdk startup
+        if let sdkStartStarTime = provider.sdkStartStartTime,
+            let sdkStartEndTime = provider.sdkStartEndTime
+        {
+            otel.recordCompletedSpan(
+                name: SpanSemantics.Startup.sdkStart,
+                type: .startup,
+                parent: rootSpan,
+                startTime: sdkStartStarTime,
+                endTime: sdkStartEndTime,
+                attributes: attributes,
+                events: [],
+                errorCode: nil
+            )
         }
     }
 }
