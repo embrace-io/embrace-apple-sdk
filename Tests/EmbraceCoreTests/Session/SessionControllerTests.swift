@@ -1024,6 +1024,63 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(controller.userSessionId(ofPart: part.id), priorUserSessionId)
     }
 
+    func test_deferredUserSession_partStartedAfterTheResolutionButBeforeQueuedWork_waitsForIt() throws {
+        // given the prior process's last part, the bootstrap deferred, and a busy storage queue
+        let priorUserSessionId = seedUnexpiredPriorPart()
+        controller.bootstrapUserSessionWithNextPart()
+        let releaseFirstBlocker = blockStorageQueue()
+
+        // and a first part, whose resolution is queued
+        let first = try XCTUnwrap(controller.startSession(state: .foreground))
+
+        // and a second blocker after it, then work queued behind the resolution (the foreground end)
+        let reachedSecondBlocker = DispatchSemaphore(value: 0)
+        let releaseSecondBlocker = DispatchSemaphore(value: 0)
+        storage.coreData.performAsyncOperation { _ in
+            reachedSecondBlocker.signal()
+            _ = releaseSecondBlocker.wait(timeout: .now() + 10)
+        }
+        addTeardownBlock { releaseSecondBlocker.signal() }
+        controller.endSession()
+
+        // when the resolution has run, but not the queued work, and a second part starts
+        releaseFirstBlocker()
+        XCTAssertEqual(reachedSecondBlocker.wait(timeout: .now() + 10), .success)
+        let second = try XCTUnwrap(controller.startSession(state: .foreground))
+
+        // then the second part is deferred behind that work too
+        XCTAssertNil(second.userSessionId)
+
+        // and once it runs, it joins the user session after the first part
+        releaseSecondBlocker.signal()
+        storage.waitForPendingCoreDataOperations()
+        XCTAssertEqual(storage.fetchSession(id: first.id)?.userSessionId, priorUserSessionId)
+        XCTAssertEqual(storage.fetchSession(id: second.id)?.userSessionId, priorUserSessionId)
+        XCTAssertEqual(storage.fetchSession(id: second.id)?.userSessionPartIndex, 3)
+    }
+
+    func test_metadata_withNoPartWhileUserSessionWorkIsPending_usesTheResolvedUserSession() throws {
+        // given the prior process's last part, the bootstrap deferred, and a busy storage queue
+        let priorUserSessionId = seedUnexpiredPriorPart()
+        controller.bootstrapUserSessionWithNextPart()
+        let release = blockStorageQueue()
+
+        // and a first part that already ended, with nothing started after it
+        controller.startSession(state: .foreground)
+        controller.endSession()
+        XCTAssertNil(controller.currentSession)
+
+        // when setting a user-session property before any of it is resolved
+        let metadata = MetadataHandler(storage: storage, sessionController: controller)
+        metadata.addProperty(key: "plan", value: "pro", lifespan: .userSession)
+
+        // then it's stored for the user session the part was resolved to
+        release()
+        metadata.synchronizationQueue.sync {}
+        let properties = storage.fetchCustomProperties(userSessionId: priorUserSessionId, processId: ProcessIdentifier.current)
+        XCTAssertEqual(properties.first { $0.key == "plan" }?.value, "pro")
+    }
+
     func test_bootstrapPendingUserSession_withoutAPart_bootstraps() throws {
         // given the prior process's last part, and the bootstrap deferred to a part that isn't started
         let priorUserSessionId = seedUnexpiredPriorPart()

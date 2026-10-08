@@ -86,13 +86,21 @@ extension EmbraceStorage {
             return span
         }
 
-        let partRequest = fetchSessionRequest(id: EmbraceIdentifier(stringValue: partId))
-        let storedSpan = try? context.fetch(fetchSpanRequest(id: span.context.spanId, traceId: span.context.traceId)).first
+        let part: SessionRecord?
+        let storedSpan: SpanRecord?
+        do {
+            part = try context.fetch(fetchSessionRequest(id: EmbraceIdentifier(stringValue: partId))).first
+            storedSpan = try context.fetch(fetchSpanRequest(id: span.context.spanId, traceId: span.context.traceId)).first
+        } catch {
+            logger.critical("Error fetching the part of a span without user session:\n\(error.localizedDescription)")
+            return span
+        }
+
         let storedUserSessionId = storedSpan.flatMap {
             EmbraceAttributes.keyValueDecode($0.attributes)[SpanSemantics.Session.keyUserSessionId] as? String
         }
         guard
-            let userSessionId = (try? context.fetch(partRequest).first)?.userSessionIdRaw
+            let userSessionId = part?.userSessionIdRaw
                 ?? storedUserSessionId.flatMap({ $0.isEmpty ? nil : $0 })
         else {
             return span

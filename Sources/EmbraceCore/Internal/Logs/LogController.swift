@@ -236,13 +236,22 @@ class LogController: LogBatcherDelegate {
         return EmbraceIdentifier(stringValue: partId)
     }
 
+    /// The user session of the given part, waiting for it if it's still being resolved: from the session controller,
+    /// which keeps it after the part's record is deleted, or else from the part's record.
+    /// Must not be called on the main thread.
+    private func userSessionId(ofPart partId: EmbraceIdentifier) -> EmbraceIdentifier? {
+        sessionController?.userSessionId(ofPart: partId) ?? storage?.fetchUserSessionId(partId: partId)
+    }
+
     /// Stamps the user-session id of a log that's missing it (see `partMissingUserSessionId(in:)`), and returns it.
-    /// Synchronous read of the part's record, which runs after the resolution on the storage queue:
-    /// must not be called on the main thread.
+    /// Must not be called on the main thread (see `userSessionId(ofPart:)`).
     private func fillMissingUserSessionId(_ attributesBuilder: EmbraceLogAttributesBuilder) -> EmbraceIdentifier? {
         guard let partId = partMissingUserSessionId(in: attributesBuilder.attributes),
-            let userSessionId = storage?.fetchUserSessionId(partId: partId)
+            let userSessionId = userSessionId(ofPart: partId)
         else {
+            if let partId = partMissingUserSessionId(in: attributesBuilder.attributes) {
+                Embrace.logger.warning("Couldn't find the user session of the part \(partId.stringValue) of a log.")
+            }
             return nil
         }
 
@@ -301,8 +310,8 @@ extension LogController {
         }
 
         // A part's user session can still be being resolved on the storage queue right after the SDK starts (see
-        // `SessionController.startSession`): its stored record has it once that's done.
-        let userSessionId = session.userSessionId ?? storage?.fetchUserSessionId(partId: session.id)
+        // `SessionController.startSession`). This runs on the batcher's queue, so it can wait for it.
+        let userSessionId = session.userSessionId ?? userSessionId(ofPart: session.id)
 
         do {
             let resourcePayload = try createResourcePayload(

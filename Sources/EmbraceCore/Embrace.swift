@@ -172,7 +172,7 @@ package class Embrace {
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
 
         // Take the previous launch's critical logs (and remove any orphan pending-logs file) before anything here can
-        // log a `.critical`: `createUpload` and both stores' loads can, and the first one replaces the previous
+        // log a `.critical`: `createUpload` and both stores' loads can, and the first `.critical` replaces the previous
         // launch's file with this one's.
         let previousCriticalLogs = UnsentDataHandler.takeCriticalLogs(
             fileUrl: EmbraceFileSystem.criticalLogsURL,
@@ -380,7 +380,8 @@ package class Embrace {
             }
 
             // The user-session controller reconstructs the user session from it inside the first part's storage
-            // block, just before that part's record is created (see `SessionController.startSession`).
+            // block, just before that part's record is created (see `SessionController.startSession`), or on its
+            // own via `bootstrapPendingUserSession` if no part was started.
             sessionController.bootstrapUserSessionWithNextPart()
 
             // start instrumentation
@@ -457,8 +458,8 @@ package class Embrace {
         // The data from earlier launches is read from the storage and uploaded through the upload cache, and either
         // may still be loading. If one failed to load, that data (crash reports, sessions, logs and metadata) is kept
         // for a later launch instead: without the storage, crash reports would be sent without the resources the
-        // backend requires, and deleted; without the upload cache, nothing is sent but the metadata the unsent logs
-        // need would be cleaned up.
+        // backend requires, and deleted; without the upload cache, nothing could be sent, yet the cleanup would still
+        // delete the metadata the unsent logs need.
         // This waits for the loads on the calling queue, which must not be the main one. It also waits for the
         // first part's user session, resolved on the storage queue (see `SessionController.startSession`), so the
         // current user session read below is known.

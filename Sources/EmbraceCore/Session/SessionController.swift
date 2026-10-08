@@ -49,7 +49,7 @@ class SessionController: SessionControllable {
         /// While it's not zero, new parts are deferred too, so everything keeps its order.
         var pending = 0
 
-        /// The user session each deferred part was resolved to (none if the SDK was disabled by then).
+        /// The user session each deferred part was resolved to (a `nil` entry if the SDK was disabled by then).
         /// Only deferred parts are added, which only happens right after `Embrace.start`, so it stays small.
         var resolvedParts: [String: EmbraceUserSession?] = [:]
     }
@@ -166,9 +166,12 @@ class SessionController: SessionControllable {
         newState: SessionState,
         now: Date
     ) -> Bool {
+        // While user-session work is pending on the storage queue (see `startSession`), the in-memory user session
+        // isn't up to date, so the split is skipped: `attachPart` still ends an expired user session.
         guard newState == .foreground,
             let prev = prev,
             prev.state == .background,
+            !hasPendingUserSessionWork,
             let userSession = userSessionController?.currentUserSession,
             // Only a foreground-origin session is split at its cutoff. A background-only session is
             // never sliced at its own max; foregrounding it ends it whole,
@@ -220,9 +223,10 @@ class SessionController: SessionControllable {
     /// `s2`. The caller sets the in-memory `s2` snapshot; this method only writes records, so both the
     /// closed foreground-origin session and the new background-only tail upload as normal parts.
     ///
-    /// Runs on the storage queue while the bootstrap runs there, with the first part or on its own (see
-    /// `startSession`), before that part's record is created and before unsent data is uploaded, so the prior record is still present
-    /// and the OTel handler is ready to mint the tail span. Its storage writes run right away, in order.
+    /// Runs on the storage queue as part of the bootstrap, which runs inside the first part's storage block (before
+    /// that part's record is created) or on its own if no part was started (see `startSession`). Either way it runs
+    /// before unsent data is uploaded, so the prior record is still present, and the OTel handler is ready to mint
+    /// the tail span. Its storage writes run right away, in order.
     /// This is the cold-start equivalent of `applyBackgroundSplitIfNeeded`'s warm split.
     func writeColdStartBackgroundSplit(
         prior: EmbraceSession,
@@ -374,8 +378,9 @@ class SessionController: SessionControllable {
             // while it's still loading, on the main thread. So that part, and any other started before
             // it's resolved (to keep their order), get their user session on the storage queue instead,
             // right before their record is created. Until then the part has no user session: signals
-            // created meanwhile carry an empty user-session id, which is filled in from the part's
-            // record when they're stored (spans) or processed (logs).
+            // created meanwhile carry an empty user-session id, which is filled in when they're stored
+            // (spans) or processed (logs, log batches), and user-session metadata waits for it (see
+            // `MetadataHandler.currentContext(for:)`).
             let deferral = _userSessionResolution.withLock { resolution -> (deferred: Bool, bootstrap: Bool) in
                 guard resolution.bootstrapPending || resolution.pending > 0 else {
                     return (false, false)
@@ -531,8 +536,24 @@ class SessionController: SessionControllable {
         return userSession
     }
 
+    /// Whether user-session work is still queued on the storage queue (see `startSession`), so the in-memory
+    /// user session may not be up to date yet.
+    var hasPendingUserSessionWork: Bool {
+        _userSessionResolution.withLock { $0.pending > 0 }
+    }
+
+    /// The current user session's id once every user-session work queued so far has run (see `startSession`).
+    /// Must not be called on the main thread: it can wait for the storage queue.
+    func currentUserSessionIdAfterPendingWork() -> EmbraceIdentifier? {
+        if hasPendingUserSessionWork {
+            storage?.coreData.performOperation { _ in }
+        }
+        return currentUserSession?.id
+    }
+
     /// The user session of the given part, waiting for it if it's still being resolved on the storage queue
-    /// (see `startSession`). Must not be called on the main thread: it waits for the storage queue.
+    /// (see `startSession`). Only the current part and the deferred ones are known: `nil` for any other.
+    /// Must not be called on the main thread: it can wait for the storage queue.
     func userSessionId(ofPart partId: EmbraceIdentifier) -> EmbraceIdentifier? {
         if let session = currentSession, session.id == partId, let userSessionId = session.userSessionId {
             return userSessionId
@@ -814,7 +835,7 @@ class SessionController: SessionControllable {
     /// the prior process recorded (e.g. `.manual` from a manual end that the process executed
     /// just before dying), and preserves the precedence rule that the first-set reason wins.
     ///
-    /// **Lock contract:** this method MUST NOT acquire `SessionController.lock`. It is reached
+    /// **Lock contract:** this method MUST NOT acquire `SessionController.lock`. It can be reached
     /// from `SessionController.startSession` (via `attachPart`), where `lock` is already held,
     /// and re-acquiring the non-reentrant `UnfairLock` on the same thread is undefined behavior.
     /// Keep this method to storage-only writes.

@@ -22,7 +22,15 @@ protocol SessionControllable: AnyObject {
     /// user session id without taking a second dependency.
     var currentUserSession: EmbraceUserSession? { get }
 
+    /// Whether user-session work is still queued on the storage queue, so `currentUserSession` may not be up to date.
+    var hasPendingUserSessionWork: Bool { get }
+
+    /// The current user session's id once every user-session work queued so far has run.
+    /// Must not be called on the main thread.
+    func currentUserSessionIdAfterPendingWork() -> EmbraceIdentifier?
+
     /// The user session of the given part, waiting for it if it's still being resolved on the storage queue.
+    /// Only the current part and the deferred ones are known: `nil` for any other.
     /// Must not be called on the main thread.
     func userSessionId(ofPart partId: EmbraceIdentifier) -> EmbraceIdentifier?
 

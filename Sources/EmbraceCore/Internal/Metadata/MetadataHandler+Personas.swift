@@ -36,7 +36,10 @@ extension MetadataHandler {
     }
 
     /// Adds a persona tag with the given value and lifespan.
-    /// If the persona tag is too long or no user session is active for a `.userSession` lifespan, the persona is dropped and a warning is logged.
+    /// If the persona tag is too long, or for a `.userSession` lifespan there's no part or it ends up with no user
+    /// session, the persona is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, it waits for it
+    /// (see `currentContext(for:)`).
     /// - Parameters:
     ///   - value: The value of the persona tag to add.
     ///   - lifespan: The lifespan of the persona tag to add.
@@ -57,7 +60,9 @@ extension MetadataHandler {
     }
 
     /// Removes the persona tag for the given value and lifespan.
-    /// If no user session is active for a `.userSession` lifespan, the removal is dropped and a warning is logged.
+    /// For a `.userSession` lifespan, if there's no part or it ends up with no user session, the removal is dropped
+    /// and a warning is logged. Right after start, while the current part's user session is still being resolved,
+    /// it waits for it (see `currentContext(for:)`).
     /// - Parameters:
     ///   - value: The key of the persona tag to remove.
     ///   - lifespan: The lifespan of the persona tag to remove. This was declared when this persona was added.

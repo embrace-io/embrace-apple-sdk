@@ -170,18 +170,33 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         let client = try makeClient(storage: stalledStorage)
         try client.start()
 
-        // when setting a user-session property and persona before the user session is resolved
+        // when setting, updating and removing user-session properties and personas before the user session is
+        // resolved, and reading the personas
         client.metadata.addProperty(key: "plan", value: "pro", lifespan: .userSession)
+        client.metadata.addProperty(key: "temporary", value: "value", lifespan: .userSession)
+        client.metadata.updateProperty(key: "plan", value: "max", lifespan: .userSession)
+        client.metadata.removeProperty(key: "temporary", lifespan: .userSession)
         client.metadata.add(persona: "tester", lifespan: .userSession)
+        client.metadata.add(persona: "removed", lifespan: .userSession)
+        client.metadata.remove(persona: "removed", lifespan: .userSession)
+        var currentPersonas: [String] = []
+        let personasRead = expectation(description: "personas read")
+        client.metadata.getCurrentPersonas { personas in
+            currentPersonas = personas
+            personasRead.fulfill()
+        }
 
-        // then once the storage loads, they're stored for the user session the part was resolved to
+        // then once the storage loads, they're applied in order to the user session the part was resolved to
         XCTAssertTrue(releaseLock(), "start waited for the storage to load")
+        wait(for: [personasRead], timeout: .defaultTimeout)
+        XCTAssertEqual(currentPersonas.sorted(), ["tester"])
         client.metadata.synchronizationQueue.sync {}
         let userSessionId = EmbraceIdentifier(stringValue: try XCTUnwrap(client.currentUserSessionId()))
         let properties = stalledStorage.fetchCustomProperties(userSessionId: userSessionId, processId: ProcessIdentifier.current)
-        XCTAssertEqual(properties.first { $0.key == "plan" }?.value, "pro")
+        XCTAssertEqual(properties.first { $0.key == "plan" }?.value, "max")
+        XCTAssertNil(properties.first { $0.key == "temporary" })
         let personas = stalledStorage.fetchPersonaTags(userSessionId: userSessionId, processId: ProcessIdentifier.current)
-        XCTAssertTrue(personas.contains { $0.key == "tester" })
+        XCTAssertEqual(personas.map(\.key), ["tester"])
     }
 
     func test_start_withAStalledStorage_logCreatedRightAway_getsTheUserSession() throws {

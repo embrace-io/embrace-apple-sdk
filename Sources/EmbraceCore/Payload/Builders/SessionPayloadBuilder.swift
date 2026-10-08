@@ -14,9 +14,10 @@ class SessionPayloadBuilder {
 
     class func build(for session: EmbraceSession, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]>? {
 
-        // Use the stored record. The storage queue sets values the in-memory copies lack: the part number, and
-        // the user session of a part whose resolution was deferred (see `SessionController.startSession`).
-        let session = storage.fetchSession(id: session.id) ?? session
+        // The storage queue sets values the in-memory copies lack: the part number, and the user session of a
+        // part whose resolution was deferred (see `SessionController.startSession`). Only those are taken from
+        // the stored record; the rest stays as given.
+        let session = storage.fetchSession(id: session.id).map { session.withStorageAssignedValues(from: $0) } ?? session
 
         // fetch properties
         // note that these are scoped to the user session, so every part of the same

@@ -31,6 +31,7 @@ package protocol EmbraceSpanProcessorDelegate: AnyObject {
     /// The identifier for the current session part, or `nil` when no part is active.
     var currentSessionId: EmbraceIdentifier? { get }
 
-    /// The identifier for the current user session, or `nil` when no user session is active.
+    /// The identifier for the current user session, or `nil` when no user session is active, or while
+    /// the current part's user session is still being resolved (right after start).
     var currentUserSessionId: EmbraceIdentifier? { get }
 }

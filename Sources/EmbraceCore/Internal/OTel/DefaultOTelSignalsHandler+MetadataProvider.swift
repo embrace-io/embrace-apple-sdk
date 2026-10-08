@@ -17,7 +17,8 @@ extension DefaultOTelSignalsHandler: EmbraceMetadataProvider {
         sessionController?.currentSession?.id
     }
 
-    /// Returns the identifier for the current user session, or `nil` when no user session is active.
+    /// Returns the identifier for the current user session, or `nil` when no user session is active, or while
+    /// the current part's user session is still being resolved (right after start).
     package var currentUserSessionId: EmbraceIdentifier? {
         sessionController?.currentSession?.userSessionId
     }

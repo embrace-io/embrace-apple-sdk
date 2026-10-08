@@ -52,7 +52,10 @@ package class MetadataHandler {
 
     /// Adds a property with the given key, value and lifespan.
     /// If there are 2 properties with the same key but different lifespans, the one with a shorter lifespan will be used.
-    /// If the key is too long or no user session is active for a `.userSession` lifespan, the property is dropped and a warning is logged.
+    /// If the key is too long, or for a `.userSession` lifespan there's no part or it ends up with no user session,
+    /// the property is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, it waits for it
+    /// (see `currentContext(for:)`).
     /// - Parameters:
     ///   - key: The key of the property to add. Can not be longer than 128 characters.
     ///   - value: The value of the property to add. Will be truncated if its longer than 1024 characters.
@@ -98,7 +101,9 @@ package class MetadataHandler {
     }
 
     /// Updates the value of a property for a given key and lifespan.
-    /// If no user session is active for a `.userSession` lifespan, the update is dropped and a warning is logged.
+    /// For a `.userSession` lifespan, if there's no part or it ends up with no user session, the update is dropped
+    /// and a warning is logged. Right after start, while the current part's user session is still being resolved,
+    /// it waits for it (see `currentContext(for:)`).
     /// - Parameters:
     ///   - key: The key of the property to update.
     ///   - value: The value of the property to update. Will be truncated if its longer than 1024 characters.
@@ -131,7 +136,9 @@ package class MetadataHandler {
     }
 
     /// Removes the property for the given key and lifespan.
-    /// If no user session is active for a `.userSession` lifespan, the removal is dropped and a warning is logged.
+    /// For a `.userSession` lifespan, if there's no part or it ends up with no user session, the removal is dropped
+    /// and a warning is logged. Right after start, while the current part's user session is still being resolved,
+    /// it waits for it (see `currentContext(for:)`).
     /// - Parameters:
     ///   - key: The key of the property to remove.
     ///   - lifespan: The lifespan of the property to remove.
@@ -140,7 +147,9 @@ package class MetadataHandler {
     }
 
     /// Removes the metadata for the given key, type and lifespan.
-    /// If no user session is active for a `.userSession` lifespan, the removal is dropped and a warning is logged.
+    /// For a `.userSession` lifespan, if there's no part or it ends up with no user session, the removal is dropped
+    /// and a warning is logged. Right after start, while the current part's user session is still being resolved,
+    /// it waits for it (see `currentContext(for:)`).
     /// - Parameters:
     ///  - key: The key of the metadata to remove.
     ///  - type: The type of the metadata to remove.
@@ -199,6 +208,10 @@ extension MetadataHandler {
 
         /// The user session of this part, which was still being resolved when the operation was called.
         case userSessionOfPart(EmbraceIdentifier)
+
+        /// The current user session once the user-session work pending when the operation was called has run
+        /// (there was no part then).
+        case currentUserSessionAfterPendingWork
     }
 
     /// Returns the context of the `lifespanId` to use for the given lifespan, or `nil` if there's no valid context
@@ -208,10 +221,15 @@ extension MetadataHandler {
     /// the current session part. That's what makes this metadata span every part of the user session.
     /// Right after `Embrace.start`, the current part's user session can still be being resolved on the storage
     /// queue (see `SessionController.startSession`): the operation then uses that part's user session, once known.
+    /// With no part while user-session work is pending, it uses the current user session once that work has run.
     private func currentContext(for lifespan: MetadataRecordLifespan) -> LifespanContext? {
         if lifespan == .userSession {
-            if let part = sessionController?.currentSession, part.userSessionId == nil {
-                return .userSessionOfPart(part.id)
+            if let part = sessionController?.currentSession {
+                if part.userSessionId == nil {
+                    return .userSessionOfPart(part.id)
+                }
+            } else if sessionController?.hasPendingUserSessionWork == true {
+                return .currentUserSessionAfterPendingWork
             }
             guard let userSessionId = sessionController?.currentUserSession?.id.stringValue else {
                 Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
@@ -226,8 +244,8 @@ extension MetadataHandler {
         }
     }
 
-    /// Returns the `lifespanId` of the given context, or `nil` if the part it refers to ended up without a user
-    /// session (in which case the operation is dropped). Called on `synchronizationQueue`: it can wait for the
+    /// Returns the `lifespanId` of the given context, or `nil` if it ended up without a user session (in which case
+    /// the operation is dropped). Called on `synchronizationQueue`: it can wait for the
     /// storage queue.
     private func lifespanId(for context: LifespanContext) -> String? {
         switch context {
@@ -239,14 +257,24 @@ extension MetadataHandler {
                 return nil
             }
             return userSessionId.stringValue
+        case .currentUserSessionAfterPendingWork:
+            guard let userSessionId = sessionController?.currentUserSessionIdAfterPendingWork() else {
+                Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
+                return nil
+            }
+            return userSessionId.stringValue
         }
     }
 
-    /// The id of the current user session, waiting for it if the current part's is still being resolved
-    /// (see `currentContext(for:)`). Called on `synchronizationQueue`.
+    /// The id of the current user session, waiting for it if it's still being resolved (see `currentContext(for:)`).
+    /// Called on `synchronizationQueue`.
     func currentUserSessionIdWaitingForResolution() -> EmbraceIdentifier? {
-        if let part = sessionController?.currentSession, part.userSessionId == nil {
-            return sessionController?.userSessionId(ofPart: part.id)
+        if let part = sessionController?.currentSession {
+            if part.userSessionId == nil {
+                return sessionController?.userSessionId(ofPart: part.id)
+            }
+        } else if sessionController?.hasPendingUserSessionWork == true {
+            return sessionController?.currentUserSessionIdAfterPendingWork()
         }
         return sessionController?.currentUserSession?.id
     }

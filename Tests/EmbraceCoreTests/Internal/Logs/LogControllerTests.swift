@@ -444,6 +444,25 @@ class LogControllerTests: XCTestCase {
         XCTAssertEqual(storage?.fetchCustomPropertiesForUserSessionIdReceivedParameter, userSessionId)
     }
 
+    func test_createLog_afterThePartRecordIsGone_usesTheSessionControllerUserSession() throws {
+        // given a part whose user session is only known to the session controller (its record was deleted)
+        let part = MockSession(
+            id: .random, processId: .random, state: .foreground, traceId: "trace", spanId: "span", startTime: Date())
+        sessionController.currentSession = part
+        let userSessionId = EmbraceIdentifier.random
+        sessionController.stubbedUserSessionIdOfPart = userSessionId
+        storage?.stubbedUserSessionId = nil
+        givenLogController()
+
+        // when creating a log
+        var createdLog: EmbraceLog?
+        whenCreatingLog { createdLog = $0 }
+
+        // then it has that user session
+        let attributes = try XCTUnwrap(createdLog).attributes
+        XCTAssertEqual(attributes[LogSemantics.keyUserSessionId] as? String, userSessionId.stringValue)
+    }
+
     func test_createLog_withAResolvedUserSession_keepsIt() throws {
         // given a part with its user session, and a record that would say otherwise
         let part = randomSession()

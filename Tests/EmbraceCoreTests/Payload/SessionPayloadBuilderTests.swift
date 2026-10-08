@@ -137,6 +137,30 @@ final class SessionPayloadBuilderTests: XCTestCase {
         XCTAssertEqual(attributes["emb.properties.prop"], "value")
     }
 
+    func test_doesNotTakeTheBackfilledTerminationReasonFromTheStoredSession() throws {
+        // given a stored part whose record got a termination reason backfilled, and the in-memory copy without it
+        let session = try XCTUnwrap(
+            storage.addSession(
+                id: TestConstants.sessionId,
+                processId: ProcessIdentifier.current,
+                state: .foreground,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: Date(timeIntervalSince1970: 0),
+                endTime: Date(timeIntervalSince1970: 60),
+                userSessionId: .random,
+                userSessionPartIndex: 1
+            ))
+        storage.setUserSessionTerminationReasonOnLatestSessionIfNeeded(.manual)
+
+        // when building a session payload from the in-memory copy
+        let payload = SessionPayloadBuilder.build(for: session, storage: storage)
+
+        // then the payload has no termination reason, as the in-memory copy
+        let sessionSpan = try XCTUnwrap(payload?.data["spans"]?.first { $0.name == "emb-session" })
+        XCTAssertNil(sessionSpan.attributes.first { $0.key == "emb.user_session_termination_reason" })
+    }
+
     func test_userSessionMetadata_isIncludedInEveryPartOfTheUserSession() throws {
         let userSessionId = EmbraceIdentifier.random
 

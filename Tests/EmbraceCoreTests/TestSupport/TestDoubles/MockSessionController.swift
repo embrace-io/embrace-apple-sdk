@@ -28,6 +28,11 @@ class MockSessionController: SessionControllable {
     var currentSessionSpan: EmbraceSpan?
     var currentUserSession: EmbraceUserSession?
 
+    var hasPendingUserSessionWork = false
+    func currentUserSessionIdAfterPendingWork() -> EmbraceIdentifier? {
+        currentUserSession?.id
+    }
+
     /// What `userSessionId(ofPart:)` returns. Defaults to the current user session's id.
     var stubbedUserSessionIdOfPart: EmbraceIdentifier?
     private(set) var userSessionIdOfPartRequests: [EmbraceIdentifier] = []

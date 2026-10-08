@@ -262,7 +262,7 @@ extension EmbraceStorage {
 
     /// Updates values for the given session id
     /// - Returns: An in-memory copy of the given session with the given values applied.
-    ///   The record is updated asynchronously, and values only set by the storage (like the session number) aren't refreshed.
+    ///   The record is updated asynchronously, and values only set by the storage (like the session number, or a deferred part's user session) aren't refreshed.
     @discardableResult
     package func updateSession(
         session: EmbraceSession,
@@ -379,6 +379,35 @@ extension EmbraceSession {
             userSessionInactivityTimeout: userSession.inactivityTimeout,
             userSessionLastForegroundEnd: userSession.lastForegroundPartEnd,
             userSessionPartIndex: userSession.partIndex,
+            userSessionTerminationReason: userSessionTerminationReason
+        )
+    }
+
+    /// Returns a copy of this session with the values that only the storage assigns taken from `stored`, the
+    /// session's stored record: the part number and, if this copy has no user session, the user session.
+    /// Everything else (like the termination reason, which is only backfilled into the record) is this copy's.
+    package func withStorageAssignedValues(from stored: EmbraceSession) -> EmbraceSession {
+        let userSessionSource: EmbraceSession = userSessionId == nil ? stored : self
+        return ImmutableSessionRecord(
+            id: id,
+            processId: processId,
+            state: state,
+            traceId: traceId,
+            spanId: spanId,
+            startTime: startTime,
+            endTime: endTime,
+            lastHeartbeatTime: lastHeartbeatTime,
+            crashReportId: crashReportId,
+            coldStart: coldStart,
+            cleanExit: cleanExit,
+            appTerminated: appTerminated,
+            sessionNumber: stored.sessionNumber,
+            userSessionId: userSessionSource.userSessionId,
+            userSessionStartTime: userSessionSource.userSessionStartTime,
+            userSessionMaxDuration: userSessionSource.userSessionMaxDuration,
+            userSessionInactivityTimeout: userSessionSource.userSessionInactivityTimeout,
+            userSessionLastForegroundEnd: userSessionLastForegroundEnd ?? userSessionSource.userSessionLastForegroundEnd,
+            userSessionPartIndex: userSessionSource.userSessionPartIndex,
             userSessionTerminationReason: userSessionTerminationReason
         )
     }

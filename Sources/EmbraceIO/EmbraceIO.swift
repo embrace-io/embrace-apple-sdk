@@ -70,6 +70,7 @@ public class EmbraceIO {
     }
 
     /// Returns the identifier for the current Embrace user session, if any.
+    /// Right after `start(options:)` this can be `nil` for a moment, until the user session is resolved.
     public var currentUserSessionId: String? {
         Embrace.client?.currentUserSessionId()
     }
