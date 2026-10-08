@@ -14,6 +14,11 @@ public class MockSpanProcessor: SpanProcessor {
     @TestLocked public private(set) var didShutdown = false
     @TestLocked public private(set) var didForceFlush = false
 
+    /// Called synchronously from `onStart`, before the span is recorded.
+    @TestLocked public var onStartCallback: ((ReadableSpan) -> Void)?
+    /// Called synchronously from `onEnd`, before the span is recorded.
+    @TestLocked public var onEndCallback: ((ReadableSpan) -> Void)?
+
     public init() {}
 
     public let isStartRequired: Bool = true
@@ -21,10 +26,14 @@ public class MockSpanProcessor: SpanProcessor {
     public let isEndRequired: Bool = true
 
     public func onStart(parentContext: SpanContext?, span: ReadableSpan) {
+        onStartCallback?(span)
+
         startedSpans.append(span.toSpanData())
     }
 
     public func onEnd(span: ReadableSpan) {
+        onEndCallback?(span)
+
         endedSpans.append(span.toSpanData())
     }
 

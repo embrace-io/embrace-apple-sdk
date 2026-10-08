@@ -36,6 +36,9 @@ jobs:
             filter: "EmbraceIOTestAppUITests/EmbraceIOTestSwiftUI,EmbraceIOTestAppUITests/EmbraceIOTestViewUITests"
     permissions:
       checks: write
+    env:
+      # Work-around for the plugin dependency being included in the iOS target; see bin/test.
+      IS_XCTEST: true
 
     steps:
       - name: Select Xcode
@@ -54,9 +57,24 @@ jobs:
       - name: Erase Simulators
         run: |
             xcrun simctl erase all
-     # - name: Boot Simulator
-     #   run: |
-     #     xcrun simctl boot "${{ matrix.device }}"
+
+      - name: Boot Simulator
+        id: sim
+        env:
+          DEVICE: ${{ matrix.device }}
+          IOS_VERSION: ${{ matrix.ios_version }}
+        run: |
+          RUNTIME="com.apple.CoreSimulator.SimRuntime.iOS-${IOS_VERSION//./-}"
+          UDID=$(xcrun simctl list devices available -j \
+            | jq -r --arg rt "$RUNTIME" --arg name "$DEVICE" '.devices[$rt][]? | select(.name == $name) | .udid' \
+            | head -1)
+          if [[ -z "$UDID" ]]; then
+            echo "::error::No available '$DEVICE' simulator on $RUNTIME"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          xcrun simctl bootstatus "$UDID" -b
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
       - name: Cache SPM Dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -74,27 +92,68 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
+      - name: Build for Testing
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" \
+            -scheme "EmbraceIOTestApp" \
+            -derivedDataPath "build/DerivedData" \
+            -destination "id=$UDID" \
+            | xcbeautify --renderer github-actions
+
+      # The first launch of the app on a freshly erased simulator spends about a minute in dyld.
+      # Launching it once here moves most of that cost out of the first test; the first test's
+      # launch still takes about 30 s, which is why the per-test allowance below is 120 s. The app
+      # does not start the Embrace SDK on launch, and it is uninstalled afterwards so the tests
+      # get a clean container.
+      - name: Warm Up the App
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          APP="build/DerivedData/Build/Products/Debug-iphonesimulator/EmbraceIOTestApp.app"
+          xcrun simctl install "$UDID" "$APP"
+          time xcrun simctl launch "$UDID" com.embrace.EmbraceIOTestApp
+          sleep 20
+          xcrun simctl terminate "$UDID" com.embrace.EmbraceIOTestApp || true
+          xcrun simctl uninstall "$UDID" com.embrace.EmbraceIOTestApp
+
       - name: Run UI Tests (${{ matrix.test_group.name }})
         env:
-          IS_XCTEST: true
+          UDID: ${{ steps.sim.outputs.udid }}
+          TEST_FILTER: ${{ matrix.test_group.filter }}
         run: |
           set -o pipefail
           mkdir -p build
-          IFS=',' read -ra FILTERS <<< "${{ matrix.test_group.filter }}"
-          xcodebuild \
+          IFS=',' read -ra FILTERS <<< "$TEST_FILTER"
+          xcodebuild test-without-building \
             -project "./Examples/EmbraceIOTestApp/EmbraceIOTestApp.xcodeproj" \
             -scheme "EmbraceIOTestApp" \
             -derivedDataPath "build/DerivedData" \
             -resultBundlePath ".build/test/output" \
-            -destination "platform=iOS Simulator,OS=${{ matrix.ios_version }},name=${{ matrix.device }}" \
+            -destination "id=$UDID" \
             -parallel-testing-enabled NO \
             -test-timeouts-enabled YES \
-            -default-test-execution-time-allowance 60 \
+            -default-test-execution-time-allowance 120 \
             -maximum-test-execution-time-allowance 180 \
-            "${FILTERS[@]/#/-only-testing:}" \
-            test 2>&1 \
-            | tee >(awk '{ printf "[%s] %s\n", strftime("%H:%M:%S"), $0; fflush() }' > build/xcodebuild.log) \
+            "${FILTERS[@]/#/-only-testing:}" 2>&1 \
+            | tee build/xcodebuild.log \
             | xcbeautify --renderer github-actions
+
+      # xcbeautify can report a test that exceeded its execution time allowance as passed. The
+      # result bundle records it as failed, so report failures from there.
+      - name: Report Failures from the Result Bundle
+        if: always()
+        run: |
+          BUNDLE=".build/test/output.xcresult"
+          if [[ ! -d "$BUNDLE" ]]; then
+            echo "No result bundle at $BUNDLE"
+            exit 0
+          fi
+          xcrun xcresulttool get test-results summary --path "$BUNDLE" \
+            | jq -r '.testFailures[]? | "::error title=\(.testName)::\(.testIdentifierString) — \(.failureText)"'
 
       - name: Upload xcodebuild log
         if: always()

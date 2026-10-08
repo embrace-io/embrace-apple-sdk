@@ -53,16 +53,15 @@ final class ExperimentsLogAttributeTests: XCTestCase {
 
     /// Creates a log through the controller and returns the attributes it ended up with.
     private func createLog() throws -> EmbraceAttributes {
-        let expectation = expectation(description: "log created")
-        var attributes: EmbraceAttributes = [:]
+        var created: EmbraceLog?
 
         controller.createLog("message", severity: .info) { log in
-            attributes = log?.attributes ?? [:]
-            expectation.fulfill()
+            created = log
         }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
-        return attributes
+        // The completion runs on the controller's queue, so it has run once the queue drains.
+        controller.queue.sync {}
+        return try XCTUnwrap(created, "createLog didn't create a log").attributes
     }
 
     private func experiments(in attributes: EmbraceAttributes) -> String? {
@@ -152,8 +151,8 @@ final class ExperimentsBridgeLogAttributeTests: XCTestCase {
 
     /// Emits a log the way the bridge does and returns the attributes it was stored with.
     private func emitLog(attributes: EmbraceAttributes = [:]) throws -> EmbraceAttributes {
+        // Saved synchronously, so it can be fetched right away.
         handler.onEmitLog(MockLog(attributes: attributes))
-        wait(delay: .defaultTimeout)
 
         let stored = try XCTUnwrap(storage.fetchAllLogs().first)
         return stored.attributes

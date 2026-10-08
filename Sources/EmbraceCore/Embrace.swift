@@ -69,8 +69,8 @@ package class Embrace {
     let captureServices: CaptureServices
 
     /// Entered on init and left exactly once, when `start()` resolves (either by starting the
-    /// SDK or by finding it disabled). OTel child span forwarding waits on this group, so it
-    /// must never stay entered once `start()` has run, or forwarding would block forever.
+    /// SDK or by finding it disabled). OTel child span and log forwarding waits on this group, so
+    /// it must never stay entered once `start()` has run, or forwarding would block forever.
     package let captureServicesGroup: DispatchGroup
 
     /// Tracks whether `captureServicesGroup` was already left. Guarded by `_syncLock`.
@@ -182,6 +182,15 @@ package class Embrace {
 
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options, configuration: config.configurable)
+
+        // Persist the critical resources before anything else touches the storage.
+        // The backend drops payloads without them, and since the storage context is serial,
+        // enqueuing them first guarantees every later read sees them without blocking this thread.
+        let criticalResources = AppInfoCaptureService.criticalResources.merging(DeviceInfoCaptureService.criticalResources) { current, _ in current }
+        storage.addCriticalResources(
+            criticalResources,
+            processId: ProcessIdentifier.current
+        )
 
         // initialize session controller
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
@@ -315,7 +324,7 @@ package class Embrace {
             guard config.isSDKEnabled else {
                 Embrace.logger.warning("Embrace can't start when disabled!")
 
-                // Nothing else will release the group, and OTel child span forwarding waits on it.
+                // Nothing else will release the group, and OTel child span and log forwarding waits on it.
                 releaseCaptureServicesGroup()
                 return self
             }
@@ -466,8 +475,8 @@ package class Embrace {
 
     /// Waits synchronously for all queued SDK work to drain.
     ///
-    /// Drains the internal processing queue and the OTel bridge's span pipeline so the SDK
-    /// is idle before the caller continues. Intended for benchmarks and tests — exposed
+    /// Drains the internal processing queue and the OTel bridge's span and log pipelines so the
+    /// SDK is idle before the caller continues. Intended for benchmarks and tests — exposed
     /// publicly via `@_spi(Private)` on `EmbraceIO`.
     package func waitForAllWork() {
         // Don't use `asyncAndWait(::)` — it crashes on iOS 16.4 sim. Radar: FB21077492.

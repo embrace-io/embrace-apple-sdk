@@ -405,8 +405,7 @@
                     name: SpanSemantics.Smoothness.name,
                     type: .smoothness,
                     startTime: startTime,
-                    attributes: [SpanSemantics.Smoothness.keyComplete: false],
-                    persistsAsynchronously: true
+                    attributes: [SpanSemantics.Smoothness.keyComplete: false]
                 )
             else {
                 return

@@ -106,7 +106,6 @@ extension RemoteConfig: EmbraceConfigurable {
         HangLimits(
             hangThreshold: payload.hangLimitsHangThreshold,
             hangPerSession: payload.hangLimitsHangPerSession,
-            reportsWatchdogEvents: payload.hangLimitsReportsWatchdogEvents,
             sampleTriggerThreshold: payload.hangLimitsSampleTriggerThreshold,
             samplePollInterval: payload.hangLimitsSamplePollInterval
         )
@@ -235,7 +234,6 @@ extension RemoteConfig {
         let limits = HangLimits(
             hangThreshold: payload.hangLimitsHangThreshold,
             hangPerSession: payload.hangLimitsHangPerSession,
-            reportsWatchdogEvents: payload.hangLimitsReportsWatchdogEvents,
             sampleTriggerThreshold: payload.hangLimitsSampleTriggerThreshold,
             samplePollInterval: payload.hangLimitsSamplePollInterval
         )

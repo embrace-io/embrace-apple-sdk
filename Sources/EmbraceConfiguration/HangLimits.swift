@@ -13,8 +13,6 @@ public struct HangLimits: Equatable {
     public static let defaultHangThreshold: TimeInterval = 0.249
     /// Default maximum number of captured hangs per session.
     public static let defaultHangPerSession: UInt = 20
-    /// Default for collecting watchdog reports for hangs that do not recover.
-    public static let defaultReportsWatchdogEvents = false
     /// Default trigger for the during-block sampler.
     public static let defaultSampleTriggerThreshold: TimeInterval = 0.15
     /// Default poll cadence for the during-block sampler.
@@ -47,9 +45,6 @@ public struct HangLimits: Equatable {
     /// Maximum number of captured hangs in a session.
     public let hangPerSession: UInt
 
-    /// Collects crash reports for Hangs that do not recover.
-    public let reportsWatchdogEvents: Bool
-
     /// How long (in seconds) the main thread must be continuously busy before the during-block
     /// sampler snapshots it. Capped at ``sampleTriggerFraction`` of `hangThreshold` — a fixed headroom
     /// below the reported-hang threshold so the snapshot lands inside the confirmed window — and
@@ -66,7 +61,6 @@ public struct HangLimits: Equatable {
     /// - Parameters:
     ///   - hangThreshold: Minimum duration (in seconds) a frame delay must exceed to be reported as a hang.
     ///   - hangPerSession: Maximum number of captured hangs in a session.
-    ///   - reportsWatchdogEvents: Whether crash reports are collected for hangs that do not recover.
     ///   - sampleTriggerThreshold: How long the main thread must be busy before the during-block
     ///     sampler snapshots it. Clamped as described on the property.
     ///   - samplePollInterval: How often the background sampler checks main-thread liveness. Clamped
@@ -74,7 +68,6 @@ public struct HangLimits: Equatable {
     public init(
         hangThreshold: TimeInterval = HangLimits.defaultHangThreshold,
         hangPerSession: UInt = HangLimits.defaultHangPerSession,
-        reportsWatchdogEvents: Bool = HangLimits.defaultReportsWatchdogEvents,
         sampleTriggerThreshold: TimeInterval = HangLimits.defaultSampleTriggerThreshold,
         samplePollInterval: TimeInterval = HangLimits.defaultSamplePollInterval
     ) {
@@ -83,7 +76,6 @@ public struct HangLimits: Equatable {
 
         self.hangThreshold = resolvedHangThreshold
         self.hangPerSession = hangPerSession
-        self.reportsWatchdogEvents = reportsWatchdogEvents
         self.sampleTriggerThreshold = HangLimits.resolvedSampleTrigger(
             sampleTriggerThreshold, hangThreshold: resolvedHangThreshold)
         self.samplePollInterval = HangLimits.clamped(

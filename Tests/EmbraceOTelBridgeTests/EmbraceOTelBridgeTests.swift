@@ -184,6 +184,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_createLog_triggersExporter() {
         let log = MockEmbraceLog()
         bridge.createLog(log)
+        bridge.waitForAllWork()
         XCTAssertEqual(logExporter.exportedLogs.count, 1)
     }
 
@@ -206,6 +207,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         for _ in 0..<100 {
             bridge.createLog(MockEmbraceLog())
         }
+        bridge.waitForAllWork()
         // Each log reaches the exporter exactly once and none of them is treated as external.
         XCTAssertEqual(logExporter.exportedLogs.count, 100)
         XCTAssertEqual(mockDelegate.emittedLogs.count, 0)
@@ -230,10 +232,35 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         DispatchQueue.concurrentPerform(iterations: 100) { _ in
             bridge.createLog(MockEmbraceLog())
         }
+        bridge.waitForAllWork()
 
         XCTAssertEqual(exporter.exportedLogs.count, 100)
         XCTAssertEqual(delegate.emittedLogs.count, 0)
         XCTAssertTrue(bridge.inFlightInternalLogIds.isEmpty)
+    }
+
+    func test_setup_gatesLogChildrenOnCriticalResourceGroup_andWaitForAllWorkDrainsThem() {
+        let exporter = ThreadSafeMockLogExporter()
+        let bridge = EmbraceOTelBridge(logExporters: [exporter])
+        let group = DispatchGroup()
+        group.enter()
+        bridge.setup(delegate: mockDelegate, metadataProvider: mockMetadata, criticalResourceGroup: group)
+
+        bridge.createLog(MockEmbraceLog())
+
+        // Only the log processor's queue can block here: its job waits on the group.
+        let drained = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            bridge.waitForAllWork()
+            drained.signal()
+        }
+        // timed-wait: window for something that must not happen; the log queue must stay gated while the group is entered.
+        XCTAssertEqual(drained.wait(timeout: .now() + 0.5), .timedOut)
+        XCTAssertTrue(exporter.exportedLogs.isEmpty)
+
+        group.leave()
+        XCTAssertEqual(drained.wait(timeout: .now() + TimeInterval.defaultTimeout), .success)
+        XCTAssertEqual(exporter.exportedLogs.count, 1)
     }
 
     private func makeReadableLogRecord(id: String?) -> ReadableLogRecord {
@@ -796,6 +823,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let log = MockEmbraceLog()
         log.severity = .error
         bridge.createLog(log)
+        bridge.waitForAllWork()
         XCTAssertEqual(logExporter.exportedLogs.count, 1)
         XCTAssertEqual(logExporter.exportedLogs.first?.severity, .error)
     }
@@ -804,6 +832,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let log = MockEmbraceLog()
         log.severity = .warn
         bridge.createLog(log)
+        bridge.waitForAllWork()
         XCTAssertEqual(logExporter.exportedLogs.count, 1)
         XCTAssertEqual(logExporter.exportedLogs.first?.severity, .warn)
     }
@@ -814,6 +843,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let log = MockEmbraceLog()
         log.attributes = ["custom.key": "custom-value"]
         bridge.createLog(log)
+        bridge.waitForAllWork()
         XCTAssertEqual(logExporter.exportedLogs.count, 1)
         XCTAssertEqual(logExporter.exportedLogs.first?.attributes["custom.key"], .string("custom-value"))
     }
@@ -827,6 +857,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let log = MockEmbraceLog()
         log.severity = .critical
         bridge.createLog(log)
+        bridge.waitForAllWork()
         XCTAssertEqual(logExporter.exportedLogs.count, 1)
         // When Severity(rawValue:) returns nil, severity is not set on the builder
     }

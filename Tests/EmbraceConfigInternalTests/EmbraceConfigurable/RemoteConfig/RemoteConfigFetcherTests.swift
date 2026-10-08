@@ -150,7 +150,7 @@ class RemoteConfigFetcherTests: XCTestCase {
             XCTAssertNotNil(payload)
             expectation.fulfill()
         }
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .longTimeout)
     }
 
     func test_fetch_completesFailureWithNilPayload() throws {
@@ -168,6 +168,6 @@ class RemoteConfigFetcherTests: XCTestCase {
             XCTAssertNil(payload)
             expectation.fulfill()
         }
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .longTimeout)
     }
 }

@@ -31,7 +31,7 @@ class DataTaskWithURLRequestAndCompletionSwizzlerTests: SwizzlerTestCase {
             self.thenHandlerShouldHaveInvokedCreateWithTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .longTimeout)
     }
 
     func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
@@ -44,7 +44,7 @@ class DataTaskWithURLRequestAndCompletionSwizzlerTests: SwizzlerTestCase {
             self.thenHandlerShouldHaveInvokedFinishTask()
             expectation.fulfill()
         })
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .longTimeout)
     }
 
     #if !os(watchOS)
@@ -58,33 +58,27 @@ class DataTaskWithURLRequestAndCompletionSwizzlerTests: SwizzlerTestCase {
                 self.thenHandlerShouldHaveInvokedFinishTaskWithError()
                 expectation.fulfill()
             })
-            wait(for: [expectation])
+            wait(for: [expectation], timeout: .longTimeout)
         }
     #endif
 
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
-        let expectation = expectation(description: #function)
         givenDataTaskWithURLRequestSwizzler()
         try givenSwizzlingWasDone()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
-        whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
-            try! self.thenDataTaskShouldHaveEmbraceHeaders()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in })
+        try thenDataTaskShouldHaveEmbraceHeaders()
+        dataTask.cancel()
     }
 
     func test_withoutInstall_taskWontBeCreatedInHandler() throws {
-        let expectation = expectation(description: #function)
         givenDataTaskWithURLRequestSwizzler()
         givenProxiedUrlSession()
         givenSuccessfulRequest()
-        whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
-            self.thenHandlerShouldntHaveInvokedCreate()
-            expectation.fulfill()
-        })
-        wait(for: [expectation])
+        whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in })
+        thenHandlerShouldntHaveInvokedCreate()
+        dataTask.cancel()
     }
 }
 

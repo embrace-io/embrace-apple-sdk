@@ -14,9 +14,48 @@ extension EmbraceStorage {
 
     /// Adds or updates a span to the storage synchronously.
     public func upsertSpan(_ span: EmbraceSpan, onlyUpdate: Bool = false) {
+        coreData.performOperation(save: true) { context in
+            self.upsertSpan(span, onlyUpdate: onlyUpdate, context: context)
+        }
+    }
+
+    /// Adds or updates a span to the storage asynchronously.
+    ///
+    /// The span's current state is copied before returning, so the stored record reflects the span
+    /// as it was when this method was called. Changes made to the span afterwards are expected to be
+    /// persisted through their own storage operations (`addSpanEvent`, `setSpanStatus`, etc.), which run
+    /// after this one on the same serial context. Reading the live span when the operation runs instead
+    /// would let those changes be applied twice, duplicating events and links.
+    /// - Parameters:
+    ///   - span: Span to store
+    ///   - onlyUpdate: When `true`, the span is only stored if a record for it already exists
+    public func upsertSpanAsync(_ span: EmbraceSpan, onlyUpdate: Bool = false) {
+        let snapshot = ImmutableSpanRecord(
+            context: span.context,
+            parentSpanId: span.parentSpanId,
+            name: span.name,
+            type: span.type,
+            status: span.status,
+            startTime: span.startTime,
+            endTime: span.endTime,
+            events: span.events,
+            links: span.links,
+            attributes: span.attributes,
+            sessionId: span.sessionId,
+            processId: span.processId
+        )
+
+        coreData.performAsyncOperation(save: true) { context in
+            self.upsertSpan(snapshot, onlyUpdate: onlyUpdate, context: context)
+        }
+    }
+
+    /// Adds or updates a span using the given context.
+    /// Must be called from within the context's queue.
+    private func upsertSpan(_ span: EmbraceSpan, onlyUpdate: Bool, context: NSManagedObjectContext) {
 
         // update existing?
-        if updateExistingSpan(span) {
+        if updateExistingSpan(span, context: context) {
             return
         }
 
@@ -26,21 +65,10 @@ extension EmbraceStorage {
         }
 
         // make space if needed
-        removeOldSpanIfNeeded(forType: span.type)
+        removeOldSpanIfNeeded(forType: span.type, context: context)
 
         // add new
-        SpanRecord.create(context: coreData.context, span: span)
-        coreData.save()
-    }
-
-    /// Adds or updates a span to the storage asynchronously, like `upsertSpan(_:)`.
-    ///
-    /// The write is queued on the storage context, so any write queued after it for the same span,
-    /// and any later read, sees the span.
-    public func upsertSpanAsync(_ span: EmbraceSpan) {
-        coreData.performAsyncOperation { [self] _ in
-            upsertSpan(span)
-        }
+        SpanRecord.create(context: context, span: span)
     }
 
     func fetchSpanRequest(id: String, traceId: String) -> NSFetchRequest<SpanRecord> {
@@ -51,36 +79,42 @@ extension EmbraceStorage {
         return request
     }
 
-    func updateExistingSpan(_ span: EmbraceSpan) -> Bool {
+    /// Updates the stored record for the given span, if any, using the given context.
+    /// Must be called from within the context's queue.
+    /// - Returns: `true` if a record for the span exists, even if it was already closed and left untouched.
+    private func updateExistingSpan(_ span: EmbraceSpan, context: NSManagedObjectContext) -> Bool {
 
-        var result = false
         let request = fetchSpanRequest(id: span.context.spanId, traceId: span.context.traceId)
 
-        coreData.fetchFirstAndPerform(withRequest: request) { record, context in
-            guard let record else { return }
-
-            // prevent modifications on closed spans!
-            if record.endTime == nil {
-                record.name = span.name
-                record.parentSpanId = span.parentSpanId
-                record.typeRaw = span.type.rawValue
-                record.statusRaw = span.status.rawValue
-                record.startTime = span.startTime
-                record.endTime = span.endTime
-                record.processIdRaw = span.processId.stringValue
-                record.sessionIdRaw = span.sessionId?.stringValue
-                record.attributes = span.attributes.keyValueEncoded()
-
-                self.updateEvents(span: record, events: span.events, context: context)
-                self.updateLinks(span: record, links: span.links, context: context)
-
-                coreData.save()
-            }
-
-            result = true
+        let record: SpanRecord?
+        do {
+            record = try context.fetch(request).first
+        } catch {
+            logger.critical("Error fetching span record:\n\(error.localizedDescription)")
+            return false
         }
 
-        return result
+        guard let record else {
+            return false
+        }
+
+        // prevent modifications on closed spans!
+        if record.endTime == nil {
+            record.name = span.name
+            record.parentSpanId = span.parentSpanId
+            record.typeRaw = span.type.rawValue
+            record.statusRaw = span.status.rawValue
+            record.startTime = span.startTime
+            record.endTime = span.endTime
+            record.processIdRaw = span.processId.stringValue
+            record.sessionIdRaw = span.sessionId?.stringValue
+            record.attributes = span.attributes.keyValueEncoded()
+
+            updateEvents(span: record, events: span.events, context: context)
+            updateLinks(span: record, links: span.links, context: context)
+        }
+
+        return true
     }
 
     /// Updates the events for a given span.
@@ -436,20 +470,30 @@ extension EmbraceStorage {
         return total
     }
 
-    fileprivate func removeOldSpanIfNeeded(forType type: EmbraceType) {
+    /// Deletes the oldest spans of the given type if the stored amount reached the limit, using the given context.
+    /// Must be called from within the context's queue.
+    fileprivate func removeOldSpanIfNeeded(forType type: EmbraceType, context: NSManagedObjectContext) {
         // check limit and delete if necessary
         // default to 1500 if limit is not set
         let limit = options.spanLimits[type, default: limitByType(type)]
 
         let request = SpanRecord.createFetchRequest()
         request.predicate = NSPredicate(format: "typeRaw == %@", type.rawValue)
-        let count = coreData.count(withRequest: request)
 
-        if count >= limit {
+        do {
+            let count = try context.count(for: request)
+            guard count >= limit else {
+                return
+            }
+
             request.fetchLimit = count - limit + 1
             request.sortDescriptors = [NSSortDescriptor(key: "startTime", ascending: true)]
 
-            coreData.deleteRecords(withRequest: request)
+            for record in try context.fetch(request) {
+                context.delete(record)
+            }
+        } catch {
+            logger.critical("Error removing old spans:\n\(error.localizedDescription)")
         }
     }
 }

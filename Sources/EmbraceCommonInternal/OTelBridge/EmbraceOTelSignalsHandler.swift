@@ -11,8 +11,6 @@ import Foundation
 /// Protocol used to generate OTel signals.
 package protocol EmbraceOTelSignalsHandler: AnyObject {
 
-    /// - Parameter persistsAsynchronously: Queues the span's storage write instead of waiting for it.
-    ///   Later writes to the span, and reads of it, are still ordered after it.
     @discardableResult
     func _createSpan(
         name: String,
@@ -25,8 +23,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
         links: [EmbraceSpanLink],
         attributes: EmbraceAttributes,
         autoTerminationCode: EmbraceSpanErrorCode?,
-        isInternal: Bool,
-        persistsAsynchronously: Bool
+        isInternal: Bool
     ) throws -> EmbraceSpan
 
     @discardableResult
@@ -61,8 +58,7 @@ extension EmbraceOTelSignalsHandler {
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
-        autoTerminationCode: EmbraceSpanErrorCode? = nil,
-        persistsAsynchronously: Bool = false
+        autoTerminationCode: EmbraceSpanErrorCode? = nil
     ) throws -> EmbraceSpan {
         return try _createSpan(
             name: name,
@@ -75,8 +71,7 @@ extension EmbraceOTelSignalsHandler {
             links: links,
             attributes: attributes,
             autoTerminationCode: autoTerminationCode,
-            isInternal: true,
-            persistsAsynchronously: persistsAsynchronously
+            isInternal: true
         )
     }
 

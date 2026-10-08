@@ -56,8 +56,7 @@ package class DefaultOTelSignalsHandler {
                 links: links,
                 attributes: attributes,
                 autoTerminationCode: autoTerminationCode,
-                isInternal: false,
-                persistsAsynchronously: false
+                isInternal: false
             )
         } catch {
             Embrace.logger.warning("Failed to create span '\(name)': \(error.localizedDescription)")

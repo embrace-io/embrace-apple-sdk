@@ -31,6 +31,6 @@ class EmbraceSetupTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }

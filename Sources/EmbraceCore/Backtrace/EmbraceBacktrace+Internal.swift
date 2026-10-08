@@ -163,7 +163,8 @@ extension EmbraceBacktrace {
     @inline(never)
     static func _takeSnapshot(of thread: pthread_t, threadIndex: Int = 0) -> [EmbraceBacktraceThread] {
 
-        // get the mach thread to take the snapshot of
+        // Get the mach thread to take the snapshot of. Must happen before the suspend:
+        // `pthread_mach_thread_np` takes libpthread's thread-list lock, which the target may hold.
         let machThread = pthread_mach_thread_np(thread)
         let canSuspend = pthread_self() != thread
 
@@ -180,7 +181,7 @@ extension EmbraceBacktrace {
             // Deadlock hazard: if the suspended thread holds the allocator lock, any `malloc` in the
             // suspend window hangs the process. So allocate the buffer before the suspend and do all
             // heap work (copy/slice) after the resume — only the alloc-free
-            // `backtrace(of:into:capacity:)` runs in the window.
+            // `backtrace(ofMachThread:into:capacity:)` runs in the window.
             let buffer = UnsafeMutablePointer<UInt>.allocate(capacity: entries)
             defer { buffer.deallocate() }
 
@@ -189,15 +190,22 @@ extension EmbraceBacktrace {
                 return []
             }
             // ───── SUSPEND WINDOW: allocation-free / async-signal-safe only ─────
+            // No malloc, no ObjC or Swift runtime, no locks, and no pthread calls on other threads
+            // (libpthread validates handles under its thread-list lock, which the target may hold).
             #if DEBUG
                 EmbraceBacktraceSuspendWindowProbe.willEnter?()
             #endif
-            let count = backtracer.backtrace(of: thread, into: buffer, capacity: entries)
+            var count = backtracer.backtrace(ofMachThread: machThread, into: buffer, capacity: entries)
             #if DEBUG
                 EmbraceBacktraceSuspendWindowProbe.didExit?()
             #endif
             // ───── END SUSPEND WINDOW ─────
             emb_thread_resume(machThread)
+            #if DEBUG
+                if let filter = EmbraceBacktraceSuspendWindowProbe.filterCapturedCount {
+                    count = filter(count)
+                }
+            #endif
 
             addresses =
                 Array(UnsafeBufferPointer(start: buffer, count: max(0, count)))
@@ -254,13 +262,19 @@ extension EmbraceBacktraceFrame {
 }
 
 #if DEBUG
-    /// Test-only seam bracketing the `_takeSnapshot` thread-suspend window. Both hooks are `nil` in
+    /// Test-only seams around the `_takeSnapshot` thread-suspend window. All hooks are `nil` in
     /// normal use (a `nil`-check is the only cost, and they are stripped entirely from Release), so
-    /// they add nothing to production. The suspend-window sentinel test sets them to mark exactly
-    /// when the target thread is suspended, so it can prove the walk allocates nothing in-window.
-    /// The hooks themselves MUST be allocation-free — they run inside the window.
+    /// they add nothing to production.
     enum EmbraceBacktraceSuspendWindowProbe {
+        /// Bracket the window: the suspend-window sentinel test sets them to mark exactly when the
+        /// target thread is suspended, so it can prove the walk allocates nothing in-window. These
+        /// MUST be allocation-free — they run inside the window.
         static var willEnter: (() -> Void)?
         static var didExit: (() -> Void)?
+
+        /// Receives the frame count of a remote-thread capture and returns the count to keep. Lets
+        /// tests make a capture come back empty, as it does when another stack walk is in flight.
+        /// Called after the thread is resumed, so it may allocate.
+        static var filterCapturedCount: ((Int) -> Int)?
     }
 #endif

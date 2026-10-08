@@ -22,8 +22,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
-        isInternal: Bool = true,
-        persistsAsynchronously: Bool = false
+        isInternal: Bool = true
     ) throws -> EmbraceSpan {
 
         guard isInternal || limiter.shouldCreateCustomSpan() else {
@@ -171,11 +170,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         }
 
         // save span
-        if persistsAsynchronously {
-            storage?.upsertSpanAsync(span)
-        } else {
-            storage?.upsertSpan(span)
-        }
+        storage?.upsertSpanAsync(span)
 
         return span
     }
@@ -491,12 +486,12 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
         }
 
         // sanitize and update db
-        storage?.upsertSpan(sanitizeExternalSpan(span), onlyUpdate: onlyUpdate)
+        storage?.upsertSpanAsync(sanitizeExternalSpan(span), onlyUpdate: onlyUpdate)
     }
 
     public func onEndSpan(_ span: EmbraceSpan) {
         // sanitize and update db
-        storage?.upsertSpan(sanitizeExternalSpan(span), onlyUpdate: true)
+        storage?.upsertSpanAsync(sanitizeExternalSpan(span), onlyUpdate: true)
     }
 
     public func onEmitLog(_ log: EmbraceLog) {

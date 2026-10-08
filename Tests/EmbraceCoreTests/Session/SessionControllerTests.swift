@@ -127,7 +127,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNotNil(session.startTime)
         XCTAssertNotNil(controller.currentSessionSpan)
         XCTAssertEqual(controller.currentSession?.id, session.id)
-        wait(for: [notificationExpectation])
+        wait(for: [notificationExpectation], timeout: .defaultTimeout)
     }
 
     func test_startSession_ifStartAtIsSoonAfterProcessStart_marksSessionAsColdStartTrue() throws {
@@ -187,7 +187,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNil(controller.currentSession)
         XCTAssertNil(controller.currentSessionSpan)
 
-        wait(for: [notificationExpectation])
+        wait(for: [notificationExpectation], timeout: .defaultTimeout)
     }
 
     // MARK: embraceSessionPartWillEndSync
@@ -501,6 +501,40 @@ final class SessionControllerTests: XCTestCase {
         // Nothing in storage — must not crash.
         controller.backfillTerminationReasonOnLatestPart(.manual)
         XCTAssertEqual((storage.fetchAll() as [SessionRecord]).count, 0)
+    }
+
+    func test_backfillTerminationReason_ignoresPartAddedAfterCall() throws {
+        let first = controller.startSession(state: .foreground)
+        controller.endSession()
+
+        // The backfill is queued before the next part is added, so it must resolve to `first`.
+        controller.backfillTerminationReasonOnLatestPart(.manual)
+        let second = controller.startSession(state: .foreground)
+
+        // `fetchSession` runs synchronously on the same serial context, after both operations above.
+        XCTAssertEqual(storage.fetchSession(id: first!.id)?.userSessionTerminationReason, .manual)
+        XCTAssertNil(storage.fetchSession(id: second!.id)?.userSessionTerminationReason)
+    }
+
+    func test_backfillTerminationReason_doesNotWaitOnStorage() throws {
+        let session = controller.startSession(state: .foreground)
+        controller.endSession()
+
+        // Hold the storage context: any synchronous storage call made before `gate.signal()` blocks.
+        let gate = DispatchSemaphore(value: 0)
+        storage.coreData.performAsyncOperation { _ in gate.wait() }
+        defer { gate.signal() }
+
+        // Call from another queue so a blocking backfill fails the test instead of hanging it.
+        let returned = expectation(description: "backfill returned while storage was busy")
+        DispatchQueue.global().async {
+            self.controller.backfillTerminationReasonOnLatestPart(.manual)
+            returned.fulfill()
+        }
+        wait(for: [returned], timeout: 1)
+
+        gate.signal()
+        XCTAssertEqual(storage.fetchSession(id: session!.id)?.userSessionTerminationReason, .manual)
     }
 
     func test_rollPartForUserSessionExpiry_endsOldStartsNewSameStateNewUserSession() throws {
@@ -953,6 +987,41 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(tail.userSessionTerminationReason, .backgroundUserSessionForegrounded)
     }
 
+    func test_coldStart_split_andFirstPart_getConsecutiveSessionPartNumbers() throws {
+        // given an existing counter value of 5, loaded by the controller before bootstrap runs
+        storage.addMetadata(
+            key: SessionController.sessionPartNumberKey,
+            value: "5",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+        let controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
+        let userSessionController = UserSessionController(storage: storage, config: configurable)
+        userSessionController.sessionController = controller
+        controller.userSessionController = userSessionController
+
+        let base = Date(timeIntervalSince1970: 1_700_000_000)
+        let tailEnd = base.addingTimeInterval(600 + 1800 + 600)
+        seedForegroundOriginCrossedCutoff(base: base, tailEnd: tailEnd)
+        storage.waitForPendingCoreDataOperations()
+
+        // when bootstrap writes the background-only tail and the first part starts
+        userSessionController.bootstrap(priorSession: storage.fetchLatestSession())
+        let s2 = try XCTUnwrap(userSessionController.currentUserSession)
+        let first = controller.startSession(state: .foreground, startTime: tailEnd.addingTimeInterval(60))
+
+        // then the tail and the first part get distinct, consecutive numbers
+        storage.waitForPendingCoreDataOperations()
+        let tail = try XCTUnwrap(storage.fetchAllSessions().first { $0.userSessionId == s2.id })
+        XCTAssertEqual(tail.sessionNumber, 6)
+        XCTAssertEqual(first?.sessionNumber, 7)
+
+        let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
+        XCTAssertEqual(resource?.value, "7")
+    }
+
     // Case D: cold launch in foreground, background-only tail already past its own max — ended whole.
     func test_coldStart_foregroundLaunch_tailPastMax_endsWholeUnsliced() throws {
         let base = Date(timeIntervalSince1970: 1_700_000_000)
@@ -1191,13 +1260,85 @@ final class SessionControllerTests: XCTestCase {
             lifespan: .permanent
         )
 
-        // when starting a session, the per-part counter continues from 6
+        // when starting a session on a controller created afterwards
+        let controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
         let session = controller.startSession(state: .foreground)
 
+        // then the per-part counter continues from 6
         XCTAssertEqual(session?.sessionNumber, 6)
 
         let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionPartNumberKey)
         XCTAssertEqual(resource?.value, "6")
+    }
+
+    func test_startSession_usesPreloadedCounter() throws {
+        // given an existing counter value of 5
+        storage.addMetadata(
+            key: SessionController.sessionPartNumberKey,
+            value: "5",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+
+        // and a controller whose preload has finished
+        let controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
+        storage.waitForPendingCoreDataOperations()
+
+        // when the stored counter changes behind the controller's back
+        storage.addMetadata(
+            key: SessionController.sessionPartNumberKey,
+            value: "100",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+
+        // then the session uses the preloaded value instead of reading storage again
+        let session = controller.startSession(state: .foreground)
+        XCTAssertEqual(session?.sessionNumber, 6)
+    }
+
+    func test_startSession_doesNotWaitOnBusyStorageQueue() throws {
+        // given a controller whose preload has finished. `userSessionController` is left nil on purpose,
+        // so only the part-start path is exercised and not the user-session bookkeeping.
+        let controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
+        storage.waitForPendingCoreDataOperations()
+
+        // and a storage queue that stays busy until the test releases it
+        let release = DispatchSemaphore(value: 0)
+        defer { release.signal() }
+        storage.coreData.performAsyncOperation { _ in release.wait() }
+
+        // when a part starts
+        let started = expectation(description: "startSession returned")
+        DispatchQueue.global().async {
+            controller.startSession(state: .foreground)
+            started.fulfill()
+        }
+
+        // then it returns without waiting for the storage queue
+        wait(for: [started], timeout: .defaultTimeout)
+    }
+
+    func test_startSession_persistsCounterForNextController() throws {
+        // given two parts started on one controller
+        controller.startSession(state: .foreground)
+        controller.startSession(state: .foreground)
+        controller.endSession()
+
+        // when a new controller starts a part (simulating a new process)
+        let controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
+        controller.otel = otel
+        let session = controller.startSession(state: .foreground)
+
+        // then the counter continues from the persisted value
+        XCTAssertEqual(session?.sessionNumber, 3)
     }
 
     func test_startSession_persistsUserSessionColumnsOnRecord() throws {

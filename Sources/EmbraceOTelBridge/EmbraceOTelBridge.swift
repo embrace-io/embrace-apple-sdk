@@ -119,7 +119,7 @@ final package class EmbraceOTelBridge {
     // MARK: - Configuration
 
     /// Called after `Embrace.setup()` completes to attach the Core-side delegate, metadata provider,
-    /// and the `captureServicesGroup` that gates child span forwarding until the SDK is ready.
+    /// and the `captureServicesGroup` that gates child span and log forwarding until the SDK is ready.
     package func setup(
         delegate: any EmbraceOTelDelegate,
         metadataProvider: any EmbraceMetadataProvider,
@@ -128,6 +128,7 @@ final package class EmbraceOTelBridge {
         self.delegate = delegate
         self.metadataProvider = metadataProvider
         spanProcessor.criticalResourceGroup = criticalResourceGroup
+        logProcessor.criticalResourceGroup = criticalResourceGroup
     }
 }
 
@@ -285,13 +286,14 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
 
     package func waitForAllWork() {
         spanProcessor.waitForAllWork()
+        logProcessor.waitForAllWork()
     }
 
     package func createLog(_ log: EmbraceLog) {
         let logId = log.id
-        // Track the ID so the inbound processor can skip it. The processor consults this set from
-        // inside `emit()`, which dispatches to the processor chain synchronously, so the entry is
-        // only needed until this function returns.
+        // Track the ID so the inbound processor can skip it. The processor's `isInternalLog` check
+        // runs synchronously inside `emit()` (only child forwarding is deferred to its queue), so
+        // the entry is only needed until this function returns.
         internalLogIds.withLock { $0.insert(logId) }
         defer { internalLogIds.withLock { $0.remove(logId) } }
 
