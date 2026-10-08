@@ -75,14 +75,25 @@ extension EmbraceStorage {
     /// A span created right after the SDK starts can predate the resolution of its part's user session, which
     /// happens on this queue when the part's record is created (see `addSession`'s `resolveUserSession`), so its
     /// user-session id attributes are empty. Every write of the span runs after that resolution, so the id is
-    /// taken from the part's record.
+    /// taken from the part's record. Once the part's record is gone (the part ended and was sent), the id the
+    /// span was stored with is kept.
     /// Must be called from within the context's queue.
     private func spanFillingUserSessionId(_ span: EmbraceSpan, context: NSManagedObjectContext) -> EmbraceSpan {
         guard (span.attributes[SpanSemantics.Session.keyUserSessionId] as? String)?.isEmpty == true,
             let partId = span.attributes[SpanSemantics.Session.keyPartId] as? String,
-            !partId.isEmpty,
-            let part = try? context.fetch(fetchSessionRequest(id: EmbraceIdentifier(stringValue: partId))).first,
-            let userSessionId = part.userSessionIdRaw
+            !partId.isEmpty
+        else {
+            return span
+        }
+
+        let partRequest = fetchSessionRequest(id: EmbraceIdentifier(stringValue: partId))
+        let storedSpan = try? context.fetch(fetchSpanRequest(id: span.context.spanId, traceId: span.context.traceId)).first
+        let storedUserSessionId = storedSpan.flatMap {
+            EmbraceAttributes.keyValueDecode($0.attributes)[SpanSemantics.Session.keyUserSessionId] as? String
+        }
+        guard
+            let userSessionId = (try? context.fetch(partRequest).first)?.userSessionIdRaw
+                ?? storedUserSessionId.flatMap({ $0.isEmpty ? nil : $0 })
         else {
             return span
         }

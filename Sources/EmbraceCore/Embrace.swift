@@ -365,10 +365,8 @@ package class Embrace {
             state = .started
 
             // The prior process's last part is read on the storage queue, since the storage may still be loading
-            // (see `CoreDataWrapper`). Both reads are queued before `sessionLifecycle.startSession()` creates a new
-            // record, so they see the prior one.
-            //
-            // MetricKit attributes incoming payloads to it.
+            // (see `CoreDataWrapper`). MetricKit, which attributes incoming payloads to it, reads it here, queued
+            // ahead of the first part's record, so it sees the prior one.
             storage.fetchLatestSession { [self] session in
                 // The SDK may have been stopped meanwhile. A storage that failed to load stops it only once the
                 // main thread gets to it, which can be after this runs, so check the load result too (already
@@ -381,8 +379,8 @@ package class Embrace {
                 metricKit.install()
             }
 
-            // The user-session controller reconstructs the user session from it, together with the first part
-            // (see `SessionController.startSession`).
+            // The user-session controller reconstructs the user session from it inside the first part's storage
+            // block, just before that part's record is created (see `SessionController.startSession`).
             sessionController.bootstrapUserSessionWithNextPart()
 
             // start instrumentation

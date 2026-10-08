@@ -979,6 +979,51 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertNil(storage.fetchSession(id: part.id)?.userSessionId)
     }
 
+    func test_deferredUserSession_resolvedBeforeThePartIsSet_isStillApplied() throws {
+        // given the prior process's last part, and the bootstrap deferred
+        let priorUserSessionId = seedUnexpiredPriorPart()
+        controller.bootstrapUserSessionWithNextPart()
+
+        // when the part's user session is resolved before `startSession` sets the part: starting it from the
+        // storage queue, inline, runs the part's storage block (and its resolution) right inside `startSession`
+        var part: EmbraceSession?
+        storage.coreData.performOperation { [storage, controller] _ in
+            storage!.coreData.performAsyncOperationsInline {
+                part = controller!.startSession(state: .foreground)
+            }
+        }
+
+        // then the part still gets its user session in memory
+        let startedPart = try XCTUnwrap(part)
+        XCTAssertEqual(controller.currentSession?.id, startedPart.id)
+        XCTAssertEqual(controller.currentSession?.userSessionId, priorUserSessionId)
+    }
+
+    func test_userSessionIdOfPart_waitsForTheResolution() throws {
+        // given the prior process's last part, the bootstrap deferred, and a busy storage queue
+        let priorUserSessionId = seedUnexpiredPriorPart()
+        controller.bootstrapUserSessionWithNextPart()
+        let release = blockStorageQueue()
+        let part = try XCTUnwrap(controller.startSession(state: .foreground))
+
+        // when asking for the part's user session, off the main thread, before it's resolved
+        var userSessionId: EmbraceIdentifier?
+        let answered = expectation(description: "user session returned")
+        DispatchQueue.global().async { [controller] in
+            userSessionId = controller?.userSessionId(ofPart: part.id)
+            answered.fulfill()
+        }
+        release()
+
+        // then it's the resolved one
+        wait(for: [answered], timeout: .defaultTimeout)
+        XCTAssertEqual(userSessionId, priorUserSessionId)
+
+        // and it's still known after the part ends
+        controller.endSession()
+        XCTAssertEqual(controller.userSessionId(ofPart: part.id), priorUserSessionId)
+    }
+
     func test_bootstrapPendingUserSession_withoutAPart_bootstraps() throws {
         // given the prior process's last part, and the bootstrap deferred to a part that isn't started
         let priorUserSessionId = seedUnexpiredPriorPart()

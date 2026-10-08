@@ -244,6 +244,28 @@ class SpanRecordTests: XCTestCase {
         XCTAssertEqual(attributes[SpanSemantics.Session.keyUserSessionId] as? String, userSessionId.stringValue)
     }
 
+    func test_upsertSpan_afterThePartRecordIsGone_keepsTheStoredUserSessionId() throws {
+        // given a stored span whose user-session id was taken from its part
+        let partId = EmbraceIdentifier.random
+        let userSessionId = EmbraceIdentifier.random
+        addPart(id: partId, userSessionId: userSessionId)
+        storage.upsertSpanAsync(MockSpan(id: "id", name: "a name", attributes: identity(userSessionId: "", partId: partId)))
+
+        // and the part's record removed (the part ended and was sent)
+        storage.deleteSession(id: partId)
+
+        // when the span is stored again when it ends, still without the id
+        storage.upsertSpanAsync(
+            MockSpan(id: "id", name: "a name", endTime: Date(), attributes: identity(userSessionId: "", partId: partId)),
+            onlyUpdate: true
+        )
+
+        // then it keeps the id it was stored with
+        let attributes = try XCTUnwrap(storage.fetchSpan(id: "id", traceId: TestConstants.traceId)?.attributes)
+        XCTAssertEqual(attributes[SpanSemantics.Session.keyUserSessionId] as? String, userSessionId.stringValue)
+        XCTAssertEqual(attributes[SpanSemantics.keySessionId] as? String, userSessionId.stringValue)
+    }
+
     func test_upsertSpan_withUserSessionId_keepsIt() throws {
         // given a part with a user session
         let partId = EmbraceIdentifier.random

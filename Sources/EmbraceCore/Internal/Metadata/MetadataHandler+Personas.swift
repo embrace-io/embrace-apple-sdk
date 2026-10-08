@@ -23,7 +23,7 @@ extension MetadataHandler {
 
         self.synchronizationQueue.async {
             var records: [EmbraceMetadata] = []
-            if let userSessionId = self.sessionController?.currentUserSession?.id {
+            if let userSessionId = self.currentUserSessionIdWaitingForResolution() {
                 let processId = self.sessionController?.currentSession?.processId ?? ProcessIdentifier.current
                 records = storage.fetchPersonaTags(userSessionId: userSessionId, processId: processId)
             } else {

@@ -164,6 +164,69 @@ final class EmbraceStoreLoadFailureTests: XCTestCase {
         XCTAssertEqual(stalledStorage.fetchSession(id: part.id)?.userSessionId?.stringValue, userSessionId)
     }
 
+    func test_start_withAStalledStorage_userSessionMetadataSetRightAway_isKept() throws {
+        // given a started SDK whose storage load stalls
+        let (stalledStorage, releaseLock) = try makeStalledStorage()
+        let client = try makeClient(storage: stalledStorage)
+        try client.start()
+
+        // when setting a user-session property and persona before the user session is resolved
+        client.metadata.addProperty(key: "plan", value: "pro", lifespan: .userSession)
+        client.metadata.add(persona: "tester", lifespan: .userSession)
+
+        // then once the storage loads, they're stored for the user session the part was resolved to
+        XCTAssertTrue(releaseLock(), "start waited for the storage to load")
+        client.metadata.synchronizationQueue.sync {}
+        let userSessionId = EmbraceIdentifier(stringValue: try XCTUnwrap(client.currentUserSessionId()))
+        let properties = stalledStorage.fetchCustomProperties(userSessionId: userSessionId, processId: ProcessIdentifier.current)
+        XCTAssertEqual(properties.first { $0.key == "plan" }?.value, "pro")
+        let personas = stalledStorage.fetchPersonaTags(userSessionId: userSessionId, processId: ProcessIdentifier.current)
+        XCTAssertTrue(personas.contains { $0.key == "tester" })
+    }
+
+    func test_start_withAStalledStorage_logCreatedRightAway_getsTheUserSession() throws {
+        // given a started SDK whose storage load stalls
+        let (stalledStorage, releaseLock) = try makeStalledStorage()
+        let client = try makeClient(storage: stalledStorage)
+        try client.start()
+
+        // when creating a log before the user session is resolved
+        var createdLog: EmbraceLog?
+        let created = expectation(description: "log created")
+        client.logController.createLog("early", severity: .info) { log in
+            createdLog = log
+            created.fulfill()
+        }
+
+        // then once the storage loads, the log has the user session the part was resolved to
+        XCTAssertTrue(releaseLock(), "start waited for the storage to load")
+        wait(for: [created], timeout: .defaultTimeout)
+        let attributes = try XCTUnwrap(createdLog).attributes
+        XCTAssertEqual(attributes[LogSemantics.keyUserSessionId] as? String, try XCTUnwrap(client.currentUserSessionId()))
+    }
+
+    func test_start_givesMetricKitThePriorProcessLastPart() throws {
+        // given the last part of an earlier process
+        let priorPartId = EmbraceIdentifier.random
+        storage.addSession(
+            id: priorPartId,
+            processId: .random,
+            state: .foreground,
+            traceId: "trace",
+            spanId: "span",
+            startTime: Date().addingTimeInterval(-60),
+            endTime: Date().addingTimeInterval(-30)
+        )
+
+        // when starting the SDK
+        let client = try makeClient()
+        try client.start()
+
+        // then MetricKit gets that part, not this process's first one
+        wait(timeout: .longTimeout, interval: .shortInterval) { client.metricKit.lastSession != nil }
+        XCTAssertEqual(client.metricKit.lastSession?.id, priorPartId)
+    }
+
     func test_start_continuesThePriorProcessUserSession() throws {
         // given the last part of an earlier process, in a user session that hasn't expired
         let priorUserSessionId = EmbraceIdentifier.random

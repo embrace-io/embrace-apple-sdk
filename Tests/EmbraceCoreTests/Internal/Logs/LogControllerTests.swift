@@ -473,17 +473,35 @@ class LogControllerTests: XCTestCase {
             sessionId: partId
         )
 
-        // when adding it
+        // when adding it (with the logging queue held, to check it isn't added before the queue runs)
+        loggingQueue.suspend()
         sut.addLogFillingUserSessionId(log)
 
         // then it's added from the logging queue, with the part's user-session id
         XCTAssertFalse(storage?.didCallCreate ?? true)
+        loggingQueue.resume()
         waitForLoggingQueue()
         let saved = try XCTUnwrap(storage?.savedLogs.first)
         XCTAssertEqual(saved.id, log.id)
         XCTAssertEqual(saved.attributes[LogSemantics.keySessionId] as? String, userSessionId.stringValue)
         XCTAssertEqual(saved.attributes[LogSemantics.keyUserSessionId] as? String, userSessionId.stringValue)
         XCTAssertEqual(saved.attributes[LogSemantics.keyPartId] as? String, partId.stringValue)
+    }
+
+    func test_batchFinished_forAPartWithoutUserSessionYet_usesThePartRecord() throws {
+        // given a batch of a part whose user session isn't resolved in memory, but is in its record
+        let part = MockSession(
+            id: .random, processId: .random, state: .foreground, traceId: "trace", spanId: "span", startTime: Date())
+        let userSessionId = EmbraceIdentifier.random
+        storage?.stubbedUserSessionId = userSessionId
+        givenLogController()
+
+        // when the batch finishes
+        whenInvokingBatchFinished(withLogs: [randomLogRecord()], session: part)
+
+        // then its payloads are built for that user session
+        try thenFetchesResourcesFromStorage(userSessionId: userSessionId)
+        try thenFetchesMetadataFromStorage(userSessionId: userSessionId)
     }
 
     func test_addLogFillingUserSessionId_withUserSessionId_addsItRightAway() throws {

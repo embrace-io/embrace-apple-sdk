@@ -77,12 +77,16 @@ package class MetadataHandler {
         }
 
         synchronizationQueue.async {
+            guard let lifespanId = self.lifespanId(for: lifespanContext) else {
+                return
+            }
+
             let record = storage.addMetadata(
                 key: key,
                 value: self.validateValue(value),
                 type: type,
                 lifespan: lifespan.recordLifespan,
-                lifespanId: lifespanContext
+                lifespanId: lifespanId
             )
 
             if record == nil {
@@ -109,10 +113,13 @@ package class MetadataHandler {
         type: MetadataRecordType,
         lifespan: MetadataLifespan = .userSession
     ) {
-        guard let lifespanId = currentContext(for: lifespan.recordLifespan) else {
+        guard let lifespanContext = currentContext(for: lifespan.recordLifespan) else {
             return
         }
         synchronizationQueue.async {
+            guard let lifespanId = self.lifespanId(for: lifespanContext) else {
+                return
+            }
             self.storage?.updateMetadata(
                 key: key,
                 value: self.validateValue(value),
@@ -139,10 +146,13 @@ package class MetadataHandler {
     ///  - type: The type of the metadata to remove.
     ///  - lifespan: The lifespan of the metadata to remove.
     func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .userSession) {
-        guard let lifespanId = currentContext(for: lifespan.recordLifespan) else {
+        guard let lifespanContext = currentContext(for: lifespan.recordLifespan) else {
             return
         }
         synchronizationQueue.async {
+            guard let lifespanId = self.lifespanId(for: lifespanContext) else {
+                return
+            }
             self.storage?.removeMetadata(
                 key: key,
                 type: type,
@@ -183,24 +193,62 @@ extension MetadataHandler {
 }
 
 extension MetadataHandler {
-    /// Returns the `lifespanId` to use for the given lifespan, or `nil` if there's no valid context
+    /// What an operation's `lifespanId` is, captured when the operation is called.
+    fileprivate enum LifespanContext {
+        case id(String)
+
+        /// The user session of this part, which was still being resolved when the operation was called.
+        case userSessionOfPart(EmbraceIdentifier)
+    }
+
+    /// Returns the context of the `lifespanId` to use for the given lifespan, or `nil` if there's no valid context
     /// for it (in which case the operation is dropped).
     ///
     /// For the `.userSession` lifespan this is the id of the active user session, **not** the id of
     /// the current session part. That's what makes this metadata span every part of the user session.
-    private func currentContext(for lifespan: MetadataRecordLifespan) -> String? {
+    /// Right after `Embrace.start`, the current part's user session can still be being resolved on the storage
+    /// queue (see `SessionController.startSession`): the operation then uses that part's user session, once known.
+    private func currentContext(for lifespan: MetadataRecordLifespan) -> LifespanContext? {
         if lifespan == .userSession {
+            if let part = sessionController?.currentSession, part.userSessionId == nil {
+                return .userSessionOfPart(part.id)
+            }
             guard let userSessionId = sessionController?.currentUserSession?.id.stringValue else {
                 Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
                 return nil
             }
-            return userSessionId
+            return .id(userSessionId)
         } else if lifespan == .process {
-            return ProcessIdentifier.current.stringValue
+            return .id(ProcessIdentifier.current.stringValue)
         } else {
             // permanent
-            return MetadataRecord.lifespanIdForPermanent
+            return .id(MetadataRecord.lifespanIdForPermanent)
         }
+    }
+
+    /// Returns the `lifespanId` of the given context, or `nil` if the part it refers to ended up without a user
+    /// session (in which case the operation is dropped). Called on `synchronizationQueue`: it can wait for the
+    /// storage queue.
+    private func lifespanId(for context: LifespanContext) -> String? {
+        switch context {
+        case .id(let id):
+            return id
+        case .userSessionOfPart(let partId):
+            guard let userSessionId = sessionController?.userSessionId(ofPart: partId) else {
+                Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
+                return nil
+            }
+            return userSessionId.stringValue
+        }
+    }
+
+    /// The id of the current user session, waiting for it if the current part's is still being resolved
+    /// (see `currentContext(for:)`). Called on `synchronizationQueue`.
+    func currentUserSessionIdWaitingForResolution() -> EmbraceIdentifier? {
+        if let part = sessionController?.currentSession, part.userSessionId == nil {
+            return sessionController?.userSessionId(ofPart: part.id)
+        }
+        return sessionController?.currentUserSession?.id
     }
 }
 

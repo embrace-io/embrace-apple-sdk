@@ -161,7 +161,8 @@ class LogController: LogBatcherDelegate {
             // Process the stack trace
             addStacktraceBlock?(attributesBuilder)
 
-            // app properties make requests to the db so can be time consuming.
+            // app properties make requests to the db so can be time consuming,
+            // and so can filling in a missing user-session id (a read of the part's record).
             if let userSessionId = fillMissingUserSessionId(attributesBuilder) {
                 attributesBuilder.addApplicationProperties(userSessionId: userSessionId, processId: ProcessIdentifier.current)
             } else {
@@ -221,7 +222,7 @@ class LogController: LogBatcherDelegate {
         }
     }
 
-    /// The part of a log that has one but no user-session id yet.
+    /// Returns the part id of a log whose user-session id is empty, or nil.
     ///
     /// A log created right after the SDK starts can predate the resolution of its part's user session, which
     /// happens on the storage queue when the part's record is created (see `SessionController.startSession`).
@@ -250,8 +251,9 @@ class LogController: LogBatcherDelegate {
     }
 
     /// Adds a log that was created outside `createLog`, like the ones coming through the OTel bridge, possibly
-    /// on the main thread. A log that's missing its user-session id is added from the processing queue once
-    /// it's been filled in (see `partMissingUserSessionId(in:)`); any other log is added right away.
+    /// on the main thread. A log that's missing its user-session id is added from the processing queue, after
+    /// trying to fill it in (unchanged if the part has none, see `partMissingUserSessionId(in:)`); any other log
+    /// is added right away.
     func addLogFillingUserSessionId(_ log: EmbraceLog) {
         guard partMissingUserSessionId(in: log.attributes) != nil else {
             addLog(log)
@@ -298,13 +300,17 @@ extension LogController {
             return
         }
 
+        // A part's user session can still be being resolved on the storage queue right after the SDK starts (see
+        // `SessionController.startSession`): its stored record has it once that's done.
+        let userSessionId = session.userSessionId ?? storage?.fetchUserSessionId(partId: session.id)
+
         do {
             let resourcePayload = try createResourcePayload(
-                userSessionId: session.userSessionId,
+                userSessionId: userSessionId,
                 processId: session.processId
             )
             let metadataPayload = try createMetadataPayload(
-                userSessionId: session.userSessionId,
+                userSessionId: userSessionId,
                 processId: session.processId
             )
 

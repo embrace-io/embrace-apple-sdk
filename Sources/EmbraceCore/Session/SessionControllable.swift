@@ -22,6 +22,10 @@ protocol SessionControllable: AnyObject {
     /// user session id without taking a second dependency.
     var currentUserSession: EmbraceUserSession? { get }
 
+    /// The user session of the given part, waiting for it if it's still being resolved on the storage queue.
+    /// Must not be called on the main thread.
+    func userSessionId(ofPart partId: EmbraceIdentifier) -> EmbraceIdentifier?
+
     @discardableResult
     func startSession(state: SessionState) -> EmbraceSession?
 

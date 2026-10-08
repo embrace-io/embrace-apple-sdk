@@ -195,6 +195,8 @@ public class CoreDataWrapper {
     /// Asynchronously performs the given block on the current context
     /// behind a background task assertion.
     /// And automatically save if requested.
+    /// Runs synchronously instead, untracked by the `WorkTracker`, when called from within
+    /// `performAsyncOperationsInline` on this wrapper.
     public func performAsyncOperation(
         _ name: String = #function, save: Bool = false, _ block: @escaping (NSManagedObjectContext) -> Void
     ) {

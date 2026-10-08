@@ -41,11 +41,17 @@ class SessionController: SessionControllable {
 
     /// Tracks the user-session work that has to run on the storage queue (see `startSession`).
     private struct UserSessionResolution {
-        /// Set by `bootstrapUserSessionWithNextPart` until a part takes the bootstrap.
+        /// Set by `bootstrapUserSessionWithNextPart` until a part or `bootstrapPendingUserSession` takes it.
         var bootstrapPending = false
 
-        /// Parts whose user session is still waiting to be resolved on the storage queue.
-        var pendingParts = 0
+        /// User-session work queued on the storage queue and not run yet: the resolutions of deferred parts,
+        /// a standalone bootstrap, and the work queued behind them by `afterPendingUserSessionResolutions`.
+        /// While it's not zero, new parts are deferred too, so everything keeps its order.
+        var pending = 0
+
+        /// The user session each deferred part was resolved to (none if the SDK was disabled by then).
+        /// Only deferred parts are added, which only happens right after `Embrace.start`, so it stays small.
+        var resolvedParts: [String: EmbraceUserSession?] = [:]
     }
     private let _userSessionResolution = EmbraceMutex(UserSessionResolution())
 
@@ -194,6 +200,8 @@ class SessionController: SessionControllable {
     /// starts a new part with the same `SessionState`. Used by the heartbeat-driven max-duration
     /// detector and the manual `endUserSession()` API. The order — end-part → end-user-session
     /// → start-part — guarantees that `attachPart` for the new part sees no active user session.
+    /// While user-session work is deferred to the storage queue, the user session is ended there, and the new
+    /// part is deferred behind it (see `afterPendingUserSessionResolutions`), keeping that order.
     func rollPartForUserSessionExpiry(reason: TerminationReason, at now: Date) {
         let info = _session.safeValue
         let currentState = info.session?.state ?? .unknown
@@ -212,8 +220,8 @@ class SessionController: SessionControllable {
     /// `s2`. The caller sets the in-memory `s2` snapshot; this method only writes records, so both the
     /// closed foreground-origin session and the new background-only tail upload as normal parts.
     ///
-    /// Runs on the storage queue while the first part's user session is resolved (see `startSession`), before
-    /// that part's record is created and before unsent data is uploaded, so the prior record is still present
+    /// Runs on the storage queue while the bootstrap runs there, with the first part or on its own (see
+    /// `startSession`), before that part's record is created and before unsent data is uploaded, so the prior record is still present
     /// and the OTel handler is ready to mint the tail span. Its storage writes run right away, in order.
     /// This is the cold-start equivalent of `applyBackgroundSplitIfNeeded`'s warm split.
     func writeColdStartBackgroundSplit(
@@ -369,12 +377,12 @@ class SessionController: SessionControllable {
             // created meanwhile carry an empty user-session id, which is filled in from the part's
             // record when they're stored (spans) or processed (logs).
             let deferral = _userSessionResolution.withLock { resolution -> (deferred: Bool, bootstrap: Bool) in
-                guard resolution.bootstrapPending || resolution.pendingParts > 0 else {
+                guard resolution.bootstrapPending || resolution.pending > 0 else {
                     return (false, false)
                 }
                 let bootstrap = resolution.bootstrapPending
                 resolution.bootstrapPending = false
-                resolution.pendingParts += 1
+                resolution.pending += 1
                 return (true, bootstrap)
             }
 
@@ -422,6 +430,14 @@ class SessionController: SessionControllable {
         _session.withLock {
             $0.session = sessionInfo.session
             $0.sessionSpan = sessionInfo.span
+
+            // A deferred part's user session can be resolved on the storage queue before the part is set here.
+            if let session = sessionInfo.session,
+                let resolved = _userSessionResolution.withLock({ $0.resolvedParts[session.id.stringValue] }),
+                let userSession = resolved
+            {
+                $0.session = session.with(userSession: userSession)
+            }
         }
 
         // post notification
@@ -444,38 +460,62 @@ class SessionController: SessionControllable {
     /// Runs the pending bootstrap on the storage queue if no part took it. `Embrace.start` calls it after
     /// starting the first part, so the bootstrap still runs before the unsent data is sent.
     func bootstrapPendingUserSession() {
+        guard let storage else {
+            return
+        }
+
         let bootstrap = _userSessionResolution.withLock { resolution -> Bool in
             guard resolution.bootstrapPending else {
                 return false
             }
             resolution.bootstrapPending = false
-            resolution.pendingParts += 1
+            resolution.pending += 1
             return true
         }
 
-        guard bootstrap, let storage else {
+        guard bootstrap else {
             return
         }
 
         storage.coreData.performAsyncOperation { [weak self] _ in
+            defer { self?._userSessionResolution.withLock { $0.pending -= 1 } }
+
+            // As in `resolveDeferredUserSession`.
+            guard self?.sdkStateProvider?.isEnabled == true else {
+                return
+            }
+
             storage.coreData.performAsyncOperationsInline {
                 self?.userSessionController?.bootstrap(priorSession: storage.fetchLatestSession())
             }
-            self?._userSessionResolution.withLock { $0.pendingParts -= 1 }
         }
     }
 
     /// Resolves the user session of a part started while that had to wait for the storage (see `startSession`).
     /// Called on the storage queue right before the part's record is created, with its storage writes running
-    /// right away, so the prior part read here is the prior process's last one, and the writes of the bootstrap
-    /// and of `attachPart` land before the new record, as they would have if this had run in `startSession`.
+    /// right away, so the writes of the bootstrap and of `attachPart` land before the new record, as they would
+    /// have if this had run in `startSession`. When `bootstrap` is set, the prior part read here is the prior
+    /// process's last one, since this part's record doesn't exist yet.
     private func resolveDeferredUserSession(
         partId: EmbraceIdentifier,
         state: SessionState,
         startTime: Date,
         bootstrap: Bool
     ) -> EmbraceUserSession? {
-        defer { _userSessionResolution.withLock { $0.pendingParts -= 1 } }
+        var userSession: EmbraceUserSession?
+        defer {
+            // Recorded together with the update of the in-memory part, under the same lock `startSession` sets
+            // the part with: whichever runs second applies the user session.
+            _session.withLock {
+                _userSessionResolution.withLock {
+                    $0.resolvedParts[partId.stringValue] = .some(userSession)
+                    $0.pending -= 1
+                }
+                if let userSession, let session = $0.session, session.id == partId {
+                    $0.session = session.with(userSession: userSession)
+                }
+            }
+        }
 
         // As in `startSession`: a disabled SDK doesn't start (or end) user sessions. Its parts are deleted instead
         // of uploaded (see `endSessionNoLock` and `clear`).
@@ -487,32 +527,56 @@ class SessionController: SessionControllable {
             userSessionController?.bootstrap(priorSession: storage?.fetchLatestSession())
         }
 
-        let userSession = userSessionController?.attachPart(state: state, startTime: startTime)
-
-        if let userSession {
-            _session.withLock {
-                if let session = $0.session, session.id == partId {
-                    $0.session = session.with(userSession: userSession)
-                }
-            }
-        }
-
+        userSession = userSessionController?.attachPart(state: state, startTime: startTime)
         return userSession
     }
 
+    /// The user session of the given part, waiting for it if it's still being resolved on the storage queue
+    /// (see `startSession`). Must not be called on the main thread: it waits for the storage queue.
+    func userSessionId(ofPart partId: EmbraceIdentifier) -> EmbraceIdentifier? {
+        if let session = currentSession, session.id == partId, let userSessionId = session.userSessionId {
+            return userSessionId
+        }
+
+        let deferred = _userSessionResolution.withLock { $0.resolvedParts[partId.stringValue] != nil || $0.pending > 0 }
+        if deferred {
+            // the part's resolution was queued when it started, so it has run once this returns
+            storage?.coreData.performOperation { _ in }
+        }
+
+        if let resolved = _userSessionResolution.withLock({ $0.resolvedParts[partId.stringValue] }) {
+            return resolved?.id
+        }
+
+        let session = currentSession
+        return session?.id == partId ? session?.userSessionId : nil
+    }
+
     /// Runs `work`, which uses the in-memory user session, once every pending user-session resolution has run
-    /// (see `startSession`): on the storage queue, after them, if any is pending, or right away otherwise.
-    /// On the storage queue, the storage writes it issues run right away, so they land where they would have if
-    /// it had run right away, before the records of the parts started after this call.
+    /// (see `startSession`): on the storage queue, after them, if any is pending (so off the calling thread), or
+    /// right away otherwise. On the storage queue, its storage writes run inline, so they land after the pending
+    /// resolutions and before the records of the parts started after this call.
     private func afterPendingUserSessionResolutions(_ work: @escaping () -> Void) {
-        let pending = _userSessionResolution.withLock { $0.pendingParts > 0 }
-        guard pending, let storage else {
+        guard let storage else {
             work()
             return
         }
 
-        storage.coreData.performAsyncOperation { _ in
+        // Counted as pending until it runs, so a part started after this call is deferred behind it.
+        let pending = _userSessionResolution.withLock { resolution -> Bool in
+            guard resolution.pending > 0 else {
+                return false
+            }
+            return true
+        }
+        guard pending else {
+            work()
+            return
+        }
+
+        storage.coreData.performAsyncOperation { [weak self] _ in
             storage.coreData.performAsyncOperationsInline(work)
+            self?._userSessionResolution.withLock { $0.pending -= 1 }
         }
     }
 
@@ -739,6 +803,10 @@ class SessionController: SessionControllable {
     /// operations in the order they are queued, so the lookup resolves to the part that was
     /// latest at call time: a new part added after this call (as `startSession` does right
     /// after `attachPart`) is not considered.
+    ///
+    /// It also runs on the storage queue, inside `performAsyncOperationsInline`, when the user session
+    /// work is deferred (see `startSession`). There the write runs right away, which still lands before
+    /// the record of the part being resolved.
     ///
     /// Idempotent: if the latest part already has a `userSessionTerminationReason`, the call
     /// is a no-op. This protects the bootstrap-driven expiry path from overwriting a reason

@@ -366,8 +366,6 @@ class CoreDataWrapperTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: storageMechanism.fileURL!.path))
     }
 
-    /// Releases the exclusive lock held by `db` once, from whichever caller gets there first.
-    /// The returned closure returns whether that call released it.
     func test_performAsyncOperationsInline_runsTheAsyncOperationsItIssuesRightAway() throws {
         // given an operation that queues one async operation, then issues two more inline
         var order: [String] = []
@@ -429,6 +427,8 @@ class CoreDataWrapperTests: XCTestCase {
         XCTAssertEqual(order, ["outer", "queued"])
     }
 
+    /// Releases the exclusive lock held by `db` once, from whichever caller gets there first.
+    /// The returned closure returns whether that call released it.
     private func lockReleaser(_ db: OpaquePointer?) -> () -> Bool {
         let lock = NSLock()
         var released = false

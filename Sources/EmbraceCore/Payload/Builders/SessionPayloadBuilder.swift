@@ -14,9 +14,8 @@ class SessionPayloadBuilder {
 
     class func build(for session: EmbraceSession, storage: EmbraceStorage) -> PayloadEnvelope<[SpanPayload]>? {
 
-        // The stored record is the source of truth: values are assigned to it on the storage queue that the
-        // in-memory copies kept by `SessionController` don't have, like the part number, and the user session
-        // of a part that was started while it had to wait for the storage (see `SessionController.startSession`).
+        // Use the stored record. The storage queue sets values the in-memory copies lack: the part number, and
+        // the user session of a part whose resolution was deferred (see `SessionController.startSession`).
         let session = storage.fetchSession(id: session.id) ?? session
 
         // fetch properties
