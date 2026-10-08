@@ -323,53 +323,28 @@ extension EmbraceStorage {
         return fetchMetadata(key: key, type: .requiredResource, lifespan: .permanent)
     }
 
-    /// Synchronously fetches the numeric value of a permanent resource for the given key.
-    /// Returns 0 if no record exists or if its value is not numeric.
-    ///
-    /// This blocks the calling thread until every operation already queued on the storage context finishes.
-    /// Pass `allowMainQueue: true` to skip the main-thread warning when calling it from the main queue is intended.
-    public func fetchCountForPermanentResource(key: String, allowMainQueue: Bool = false) -> EMBInt {
-        coreData.performOperation(allowMainQueue: allowMainQueue) { context in
-            countForPermanentResource(key: key, context: context)
-        }
-    }
-
-    /// Asynchronously fetches the numeric value of a permanent resource for the given key.
-    /// The completion receives 0 if no record exists or if its value is not numeric.
-    /// The completion is called on the storage context's queue.
-    public func fetchCountForPermanentResource(key: String, completion: @escaping (EMBInt) -> Void) {
-        coreData.performAsyncOperation { [self] context in
-            completion(countForPermanentResource(key: key, context: context))
-        }
-    }
-
-    /// Asynchronously sets the numeric value of a permanent resource for the given key.
-    /// If no record exists it will create one.
-    public func setCountForPermanentResource(key: String, value: EMBInt) {
-        coreData.performAsyncOperation(save: true) { [self] context in
-            let request = fetchMetadataRequest(key: key, type: .requiredResource, lifespan: .permanent)
-
-            if let metadata = fetchMetadata(request: request, context: context) {
-                metadata.value = String(value)
-            } else {
-                _ = MetadataRecord.create(
-                    context: context,
-                    key: key,
-                    value: String(value),
-                    type: .requiredResource,
-                    lifespan: .permanent,
-                    lifespanId: ""
-                )
-            }
-        }
-    }
-
-    private func countForPermanentResource(key: String, context: NSManagedObjectContext) -> EMBInt {
+    /// Increments the numeric value of a permanent resource for the given key and returns the new value.
+    /// A missing record is created and a non-numeric value is overwritten: both count as 0, so the first value is 1.
+    /// Doesn't save the context. Must be called on the storage context's queue.
+    func incrementCountForPermanentResource(key: String, context: NSManagedObjectContext) -> EMBInt {
         let request = fetchMetadataRequest(key: key, type: .requiredResource, lifespan: .permanent)
-        guard let metadata = fetchMetadata(request: request, context: context) else {
-            return 0
+
+        if let metadata = fetchMetadata(request: request, context: context) {
+            let value = (EMBInt(metadata.value) ?? 0) + 1
+            metadata.value = String(value)
+            return value
         }
-        return EMBInt(metadata.value) ?? 0
+
+        let value: EMBInt = 1
+        _ = MetadataRecord.create(
+            context: context,
+            key: key,
+            value: String(value),
+            type: .requiredResource,
+            lifespan: .permanent,
+            lifespanId: ""
+        )
+        return value
     }
 
     /// Returns immutable copies of all records with types `.requiredResource` or `.resource`

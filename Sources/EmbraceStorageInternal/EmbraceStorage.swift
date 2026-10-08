@@ -23,7 +23,10 @@ public class EmbraceStorage: Storage {
     /// - Parameters:
     ///   - options: `EmbraceStorage.Options` instance
     ///   - logger : `EmbraceConsoleLogger` instance
-    public init(options: Options, logger: InternalLogger) throws {
+    ///   - isTesting: Forces an in-memory store when true. Defaults to whether the process is running tests;
+    ///     tests that need the on-disk store pass false. When false, `coreData.destroy()` does nothing,
+    ///     so those tests must remove the files themselves.
+    public init(options: Options, logger: InternalLogger, isTesting: Bool = ProcessInfo.processInfo.isTesting) throws {
         self.options = options
         self.logger = logger
 
@@ -45,7 +48,7 @@ public class EmbraceStorage: Storage {
             enableBackgroundTasks: options.enableBackgroundTasks,
             entities: entities
         )
-        self.coreData = try CoreDataWrapper(options: coreDataOptions, logger: logger)
+        self.coreData = try CoreDataWrapper(options: coreDataOptions, logger: logger, isTesting: isTesting)
     }
 
     /// Saves all changes to disk

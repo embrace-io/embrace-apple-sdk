@@ -157,6 +157,7 @@ package class Embrace {
     init(
         options: Embrace.Options,
         embraceStorage: EmbraceStorage? = nil,
+        embraceUpload: EmbraceUpload? = nil,
         otelResources: EmbraceAttributes? = nil
     ) throws {
 
@@ -170,20 +171,24 @@ package class Embrace {
         // initialize remote configuration
         self.config = Embrace.createConfig(options: options, deviceId: deviceId)
 
-        // initialize upload module
-        self.upload = try Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
-
-        // send critical logs from previous session, and clean up any orphan pending-logs file
-        UnsentDataHandler.sendCriticalLogs(
+        // Take the previous launch's critical logs (and remove any orphan pending-logs file) before anything here can
+        // log a `.critical`: `createUpload` and both stores' loads can, and the first one replaces the previous
+        // launch's file with this one's.
+        let previousCriticalLogs = UnsentDataHandler.takeCriticalLogs(
             fileUrl: EmbraceFileSystem.criticalLogsURL,
-            pendingFileUrl: EmbraceFileSystem.pendingLogsURL,
-            upload: upload
+            pendingFileUrl: EmbraceFileSystem.pendingLogsURL
         )
+
+        // initialize upload module
+        self.upload = try embraceUpload ?? Embrace.createUpload(options: options, deviceId: deviceId.stringValue, configuration: config.configurable)
+
+        // send critical logs from previous session
+        UnsentDataHandler.sendCriticalLogs(previousCriticalLogs, upload: upload)
 
         // initialize storage module
         self.storage = try embraceStorage ?? Embrace.createStorage(options: options, configuration: config.configurable)
 
-        // Persist the critical resources before anything else touches the storage.
+        // Persist the critical resources before any other storage operation (only the store load runs before them).
         // The backend drops payloads without them, and since the storage context is serial,
         // enqueuing them first guarantees every later read sees them without blocking this thread.
         let criticalResources = AppInfoCaptureService.criticalResources.merging(DeviceInfoCaptureService.criticalResources) { current, _ in current }
@@ -262,6 +267,19 @@ package class Embrace {
             stateProvider: self
         )
 
+        // The stores load asynchronously (see `CoreDataWrapper`). The SDK can't work without them,
+        // so if either fails, report it and stop the SDK (see `storeFailedToLoad`).
+        storage.coreData.onInitialLoad { [weak self] error in
+            if error != nil {
+                self?.storeFailedToLoad("storage")
+            }
+        }
+        upload?.onCacheLoaded { [weak self] error in
+            if error != nil {
+                self?.storeFailedToLoad("upload cache")
+            }
+        }
+
         // set providers
         sessionController.sdkStateProvider = self
         sessionController.otel = self.otel
@@ -294,7 +312,8 @@ package class Embrace {
 
     /// Method used to start the Embrace SDK.
     /// - Throws: `EmbraceSetupError.invalidThread` if not called from the main thread.
-    /// - Note: This method won't do anything if the Embrace SDK was already started or if it was disabled via the remote configurations.
+    /// - Note: This method won't do anything if the Embrace SDK was already started or stopped, or if it was disabled via the remote
+    ///         configurations. A store that fails to load stops the SDK (see `storeFailedToLoad`).
     /// - Returns: The `Embrace` client instance.
     @discardableResult
     package func start() throws -> Embrace {
@@ -315,6 +334,11 @@ package class Embrace {
         return Embrace._syncLock.lockedForWriting {
 
             defer { span.end() }
+
+            guard state != .stopped else {
+                Embrace.logger.warning("The Embrace SDK can't be started after it was stopped!")
+                return self
+            }
 
             guard state == .initialized else {
                 Embrace.logger.warning("The Embrace SDK can only be started once!")
@@ -340,18 +364,31 @@ package class Embrace {
             // set sdk state
             state = .started
 
-            // Fetch the prior process's last session ONCE and share it. Must happen before
-            // `sessionLifecycle.startSession()` creates a new record. Consumed by both
-            // `userSessionController.bootstrap` (to reconstruct user-session state) and
-            // metric-kit (to attribute incoming MetricKit payloads to the prior session).
-            let priorSession = storage.fetchLatestSession()
-            userSessionController.bootstrap(priorSession: priorSession)
-            metricKit.lastSession = priorSession
-            metricKit.install()
+            // The prior process's last part is read on the storage queue, since the storage may still be loading
+            // (see `CoreDataWrapper`). Both reads are queued before `sessionLifecycle.startSession()` creates a new
+            // record, so they see the prior one.
+            //
+            // MetricKit attributes incoming payloads to it.
+            storage.fetchLatestSession { [self] session in
+                // The SDK may have been stopped meanwhile. A storage that failed to load stops it only once the
+                // main thread gets to it, which can be after this runs, so check the load result too (already
+                // known here: this fetch ran after the load). Otherwise MetricKit could deliver an earlier
+                // launch's diagnostic into a storage that drops it.
+                guard isSDKEnabled, storage.coreData.isStoreLoaded else {
+                    return
+                }
+                metricKit.lastSession = session
+                metricKit.install()
+            }
+
+            // The user-session controller reconstructs the user session from it, together with the first part
+            // (see `SessionController.startSession`).
+            sessionController.bootstrapUserSessionWithNextPart()
 
             // start instrumentation
             startupInstrumentation.buildMainSpans()
             sessionLifecycle.startSession()
+            sessionController.bootstrapPendingUserSession()
             captureServices.install()
 
             // WARNING: This is dangerous as it calls out to external code.
@@ -362,23 +399,7 @@ package class Embrace {
             releaseCaptureServicesGroup()
 
             self.processingQueue.async { [weak self] in
-                // fetch crash reports and link them to sessions
-                // then upload them
-                UnsentDataHandler.sendUnsentData(
-                    storage: self?.storage,
-                    upload: self?.upload,
-                    otel: self?.otel,
-                    logController: self?.logController,
-                    currentSessionId: self?.sessionController.currentSession?.id,
-                    currentUserSessionId: self?.userSessionController.currentUserSessionId,
-                    crashReporter: self?.captureServices.crashReporter
-                )
-
-                // remove old versions data
-                self?.cleanUpOldVersionsData()
-
-                // add otel resources as metadata
-                self?.addOtelResources()
+                self?.sendUnsentData()
             }
 
             // retry any remaining cached upload data
@@ -418,16 +439,88 @@ package class Embrace {
                 return self
             }
 
-            state = .stopped
-
-            sessionLifecycle.stop()
-            sessionController.clear()
-            captureServices.stop()
-            metricKit.uninstall()
+            stopNoLock()
 
             Embrace.logger.startup("Embrace SDK stopped successfully!")
 
             return self
+        }
+    }
+
+    /// Removes old-version data, then starts sending the data left by earlier launches and adds the otel resources.
+    /// Called on `processingQueue` when the SDK starts. If either store failed to load, nothing is sent and the
+    /// otel resources aren't added either; the old-version data is still removed.
+    /// - Parameter completion: Called once the unsent data was handed to the upload module, or skipped.
+    ///   It doesn't wait for the otel resources to be added.
+    func sendUnsentData(completion: (() -> Void)? = nil) {
+        // remove old versions data (files only, it doesn't need the stores)
+        cleanUpOldVersionsData()
+
+        // The data from earlier launches is read from the storage and uploaded through the upload cache, and either
+        // may still be loading. If one failed to load, that data (crash reports, sessions, logs and metadata) is kept
+        // for a later launch instead: without the storage, crash reports would be sent without the resources the
+        // backend requires, and deleted; without the upload cache, nothing is sent but the metadata the unsent logs
+        // need would be cleaned up.
+        // This waits for the loads on the calling queue, which must not be the main one. It also waits for the
+        // first part's user session, resolved on the storage queue (see `SessionController.startSession`), so the
+        // current user session read below is known.
+        guard storage.coreData.isStoreLoaded, upload?.isCacheLoaded ?? true else {
+            Embrace.logger.warning("Not sending the data from earlier launches: one of the SDK's stores isn't loaded.")
+            completion?()
+            return
+        }
+
+        // fetch crash reports and link them to sessions
+        // then upload them
+        UnsentDataHandler.sendUnsentData(
+            storage: storage,
+            upload: upload,
+            otel: otel,
+            logController: logController,
+            currentSessionId: sessionController.currentSession?.id,
+            currentUserSessionId: userSessionController.currentUserSessionId,
+            crashReporter: captureServices.crashReporter,
+            completion: completion
+        )
+
+        // add otel resources as metadata
+        addOtelResources()
+    }
+
+    /// Must be called on the main thread while holding `_syncLock` for writing, with the SDK started.
+    private func stopNoLock() {
+        state = .stopped
+
+        sessionLifecycle.stop()
+        sessionController.clear()
+        captureServices.stop()
+        metricKit.uninstall()
+    }
+
+    /// Stops the SDK for the rest of the process because one of its stores failed to load.
+    /// On the main thread, the SDK is stopped if it started, or moved to `.stopped` if it hadn't, so `start()`
+    /// won't start it. A `start()` that runs before then starts the SDK, which is then stopped right away,
+    /// the same as when a store fails after `start()`.
+    ///
+    /// The failure is reported with a critical log (the store also logs one with the load error).
+    func storeFailedToLoad(_ store: String) {
+        Embrace.logger.critical("Embrace SDK stopped because its \(store) failed to load")
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            Embrace._syncLock.lockedForWriting {
+                switch self.state {
+                case .started:
+                    self.stopNoLock()
+                case .initialized:
+                    self.state = .stopped
+                default:
+                    break
+                }
+            }
         }
     }
 

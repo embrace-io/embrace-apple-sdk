@@ -516,7 +516,7 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
             sessionId: log.sessionId,
             processId: log.processId
         )
-        logController?.addLog(sanitizedLog)
+        logController?.addLogFillingUserSessionId(sanitizedLog)
     }
 
     private func sanitizeExternalSpan(_ span: EmbraceSpan) -> EmbraceSpan {

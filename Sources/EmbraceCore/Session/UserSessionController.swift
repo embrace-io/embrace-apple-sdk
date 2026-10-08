@@ -41,6 +41,7 @@ extension Notification.Name {
 /// - Important: `bootstrap()` MUST run before unsent data is uploaded — the previous process's
 ///   last part is the source of our user-session reconstruction. If that record is uploaded and
 ///   deleted first, the snapshot is lost and a fresh user session starts on the next part.
+///   It runs on the storage queue, together with the first part (see `SessionController.startSession`).
 final class UserSessionController {
 
     /// Minimum interval between accepted manual end-user-session calls. Prevents customers from
@@ -83,8 +84,9 @@ final class UserSessionController {
     // MARK: - Bootstrap
 
     /// Reconstructs the in-memory snapshot from the prior process's most recent persisted
-    /// `SessionRecord`. Call once at SDK start, before `sessionLifecycle.startSession()` and
-    /// before `UnsentDataHandler.sendUnsentData`.
+    /// `SessionRecord`. Called once after SDK start, on the storage queue, before the first part's
+    /// `attachPart` and its record (see `SessionController.startSession`), and before
+    /// `UnsentDataHandler.sendUnsentData`.
     ///
     /// If the prior record has no user-session columns (legacy v6 row) or no record exists,
     /// the snapshot is left empty and the next `attachPart` call starts a new user session

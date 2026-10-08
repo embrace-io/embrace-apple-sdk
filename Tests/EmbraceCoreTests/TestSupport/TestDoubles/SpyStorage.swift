@@ -84,8 +84,10 @@ class SpyStorage: Storage {
     }
 
     var didCallCreate = false
+    var savedLogs: [EmbraceLog] = []
     func saveLog(_ log: EmbraceLog) {
         didCallCreate = true
+        savedLogs.append(log)
     }
 
     var didCallFetchAllExcludingProcessIdentifier = false
@@ -102,5 +104,10 @@ class SpyStorage: Storage {
     func remove(logs: [EmbraceLog]) {
         didCallRemoveLogs = true
         removeLogsReceivedParameter = logs
+    }
+
+    var stubbedUserSessionId: EmbraceIdentifier?
+    func fetchUserSessionId(partId: EmbraceIdentifier) -> EmbraceIdentifier? {
+        return stubbedUserSessionId
     }
 }
