@@ -1041,6 +1041,26 @@ class UnsentDataHandlerTests: XCTestCase {
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testLogsUrl()).count, 0)
     }
 
+    func test_takeCriticalLogs_returnsAndRemovesThePreviousLaunchFiles() throws {
+        // given critical logs and an orphan pending-logs file from a prior run
+        let pendingLogsFilePath = filePathProvider.fileURL(for: "UnsentDataHandlerTests", name: "pending-file")!
+        try "TEST".write(to: criticalLogsFilePath, atomically: true, encoding: .utf8)
+        try "STARTUP-TRAIL".write(to: pendingLogsFilePath, atomically: true, encoding: .utf8)
+
+        // when taking them
+        let logs = UnsentDataHandler.takeCriticalLogs(fileUrl: criticalLogsFilePath, pendingFileUrl: pendingLogsFilePath)
+
+        // then the critical logs are returned, and both files are removed right away,
+        // so this launch's logger can't mistake them for its own
+        XCTAssertEqual(logs, "TEST")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: criticalLogsFilePath.path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: pendingLogsFilePath.path))
+    }
+
+    func test_takeCriticalLogs_noFile() {
+        XCTAssertNil(UnsentDataHandler.takeCriticalLogs(fileUrl: criticalLogsFilePath))
+    }
+
     func test_criticalLogs_orphanPendingFile_isDeleted() async throws {
         // mock successful requests
         EmbraceHTTPMock.mock(url: testLogsUrl())

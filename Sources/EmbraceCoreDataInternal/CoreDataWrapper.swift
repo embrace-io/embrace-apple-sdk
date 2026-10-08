@@ -28,8 +28,14 @@ public class CoreDataWrapper {
     }
 
     private let isTesting: Bool
+
+    /// Set when the initial store load fails. Only accessed on the context's queue.
+    private var initialLoadError: Error?
+
     static let modelCache: EmbraceMutex<[String: NSManagedObjectModel]> = EmbraceMutex([:])
 
+    /// - Throws: If the on-disk store's directory can't be created. Failing to load the store doesn't throw:
+    ///   see `onInitialLoad` and `isStoreLoaded`.
     public init(
         options: CoreDataWrapper.Options,
         logger: InternalLogger,
@@ -82,27 +88,54 @@ public class CoreDataWrapper {
                 description.type = NSSQLiteStoreType
                 description.url = options.storageMechanism.fileURL
                 description.setValue(journalMode.rawValue as NSString, forPragmaNamed: "journal_mode")
-                // This is the default value; however, we enforce it here so that the `CoreDataWrapper`
-                // is created synchronously in `Embrace.init`, allowing us to throw as needed and fail early.
+                // This is the default value; however, we enforce it here because the store must be added
+                // synchronously inside the first block on the context's queue (see below). Otherwise that
+                // block would return before the store exists and later operations would run without it.
                 description.shouldAddStoreAsynchronously = false
                 container.persistentStoreDescriptions = [description]
 
             }
         }
 
-        // Even though this happens inside a block, by default it runs synchronously on the same thread
-        // (because `shouldAddStoreAsynchronously` defaults to `false`). We set it explicitly anyway to
-        // make it crystal clear and to guard against potential changes in future OS versions.
+        // Opening the store (attaching the SQLite file, WAL recovery, migrations) can take a long time
+        // on slow or busy devices, and this initializer typically runs on the main thread (`Embrace.setup()`).
+        // So instead of loading it here, the store is loaded by the first block enqueued on the context's
+        // serial queue, and every later operation runs after it. Async operations return immediately, but
+        // synchronous ones (`performOperation`, `fetch*`, `count`, `deleteRecord(s)`, `save()`, `isStoreLoaded`)
+        // issued before the load finishes wait for it.
         //
-        // If the store cant be created or opened, we want to know immediately and fail fast.
-        // Otherwise, the container would appear as "initialized", but any later attempt to hit Core Data
-        // (fetch, save, etc.) would crash. Thats why we capture the error from `loadPersistentStores`
-        // and rethrow it here: better to throw during `Embrace.init` than to crash much later.
-        if let loadPersistentStoreError = loadPersistentStoreIfNeeded(logIfEmpty: false) {
-            throw loadPersistentStoreError
+        // If the load fails, the error is logged and the wrapper keeps working without a store for the rest
+        // of the process: nothing is persisted, fetches only see objects still pending in the context, and
+        // `saveIfNeeded()` returns `false` without trying when there are changes. The load is not retried, so a
+        // store that becomes available later is never attached next to the objects created in the meantime
+        // (which would duplicate records).
+        // See `isStoreLoaded`.
+        //
+        // The context is created manually because `newBackgroundContext()` warns when no store is loaded yet.
+        context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
+        context.persistentStoreCoordinator = container.persistentStoreCoordinator
+        // Enqueued as a tracked operation so that, if the app is backgrounded mid-load, the `WorkTracker`
+        // background task assertion waits for it.
+        performAsyncOperation("loadPersistentStore") { [self] _ in
+            initialLoadError = loadPersistentStoreIfNeeded(logIfEmpty: false)
         }
+    }
 
-        context = container.newBackgroundContext()
+    /// Whether the persistent store is loaded.
+    /// Synchronous: waits for the initial load (and any other pending operation) to finish,
+    /// which can block the calling thread, including the main thread, for the whole load.
+    public var isStoreLoaded: Bool {
+        performOperation(allowMainQueue: true) { _ in
+            !container.persistentStoreCoordinator.persistentStores.isEmpty
+        }
+    }
+
+    /// Asynchronously calls `completion` on the context's queue once the initial store load has finished,
+    /// passing the load error, or `nil` if the store loaded.
+    public func onInitialLoad(_ completion: @escaping (_ error: Error?) -> Void) {
+        performAsyncOperation { [self] _ in
+            completion(initialLoadError)
+        }
     }
 
     @discardableResult
@@ -298,8 +331,14 @@ extension CoreDataWrapper {
             return true
         }
 
-        // For some reason, persistent stores seem to go away sometimes,
-        // let's try and load them if needed.
+        // Without a store the save can only fail (raising, and logging, every time).
+        // The initial load isn't retried: see `init`.
+        guard initialLoadError == nil else {
+            return false
+        }
+
+        // The initial load succeeded, but persistent stores seem to go away sometimes:
+        // load them again if needed.
         loadPersistentStoreIfNeeded()
 
         // Call into ObjC to capture any ObjC exceptions thrown.

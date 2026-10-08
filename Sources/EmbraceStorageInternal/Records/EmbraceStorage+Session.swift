@@ -11,7 +11,7 @@ import Foundation
 
 extension EmbraceStorage {
 
-    /// Adds a session to the storage synchronously.
+    /// Adds a session to the storage asynchronously; the record is created and saved on the storage queue.
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - processId: `ProcessIdentifier` of the session
@@ -22,8 +22,12 @@ extension EmbraceStorage {
     ///   - endTime: `Date` of when the session ended (optional)
     ///   - lastHeartbeatTime: `Date` of the last heartbeat for the session (optional).
     ///   - crashReportId: Identifier of the crash report linked with this session
-    ///   - completion: A block called when the sesson has been added to storage
-    /// - Returns: The newly stored `SessionRecord`
+    ///   - sessionNumber: Number of the session. Ignored when `sessionNumberCounterKey` is set.
+    ///   - sessionNumberCounterKey: Key of a permanent counter resource. When set, the counter is incremented
+    ///     in the same storage-queue block that creates the record, and its new value becomes the stored
+    ///     session's number. The returned copy then has a `sessionNumber` of 0; fetch the stored session to read it.
+    ///   - completion: A block called when the session has been added to storage
+    /// - Returns: An in-memory copy of the session built from the given values, returned without waiting for the record to be stored.
     @discardableResult
     public func addSession(
         id: EmbraceIdentifier,
@@ -39,12 +43,13 @@ extension EmbraceStorage {
         cleanExit: Bool = false,
         appTerminated: Bool = false,
         sessionNumber: EMBInt = 0,
+        sessionNumberCounterKey: String? = nil,
         completion: (() -> Void)? = nil
     ) -> EmbraceSession? {
 
         let hbTime = lastHeartbeatTime ?? Date()
 
-        coreData.performAsyncOperation { [self] _ in
+        coreData.performAsyncOperation { [self] context in
 
             defer {
                 if let completion {
@@ -53,6 +58,11 @@ extension EmbraceStorage {
                     }
                 }
             }
+
+            let number =
+                sessionNumberCounterKey.map {
+                    incrementCountForPermanentResource(key: $0, context: context)
+                } ?? sessionNumber
 
             let created = SessionRecord.create(
                 context: coreData.context,
@@ -67,7 +77,7 @@ extension EmbraceStorage {
                 coldStart: coldStart,
                 cleanExit: cleanExit,
                 appTerminated: appTerminated,
-                sessionNumber: sessionNumber
+                sessionNumber: number
             )
             guard created else {
                 logger.critical("Failed to create new session!")
@@ -90,7 +100,7 @@ extension EmbraceStorage {
             coldStart: coldStart,
             cleanExit: cleanExit,
             appTerminated: appTerminated,
-            sessionNumber: sessionNumber
+            sessionNumber: sessionNumberCounterKey == nil ? sessionNumber : 0
         )
     }
 
@@ -214,7 +224,8 @@ extension EmbraceStorage {
     }
 
     /// Updates values for the given session id
-    /// - Returns: Immutable copy of the modified `SessionRecord`, if any
+    /// - Returns: An in-memory copy of the given session with the given values applied, if it has an id.
+    ///   The record is updated asynchronously, and values only set by the storage (like the session number) aren't refreshed.
     @discardableResult
     public func updateSession(
         session: EmbraceSession,

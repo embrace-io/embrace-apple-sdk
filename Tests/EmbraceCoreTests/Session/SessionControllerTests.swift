@@ -469,8 +469,8 @@ final class SessionControllerTests: XCTestCase {
         // when starting a session
         let session = controller.startSession(state: .foreground)
 
-        // then the session has sessionNumber 1
-        XCTAssertEqual(session?.sessionNumber, 1)
+        // then the stored session has sessionNumber 1
+        XCTAssertEqual(storedSessionNumber(of: session), 1)
 
         // and the MetadataRecord counter was incremented to 1
         let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
@@ -483,9 +483,9 @@ final class SessionControllerTests: XCTestCase {
         controller.endSession()
         let second = controller.startSession(state: .foreground)
 
-        // then each session has a distinct, incrementing sessionNumber
-        XCTAssertEqual(first?.sessionNumber, 1)
-        XCTAssertEqual(second?.sessionNumber, 2)
+        // then each stored session has a distinct, incrementing sessionNumber
+        XCTAssertEqual(storedSessionNumber(of: first), 1)
+        XCTAssertEqual(storedSessionNumber(of: second), 2)
 
         // and the MetadataRecord reflects the final count
         let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
@@ -501,43 +501,14 @@ final class SessionControllerTests: XCTestCase {
             lifespan: .permanent
         )
 
-        // when starting a session on a controller created afterwards
-        let controller = SessionController(storage: storage, upload: nil, config: nil)
-        controller.sdkStateProvider = sdkStateProvider
+        // when starting a session
         let session = controller.startSession(state: .foreground)
 
         // then sessionNumber continues from 6
-        XCTAssertEqual(session?.sessionNumber, 6)
+        XCTAssertEqual(storedSessionNumber(of: session), 6)
 
         let resource = storage.fetchRequiredPermanentResource(key: SessionController.sessionNumberKey)
         XCTAssertEqual(resource?.value, "6")
-    }
-
-    func test_startSession_usesPreloadedCounter() throws {
-        // given an existing counter value of 5
-        storage.addMetadata(
-            key: SessionController.sessionNumberKey,
-            value: "5",
-            type: .requiredResource,
-            lifespan: .permanent
-        )
-
-        // and a controller whose preload has finished
-        let controller = SessionController(storage: storage, upload: nil, config: nil)
-        controller.sdkStateProvider = sdkStateProvider
-        storage.coreData.performOperation { _ in }
-
-        // when the stored counter changes behind the controller's back
-        storage.addMetadata(
-            key: SessionController.sessionNumberKey,
-            value: "100",
-            type: .requiredResource,
-            lifespan: .permanent
-        )
-
-        // then the session uses the preloaded value instead of reading storage again
-        let session = controller.startSession(state: .foreground)
-        XCTAssertEqual(session?.sessionNumber, 6)
     }
 
     func test_startSession_persistsCounterForNextController() throws {
@@ -552,7 +523,41 @@ final class SessionControllerTests: XCTestCase {
         let session = controller.startSession(state: .foreground)
 
         // then the counter continues from the persisted value
-        XCTAssertEqual(session?.sessionNumber, 3)
+        XCTAssertEqual(storedSessionNumber(of: session), 3)
+    }
+
+    func test_startSession_doesNotWaitOnStorage() throws {
+        // given a storage queue that is busy (e.g. still opening the store at launch)
+        let semaphore = DispatchSemaphore(value: 0)
+        storage.coreData.performAsyncOperation { _ in semaphore.wait() }
+
+        // (released anyway after a while, so a regression that waits for the storage queue fails instead of hanging)
+        let released = EmbraceAtomic<Bool>(false)
+        let release: () -> Bool = {
+            guard !released.exchange(true) else { return false }
+            semaphore.signal()
+            return true
+        }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 10) { _ = release() }
+
+        // when creating a controller and starting a session
+        let controller = SessionController(storage: storage, upload: nil, config: nil)
+        controller.sdkStateProvider = sdkStateProvider
+        let session = controller.startSession(state: .foreground)
+
+        // then the session started without waiting for the storage queue: it's still busy
+        XCTAssertTrue(release(), "starting the session waited for the storage queue")
+        XCTAssertNotNil(session)
+
+        // and gets its number once the storage queue catches up
+        XCTAssertEqual(storedSessionNumber(of: session), 1)
+    }
+
+    private func storedSessionNumber(of session: EmbraceSession?) -> EMBInt? {
+        guard let id = session?.id else {
+            return nil
+        }
+        return storage.fetchSession(id: id)?.sessionNumber
     }
 
     func test_heartbeat() throws {

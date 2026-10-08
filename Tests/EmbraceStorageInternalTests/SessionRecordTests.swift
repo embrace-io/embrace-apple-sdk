@@ -56,6 +56,61 @@ class SessionRecordTests: XCTestCase {
         XCTAssertEqual(session?.sessionNumber, 3)
     }
 
+    func test_addSession_withCounterKey_numbersSessionsFromTheCounter() throws {
+        // given an existing counter value of 5
+        let counterKey = "test.counter"
+        storage.addMetadata(key: counterKey, value: "5", type: .requiredResource, lifespan: .permanent)
+
+        // when adding two sessions numbered from the counter
+        let firstId = EmbraceIdentifier.random
+        let secondId = EmbraceIdentifier.random
+        let first = storage.addSession(
+            id: firstId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(),
+            sessionNumber: 99,
+            sessionNumberCounterKey: counterKey
+        )
+        storage.addSession(
+            id: secondId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(),
+            sessionNumberCounterKey: counterKey
+        )
+
+        // then the returned in-memory session doesn't carry a number
+        XCTAssertEqual(first?.sessionNumber, 0)
+
+        // and the stored sessions continue from the counter, ignoring the explicit number
+        XCTAssertEqual(storage.fetchSession(id: firstId)?.sessionNumber, 6)
+        XCTAssertEqual(storage.fetchSession(id: secondId)?.sessionNumber, 7)
+        XCTAssertEqual(storage.fetchRequiredPermanentResource(key: counterKey)?.value, "7")
+    }
+
+    func test_addSession_withCounterKey_startsCounterAtOne() throws {
+        // when adding a session numbered from a counter that doesn't exist yet
+        let sessionId = EmbraceIdentifier.random
+        storage.addSession(
+            id: sessionId,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date(),
+            sessionNumberCounterKey: "test.counter"
+        )
+
+        // then the session is number 1 and the counter is created
+        XCTAssertEqual(storage.fetchSession(id: sessionId)?.sessionNumber, 1)
+        XCTAssertEqual(storage.fetchRequiredPermanentResource(key: "test.counter")?.value, "1")
+    }
+
     func test_fetchSession() throws {
         // given inserted session
         let sessionId = EmbraceIdentifier.random

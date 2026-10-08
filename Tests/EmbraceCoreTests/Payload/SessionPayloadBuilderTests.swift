@@ -67,6 +67,36 @@ final class SessionPayloadBuilderTests: XCTestCase {
         XCTAssertNil(resource)
     }
 
+    func test_usesSessionNumberFromStoredSession() throws {
+        // given a session whose number was assigned by storage
+        storage.addMetadata(
+            key: SessionController.sessionNumberKey,
+            value: "41",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+        let session = try XCTUnwrap(
+            storage.addSession(
+                id: TestConstants.sessionId,
+                processId: ProcessIdentifier.current,
+                state: .foreground,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: Date(timeIntervalSince1970: 0),
+                endTime: Date(timeIntervalSince1970: 60),
+                sessionNumberCounterKey: SessionController.sessionNumberKey
+            ))
+
+        // when building a session payload from the in-memory session, which doesn't carry the number
+        XCTAssertEqual(session.sessionNumber, 0)
+        let payload = SessionPayloadBuilder.build(for: session, storage: storage)
+
+        // then the session span contains the stored session number
+        let sessionSpan = payload?.data["spans"]?.first { $0.name == "emb-session" }
+        let sessionNumberAttr = sessionSpan?.attributes.first { $0.key == "emb.session_number" }
+        XCTAssertEqual(sessionNumberAttr?.value, "42")
+    }
+
     func test_experiments_areASessionSpanAttribute() throws {
         // given experiments stored for the session's process
         storage.addRequiredResources([SpanSemantics.keyExperiments: "e:exp:A:1000000"])
