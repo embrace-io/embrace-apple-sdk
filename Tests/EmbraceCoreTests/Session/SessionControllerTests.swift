@@ -1041,6 +1041,20 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(part?.userSessionId, priorUserSessionId)
     }
 
+    func test_bootstrapPendingUserSession_whenTheSDKIsDisabled_doesNotBootstrap() throws {
+        // given the prior process's last part, and the bootstrap deferred to a part that isn't started
+        seedUnexpiredPriorPart()
+        controller.bootstrapUserSessionWithNextPart()
+
+        // when the pending bootstrap is run with the SDK disabled
+        sdkStateProvider.isEnabled = false
+        controller.bootstrapPendingUserSession()
+        storage.waitForPendingCoreDataOperations()
+
+        // then no user session is reconstructed
+        XCTAssertNil(userSessionController.currentUserSession)
+    }
+
     /// Seeds the last part of an earlier process, in a user session that hasn't expired. Returns its user-session id.
     @discardableResult
     private func seedUnexpiredPriorPart() -> EmbraceIdentifier {

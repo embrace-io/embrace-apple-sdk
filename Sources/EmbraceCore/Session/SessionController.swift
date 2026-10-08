@@ -567,6 +567,7 @@ class SessionController: SessionControllable {
             guard resolution.pending > 0 else {
                 return false
             }
+            resolution.pending += 1
             return true
         }
         guard pending else {
