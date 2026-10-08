@@ -791,9 +791,9 @@ final class SessionControllerTests: XCTestCase {
     // MARK: user session resolved on the storage queue (first part after `Embrace.start`)
 
     func test_deferredUserSession_startSession_doesNotWaitForTheStorage() throws {
-        // given the bootstrap deferred to the next part, and a storage queue that stays busy until released
-        controller.bootstrapUserSessionWithNextPart()
+        // given a storage queue that stays busy until released, and the bootstrap queued behind it
         let release = blockStorageQueue()
+        controller.bootstrapUserSession()
 
         // when the first part starts
         var part: EmbraceSession?
@@ -825,8 +825,8 @@ final class SessionControllerTests: XCTestCase {
         // given the prior process's last part, in a user session that hasn't expired
         let priorUserSessionId = seedUnexpiredPriorPart()
 
-        // when the first part starts with the bootstrap deferred
-        controller.bootstrapUserSessionWithNextPart()
+        // when the first part starts with the bootstrap queued
+        controller.bootstrapUserSession()
         let part = try XCTUnwrap(controller.startSession(state: .foreground))
         storage.waitForPendingCoreDataOperations()
 
@@ -849,8 +849,8 @@ final class SessionControllerTests: XCTestCase {
         let tailEnd = base.addingTimeInterval(600 + 1800 + 600)
         let seed = seedForegroundOriginCrossedCutoff(base: base, tailEnd: tailEnd)
 
-        // when the first part starts in the foreground with the bootstrap deferred
-        controller.bootstrapUserSessionWithNextPart()
+        // when the first part starts in the foreground with the bootstrap queued
+        controller.bootstrapUserSession()
         let first = try XCTUnwrap(controller.startSession(state: .foreground, startTime: tailEnd.addingTimeInterval(60)))
         storage.waitForPendingCoreDataOperations()
 
@@ -893,8 +893,8 @@ final class SessionControllerTests: XCTestCase {
             userSessionPartIndex: 1
         )
 
-        // when the first part starts with the bootstrap deferred
-        controller.bootstrapUserSessionWithNextPart()
+        // when the first part starts with the bootstrap queued
+        controller.bootstrapUserSession()
         let part = try XCTUnwrap(controller.startSession(state: .foreground))
         storage.waitForPendingCoreDataOperations()
 
@@ -907,10 +907,10 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_deferredUserSession_partsStartedBeforeItsResolved_attachInOrder() throws {
-        // given the prior process's last part, the bootstrap deferred, and a busy storage queue
+        // given the prior process's last part, a busy storage queue, and the bootstrap queued behind it
         let priorUserSessionId = seedUnexpiredPriorPart()
-        controller.bootstrapUserSessionWithNextPart()
         let release = blockStorageQueue()
+        controller.bootstrapUserSession()
 
         // when two parts start before the first one's user session is resolved
         let first = try XCTUnwrap(controller.startSession(state: .foreground))
@@ -927,9 +927,9 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_deferredUserSession_foregroundPartEndedBeforeItsResolved_isRecorded() throws {
-        // given the bootstrap deferred, and a busy storage queue
-        controller.bootstrapUserSessionWithNextPart()
+        // given a busy storage queue, and the bootstrap queued behind it
         let release = blockStorageQueue()
+        controller.bootstrapUserSession()
 
         // when a foreground part starts and ends before its user session is resolved
         let start = Date()
@@ -943,10 +943,10 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_deferredUserSession_manualEndBeforeItsResolved_endsTheResolvedUserSession() throws {
-        // given the prior process's last part, the bootstrap deferred, and a busy storage queue
+        // given the prior process's last part, a busy storage queue, and the bootstrap queued behind it
         let priorUserSessionId = seedUnexpiredPriorPart()
-        controller.bootstrapUserSessionWithNextPart()
         let release = blockStorageQueue()
+        controller.bootstrapUserSession()
 
         // when the user session is ended manually before the first part's user session is resolved
         let first = try XCTUnwrap(controller.startSession(state: .foreground))
@@ -963,10 +963,10 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_deferredUserSession_sdkDisabledBeforeItsResolved_startsNoUserSession() throws {
-        // given the prior process's last part, the bootstrap deferred, and a busy storage queue
+        // given the prior process's last part, a busy storage queue, and the bootstrap queued behind it
         seedUnexpiredPriorPart()
-        controller.bootstrapUserSessionWithNextPart()
         let release = blockStorageQueue()
+        controller.bootstrapUserSession()
 
         // when the SDK is disabled after the first part started, before its user session is resolved
         let part = try XCTUnwrap(controller.startSession(state: .foreground))
@@ -980,30 +980,36 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_deferredUserSession_resolvedBeforeThePartIsSet_isStillApplied() throws {
-        // given the prior process's last part, and the bootstrap deferred
-        let priorUserSessionId = seedUnexpiredPriorPart()
-        controller.bootstrapUserSessionWithNextPart()
-
-        // when the part's user session is resolved before `startSession` sets the part: starting it from the
-        // storage queue, inline, runs the part's storage block (and its resolution) right inside `startSession`
+        // given a part started from the storage queue, inline, while user-session work is pending: its storage block
+        // (and its resolution) then runs right inside `startSession`, before `startSession` sets the part
         var part: EmbraceSession?
         storage.coreData.performOperation { [storage, controller] _ in
+            // queued from another thread, so it's pending behind this block
+            let queued = DispatchSemaphore(value: 0)
+            Thread {
+                controller!.bootstrapUserSession()
+                queued.signal()
+            }.start()
+            queued.wait()
+
             storage!.coreData.performAsyncOperationsInline {
                 part = controller!.startSession(state: .foreground)
             }
         }
 
-        // then the part still gets its user session in memory
+        // then the part was deferred, and still gets its user session in memory
         let startedPart = try XCTUnwrap(part)
+        XCTAssertNil(startedPart.userSessionId)
+        let storedUserSessionId = try XCTUnwrap(storage.fetchSession(id: startedPart.id)?.userSessionId)
         XCTAssertEqual(controller.currentSession?.id, startedPart.id)
-        XCTAssertEqual(controller.currentSession?.userSessionId, priorUserSessionId)
+        XCTAssertEqual(controller.currentSession?.userSessionId, storedUserSessionId)
     }
 
     func test_userSessionIdOfPart_waitsForTheResolution() throws {
-        // given the prior process's last part, the bootstrap deferred, and a busy storage queue
+        // given the prior process's last part, a busy storage queue, and the bootstrap queued behind it
         let priorUserSessionId = seedUnexpiredPriorPart()
-        controller.bootstrapUserSessionWithNextPart()
         let release = blockStorageQueue()
+        controller.bootstrapUserSession()
         let part = try XCTUnwrap(controller.startSession(state: .foreground))
 
         // when asking for the part's user session, off the main thread, before it's resolved
@@ -1025,10 +1031,10 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_deferredUserSession_partStartedAfterTheResolutionButBeforeQueuedWork_waitsForIt() throws {
-        // given the prior process's last part, the bootstrap deferred, and a busy storage queue
+        // given the prior process's last part, a busy storage queue, and the bootstrap queued behind it
         let priorUserSessionId = seedUnexpiredPriorPart()
-        controller.bootstrapUserSessionWithNextPart()
         let releaseFirstBlocker = blockStorageQueue()
+        controller.bootstrapUserSession()
 
         // and a first part, whose resolution is queued
         let first = try XCTUnwrap(controller.startSession(state: .foreground))
@@ -1060,10 +1066,10 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_metadata_withNoPartWhileUserSessionWorkIsPending_usesTheResolvedUserSession() throws {
-        // given the prior process's last part, the bootstrap deferred, and a busy storage queue
+        // given the prior process's last part, a busy storage queue, and the bootstrap queued behind it
         let priorUserSessionId = seedUnexpiredPriorPart()
-        controller.bootstrapUserSessionWithNextPart()
         let release = blockStorageQueue()
+        controller.bootstrapUserSession()
 
         // and a first part that already ended, with nothing started after it
         controller.startSession(state: .foreground)
@@ -1081,16 +1087,15 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(properties.first { $0.key == "plan" }?.value, "pro")
     }
 
-    func test_bootstrapPendingUserSession_withoutAPart_bootstraps() throws {
-        // given the prior process's last part, and the bootstrap deferred to a part that isn't started
+    func test_bootstrapUserSession_reconstructsTheUserSession() throws {
+        // given the prior process's last part
         let priorUserSessionId = seedUnexpiredPriorPart()
-        controller.bootstrapUserSessionWithNextPart()
 
-        // when the pending bootstrap is run
-        controller.bootstrapPendingUserSession()
+        // when bootstrapping the user session
+        controller.bootstrapUserSession()
         storage.waitForPendingCoreDataOperations()
 
-        // then the user session is reconstructed
+        // then it's reconstructed
         XCTAssertEqual(userSessionController.currentUserSession?.id, priorUserSessionId)
 
         // and the next part attaches to it right away
@@ -1098,14 +1103,13 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(part?.userSessionId, priorUserSessionId)
     }
 
-    func test_bootstrapPendingUserSession_whenTheSDKIsDisabled_doesNotBootstrap() throws {
-        // given the prior process's last part, and the bootstrap deferred to a part that isn't started
+    func test_bootstrapUserSession_whenTheSDKIsDisabled_doesNotBootstrap() throws {
+        // given the prior process's last part
         seedUnexpiredPriorPart()
-        controller.bootstrapUserSessionWithNextPart()
 
-        // when the pending bootstrap is run with the SDK disabled
+        // when bootstrapping the user session with the SDK disabled
         sdkStateProvider.isEnabled = false
-        controller.bootstrapPendingUserSession()
+        controller.bootstrapUserSession()
         storage.waitForPendingCoreDataOperations()
 
         // then no user session is reconstructed

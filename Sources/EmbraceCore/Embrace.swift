@@ -379,15 +379,13 @@ package class Embrace {
                 metricKit.install()
             }
 
-            // The user-session controller reconstructs the user session from it inside the first part's storage
-            // block, just before that part's record is created (see `SessionController.startSession`), or on its
-            // own via `bootstrapPendingUserSession` if no part was started.
-            sessionController.bootstrapUserSessionWithNextPart()
+            // The user session is reconstructed from it on the storage queue too, ahead of the first part, which
+            // is then deferred behind it (see `SessionController.bootstrapUserSession`).
+            sessionController.bootstrapUserSession()
 
             // start instrumentation
             startupInstrumentation.buildMainSpans()
             sessionLifecycle.startSession()
-            sessionController.bootstrapPendingUserSession()
             captureServices.install()
 
             // WARNING: This is dangerous as it calls out to external code.

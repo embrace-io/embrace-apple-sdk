@@ -412,32 +412,6 @@ extension EmbraceSession {
         )
     }
 
-    /// Returns a copy of this session with the user-session values of `other`.
-    package func with(userSessionOf other: EmbraceSession) -> EmbraceSession {
-        return ImmutableSessionRecord(
-            id: id,
-            processId: processId,
-            state: state,
-            traceId: traceId,
-            spanId: spanId,
-            startTime: startTime,
-            endTime: endTime,
-            lastHeartbeatTime: lastHeartbeatTime,
-            crashReportId: crashReportId,
-            coldStart: coldStart,
-            cleanExit: cleanExit,
-            appTerminated: appTerminated,
-            sessionNumber: sessionNumber,
-            userSessionId: other.userSessionId,
-            userSessionStartTime: other.userSessionStartTime,
-            userSessionMaxDuration: other.userSessionMaxDuration,
-            userSessionInactivityTimeout: other.userSessionInactivityTimeout,
-            userSessionLastForegroundEnd: userSessionLastForegroundEnd ?? other.userSessionLastForegroundEnd,
-            userSessionPartIndex: other.userSessionPartIndex,
-            userSessionTerminationReason: userSessionTerminationReason ?? other.userSessionTerminationReason
-        )
-    }
-
     func updated(
         state: SessionState? = nil,
         lastHeartbeatTime: Date? = nil,

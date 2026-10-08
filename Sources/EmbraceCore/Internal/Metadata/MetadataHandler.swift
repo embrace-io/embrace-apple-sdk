@@ -224,18 +224,11 @@ extension MetadataHandler {
     /// With no part while user-session work is pending, it uses the current user session once that work has run.
     private func currentContext(for lifespan: MetadataRecordLifespan) -> LifespanContext? {
         if lifespan == .userSession {
-            if let part = sessionController?.currentSession {
-                if part.userSessionId == nil {
-                    return .userSessionOfPart(part.id)
-                }
-            } else if sessionController?.hasPendingUserSessionWork == true {
-                return .currentUserSessionAfterPendingWork
-            }
-            guard let userSessionId = sessionController?.currentUserSession?.id.stringValue else {
+            guard let context = userSessionContext() else {
                 Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
                 return nil
             }
-            return .id(userSessionId)
+            return context
         } else if lifespan == .process {
             return .id(ProcessIdentifier.current.stringValue)
         } else {
@@ -248,35 +241,42 @@ extension MetadataHandler {
     /// the operation is dropped). Called on `synchronizationQueue`: it can wait for the
     /// storage queue.
     private func lifespanId(for context: LifespanContext) -> String? {
+        guard let lifespanId = resolve(context) else {
+            Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
+            return nil
+        }
+        return lifespanId
+    }
+
+    /// The context of the current user session, captured now (see `currentContext(for:)`), or `nil` if there's none.
+    private func userSessionContext() -> LifespanContext? {
+        if let part = sessionController?.currentSession {
+            if part.userSessionId == nil {
+                return .userSessionOfPart(part.id)
+            }
+        } else if sessionController?.hasPendingUserSessionWork == true {
+            return .currentUserSessionAfterPendingWork
+        }
+        return sessionController?.currentUserSession.map { .id($0.id.stringValue) }
+    }
+
+    /// The `lifespanId` of the given context, waiting for the storage queue if needed. Called on
+    /// `synchronizationQueue`.
+    private func resolve(_ context: LifespanContext) -> String? {
         switch context {
         case .id(let id):
             return id
         case .userSessionOfPart(let partId):
-            guard let userSessionId = sessionController?.userSessionId(ofPart: partId) else {
-                Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
-                return nil
-            }
-            return userSessionId.stringValue
+            return sessionController?.userSessionId(ofPart: partId)?.stringValue
         case .currentUserSessionAfterPendingWork:
-            guard let userSessionId = sessionController?.currentUserSessionIdAfterPendingWork() else {
-                Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
-                return nil
-            }
-            return userSessionId.stringValue
+            return sessionController?.currentUserSessionIdAfterPendingWork()?.stringValue
         }
     }
 
     /// The id of the current user session, waiting for it if it's still being resolved (see `currentContext(for:)`).
     /// Called on `synchronizationQueue`.
     func currentUserSessionIdWaitingForResolution() -> EmbraceIdentifier? {
-        if let part = sessionController?.currentSession {
-            if part.userSessionId == nil {
-                return sessionController?.userSessionId(ofPart: part.id)
-            }
-        } else if sessionController?.hasPendingUserSessionWork == true {
-            return sessionController?.currentUserSessionIdAfterPendingWork()
-        }
-        return sessionController?.currentUserSession?.id
+        userSessionContext().flatMap(resolve).map { EmbraceIdentifier(stringValue: $0) }
     }
 }
 

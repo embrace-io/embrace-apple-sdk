@@ -26,9 +26,4 @@ class SpyLogRepository: LogRepository {
     func saveLog(_ log: EmbraceLog) {
         didCallCreate = true
     }
-
-    var stubbedUserSessionId: EmbraceIdentifier?
-    func fetchUserSessionId(partId: EmbraceIdentifier) -> EmbraceIdentifier? {
-        return stubbedUserSessionId
-    }
 }

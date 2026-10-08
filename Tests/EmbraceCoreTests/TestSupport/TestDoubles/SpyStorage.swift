@@ -105,9 +105,4 @@ class SpyStorage: Storage {
         didCallRemoveLogs = true
         removeLogsReceivedParameter = logs
     }
-
-    var stubbedUserSessionId: EmbraceIdentifier?
-    func fetchUserSessionId(partId: EmbraceIdentifier) -> EmbraceIdentifier? {
-        return stubbedUserSessionId
-    }
 }

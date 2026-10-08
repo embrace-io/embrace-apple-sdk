@@ -424,12 +424,12 @@ class LogControllerTests: XCTestCase {
     }
 
     func test_createLog_beforeThePartUserSessionIsResolved_takesItFromThePart() throws {
-        // given a part whose user session isn't resolved yet in memory, but is in its record
+        // given a part whose user session isn't in memory yet, but is resolved
         let part = MockSession(
             id: .random, processId: .random, state: .foreground, traceId: "trace", spanId: "span", startTime: Date())
         sessionController.currentSession = part
         let userSessionId = EmbraceIdentifier.random
-        storage?.stubbedUserSessionId = userSessionId
+        sessionController.stubbedUserSessionIdOfPart = userSessionId
         givenLogController()
 
         // when creating a log
@@ -444,30 +444,11 @@ class LogControllerTests: XCTestCase {
         XCTAssertEqual(storage?.fetchCustomPropertiesForUserSessionIdReceivedParameter, userSessionId)
     }
 
-    func test_createLog_afterThePartRecordIsGone_usesTheSessionControllerUserSession() throws {
-        // given a part whose user session is only known to the session controller (its record was deleted)
-        let part = MockSession(
-            id: .random, processId: .random, state: .foreground, traceId: "trace", spanId: "span", startTime: Date())
-        sessionController.currentSession = part
-        let userSessionId = EmbraceIdentifier.random
-        sessionController.stubbedUserSessionIdOfPart = userSessionId
-        storage?.stubbedUserSessionId = nil
-        givenLogController()
-
-        // when creating a log
-        var createdLog: EmbraceLog?
-        whenCreatingLog { createdLog = $0 }
-
-        // then it has that user session
-        let attributes = try XCTUnwrap(createdLog).attributes
-        XCTAssertEqual(attributes[LogSemantics.keyUserSessionId] as? String, userSessionId.stringValue)
-    }
-
     func test_createLog_withAResolvedUserSession_keepsIt() throws {
-        // given a part with its user session, and a record that would say otherwise
+        // given a part with its user session, and a resolution that would say otherwise
         let part = randomSession()
         sessionController.currentSession = part
-        storage?.stubbedUserSessionId = .random
+        sessionController.stubbedUserSessionIdOfPart = .random
         givenLogController()
 
         // when creating a log
@@ -483,7 +464,7 @@ class LogControllerTests: XCTestCase {
         // given a log created before its part's user session was resolved
         let partId = EmbraceIdentifier.random
         let userSessionId = EmbraceIdentifier.random
-        storage?.stubbedUserSessionId = userSessionId
+        sessionController.stubbedUserSessionIdOfPart = userSessionId
         givenLogController()
         let log = MockLog(
             attributes: [
@@ -508,11 +489,11 @@ class LogControllerTests: XCTestCase {
     }
 
     func test_batchFinished_forAPartWithoutUserSessionYet_usesThePartRecord() throws {
-        // given a batch of a part whose user session isn't resolved in memory, but is in its record
+        // given a batch of a part whose user session isn't in memory yet, but is resolved
         let part = MockSession(
             id: .random, processId: .random, state: .foreground, traceId: "trace", spanId: "span", startTime: Date())
         let userSessionId = EmbraceIdentifier.random
-        storage?.stubbedUserSessionId = userSessionId
+        sessionController.stubbedUserSessionIdOfPart = userSessionId
         givenLogController()
 
         // when the batch finishes

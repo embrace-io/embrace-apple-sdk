@@ -12,16 +12,9 @@ public protocol LogRepository {
     func saveLog(_ log: EmbraceLog)
     func fetchAllLogs(excludingProcessIdentifier processIdentifier: EmbraceIdentifier?) -> [EmbraceLog]
     func remove(logs: [EmbraceLog])
-
-    /// Synchronously fetches the user-session id stored on the given part's record, if any.
-    func fetchUserSessionId(partId: EmbraceIdentifier) -> EmbraceIdentifier?
 }
 
 extension EmbraceStorage {
-
-    public func fetchUserSessionId(partId: EmbraceIdentifier) -> EmbraceIdentifier? {
-        fetchSession(id: partId)?.userSessionId
-    }
 
     /// Saves a log to the storage asynchronously, without blocking the calling thread.
     ///
