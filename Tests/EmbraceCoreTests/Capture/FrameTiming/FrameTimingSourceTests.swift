@@ -17,6 +17,7 @@
 
         private let frameDuration = 1.0 / 60.0
         private let backgroundGap: TimeInterval = 30
+        private let willEnterForegroundNotification = Notification.Name("UIApplicationWillEnterForegroundNotification")
 
         private var notificationCenter: NotificationCenter!
         private var source: FrameTimingSource!
@@ -52,7 +53,7 @@
         }
 
         private func postWillEnterForeground() {
-            notificationCenter.post(name: FrameTimingSource.willEnterForegroundNotification, object: nil)
+            notificationCenter.post(name: willEnterForegroundNotification, object: nil)
         }
 
         // MARK: - Tests
@@ -61,20 +62,19 @@
             tick()
             skip(backgroundGap)
 
-            NotificationCenter.default.post(name: FrameTimingSource.willEnterForegroundNotification, object: nil)
+            NotificationCenter.default.post(name: willEnterForegroundNotification, object: nil)
             tick()
 
             XCTAssertEqual(delays.count, 1)
             XCTAssertEqual(delays.first ?? 0, backgroundGap, accuracy: 1e-6)
         }
 
-        func testDisplayLinkIsAttachedByDefault() {
+        func testDisplayLinkDoesNotRetainSource() {
             weak var liveSource: FrameTimingSource?
             autoreleasepool {
                 let live = FrameTimingSource(notificationCenter: notificationCenter)
                 liveSource = live
-                XCTAssertTrue(live.isDisplayLinkAttached)
-                XCTAssertFalse(source.isDisplayLinkAttached)
+                XCTAssertNotNil(liveSource)
             }
 
             // The display link holds its target through a weak proxy, so it doesn't keep the source alive.

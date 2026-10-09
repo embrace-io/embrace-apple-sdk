@@ -18,6 +18,7 @@
     final class SmoothnessCaptureServiceTests: XCTestCase {
 
         private let accuracy = 1e-9
+        private let willEnterForegroundNotification = Notification.Name("UIApplicationWillEnterForegroundNotification")
 
         private var otel: MockOTelSignalsHandler!
         private var notificationCenter: NotificationCenter!
@@ -150,7 +151,7 @@
             service = makeService(attachesDisplayLink: true)
             startService()
             weak var source = service.frameTimingSource
-            XCTAssertEqual(source?.isDisplayLinkAttached, true)
+            XCTAssertNotNil(source)
 
             service.stop()
 
@@ -166,7 +167,7 @@
             let frame = 1.0 / 60.0
             source.handleTick(timestamp: 1_000, targetTimestamp: 1_000 + frame)
 
-            notificationCenter.post(name: FrameTimingSource.willEnterForegroundNotification, object: nil)
+            notificationCenter.post(name: willEnterForegroundNotification, object: nil)
             // Only arms, since the reset dropped the previous target.
             source.handleTick(timestamp: 1_030, targetTimestamp: 1_030 + frame)
 

@@ -7,19 +7,13 @@
     import Foundation
     import QuartzCore
 
-    /// Observes frame delivery via `CADisplayLink` and reports, on each frame, how far the actual
-    /// delivery time drifted from the system's own committed schedule.
-    ///
-    /// On each tick, `FrameTimingSource` compares the current delivery time against the previous
-    /// frame's `targetTimestamp` — the system's promise of when that frame would fire — and reports
-    /// the difference via `onTick`.
+    /// Reports, on each `CADisplayLink` tick, how late it arrived relative to the previous tick's
+    /// `targetTimestamp`.
     ///
     /// Using `targetTimestamp` rather than a fixed frame duration keeps the delay correct at
     /// hang scale across ProMotion, Low Power Mode, and `preferredFrameRateRange` transitions.
-    /// It is not exact at sub-frame scale: when the refresh rate steps down, the next tick lands
-    /// up to one frame interval after the previous `targetTimestamp`, which shows up as a small
-    /// delay. Each `Tick` carries the frame interval before and after, so consumers that account
-    /// for sub-frame lateness (`FrameDropClassifier`) can discount it.
+    /// When the refresh rate steps down, the tick can land up to one frame interval late without a
+    /// missed frame. `Tick` carries both frame intervals so consumers can discount this.
     ///
     /// The delay only reflects when the main run loop serviced the display link, so it catches a
     /// blocked main thread but not frames missed in the commit, render server, or GPU while main
@@ -29,7 +23,6 @@
     /// without any extra bookkeeping.
     final class FrameTimingSource {
 
-        /// One frame tick's timing.
         struct Tick {
             /// Seconds between the tick's actual timestamp and the previous tick's
             /// `targetTimestamp`. A positive value means the frame arrived later than promised.
@@ -43,7 +36,7 @@
             let previousFrameInterval: TimeInterval
         }
 
-        /// Called on each frame tick, after the first, which only arms the comparison.
+        /// Called on each frame tick after the first.
         var onTick: ((Tick) -> Void)?
 
         /// Creates a new `FrameTimingSource` and immediately begins observing frame timing.
@@ -79,11 +72,6 @@
             displayLink?.invalidate()
         }
 
-        /// Whether ticks are driven by a live `CADisplayLink`.
-        var isDisplayLinkAttached: Bool {
-            displayLink != nil
-        }
-
         // MARK: - Private
 
         private let notificationCenter: NotificationCenter
@@ -94,11 +82,10 @@
         /// the current frame would fire.
         private var previousTickExpectedTimestamp: CFTimeInterval?
 
-        /// The previous frame's `targetTimestamp - timestamp`.
         private var previousFrameInterval: CFTimeInterval = 0
 
         /// Raw notification name to avoid a direct UIKit dependency.
-        static let willEnterForegroundNotification =
+        private static let willEnterForegroundNotification =
             Notification.Name("UIApplicationWillEnterForegroundNotification")
 
         /// Resets state on foreground so the first tick after a background/foreground
@@ -116,8 +103,7 @@
             handleTick(timestamp: currentTick.timestamp, targetTimestamp: currentTick.targetTimestamp)
         }
 
-        /// Compares a tick's `timestamp` against the previous tick's `targetTimestamp`. Must be called
-        /// on the main thread.
+        /// Must be called on the main thread.
         func handleTick(timestamp: CFTimeInterval, targetTimestamp: CFTimeInterval) {
             let frameInterval = targetTimestamp - timestamp
             defer {
