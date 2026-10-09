@@ -452,7 +452,7 @@ class SessionController: SessionControllable {
     /// prior part, is sent after it. Its storage writes run right away, in order, so they land before the first
     /// part's record.
     ///
-    /// Whether to bootstrap, and the time expiry is judged at, are decided now, as if it ran here.
+    /// Whether to bootstrap, and the time expiry is judged at, are decided when this is called.
     func bootstrapUserSession() {
         // As in `startSession`: a disabled SDK doesn't start (or end) user sessions.
         guard let storage, sdkStateProvider?.isEnabled == true else {
@@ -473,9 +473,8 @@ class SessionController: SessionControllable {
 
     /// Resolves the user session of a part started while user-session work was pending (see `startSession`).
     /// Called on the storage queue right before the part's record is created, after that work, with its storage
-    /// writes running right away, so the writes of `attachPart` land before the new record, as they would have if
-    /// this had run in `startSession`. `startSession` already checked the SDK was enabled, as it does before
-    /// attaching a part right away.
+    /// writes running right away, so the writes of `attachPart` land before the new record. `startSession` already
+    /// checked the SDK was enabled, as it does before attaching a part right away.
     private func resolveDeferredUserSession(
         partId: EmbraceIdentifier,
         state: SessionState,

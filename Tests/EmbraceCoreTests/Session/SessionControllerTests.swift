@@ -1020,20 +1020,21 @@ final class SessionControllerTests: XCTestCase {
         controller.bootstrapUserSession()
         let part = try XCTUnwrap(controller.startSession(state: .foreground))
 
-        // when asking for the part's user session, off the main thread, before it's resolved
+        // when asking for the part's user session, off the main thread, before it's resolved (the queue is only
+        // released once the call is about to be made; without waiting, it would answer `nil`)
         var userSessionId: EmbraceIdentifier?
-        let answered = DispatchSemaphore(value: 0)
+        let asking = DispatchSemaphore(value: 0)
+        let answered = expectation(description: "user session returned")
         DispatchQueue.global().async { [controller] in
+            asking.signal()
             userSessionId = controller?.userSessionId(ofPart: part.id)
-            answered.signal()
+            answered.fulfill()
         }
-
-        // then it doesn't answer while the resolution can't run
-        XCTAssertEqual(answered.wait(timeout: .now() + 0.2), .timedOut)
+        asking.wait()
         release()
 
-        // and then answers with the resolved one
-        XCTAssertEqual(answered.wait(timeout: .now() + 10), .success)
+        // then it answers with the resolved one
+        wait(for: [answered], timeout: .defaultTimeout)
         XCTAssertEqual(userSessionId, priorUserSessionId)
 
         // and it's still known after the part ends
