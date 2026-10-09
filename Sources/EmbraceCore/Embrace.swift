@@ -201,8 +201,7 @@ package class Embrace {
         self.sessionController = SessionController(storage: storage, upload: upload, config: config)
 
         // initialize user-session controller. Bootstrap is deferred to `start()` so it runs
-        // only when the SDK actually starts and so the prior-session fetch can be shared
-        // with other consumers (metric-kit) that need the same row.
+        // only when the SDK actually starts (see `SessionController.bootstrapUserSession`).
         self.userSessionController = UserSessionController(
             storage: storage,
             config: config.configurable
@@ -366,7 +365,8 @@ package class Embrace {
 
             // The prior process's last part is read on the storage queue, since the storage may still be loading
             // (see `CoreDataWrapper`). MetricKit, which attributes incoming payloads to it, reads it here, queued
-            // ahead of the first part's record, so it sees the prior one.
+            // ahead of the bootstrap (whose cold-start split can write a newer part) and of the first part's record,
+            // so it sees the prior one.
             storage.fetchLatestSession { [self] session in
                 // The SDK may have been stopped meanwhile. A storage that failed to load stops it only once the
                 // main thread gets to it, which can be after this runs, so check the load result too (already
@@ -459,7 +459,8 @@ package class Embrace {
         // backend requires, and deleted; without the upload cache, nothing could be sent, yet the cleanup would still
         // delete the metadata the unsent logs need.
         // This waits for the loads on the calling queue, which must not be the main one. It also waits for the
-        // first part's user session, resolved on the storage queue (see `SessionController.startSession`), so the
+        // user-session bootstrap and the first part's resolution, both queued on the storage queue before this (see
+        // `SessionController.bootstrapUserSession`), so the prior part is still there for the bootstrap and the
         // current user session read below is known.
         guard storage.coreData.isStoreLoaded, upload?.isCacheLoaded ?? true else {
             Embrace.logger.warning("Not sending the data from earlier launches: one of the SDK's stores isn't loaded.")

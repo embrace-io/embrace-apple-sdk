@@ -46,9 +46,9 @@ class SessionController: SessionControllable {
         /// While it's not zero, new parts are deferred too, so everything keeps its order.
         var pending = 0
 
-        /// The user session each deferred part was resolved to (a `nil` entry if the SDK was disabled by then).
+        /// The user session each deferred part was resolved to, by part id.
         /// Only deferred parts are added, which only happens right after `Embrace.start`, so it stays small.
-        var resolvedParts: [String: EmbraceUserSession?] = [:]
+        var resolvedParts: [String: EmbraceUserSession] = [:]
     }
     private let _userSessionResolution = EmbraceMutex(UserSessionResolution())
 
@@ -163,13 +163,21 @@ class SessionController: SessionControllable {
         newState: SessionState,
         now: Date
     ) -> Bool {
-        // While user-session work is pending on the storage queue (see `startSession`), the in-memory user session
-        // isn't up to date, so the split is skipped: `attachPart` still ends an expired user session.
         guard newState == .foreground,
             let prev = prev,
-            prev.state == .background,
-            !hasPendingUserSessionWork,
-            let userSession = userSessionController?.currentUserSession,
+            prev.state == .background
+        else {
+            return false
+        }
+
+        // While user-session work is pending on the storage queue (see `startSession`), the in-memory user session
+        // isn't up to date, so the split is skipped: `attachPart` still ends an expired user session.
+        guard !hasPendingUserSessionWork else {
+            Embrace.logger.debug("Skipped the background split check: the user session is still being resolved.")
+            return false
+        }
+
+        guard let userSession = userSessionController?.currentUserSession,
             // Only a foreground-origin session is split at its cutoff. A background-only session is
             // never sliced at its own max; foregrounding it ends it whole,
             // which `UserSessionController.attachPart` handles after this returns `false`.
@@ -443,23 +451,22 @@ class SessionController: SessionControllable {
     /// first part: that part is then deferred behind it (see `startSession`), and the unsent data, which deletes the
     /// prior part, is sent after it. Its storage writes run right away, in order, so they land before the first
     /// part's record.
+    ///
+    /// Whether to bootstrap, and the time expiry is judged at, are decided now, as if it ran here.
     func bootstrapUserSession() {
-        guard let storage else {
+        // As in `startSession`: a disabled SDK doesn't start (or end) user sessions.
+        guard let storage, sdkStateProvider?.isEnabled == true else {
             return
         }
 
+        let now = userSessionController?.now ?? Date()
         _userSessionResolution.withLock { $0.pending += 1 }
 
         storage.coreData.performAsyncOperation { [weak self] _ in
             defer { self?._userSessionResolution.withLock { $0.pending -= 1 } }
 
-            // As in `startSession`: a disabled SDK doesn't start (or end) user sessions.
-            guard self?.sdkStateProvider?.isEnabled == true else {
-                return
-            }
-
             storage.coreData.performAsyncOperationsInline {
-                self?.userSessionController?.bootstrap(priorSession: storage.fetchLatestSession())
+                self?.userSessionController?.bootstrap(priorSession: storage.fetchLatestSession(), now: now)
             }
         }
     }
@@ -467,34 +474,27 @@ class SessionController: SessionControllable {
     /// Resolves the user session of a part started while user-session work was pending (see `startSession`).
     /// Called on the storage queue right before the part's record is created, after that work, with its storage
     /// writes running right away, so the writes of `attachPart` land before the new record, as they would have if
-    /// this had run in `startSession`.
+    /// this had run in `startSession`. `startSession` already checked the SDK was enabled, as it does before
+    /// attaching a part right away.
     private func resolveDeferredUserSession(
         partId: EmbraceIdentifier,
         state: SessionState,
         startTime: Date
     ) -> EmbraceUserSession? {
-        var userSession: EmbraceUserSession?
-        defer {
-            // Recorded together with the update of the in-memory part, under the same lock `startSession` sets
-            // the part with: whichever runs second applies the user session.
-            _session.withLock {
-                _userSessionResolution.withLock {
-                    $0.resolvedParts[partId.stringValue] = .some(userSession)
-                    $0.pending -= 1
-                }
-                if let userSession, let session = $0.session, session.id == partId {
-                    $0.session = session.with(userSession: userSession)
-                }
+        let userSession = userSessionController?.attachPart(state: state, startTime: startTime)
+
+        // Recorded together with the update of the in-memory part, under the same lock `startSession` sets the part
+        // with: whichever runs second applies the user session.
+        _session.withLock {
+            _userSessionResolution.withLock {
+                $0.resolvedParts[partId.stringValue] = userSession
+                $0.pending -= 1
+            }
+            if let userSession, let session = $0.session, session.id == partId {
+                $0.session = session.with(userSession: userSession)
             }
         }
 
-        // As in `startSession`: a disabled SDK doesn't start (or end) user sessions. Its parts are deleted instead
-        // of uploaded (see `endSessionNoLock` and `clear`).
-        guard sdkStateProvider?.isEnabled == true else {
-            return nil
-        }
-
-        userSession = userSessionController?.attachPart(state: state, startTime: startTime)
         return userSession
     }
 
@@ -527,7 +527,7 @@ class SessionController: SessionControllable {
         }
 
         if let resolved = _userSessionResolution.withLock({ $0.resolvedParts[partId.stringValue] }) {
-            return resolved?.id
+            return resolved.id
         }
 
         let session = currentSession
@@ -576,8 +576,7 @@ class SessionController: SessionControllable {
     private func withResolvedUserSession(_ session: EmbraceSession?) -> EmbraceSession? {
         guard let session,
             session.userSessionId == nil,
-            let resolved = _userSessionResolution.withLock({ $0.resolvedParts[session.id.stringValue] }),
-            let userSession = resolved
+            let userSession = _userSessionResolution.withLock({ $0.resolvedParts[session.id.stringValue] })
         else {
             return session
         }

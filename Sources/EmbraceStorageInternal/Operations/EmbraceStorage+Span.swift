@@ -103,6 +103,7 @@ extension EmbraceStorage {
             let userSessionId = part?.userSessionIdRaw
                 ?? storedUserSessionId.flatMap({ $0.isEmpty ? nil : $0 })
         else {
+            logger.debug("Couldn't find the user session of the part \(partId) of a span.")
             return span
         }
 

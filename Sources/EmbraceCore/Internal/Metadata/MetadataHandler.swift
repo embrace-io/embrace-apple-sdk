@@ -52,10 +52,10 @@ package class MetadataHandler {
 
     /// Adds a property with the given key, value and lifespan.
     /// If there are 2 properties with the same key but different lifespans, the one with a shorter lifespan will be used.
-    /// If the key is too long, or for a `.userSession` lifespan there's no part or it ends up with no user session,
-    /// the property is dropped and a warning is logged.
-    /// Right after start, while the current part's user session is still being resolved, it waits for it
-    /// (see `currentContext(for:)`).
+    /// If the key is too long, or for a `.userSession` lifespan there's no active user session (or the current part
+    /// ends up with none), the property is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, the write waits for it
+    /// on the metadata queue; the call itself returns right away (see `currentContext(for:)`).
     /// - Parameters:
     ///   - key: The key of the property to add. Can not be longer than 128 characters.
     ///   - value: The value of the property to add. Will be truncated if its longer than 1024 characters.
@@ -101,9 +101,10 @@ package class MetadataHandler {
     }
 
     /// Updates the value of a property for a given key and lifespan.
-    /// For a `.userSession` lifespan, if there's no part or it ends up with no user session, the update is dropped
-    /// and a warning is logged. Right after start, while the current part's user session is still being resolved,
-    /// it waits for it (see `currentContext(for:)`).
+    /// For a `.userSession` lifespan, if there's no active user session (or the current part ends up with none),
+    /// the update is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, the write waits for it
+    /// on the metadata queue; the call itself returns right away (see `currentContext(for:)`).
     /// - Parameters:
     ///   - key: The key of the property to update.
     ///   - value: The value of the property to update. Will be truncated if its longer than 1024 characters.
@@ -136,9 +137,10 @@ package class MetadataHandler {
     }
 
     /// Removes the property for the given key and lifespan.
-    /// For a `.userSession` lifespan, if there's no part or it ends up with no user session, the removal is dropped
-    /// and a warning is logged. Right after start, while the current part's user session is still being resolved,
-    /// it waits for it (see `currentContext(for:)`).
+    /// For a `.userSession` lifespan, if there's no active user session (or the current part ends up with none),
+    /// the removal is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, the write waits for it
+    /// on the metadata queue; the call itself returns right away (see `currentContext(for:)`).
     /// - Parameters:
     ///   - key: The key of the property to remove.
     ///   - lifespan: The lifespan of the property to remove.
@@ -147,9 +149,10 @@ package class MetadataHandler {
     }
 
     /// Removes the metadata for the given key, type and lifespan.
-    /// For a `.userSession` lifespan, if there's no part or it ends up with no user session, the removal is dropped
-    /// and a warning is logged. Right after start, while the current part's user session is still being resolved,
-    /// it waits for it (see `currentContext(for:)`).
+    /// For a `.userSession` lifespan, if there's no active user session (or the current part ends up with none),
+    /// the removal is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, the write waits for it
+    /// on the metadata queue; the call itself returns right away (see `currentContext(for:)`).
     /// - Parameters:
     ///  - key: The key of the metadata to remove.
     ///  - type: The type of the metadata to remove.
@@ -238,8 +241,7 @@ extension MetadataHandler {
     }
 
     /// Returns the `lifespanId` of the given context, or `nil` if it ended up without a user session (in which case
-    /// the operation is dropped). Called on `synchronizationQueue`: it can wait for the
-    /// storage queue.
+    /// the operation is dropped). Called on `synchronizationQueue`: it can wait for the storage queue.
     private func lifespanId(for context: LifespanContext) -> String? {
         guard let lifespanId = resolve(context) else {
             Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")

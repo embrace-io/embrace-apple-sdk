@@ -71,6 +71,11 @@ final class UserSessionController {
         currentUserSession?.id
     }
 
+    /// The current time, as this controller sees it (see `dateProvider`).
+    var now: Date {
+        dateProvider()
+    }
+
     init(
         storage: EmbraceStorage,
         config: EmbraceConfigurable,
@@ -98,7 +103,10 @@ final class UserSessionController {
     /// part record (no-op if the prior process already stamped one) and the user-session-end
     /// notification fires, so cold-start expiry produces the same telemetry as mid-session
     /// expiry instead of silently dropping the snapshot.
-    func bootstrap(priorSession: EmbraceSession?) {
+    ///
+    /// - Parameter now: The time expiry is judged at. `SessionController.bootstrapUserSession` passes the time it
+    ///   was called at, since the bootstrap itself runs later, on the storage queue. Defaults to the current time.
+    func bootstrap(priorSession: EmbraceSession?, now: Date? = nil) {
         guard
             let latest = priorSession,
             let userSessionId = latest.userSessionId,
@@ -128,7 +136,7 @@ final class UserSessionController {
             isBackgroundOnly: isBackgroundOnly
         )
 
-        let now = dateProvider()
+        let now = now ?? dateProvider()
 
         // Split at cold start: a foreground-origin user session whose background part ran past its
         // cutoff `C` while the prior process was backgrounded must be sliced. The foreground-origin

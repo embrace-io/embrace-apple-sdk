@@ -162,7 +162,7 @@ class LogController: LogBatcherDelegate {
             addStacktraceBlock?(attributesBuilder)
 
             // app properties make requests to the db so can be time consuming,
-            // and so can filling in a missing user-session id (a read of the part's record).
+            // and so can filling in a missing user-session id (it can wait for the part's user session to be resolved).
             if let userSessionId = fillMissingUserSessionId(attributesBuilder) {
                 attributesBuilder.addApplicationProperties(userSessionId: userSessionId, processId: ProcessIdentifier.current)
             } else {
@@ -244,7 +244,8 @@ class LogController: LogBatcherDelegate {
             return nil
         }
         guard let userSessionId = sessionController?.userSessionId(ofPart: partId) else {
-            Embrace.logger.warning("Couldn't find the user session of the part \(partId.stringValue) of a log.")
+            // debug: a warning would be sent as an internal log, which can belong to the same part
+            Embrace.logger.debug("Couldn't find the user session of the part \(partId.stringValue) of a log.")
             return nil
         }
 
@@ -254,7 +255,7 @@ class LogController: LogBatcherDelegate {
 
     /// Adds a log that was created outside `createLog`, like the ones coming through the OTel bridge, possibly
     /// on the main thread. A log that's missing its user-session id is added from the processing queue, after
-    /// trying to fill it in (unchanged if the part has none, see `partMissingUserSessionId(in:)`); any other log
+    /// trying to fill it in (unchanged if the part has none, see `fillMissingUserSessionId(_:)`); any other log
     /// is added right away.
     func addLogFillingUserSessionId(_ log: EmbraceLog) {
         guard partMissingUserSessionId(in: log.attributes) != nil else {

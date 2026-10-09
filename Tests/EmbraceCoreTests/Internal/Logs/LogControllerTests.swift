@@ -444,6 +444,24 @@ class LogControllerTests: XCTestCase {
         XCTAssertEqual(storage?.fetchCustomPropertiesForUserSessionIdReceivedParameter, userSessionId)
     }
 
+    func test_createLog_whenThePartHasNoUserSession_isStillAdded() throws {
+        // given a part whose user session can't be found
+        let part = MockSession(
+            id: .random, processId: .random, state: .foreground, traceId: "trace", spanId: "span", startTime: Date())
+        sessionController.currentSession = part
+        sessionController.currentUserSession = nil
+        sessionController.stubbedUserSessionIdOfPart = nil
+        givenLogController()
+
+        // when creating a log
+        whenCreatingLog()
+
+        // then it's still added, with an empty user-session id
+        let saved = try XCTUnwrap(storage?.savedLogs.first)
+        XCTAssertEqual(saved.attributes[LogSemantics.keyUserSessionId] as? String, "")
+        XCTAssertEqual(saved.attributes[LogSemantics.keyPartId] as? String, part.id.stringValue)
+    }
+
     func test_createLog_withAResolvedUserSession_keepsIt() throws {
         // given a part with its user session, and a resolution that would say otherwise
         let part = randomSession()
@@ -502,6 +520,27 @@ class LogControllerTests: XCTestCase {
         // then its payloads are built for that user session
         try thenFetchesResourcesFromStorage(userSessionId: userSessionId)
         try thenFetchesMetadataFromStorage(userSessionId: userSessionId)
+    }
+
+    func test_addLogFillingUserSessionId_whenThePartHasNoUserSession_isStillAdded() throws {
+        // given a log whose part's user session can't be found
+        sessionController.currentUserSession = nil
+        sessionController.stubbedUserSessionIdOfPart = nil
+        givenLogController()
+        let log = MockLog(
+            attributes: [
+                LogSemantics.keySessionId: "", LogSemantics.keyUserSessionId: "", LogSemantics.keyPartId: "part"
+            ]
+        )
+
+        // when adding it
+        sut.addLogFillingUserSessionId(log)
+        waitForLoggingQueue()
+
+        // then it's still added, unchanged
+        let saved = try XCTUnwrap(storage?.savedLogs.first)
+        XCTAssertEqual(saved.id, log.id)
+        XCTAssertEqual(saved.attributes[LogSemantics.keyUserSessionId] as? String, "")
     }
 
     func test_addLogFillingUserSessionId_withUserSessionId_addsItRightAway() throws {
