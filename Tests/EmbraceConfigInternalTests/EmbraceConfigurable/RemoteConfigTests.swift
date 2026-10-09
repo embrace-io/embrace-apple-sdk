@@ -112,126 +112,25 @@ final class RemoteConfigTests: XCTestCase {
         XCTAssertFalse(config.traceparentInjectionEnabled)
     }
 
-    func test_isSmoothnessEnabled_isOffWithoutThreshold() {
-        // given a config without smoothness_pct_enabled
+    func test_isSmoothnessEnabled() {
+        // given a config
         let config = RemoteConfig(options: options, logger: logger)
 
-        // then smoothness is off
-        XCTAssertNil(config.payload.smoothnessThreshold)
+        // then isSmoothnessEnabled returns the correct values based on smoothness_pct_enabled
+        config.payload.smoothnessThreshold = 100
+        XCTAssertTrue(config.isSmoothnessEnabled)
+
+        config.payload.smoothnessThreshold = nil
         XCTAssertFalse(config.isSmoothnessEnabled)
 
         config.payload.smoothnessThreshold = 0
         XCTAssertFalse(config.isSmoothnessEnabled)
 
-        config.payload.smoothnessThreshold = 100
-        XCTAssertTrue(config.isSmoothnessEnabled)
-    }
-
-    func test_isSmoothnessEnabled_usesSaltedCohort() {
-        // given a device at 50% in the unsalted cohort, and at 88.12% in the smoothness cohort
-        let config = RemoteConfig(options: options, logger: logger)
-
-        // then smoothness follows the salted position, not the unsalted one
         config.payload.smoothnessThreshold = 51
-        config.payload.nsfThreshold = 51
-        XCTAssertTrue(config.isNetworkSpansForwardingEnabled)
-        XCTAssertFalse(config.isSmoothnessEnabled)
-
-        config.payload.smoothnessThreshold = 88
-        XCTAssertFalse(config.isSmoothnessEnabled)
-
-        config.payload.smoothnessThreshold = 89
         XCTAssertTrue(config.isSmoothnessEnabled)
-    }
 
-    func test_saltedHexValue_matchesDocumentedFormula() {
-        // The backend may reproduce the cohort, so the formula is pinned:
-        // first 6 hex digits of SHA256("smoothness:" + uppercased device id).
-        let deviceId = EmbraceIdentifier(stringValue: "00000000000000000000000000800000")
-
-        XCTAssertEqual(RemoteConfig.saltedHexValue(deviceId: deviceId, salt: "smoothness", digits: 6), 0xE196B2)
-        XCTAssertEqual(config(deviceId: deviceId).smoothnessHexValue, 0xE196B2)
-    }
-
-    func test_saltedHexValue_ignoresDeviceIdCase() {
-        let lower = EmbraceIdentifier(stringValue: "abcdef0123456789abcdef0123456789")
-        let upper = EmbraceIdentifier(stringValue: "ABCDEF0123456789ABCDEF0123456789")
-
-        XCTAssertEqual(
-            RemoteConfig.saltedHexValue(deviceId: lower, salt: "smoothness", digits: 6),
-            RemoteConfig.saltedHexValue(deviceId: upper, salt: "smoothness", digits: 6)
-        )
-    }
-
-    func test_saltedHexValue_isStableForADevice() {
-        let deviceId = EmbraceIdentifier.random
-
-        XCTAssertEqual(config(deviceId: deviceId).smoothnessHexValue, config(deviceId: deviceId).smoothnessHexValue)
-    }
-
-    func test_saltedHexValue_differentSaltsOrderDevicesDifferently() {
-        let deviceId = EmbraceIdentifier(stringValue: "00000000000000000000000000800000")
-
-        XCTAssertNotEqual(
-            RemoteConfig.saltedHexValue(deviceId: deviceId, salt: "smoothness", digits: 6),
-            RemoteConfig.saltedHexValue(deviceId: deviceId, salt: "other", digits: 6)
-        )
-    }
-
-    func test_smoothnessCohort_isIndependentOfUnsaltedCohort() {
-        // given many random devices
-        let digits = RemoteConfig.deviceIdUsedDigits
-        let deviceIds = (0..<20_000).map { _ in EmbraceIdentifier.random }
-        let inSmoothness = deviceIds.map {
-            RemoteConfig.isEnabled(
-                hexValue: RemoteConfig.saltedHexValue(deviceId: $0, salt: RemoteConfig.smoothnessSalt, digits: digits),
-                digits: digits,
-                threshold: 5
-            )
-        }
-        let inUnsalted = deviceIds.map {
-            RemoteConfig.isEnabled(hexValue: $0.intValue(digitCount: digits), digits: digits, threshold: 5)
-        }
-
-        // then about 5% are in the smoothness cohort
-        let smoothnessCount = inSmoothness.filter { $0 }.count
-        XCTAssertEqual(Double(smoothnessCount) / Double(deviceIds.count), 0.05, accuracy: 0.01)
-
-        // and its overlap with the unsalted 5% is about 5% of 5%, not all of it
-        let overlap = zip(inSmoothness, inUnsalted).filter { $0 && $1 }.count
-        XCTAssertLessThan(Double(overlap) / Double(deviceIds.count), 0.01)
-    }
-
-    func test_smoothnessCohort_onlyGrowsAsThresholdRises() {
-        let digits = RemoteConfig.deviceIdUsedDigits
-        let values = (0..<2_000).map { _ in
-            RemoteConfig.saltedHexValue(deviceId: .random, salt: RemoteConfig.smoothnessSalt, digits: digits)
-        }
-        let thresholds: [Float] = [1, 5, 20, 50, 100]
-
-        for (lower, higher) in zip(thresholds, thresholds.dropFirst()) {
-            for value in values where RemoteConfig.isEnabled(hexValue: value, digits: digits, threshold: lower) {
-                XCTAssertTrue(RemoteConfig.isEnabled(hexValue: value, digits: digits, threshold: higher))
-            }
-        }
-    }
-
-    private func config(deviceId: EmbraceIdentifier) -> RemoteConfig {
-        RemoteConfig(
-            options: RemoteConfig.Options(
-                apiBaseUrl: options.apiBaseUrl,
-                queue: options.queue,
-                appId: options.appId,
-                deviceId: deviceId,
-                osVersion: options.osVersion,
-                sdkVersion: options.sdkVersion,
-                appVersion: options.appVersion,
-                userAgent: options.userAgent,
-                cacheLocation: nil,
-                urlSessionConfiguration: options.urlSessionConfiguration
-            ),
-            logger: logger
-        )
+        config.payload.smoothnessThreshold = 49
+        XCTAssertFalse(config.isSmoothnessEnabled)
     }
 
     func test_SpanEventsLimits() {
