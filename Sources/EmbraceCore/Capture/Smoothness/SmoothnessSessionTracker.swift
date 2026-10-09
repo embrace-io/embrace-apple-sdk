@@ -44,7 +44,7 @@
         ///
         /// Uses the same `> hangThreshold` test and threshold as `FrameRateMonitor`, so it is how a
         /// `smoothness` span is correlated with `HangCaptureService`'s hang spans. The test is applied to
-        /// the lateness after `FrameDropClassifier`'s corrections, which only differs from the raw delay
+        /// the lateness after `lateness(of:)`'s corrections, which only differs from the raw delay
         /// by at most one frame interval, and only on a refresh rate step-down. It can still differ
         /// from the number of hang spans in the part: it isn't limited by `HangLimits.hangPerSession`,
         /// it's counted even when `HangCaptureService` isn't installed, and each service reads its own
@@ -75,9 +75,11 @@
     /// Late time is summed as a continuous duration and only normalized to 60fps reference frames
     /// when the session closes, so no per-tick rounding accumulates over long sessions.
     ///
+    /// Only main-thread lateness is measured: see `FrameTimingSource`.
+    ///
     /// Must be created on the main thread. All state is guarded by a single unfair lock, since the
     /// close can run off main.
-    final class SmoothnessSessionTracker: FrameDropAccumulator {
+    final class SmoothnessSessionTracker {
 
         /// Called on the main thread when a foreground part opens.
         ///
@@ -117,7 +119,6 @@
         /// Must be called on the main thread.
         ///
         /// - Parameters:
-        ///   - classifier: The classifier this tracker attaches to for its whole lifetime.
         ///   - hangThreshold: Per-tick ceiling, shared with `HangCaptureService`.
         ///   - currentSession: Returns the current session part. Called with the tracker's lock held, so
         ///     it must not take `SessionController`'s lock, which is held while the will-end hook takes
@@ -126,21 +127,15 @@
         ///     notification are posted.
         ///   - embraceNotificationCenter: Where `.embraceSessionPartWillEndSync` is posted.
         init(
-            classifier: FrameDropClassifier,
             hangThreshold: TimeInterval = HangLimits.defaultHangThreshold,
             currentSession: @escaping () -> EmbraceSession? = { Embrace.client?.sessionController.currentSession },
             notificationCenter: NotificationCenter = .default,
             embraceNotificationCenter: NotificationCenter = Embrace.notificationCenter
         ) {
-            self.classifier = classifier
             self.state = State(hangThreshold: hangThreshold)
             self.currentSession = currentSession
             self.notificationCenter = notificationCenter
             self.embraceNotificationCenter = embraceNotificationCenter
-
-            // Stay attached for the tracker's lifetime; `recordFrame` no-ops while no session is open.
-            // Detaching on close would mutate the main-only classifier from the closing thread.
-            classifier.currentAccumulator = self
 
             notificationCenter.addObserver(
                 self,
@@ -169,8 +164,34 @@
             embraceNotificationCenter.removeObserver(self)
         }
 
-        // MARK: - FrameDropAccumulator
+        // MARK: - Frame accounting
 
+        /// Lateness below this fraction of the tick's frame interval counts as on time.
+        static let noiseFloorFraction: Double = 0.5
+
+        /// Feed this from `FrameTimingSource.onTick`. No-ops while no session is open.
+        func record(_ tick: FrameTimingSource.Tick) {
+            recordFrame(lateBy: Self.lateness(of: tick))
+        }
+
+        /// The tick's lateness, never negative, after two corrections that keep time which isn't a
+        /// dropped frame from adding up over long sessions:
+        /// - **Refresh rate step-down.** When the frame interval grows between ticks (ProMotion adaptive
+        ///   refresh, Low Power Mode, thermal caps), the tick lands up to that growth after the previous
+        ///   `targetTimestamp` even though no frame was missed. The growth is subtracted.
+        /// - **Noise floor.** Ticks land on vsync boundaries, so a real miss is late by at least about one
+        ///   frame interval. Lateness below `noiseFloorFraction` of the tick's frame interval is scheduling
+        ///   jitter and counts as `0`. Lateness at or above it is passed through unchanged, not quantized
+        ///   into whole missed vsyncs, so partial-frame drops aren't lost.
+        static func lateness(of tick: FrameTimingSource.Tick) -> TimeInterval {
+            let rateStepDown = max(0, tick.frameInterval - tick.previousFrameInterval)
+            let late = tick.delay - rateStepDown
+
+            return late < noiseFloorFraction * tick.frameInterval ? 0 : max(0, late)
+        }
+
+        /// Counts one tick that was `lateBy` seconds late into the open session. No-ops while no
+        /// session is open.
         func recordFrame(lateBy: TimeInterval) {
             lock.locked {
                 guard state.openSession != nil else { return }
@@ -324,7 +345,6 @@
         private static let didBecomeActiveNotification =
             Notification.Name("UIApplicationDidBecomeActiveNotification")
 
-        private let classifier: FrameDropClassifier
         private let currentSession: () -> EmbraceSession?
         private let notificationCenter: NotificationCenter
         private let embraceNotificationCenter: NotificationCenter

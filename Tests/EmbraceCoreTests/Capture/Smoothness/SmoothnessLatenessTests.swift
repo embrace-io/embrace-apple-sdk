@@ -8,22 +8,14 @@
 
     @testable import EmbraceCore
 
-    final class FrameDropClassifierTests: XCTestCase {
+    /// Tests `SmoothnessSessionTracker.lateness(of:)`.
+    final class SmoothnessLatenessTests: XCTestCase {
 
-        private var classifier: FrameDropClassifier!
-        private var mockAccumulator: MockFrameDropAccumulator!
+        private var reportedLateness: [TimeInterval] = []
 
         override func setUp() {
             super.setUp()
-            classifier = FrameDropClassifier()
-            mockAccumulator = MockFrameDropAccumulator()
-            classifier.currentAccumulator = mockAccumulator
-        }
-
-        override func tearDown() {
-            classifier = nil
-            mockAccumulator = nil
-            super.tearDown()
+            reportedLateness = []
         }
 
         // MARK: - Helpers
@@ -32,43 +24,13 @@
         private let interval120 = 1.0 / 120.0
 
         private func handle(delay: TimeInterval, frameInterval: TimeInterval, previousFrameInterval: TimeInterval? = nil) {
-            classifier.handle(
-                FrameTimingSource.Tick(
-                    delay: delay,
-                    frameInterval: frameInterval,
-                    previousFrameInterval: previousFrameInterval ?? frameInterval
-                ))
-        }
-
-        // MARK: - Accumulator
-
-        func testNoOpWhenNoAccumulatorIsSet() {
-            classifier.currentAccumulator = nil
-
-            handle(delay: 1.0, frameInterval: interval60)
-
-            XCTAssertTrue(mockAccumulator.reportedLateness.isEmpty)
-        }
-
-        func testNoOpAfterAccumulatorIsDeallocated() {
-            var transient: MockFrameDropAccumulator? = MockFrameDropAccumulator()
-            classifier.currentAccumulator = transient
-            transient = nil
-
-            XCTAssertNil(classifier.currentAccumulator)
-            handle(delay: 1.0, frameInterval: interval60)
-        }
-
-        func testAccumulatorSwapMidStream() {
-            let secondAccumulator = MockFrameDropAccumulator()
-
-            handle(delay: 0.025, frameInterval: interval60)
-
-            classifier.currentAccumulator = secondAccumulator
-            handle(delay: 0.040, frameInterval: interval60)
-
-            XCTAssertEqual(mockAccumulator.reportedLateness, [0.025])
-            XCTAssertEqual(secondAccumulator.reportedLateness, [0.040])
+            reportedLateness.append(
+                SmoothnessSessionTracker.lateness(
+                    of: FrameTimingSource.Tick(
+                        delay: delay,
+                        frameInterval: frameInterval,
+                        previousFrameInterval: previousFrameInterval ?? frameInterval
+                    )))
         }
 
         // MARK: - Lateness
@@ -76,27 +38,27 @@
         func testOnTimeFrameReportsZero() {
             handle(delay: 0, frameInterval: interval60)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [0])
+            XCTAssertEqual(reportedLateness, [0])
         }
 
         func testNegativeDelayReportsZero() {
             handle(delay: -0.5, frameInterval: interval60)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [0])
+            XCTAssertEqual(reportedLateness, [0])
         }
 
         func testOneMissedVsyncIsPassedThroughAt60And120Hz() {
             handle(delay: interval60, frameInterval: interval60)
             handle(delay: interval120, frameInterval: interval120)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [interval60, interval120])
+            XCTAssertEqual(reportedLateness, [interval60, interval120])
         }
 
         func testTwoMissedVsyncsArePassedThroughAt60And120Hz() {
             handle(delay: 2 * interval60, frameInterval: interval60)
             handle(delay: 2 * interval120, frameInterval: interval120)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [2 * interval60, 2 * interval120])
+            XCTAssertEqual(reportedLateness, [2 * interval60, 2 * interval120])
         }
 
         func testMultiFrameDelayIsPassedThroughUnrounded() {
@@ -104,13 +66,13 @@
 
             handle(delay: delay, frameInterval: interval60)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [delay])
+            XCTAssertEqual(reportedLateness, [delay])
         }
 
-        func testHangSizedDelayIsPassedThroughForTrackerToCap() {
+        func testHangSizedDelayIsPassedThroughUncapped() {
             handle(delay: 2.0, frameInterval: interval60)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [2.0])
+            XCTAssertEqual(reportedLateness, [2.0])
         }
 
         // MARK: - Noise floor
@@ -119,15 +81,15 @@
             handle(delay: 0.000_001, frameInterval: interval120)
             handle(delay: interval60 * 0.4, frameInterval: interval60)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [0, 0])
+            XCTAssertEqual(reportedLateness, [0, 0])
         }
 
         func testLatenessAtNoiseFloorIsPassedThroughUnchanged() {
-            let delay = interval60 * FrameDropClassifier.noiseFloorFraction
+            let delay = interval60 * SmoothnessSessionTracker.noiseFloorFraction
 
             handle(delay: delay, frameInterval: interval60)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [delay])
+            XCTAssertEqual(reportedLateness, [delay])
         }
 
         func testNoiseFloorScalesWithFrameInterval() {
@@ -137,7 +99,7 @@
             handle(delay: delay, frameInterval: interval60)
             handle(delay: delay, frameInterval: interval120)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [0, delay])
+            XCTAssertEqual(reportedLateness, [0, delay])
         }
 
         func testJitterDoesNotAccumulateOverLongSessions() {
@@ -146,7 +108,7 @@
                 handle(delay: 0.000_001, frameInterval: interval120)
             }
 
-            XCTAssertEqual(mockAccumulator.reportedLateness.reduce(0, +), 0)
+            XCTAssertEqual(reportedLateness.reduce(0, +), 0)
         }
 
         // MARK: - Refresh rate changes
@@ -155,7 +117,7 @@
             // The tick lands one 120Hz interval after the 120Hz tick's target.
             handle(delay: interval120, frameInterval: interval60, previousFrameInterval: interval120)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [0])
+            XCTAssertEqual(reportedLateness, [0])
         }
 
         func testRateStepDownFrom120To24ReportsZero() {
@@ -163,36 +125,26 @@
 
             handle(delay: interval24 - interval120, frameInterval: interval24, previousFrameInterval: interval120)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [0])
+            XCTAssertEqual(reportedLateness, [0])
         }
 
         func testRateStepUpFrom60To120ReportsZero() {
             handle(delay: 0, frameInterval: interval120, previousFrameInterval: interval60)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [0])
+            XCTAssertEqual(reportedLateness, [0])
         }
 
         func testMissedFrameDuringRateStepDownIsCountedWithoutTheStep() {
             // Steps 120 → 60Hz and also misses one 60Hz frame.
             handle(delay: interval120 + interval60, frameInterval: interval60, previousFrameInterval: interval120)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness.first ?? 0, interval60, accuracy: 1e-12)
+            XCTAssertEqual(reportedLateness.first ?? 0, interval60, accuracy: 1e-12)
         }
 
         func testMissedFrameDuringRateStepUpIsCountedInFull() {
             handle(delay: interval120, frameInterval: interval120, previousFrameInterval: interval60)
 
-            XCTAssertEqual(mockAccumulator.reportedLateness, [interval120])
-        }
-    }
-
-    // MARK: - Test Helpers
-
-    private final class MockFrameDropAccumulator: FrameDropAccumulator {
-        private(set) var reportedLateness: [TimeInterval] = []
-
-        func recordFrame(lateBy: TimeInterval) {
-            reportedLateness.append(lateBy)
+            XCTAssertEqual(reportedLateness, [interval120])
         }
     }
 

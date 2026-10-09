@@ -12,7 +12,7 @@
     @testable import EmbraceCore
 
     /// Measures the per-tick cost of the Smoothness hot path: `FrameTimingSource.handleTick` →
-    /// the production tick handler → `FrameDropClassifier` → `SmoothnessSessionTracker`.
+    /// the production tick handler → `SmoothnessSessionTracker`.
     ///
     /// Ticks are driven synchronously on main, as in `FrameTimingSourceTests`, through a source with no
     /// display link. Simulator numbers are a regression guard only; release sign-off uses
@@ -39,7 +39,6 @@
         private let frameDuration = 1.0 / 60.0
 
         private var source: FrameTimingSource!
-        private var classifier: FrameDropClassifier!
         private var tracker: SmoothnessSessionTracker!
         private var now: CFTimeInterval = 1_000
         private var currentSession: EmbraceSession?
@@ -48,23 +47,20 @@
             try super.setUpWithError()
             try XCTSkipIfSanitizing()
 
-            classifier = FrameDropClassifier()
             tracker = SmoothnessSessionTracker(
-                classifier: classifier,
                 hangThreshold: 0.249,
                 currentSession: { [unowned self] in self.currentSession },
                 notificationCenter: NotificationCenter(),
                 embraceNotificationCenter: NotificationCenter()
             )
             source = FrameTimingSource(notificationCenter: NotificationCenter(), attachesDisplayLink: false)
-            source.onTick = SmoothnessCaptureService.makeTickHandler(classifier: classifier, environment: [:])
+            source.onTick = SmoothnessCaptureService.makeTickHandler(tracker: tracker, environment: [:])
             now = 1_000
         }
 
         override func tearDown() {
             source = nil
             tracker = nil
-            classifier = nil
             currentSession = nil
             super.tearDown()
         }
@@ -104,7 +100,7 @@
             XCTAssertTrue(tracker.isSessionOpen)
         }
 
-        /// Ticks between foreground parts still run the classifier and take the tracker's lock.
+        /// Ticks between foreground parts still compute lateness and take the tracker's lock.
         func test_tickCost_withoutSession() {
             measure(metrics: [XCTClockMetric(), XCTCPUMetric()]) {
                 deliverTicks(measuredTickCount)
@@ -132,7 +128,7 @@
             var reported: SmoothnessSessionStats?
             tracker.onSessionClosed = { _, stats in reported = stats }
             let handler = SmoothnessCaptureService.makeTickHandler(
-                classifier: classifier,
+                tracker: tracker,
                 environment: ["EMBSmoothnessSignposts": "1"]
             )
             openSession()

@@ -18,7 +18,6 @@
 
         private var notificationCenter: NotificationCenter!
         private var embraceNotificationCenter: NotificationCenter!
-        private var classifier: FrameDropClassifier!
         private var tracker: SmoothnessSessionTracker!
         private var currentSession: EmbraceSession?
         private var opened: [EmbraceIdentifier] = []
@@ -29,10 +28,8 @@
             super.setUp()
             notificationCenter = NotificationCenter()
             embraceNotificationCenter = NotificationCenter()
-            classifier = FrameDropClassifier()
             currentSession = nil
             tracker = SmoothnessSessionTracker(
-                classifier: classifier,
                 hangThreshold: 0.249,
                 currentSession: { [unowned self] in self.currentSession },
                 notificationCenter: notificationCenter,
@@ -50,7 +47,6 @@
 
         override func tearDown() {
             tracker = nil
-            classifier = nil
             notificationCenter = nil
             embraceNotificationCenter = nil
             currentSession = nil
@@ -96,19 +92,10 @@
         /// Delivers a tick at a steady refresh rate with `frameInterval` between vsyncs.
         private func handle(delay: TimeInterval, frameInterval: TimeInterval? = nil) {
             let interval = frameInterval ?? frameDuration
-            classifier.handle(FrameTimingSource.Tick(delay: delay, frameInterval: interval, previousFrameInterval: interval))
+            tracker.record(FrameTimingSource.Tick(delay: delay, frameInterval: interval, previousFrameInterval: interval))
         }
 
         // MARK: - Lifecycle
-
-        func testAttachesToClassifierForItsLifetime() {
-            XCTAssertTrue(classifier.currentAccumulator === tracker)
-
-            startPart(.foreground)
-            endPart()
-
-            XCTAssertTrue(classifier.currentAccumulator === tracker)
-        }
 
         func testForegroundPartStartOpens() {
             let session = startPart(.foreground)

@@ -204,11 +204,11 @@
         /// (subsystem `io.embrace.sdk`, category `Smoothness`, name `Tick`) so its cost can be profiled
         /// in Instruments. The choice is made once here, so the per-tick path never branches on it.
         static func makeTickHandler(
-            classifier: FrameDropClassifier,
+            tracker: SmoothnessSessionTracker,
             environment: [String: String] = ProcessInfo.processInfo.environment
         ) -> (FrameTimingSource.Tick) -> Void {
-            let handler: (FrameTimingSource.Tick) -> Void = { [weak classifier] tick in
-                classifier?.handle(tick)
+            let handler: (FrameTimingSource.Tick) -> Void = { [weak tracker] tick in
+                tracker?.record(tick)
             }
 
             #if DEBUG
@@ -245,7 +245,7 @@
             }
         }
 
-        /// Builds the timing source → classifier → tracker pipeline and stores it, but only if the
+        /// Builds the timing source → tracker pipeline and stores it, but only if the
         /// service is active, remote config lets it run, and no pipeline is live. Must be called on the
         /// main thread.
         ///
@@ -263,9 +263,7 @@
                 return
             }
 
-            let classifier = FrameDropClassifier()
             let tracker = SmoothnessSessionTracker(
-                classifier: classifier,
                 hangThreshold: hangThreshold,
                 currentSession: currentSession,
                 notificationCenter: notificationCenter,
@@ -282,7 +280,7 @@
             }
 
             let source = FrameTimingSource(notificationCenter: notificationCenter, attachesDisplayLink: attachesDisplayLink)
-            source.onTick = Self.makeTickHandler(classifier: classifier)
+            source.onTick = Self.makeTickHandler(tracker: tracker)
 
             // Before the store, so nothing can open the part in between; opens are delivered on main.
             if !opensCurrentPart {
@@ -291,7 +289,7 @@
 
             let stored = data.withLock { data -> Bool in
                 guard state.load(order: .acquire) == .active, data.pipeline == nil, isRunnable(data) else { return false }
-                data.pipeline = Pipeline(source: source, classifier: classifier, tracker: tracker)
+                data.pipeline = Pipeline(source: source, tracker: tracker)
                 return true
             }
 
@@ -328,7 +326,6 @@
 
         private struct Pipeline {
             let source: FrameTimingSource
-            let classifier: FrameDropClassifier
             let tracker: SmoothnessSessionTracker
         }
 

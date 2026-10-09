@@ -146,15 +146,13 @@
 
         // MARK: - Pipeline
 
-        /// Background → foreground through source, classifier and tracker, in the order UIKit and
+        /// Background → foreground through source and tracker, in the order UIKit and
         /// `SessionController` deliver it: part ends on background, will-enter-foreground, then the
         /// next foreground part starts from did-become-active.
         func testBackgroundGapDoesNotReachNextForegroundPart() throws {
             let embraceNotificationCenter = NotificationCenter()
-            let classifier = FrameDropClassifier()
             var currentSession: EmbraceSession?
             let tracker = SmoothnessSessionTracker(
-                classifier: classifier,
                 hangThreshold: 0.249,
                 currentSession: { currentSession },
                 notificationCenter: notificationCenter,
@@ -162,7 +160,7 @@
             )
             var reported: [SmoothnessSessionStats] = []
             tracker.onSessionClosed = { _, stats in reported.append(stats) }
-            source.onTick = { [classifier] tick in classifier.handle(tick) }
+            source.onTick = { [tracker] tick in tracker.record(tick) }
 
             func startPart(_ state: SessionState) {
                 let session = MockSession.with(id: .random, state: state)
@@ -201,10 +199,8 @@
         /// no part is open yet, so the tracker still drops it.
         func testGapTickBeforeResetIsDroppedByClosedTracker() throws {
             let embraceNotificationCenter = NotificationCenter()
-            let classifier = FrameDropClassifier()
             var currentSession: EmbraceSession?
             let tracker = SmoothnessSessionTracker(
-                classifier: classifier,
                 hangThreshold: 0.249,
                 currentSession: { currentSession },
                 notificationCenter: notificationCenter,
@@ -212,7 +208,7 @@
             )
             var reported: [SmoothnessSessionStats] = []
             tracker.onSessionClosed = { _, stats in reported.append(stats) }
-            source.onTick = { [classifier] tick in classifier.handle(tick) }
+            source.onTick = { [tracker] tick in tracker.record(tick) }
 
             let foreground = MockSession.with(id: .random, state: .foreground)
             currentSession = foreground
@@ -261,10 +257,8 @@
         /// post-gap tick. Returns the stats of that second part.
         private func foregroundPartStatsAfterGap(resetOnWillEnterForeground: Bool) throws -> SmoothnessSessionStats {
             let embraceNotificationCenter = NotificationCenter()
-            let classifier = FrameDropClassifier()
             var currentSession: EmbraceSession?
             let tracker = SmoothnessSessionTracker(
-                classifier: classifier,
                 hangThreshold: 0.249,
                 currentSession: { currentSession },
                 notificationCenter: notificationCenter,
@@ -272,7 +266,7 @@
             )
             var reported: [SmoothnessSessionStats] = []
             tracker.onSessionClosed = { _, stats in reported.append(stats) }
-            source.onTick = { [classifier] tick in classifier.handle(tick) }
+            source.onTick = { [tracker] tick in tracker.record(tick) }
 
             let foreground = MockSession.with(id: .random, state: .foreground)
             currentSession = foreground
