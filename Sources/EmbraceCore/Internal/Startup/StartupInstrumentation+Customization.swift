@@ -27,20 +27,20 @@ extension StartupInstrumentation {
             return nil
         }
 
-        return state.withLock {
-            guard let rootSpan = $0.rootSpan else {
-                return nil
-            }
-
-            return try? otel.createInternalSpan(
-                name: name,
-                parentSpan: rootSpan,
-                type: .startup,
-                startTime: startTime,
-                endTime: endTime,
-                attributes: attributes
-            )
+        // The span is created outside of the lock because starting and ending a span runs every span processor
+        // synchronously, and this can be called from any thread, including the main thread.
+        guard let rootSpan = state.withLock({ $0.rootSpan }) else {
+            return nil
         }
+
+        return try? otel.createInternalSpan(
+            name: name,
+            parentSpan: rootSpan,
+            type: .startup,
+            startTime: startTime,
+            endTime: endTime,
+            attributes: attributes
+        )
     }
 
     /// Method used to add attributes to the startup instrumentation root span.
@@ -48,14 +48,12 @@ extension StartupInstrumentation {
     ///   - attributes: A dictionary of attributes to add to the trace. Each key-value pair represents an attribute.
     package func addAttributesToStartupTrace(_ attributes: EmbraceAttributes) {
 
-        return state.withLock {
-            guard let rootSpan = $0.rootSpan else {
-                return
-            }
+        guard let rootSpan = state.withLock({ $0.rootSpan }) else {
+            return
+        }
 
-            for (key, value) in attributes {
-                rootSpan.setAttribute(key: key, value: value)
-            }
+        for (key, value) in attributes {
+            rootSpan.setAttribute(key: key, value: value)
         }
     }
 }

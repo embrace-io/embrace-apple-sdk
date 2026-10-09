@@ -35,10 +35,12 @@ package final class StartupInstrumentation {
     }
 
     func endSpans(_ endTime: Date) {
-        state.withLock {
-            $0.firstFrameSpan?.end(endTime: endTime)
-            $0.rootSpan?.end(endTime: endTime)
-        }
+        // Spans are ended outside of the lock because ending a span runs every span processor synchronously,
+        // and the lock can also be taken from the main thread through the public startup APIs.
+        let (firstFrameSpan, rootSpan) = state.withLock { ($0.firstFrameSpan, $0.rootSpan) }
+
+        firstFrameSpan?.end(endTime: endTime)
+        rootSpan?.end(endTime: endTime)
     }
 
     func buildMainSpans() {
@@ -103,48 +105,50 @@ package final class StartupInstrumentation {
             return
         }
 
-        state.withLock {
-            let attributes = [
-                SpanSemantics.Startup.keyPrewarmed: provider.isPrewarm ? "true" : "false"
-            ]
+        // Spans are recorded outside of the lock because starting and ending a span runs every span processor
+        // synchronously, and the lock can also be taken from the main thread through the public startup APIs.
+        let rootSpan = state.withLock { $0.rootSpan }
 
-            // app init
+        let attributes = [
+            SpanSemantics.Startup.keyPrewarmed: provider.isPrewarm ? "true" : "false"
+        ]
+
+        // app init
+        _ = try? otel.createInternalSpan(
+            name: SpanSemantics.Startup.appInitName,
+            parentSpan: rootSpan,
+            type: .startup,
+            startTime: provider.constructorClosestToMainTime,
+            endTime: appDidFinishLaunchingTime,
+            attributes: attributes
+        )
+
+        // sdk setup
+        if let sdkSetupStartTime = provider.sdkSetupStartTime,
+            let sdkSetupEndTime = provider.sdkSetupEndTime
+        {
             _ = try? otel.createInternalSpan(
-                name: SpanSemantics.Startup.appInitName,
-                parentSpan: $0.rootSpan,
+                name: SpanSemantics.Startup.sdkSetup,
+                parentSpan: rootSpan,
                 type: .startup,
-                startTime: provider.constructorClosestToMainTime,
-                endTime: appDidFinishLaunchingTime,
+                startTime: sdkSetupStartTime,
+                endTime: sdkSetupEndTime,
                 attributes: attributes
             )
+        }
 
-            // sdk setup
-            if let sdkSetupStartTime = provider.sdkSetupStartTime,
-                let sdkSetupEndTime = provider.sdkSetupEndTime
-            {
-                _ = try? otel.createInternalSpan(
-                    name: SpanSemantics.Startup.sdkSetup,
-                    parentSpan: $0.rootSpan,
-                    type: .startup,
-                    startTime: sdkSetupStartTime,
-                    endTime: sdkSetupEndTime,
-                    attributes: attributes
-                )
-            }
-
-            // sdk startup
-            if let sdkStartStarTime = provider.sdkStartStartTime,
-                let sdkStartEndTime = provider.sdkStartEndTime
-            {
-                _ = try? otel.createInternalSpan(
-                    name: SpanSemantics.Startup.sdkStart,
-                    parentSpan: $0.rootSpan,
-                    type: .startup,
-                    startTime: sdkStartStarTime,
-                    endTime: sdkStartEndTime,
-                    attributes: attributes
-                )
-            }
+        // sdk startup
+        if let sdkStartStarTime = provider.sdkStartStartTime,
+            let sdkStartEndTime = provider.sdkStartEndTime
+        {
+            _ = try? otel.createInternalSpan(
+                name: SpanSemantics.Startup.sdkStart,
+                parentSpan: rootSpan,
+                type: .startup,
+                startTime: sdkStartStarTime,
+                endTime: sdkStartEndTime,
+                attributes: attributes
+            )
         }
     }
 }
