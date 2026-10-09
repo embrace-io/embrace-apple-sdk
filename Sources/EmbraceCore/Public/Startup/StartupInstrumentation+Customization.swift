@@ -29,22 +29,20 @@ extension StartupInstrumentation {
             return nil
         }
 
-        return state.withLock {
-            guard let rootSpan = $0.rootSpan else {
-                return nil
-            }
-
-            let builder = otel.buildSpan(
-                name: name,
-                type: type,
-                attributes: attributes,
-                autoTerminationCode: nil
-            )
-            builder.setStartTime(time: startTime)
-            builder.setParent(rootSpan)
-
-            return builder
+        guard let rootSpan = state.withLock({ $0.rootSpan }) else {
+            return nil
         }
+
+        let builder = otel.buildSpan(
+            name: name,
+            type: type,
+            attributes: attributes,
+            autoTerminationCode: nil
+        )
+        builder.setStartTime(time: startTime)
+        builder.setParent(rootSpan)
+
+        return builder
     }
 
     /// Method used to record a completed span to be included as a child span to the startup instrumenstation root span.
@@ -67,25 +65,25 @@ extension StartupInstrumentation {
             return false
         }
 
-        return state.withLock {
-            guard let rootSpan = $0.rootSpan else {
-                return false
-            }
-
-            let builder = otel.buildSpan(
-                name: name,
-                type: type,
-                attributes: attributes,
-                autoTerminationCode: nil
-            )
-            builder.setStartTime(time: startTime)
-            builder.setParent(rootSpan)
-
-            let span = builder.startSpan()
-            span.end(time: endTime)
-
-            return true
+        // The span is started and ended outside of the lock because doing so runs every span processor synchronously,
+        // and this can be called from any thread, including the main thread.
+        guard let rootSpan = state.withLock({ $0.rootSpan }) else {
+            return false
         }
+
+        let builder = otel.buildSpan(
+            name: name,
+            type: type,
+            attributes: attributes,
+            autoTerminationCode: nil
+        )
+        builder.setStartTime(time: startTime)
+        builder.setParent(rootSpan)
+
+        let span = builder.startSpan()
+        span.end(time: endTime)
+
+        return true
     }
 
     /// Method used to add attributes to the startup instrumentation root span.
@@ -95,19 +93,17 @@ extension StartupInstrumentation {
     @discardableResult
     public func addAttributesToTrace(_ attributes: [String: String]) -> Bool {
 
-        return state.withLock {
-            guard let rootSpan = $0.rootSpan else {
-                return false
-            }
-
-            attributes.forEach {
-                rootSpan.setAttribute(key: $0.key, value: .string($0.value))
-            }
-
-            // TODO: Clean up reference to client! There's currently no other way to trigger a flush!
-            Embrace.client?.flush(rootSpan)
-
-            return true
+        guard let rootSpan = state.withLock({ $0.rootSpan }) else {
+            return false
         }
+
+        attributes.forEach {
+            rootSpan.setAttribute(key: $0.key, value: .string($0.value))
+        }
+
+        // TODO: Clean up reference to client! There's currently no other way to trigger a flush!
+        Embrace.client?.flush(rootSpan)
+
+        return true
     }
 }

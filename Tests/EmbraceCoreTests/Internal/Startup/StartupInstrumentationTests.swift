@@ -236,4 +236,78 @@ class StartupInstrumentationTests: XCTestCase {
         XCTAssertEqual(parent!.attributes["key1"], .string("value1"))
         XCTAssertEqual(parent!.attributes["key2"], .string("value2"))
     }
+
+    func test_endSpans_endsSpansOutsideOfLock() {
+        // given started main spans
+        provider.firstFrameTime = nil
+        instrumentation.buildMainSpans()
+
+        // and a span processor that checks if the instrumentation's lock is free when a span ends
+        var lockWasFree: [Bool] = []
+        otel.spanProcessor.onEndCallback = { [instrumentation] _ in
+            lockWasFree.append(instrumentation!.state.isLockFree)
+        }
+        defer { otel.spanProcessor.onEndCallback = nil }
+
+        // when the spans are ended
+        instrumentation.endSpans(Date(timeIntervalSince1970: 15))
+
+        // then the first frame and root spans are ended without holding the lock
+        XCTAssertEqual(lockWasFree, [true, true])
+    }
+
+    func test_buildSecondarySpans_recordsSpansOutsideOfLock() {
+        // given started main spans
+        provider.firstFrameTime = nil
+        instrumentation.buildMainSpans()
+
+        // and a span processor that checks if the instrumentation's lock is free when a span starts or ends
+        var lockWasFree: [Bool] = []
+        otel.spanProcessor.onStartCallback = { [instrumentation] _ in
+            lockWasFree.append(instrumentation!.state.isLockFree)
+        }
+        otel.spanProcessor.onEndCallback = { [instrumentation] _ in
+            lockWasFree.append(instrumentation!.state.isLockFree)
+        }
+        defer {
+            otel.spanProcessor.onStartCallback = nil
+            otel.spanProcessor.onEndCallback = nil
+        }
+
+        // when the secondary spans are recorded
+        instrumentation.buildSecondarySpans(provider.appDidFinishLaunchingEndTime)
+
+        // then the app init, sdk setup and sdk start spans are started and ended without holding the lock
+        XCTAssertEqual(lockWasFree, [true, true, true, true, true, true])
+    }
+
+    func test_recordCompletedChildSpan_recordsSpanOutsideOfLock() {
+        // given started main spans
+        provider.firstFrameTime = nil
+        instrumentation.buildMainSpans()
+
+        // and a span processor that checks if the instrumentation's lock is free when a span starts or ends
+        var lockWasFree: [Bool] = []
+        otel.spanProcessor.onStartCallback = { [instrumentation] _ in
+            lockWasFree.append(instrumentation!.state.isLockFree)
+        }
+        otel.spanProcessor.onEndCallback = { [instrumentation] _ in
+            lockWasFree.append(instrumentation!.state.isLockFree)
+        }
+        defer {
+            otel.spanProcessor.onStartCallback = nil
+            otel.spanProcessor.onEndCallback = nil
+        }
+
+        // when a completed child span is recorded
+        let result = instrumentation.recordCompletedChildSpan(
+            name: "test",
+            startTime: Date(timeIntervalSince1970: 10),
+            endTime: Date(timeIntervalSince1970: 11)
+        )
+
+        // then it is started and ended without holding the lock
+        XCTAssertTrue(result)
+        XCTAssertEqual(lockWasFree, [true, true])
+    }
 }
