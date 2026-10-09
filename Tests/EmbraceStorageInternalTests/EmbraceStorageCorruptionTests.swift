@@ -13,7 +13,7 @@ import XCTest
 
 final class EmbraceStorageCorruptionTests: XCTestCase {
 
-    func test_coreDataWrapper_onDisk_corruptStore_throwsInsteadOfCrashing() throws {
+    func test_coreDataWrapper_onDisk_corruptStore_reportsLoadFailureInsteadOfCrashing() throws {
         // copy the committed corrupted sqlite fixture to a unique on-disk location
         let fixturePath = try XCTUnwrap(
             Bundle.module.path(forResource: "db_corrupted", ofType: "sqlite", inDirectory: "Mocks")
@@ -36,9 +36,32 @@ final class EmbraceStorageCorruptionTests: XCTestCase {
         )
 
         // `isTesting: false` forces the real on-disk SQLite store (otherwise tests run in-memory).
-        // A corrupt store must throw at init — failing fast — rather than crash later on first fetch/save.
-        XCTAssertThrowsError(
-            try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
-        )
+        // The store loads on the context's queue, so a corrupt one doesn't throw at init: the load failure
+        // is reported, and later fetches and saves don't crash.
+        let wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
+
+        let loaded = expectation(description: "initial load finished")
+        var loadError: Error?
+        wrapper.onInitialLoad { error in
+            loadError = error
+            loaded.fulfill()
+        }
+        wait(for: [loaded], timeout: .defaultTimeout)
+
+        XCTAssertNotNil(loadError)
+        XCTAssertFalse(wrapper.isStoreLoaded)
+        XCTAssertEqual(wrapper.fetch(withRequest: SessionRecord.createFetchRequest()).count, 0)
+        wrapper.performOperation { context in
+            _ = SessionRecord.create(
+                context: context,
+                id: .random,
+                processId: .random,
+                state: .foreground,
+                traceId: "trace",
+                spanId: "span",
+                startTime: Date()
+            )
+            XCTAssertFalse(wrapper.saveIfNeeded())
+        }
     }
 }

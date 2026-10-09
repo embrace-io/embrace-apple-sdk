@@ -208,6 +208,107 @@ class SpanRecordTests: XCTestCase {
         XCTAssertNil(span3!.endTime)
     }
 
+    // MARK: User-session id taken from the part
+
+    func test_upsertSpan_withEmptyUserSessionId_takesItFromThePart() throws {
+        // given a part with a user session
+        let partId = EmbraceIdentifier.random
+        let userSessionId = EmbraceIdentifier.random
+        addPart(id: partId, userSessionId: userSessionId)
+
+        // when storing a span of that part created before its user session was known
+        storage.upsertSpanAsync(MockSpan(id: "id", name: "a name", attributes: identity(userSessionId: "", partId: partId)))
+
+        // then it's stored with the part's user-session id
+        let attributes = try XCTUnwrap(storage.fetchSpan(id: "id", traceId: TestConstants.traceId)?.attributes)
+        XCTAssertEqual(attributes[SpanSemantics.keySessionId] as? String, userSessionId.stringValue)
+        XCTAssertEqual(attributes[SpanSemantics.Session.keyUserSessionId] as? String, userSessionId.stringValue)
+        XCTAssertEqual(attributes[SpanSemantics.Session.keyPartId] as? String, partId.stringValue)
+    }
+
+    func test_upsertSpan_whenEnded_keepsTheUserSessionIdTakenFromThePart() throws {
+        // given a stored span whose user-session id was taken from its part
+        let partId = EmbraceIdentifier.random
+        let userSessionId = EmbraceIdentifier.random
+        addPart(id: partId, userSessionId: userSessionId)
+        storage.upsertSpanAsync(MockSpan(id: "id", name: "a name", attributes: identity(userSessionId: "", partId: partId)))
+
+        // when it's stored again when it ends, still without it
+        storage.upsertSpanAsync(
+            MockSpan(id: "id", name: "a name", endTime: Date(), attributes: identity(userSessionId: "", partId: partId)),
+            onlyUpdate: true
+        )
+
+        // then it keeps the part's user-session id
+        let attributes = try XCTUnwrap(storage.fetchSpan(id: "id", traceId: TestConstants.traceId)?.attributes)
+        XCTAssertEqual(attributes[SpanSemantics.Session.keyUserSessionId] as? String, userSessionId.stringValue)
+    }
+
+    func test_upsertSpan_afterThePartRecordIsGone_keepsTheStoredUserSessionId() throws {
+        // given a stored span whose user-session id was taken from its part
+        let partId = EmbraceIdentifier.random
+        let userSessionId = EmbraceIdentifier.random
+        addPart(id: partId, userSessionId: userSessionId)
+        storage.upsertSpanAsync(MockSpan(id: "id", name: "a name", attributes: identity(userSessionId: "", partId: partId)))
+
+        // and the part's record removed (the part ended and was sent)
+        storage.deleteSession(id: partId)
+
+        // when the span is stored again when it ends, still without the id
+        storage.upsertSpanAsync(
+            MockSpan(id: "id", name: "a name", endTime: Date(), attributes: identity(userSessionId: "", partId: partId)),
+            onlyUpdate: true
+        )
+
+        // then it keeps the id it was stored with
+        let attributes = try XCTUnwrap(storage.fetchSpan(id: "id", traceId: TestConstants.traceId)?.attributes)
+        XCTAssertEqual(attributes[SpanSemantics.Session.keyUserSessionId] as? String, userSessionId.stringValue)
+        XCTAssertEqual(attributes[SpanSemantics.keySessionId] as? String, userSessionId.stringValue)
+    }
+
+    func test_upsertSpan_withUserSessionId_keepsIt() throws {
+        // given a part with a user session
+        let partId = EmbraceIdentifier.random
+        addPart(id: partId, userSessionId: .random)
+
+        // when storing a span that already has a user-session id
+        storage.upsertSpanAsync(MockSpan(id: "id", name: "a name", attributes: identity(userSessionId: "other", partId: partId)))
+
+        // then it keeps it
+        let attributes = try XCTUnwrap(storage.fetchSpan(id: "id", traceId: TestConstants.traceId)?.attributes)
+        XCTAssertEqual(attributes[SpanSemantics.Session.keyUserSessionId] as? String, "other")
+    }
+
+    func test_upsertSpan_withoutPart_keepsTheEmptyUserSessionId() throws {
+        // when storing a span created before any part existed
+        storage.upsertSpanAsync(MockSpan(id: "id", name: "a name", attributes: identity(userSessionId: "", partId: nil)))
+
+        // then its identity is unchanged
+        let attributes = try XCTUnwrap(storage.fetchSpan(id: "id", traceId: TestConstants.traceId)?.attributes)
+        XCTAssertEqual(attributes[SpanSemantics.Session.keyUserSessionId] as? String, "")
+        XCTAssertEqual(attributes[SpanSemantics.Session.keyPartId] as? String, "")
+    }
+
+    private func addPart(id: EmbraceIdentifier, userSessionId: EmbraceIdentifier) {
+        storage.addSession(
+            id: id,
+            processId: .random,
+            state: .foreground,
+            traceId: "trace",
+            spanId: "span",
+            startTime: Date(),
+            userSessionId: userSessionId
+        )
+    }
+
+    private func identity(userSessionId: String, partId: EmbraceIdentifier?) -> EmbraceAttributes {
+        [
+            SpanSemantics.keySessionId: userSessionId,
+            SpanSemantics.Session.keyUserSessionId: userSessionId,
+            SpanSemantics.Session.keyPartId: partId?.stringValue ?? ""
+        ]
+    }
+
     // MARK: Attributes
     func test_createAttributes() {
         // given inserted span

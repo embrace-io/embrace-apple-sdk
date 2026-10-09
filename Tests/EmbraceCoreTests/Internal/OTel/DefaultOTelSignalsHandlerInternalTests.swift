@@ -980,6 +980,28 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(storage.fetchAllLogs().count, 1)
     }
 
+    func test_onEmitLog_withoutUserSessionId_isStoredWithThePartUserSession() throws {
+        // given a log emitted before its part's user session was resolved
+        let partId = EmbraceIdentifier.random
+        let userSessionId = EmbraceIdentifier.random
+        sessionController.stubbedUserSessionIdOfPart = userSessionId
+        let log = MockLog(
+            attributes: [
+                LogSemantics.keySessionId: "", LogSemantics.keyUserSessionId: "", LogSemantics.keyPartId: partId.stringValue
+            ]
+        )
+
+        // when receiving the call back to emit it
+        handler.onEmitLog(log)
+        logQueue.sync {}
+
+        // then it's stored with the part's user session
+        let stored = try XCTUnwrap(storage.fetchAllLogs().first)
+        XCTAssertEqual(stored.attributes[LogSemantics.keyUserSessionId] as? String, userSessionId.stringValue)
+        XCTAssertEqual(stored.attributes[LogSemantics.keySessionId] as? String, userSessionId.stringValue)
+        XCTAssertEqual(sessionController.userSessionIdOfPartRequests.map(\.stringValue), [partId.stringValue])
+    }
+
     func test_onEmitLog_limit() throws {
         // given a handler with limits
         limiter.shouldCreateLogReturnValue = false

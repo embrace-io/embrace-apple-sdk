@@ -52,7 +52,10 @@ package class MetadataHandler {
 
     /// Adds a property with the given key, value and lifespan.
     /// If there are 2 properties with the same key but different lifespans, the one with a shorter lifespan will be used.
-    /// If the key is too long or no user session is active for a `.userSession` lifespan, the property is dropped and a warning is logged.
+    /// If the key is too long, or for a `.userSession` lifespan there's no active user session (or the current part
+    /// ends up with none), the property is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, the write waits for it
+    /// on the metadata queue; the call itself returns right away (see `currentContext(for:)`).
     /// - Parameters:
     ///   - key: The key of the property to add. Can not be longer than 128 characters.
     ///   - value: The value of the property to add. Will be truncated if its longer than 1024 characters.
@@ -77,12 +80,16 @@ package class MetadataHandler {
         }
 
         synchronizationQueue.async {
+            guard let lifespanId = self.lifespanId(for: lifespanContext) else {
+                return
+            }
+
             let record = storage.addMetadata(
                 key: key,
                 value: self.validateValue(value),
                 type: type,
                 lifespan: lifespan.recordLifespan,
-                lifespanId: lifespanContext
+                lifespanId: lifespanId
             )
 
             if record == nil {
@@ -94,7 +101,10 @@ package class MetadataHandler {
     }
 
     /// Updates the value of a property for a given key and lifespan.
-    /// If no user session is active for a `.userSession` lifespan, the update is dropped and a warning is logged.
+    /// For a `.userSession` lifespan, if there's no active user session (or the current part ends up with none),
+    /// the update is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, the write waits for it
+    /// on the metadata queue; the call itself returns right away (see `currentContext(for:)`).
     /// - Parameters:
     ///   - key: The key of the property to update.
     ///   - value: The value of the property to update. Will be truncated if its longer than 1024 characters.
@@ -109,10 +119,13 @@ package class MetadataHandler {
         type: MetadataRecordType,
         lifespan: MetadataLifespan = .userSession
     ) {
-        guard let lifespanId = currentContext(for: lifespan.recordLifespan) else {
+        guard let lifespanContext = currentContext(for: lifespan.recordLifespan) else {
             return
         }
         synchronizationQueue.async {
+            guard let lifespanId = self.lifespanId(for: lifespanContext) else {
+                return
+            }
             self.storage?.updateMetadata(
                 key: key,
                 value: self.validateValue(value),
@@ -124,7 +137,10 @@ package class MetadataHandler {
     }
 
     /// Removes the property for the given key and lifespan.
-    /// If no user session is active for a `.userSession` lifespan, the removal is dropped and a warning is logged.
+    /// For a `.userSession` lifespan, if there's no active user session (or the current part ends up with none),
+    /// the removal is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, the write waits for it
+    /// on the metadata queue; the call itself returns right away (see `currentContext(for:)`).
     /// - Parameters:
     ///   - key: The key of the property to remove.
     ///   - lifespan: The lifespan of the property to remove.
@@ -133,16 +149,22 @@ package class MetadataHandler {
     }
 
     /// Removes the metadata for the given key, type and lifespan.
-    /// If no user session is active for a `.userSession` lifespan, the removal is dropped and a warning is logged.
+    /// For a `.userSession` lifespan, if there's no active user session (or the current part ends up with none),
+    /// the removal is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, the write waits for it
+    /// on the metadata queue; the call itself returns right away (see `currentContext(for:)`).
     /// - Parameters:
     ///  - key: The key of the metadata to remove.
     ///  - type: The type of the metadata to remove.
     ///  - lifespan: The lifespan of the metadata to remove.
     func remove(key: String, type: MetadataRecordType, lifespan: MetadataLifespan = .userSession) {
-        guard let lifespanId = currentContext(for: lifespan.recordLifespan) else {
+        guard let lifespanContext = currentContext(for: lifespan.recordLifespan) else {
             return
         }
         synchronizationQueue.async {
+            guard let lifespanId = self.lifespanId(for: lifespanContext) else {
+                return
+            }
             self.storage?.removeMetadata(
                 key: key,
                 type: type,
@@ -183,24 +205,80 @@ extension MetadataHandler {
 }
 
 extension MetadataHandler {
-    /// Returns the `lifespanId` to use for the given lifespan, or `nil` if there's no valid context
+    /// What an operation's `lifespanId` is, captured when the operation is called.
+    fileprivate enum LifespanContext {
+        case id(String)
+
+        /// The user session of this part, which was still being resolved when the operation was called.
+        case userSessionOfPart(EmbraceIdentifier)
+
+        /// The current user session once the user-session work pending when the operation was called has run
+        /// (there was no part then).
+        case currentUserSessionAfterPendingWork
+    }
+
+    /// Returns the context of the `lifespanId` to use for the given lifespan, or `nil` if there's no valid context
     /// for it (in which case the operation is dropped).
     ///
     /// For the `.userSession` lifespan this is the id of the active user session, **not** the id of
     /// the current session part. That's what makes this metadata span every part of the user session.
-    private func currentContext(for lifespan: MetadataRecordLifespan) -> String? {
+    /// Right after `Embrace.start`, the current part's user session can still be being resolved on the storage
+    /// queue (see `SessionController.startSession`): the operation then uses that part's user session, once known.
+    /// With no part while user-session work is pending, it uses the current user session once that work has run.
+    private func currentContext(for lifespan: MetadataRecordLifespan) -> LifespanContext? {
         if lifespan == .userSession {
-            guard let userSessionId = sessionController?.currentUserSession?.id.stringValue else {
+            guard let context = userSessionContext() else {
                 Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
                 return nil
             }
-            return userSessionId
+            return context
         } else if lifespan == .process {
-            return ProcessIdentifier.current.stringValue
+            return .id(ProcessIdentifier.current.stringValue)
         } else {
             // permanent
-            return MetadataRecord.lifespanIdForPermanent
+            return .id(MetadataRecord.lifespanIdForPermanent)
         }
+    }
+
+    /// Returns the `lifespanId` of the given context, or `nil` if it ended up without a user session (in which case
+    /// the operation is dropped). Called on `synchronizationQueue`: it can wait for the storage queue.
+    private func lifespanId(for context: LifespanContext) -> String? {
+        guard let lifespanId = resolve(context) else {
+            Embrace.logger.warning("Can't modify a user session metadata when there's no active user session!")
+            return nil
+        }
+        return lifespanId
+    }
+
+    /// The context of the current user session, captured now (see `currentContext(for:)`), or `nil` if there's none.
+    private func userSessionContext() -> LifespanContext? {
+        if let part = sessionController?.currentSession {
+            if part.userSessionId == nil {
+                return .userSessionOfPart(part.id)
+            }
+        } else if sessionController?.hasPendingUserSessionWork == true {
+            return .currentUserSessionAfterPendingWork
+        }
+        return sessionController?.currentUserSession.map { .id($0.id.stringValue) }
+    }
+
+    /// The `lifespanId` of the given context, waiting for the storage queue if needed. Called on
+    /// `synchronizationQueue`.
+    private func resolve(_ context: LifespanContext) -> String? {
+        switch context {
+        case .id(let id):
+            return id
+        case .userSessionOfPart(let partId):
+            return sessionController?.userSessionId(ofPart: partId)?.stringValue
+        case .currentUserSessionAfterPendingWork:
+            return sessionController?.currentUserSessionIdAfterPendingWork()?.stringValue
+        }
+    }
+
+    /// The id of the current user session, waiting for it if it's still being resolved (see `currentContext(for:)`).
+    /// Called on `synchronizationQueue`.
+    func currentUserSessionIdWaitingForResolution() -> EmbraceIdentifier? {
+        userSessionContext().flatMap(resolve).map { EmbraceIdentifier(stringValue: $0) }
     }
 }
 

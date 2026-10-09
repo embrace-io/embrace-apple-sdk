@@ -53,6 +53,7 @@ extension EmbraceStorage {
     /// Adds or updates a span using the given context.
     /// Must be called from within the context's queue.
     private func upsertSpan(_ span: EmbraceSpan, onlyUpdate: Bool, context: NSManagedObjectContext) {
+        let span = spanFillingUserSessionId(span, context: context)
 
         // update existing?
         if updateExistingSpan(span, context: context) {
@@ -69,6 +70,61 @@ extension EmbraceStorage {
 
         // add new
         SpanRecord.create(context: context, span: span)
+    }
+
+    /// A span created right after the SDK starts can predate the resolution of its part's user session, which
+    /// happens on this queue when the part's record is created (see `addSession`'s `resolveUserSession`), so its
+    /// user-session id attributes are empty. Every write of the span runs after that resolution, so the id is
+    /// taken from the part's record. Once the part's record is gone (the part ended and was sent), the id the
+    /// span was stored with is kept.
+    /// Must be called from within the context's queue.
+    private func spanFillingUserSessionId(_ span: EmbraceSpan, context: NSManagedObjectContext) -> EmbraceSpan {
+        guard (span.attributes[SpanSemantics.Session.keyUserSessionId] as? String)?.isEmpty == true,
+            let partId = span.attributes[SpanSemantics.Session.keyPartId] as? String,
+            !partId.isEmpty
+        else {
+            return span
+        }
+
+        let part: SessionRecord?
+        let storedSpan: SpanRecord?
+        do {
+            part = try context.fetch(fetchSessionRequest(id: EmbraceIdentifier(stringValue: partId))).first
+            storedSpan = try context.fetch(fetchSpanRequest(id: span.context.spanId, traceId: span.context.traceId)).first
+        } catch {
+            logger.critical("Error fetching the part of a span without user session:\n\(error.localizedDescription)")
+            return span
+        }
+
+        let storedUserSessionId = storedSpan.flatMap {
+            EmbraceAttributes.keyValueDecode($0.attributes)[SpanSemantics.Session.keyUserSessionId] as? String
+        }
+        guard
+            let userSessionId = part?.userSessionIdRaw
+                ?? storedUserSessionId.flatMap({ $0.isEmpty ? nil : $0 })
+        else {
+            logger.debug("Couldn't find the user session of the part \(partId) of a span.")
+            return span
+        }
+
+        var attributes = span.attributes
+        attributes[SpanSemantics.keySessionId] = userSessionId
+        attributes[SpanSemantics.Session.keyUserSessionId] = userSessionId
+
+        return ImmutableSpanRecord(
+            context: span.context,
+            parentSpanId: span.parentSpanId,
+            name: span.name,
+            type: span.type,
+            status: span.status,
+            startTime: span.startTime,
+            endTime: span.endTime,
+            events: span.events,
+            links: span.links,
+            attributes: attributes,
+            sessionId: span.sessionId,
+            processId: span.processId
+        )
     }
 
     func fetchSpanRequest(id: String, traceId: String) -> NSFetchRequest<SpanRecord> {

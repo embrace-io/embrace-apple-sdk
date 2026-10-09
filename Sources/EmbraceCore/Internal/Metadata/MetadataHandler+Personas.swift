@@ -23,7 +23,7 @@ extension MetadataHandler {
 
         self.synchronizationQueue.async {
             var records: [EmbraceMetadata] = []
-            if let userSessionId = self.sessionController?.currentUserSession?.id {
+            if let userSessionId = self.currentUserSessionIdWaitingForResolution() {
                 let processId = self.sessionController?.currentSession?.processId ?? ProcessIdentifier.current
                 records = storage.fetchPersonaTags(userSessionId: userSessionId, processId: processId)
             } else {
@@ -36,7 +36,10 @@ extension MetadataHandler {
     }
 
     /// Adds a persona tag with the given value and lifespan.
-    /// If the persona tag is too long or no user session is active for a `.userSession` lifespan, the persona is dropped and a warning is logged.
+    /// If the persona tag is too long, or for a `.userSession` lifespan there's no active user session (or the
+    /// current part ends up with none), the persona is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, the write waits for it
+    /// on the metadata queue; the call itself returns right away (see `currentContext(for:)`).
     /// - Parameters:
     ///   - value: The value of the persona tag to add.
     ///   - lifespan: The lifespan of the persona tag to add.
@@ -57,7 +60,10 @@ extension MetadataHandler {
     }
 
     /// Removes the persona tag for the given value and lifespan.
-    /// If no user session is active for a `.userSession` lifespan, the removal is dropped and a warning is logged.
+    /// For a `.userSession` lifespan, if there's no active user session (or the current part ends up with none),
+    /// the removal is dropped and a warning is logged.
+    /// Right after start, while the current part's user session is still being resolved, the write waits for it
+    /// on the metadata queue; the call itself returns right away (see `currentContext(for:)`).
     /// - Parameters:
     ///   - value: The key of the persona tag to remove.
     ///   - lifespan: The lifespan of the persona tag to remove. This was declared when this persona was added.

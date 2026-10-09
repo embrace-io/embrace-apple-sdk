@@ -37,11 +37,20 @@ class SessionController: SessionControllable {
     static let sessionPartNumberKey = "emb.session_part_number"
 
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
-
-    /// In-memory copy of the persisted per-part counter, so starting a part never has to wait on storage.
-    /// `nil` until the stored value has been loaded.
-    private let _sessionPartNumber = EmbraceMutex<EMBInt?>(nil)
     internal var attachmentCount: Int { Int(_attachmentCount.load()) }
+
+    /// Tracks the user-session work that has to run on the storage queue (see `startSession`).
+    private struct UserSessionResolution {
+        /// User-session work queued on the storage queue and not run yet: the bootstrap, the resolutions of
+        /// deferred parts, and the work queued behind them by `afterPendingUserSessionResolutions`.
+        /// While it's not zero, new parts are deferred too, so everything keeps its order.
+        var pending = 0
+
+        /// The user session each deferred part was resolved to, by part id.
+        /// Only deferred parts are added, which only happens right after `Embrace.start`, so it stays small.
+        var resolvedParts: [String: EmbraceUserSession] = [:]
+    }
+    private let _userSessionResolution = EmbraceMutex(UserSessionResolution())
 
     // Lock used for session boundaries. Will be shared at both start/end of session
     private let lock = UnfairLock()
@@ -93,15 +102,6 @@ class SessionController: SessionControllable {
 
         self.heartbeat = SessionHeartbeat(queue: heartbeatQueue, interval: heartbeatInterval)
         self.queue = queue
-
-        // Load the stored per-part counter ahead of the first part start.
-        storage.fetchCountForPermanentResource(key: Self.sessionPartNumberKey) { [weak self] value in
-            self?._sessionPartNumber.withLock { current in
-                if current == nil {
-                    current = value
-                }
-            }
-        }
 
         self.heartbeat.callback = { [weak self] in
             let span = EmbraceMetricKitSpan.begin(name: "heartbeat")
@@ -165,8 +165,19 @@ class SessionController: SessionControllable {
     ) -> Bool {
         guard newState == .foreground,
             let prev = prev,
-            prev.state == .background,
-            let userSession = userSessionController?.currentUserSession,
+            prev.state == .background
+        else {
+            return false
+        }
+
+        // While user-session work is pending on the storage queue (see `startSession`), the in-memory user session
+        // isn't up to date, so the split is skipped: `attachPart` still ends an expired user session.
+        guard !hasPendingUserSessionWork else {
+            Embrace.logger.debug("Skipped the background split check: the user session is still being resolved.")
+            return false
+        }
+
+        guard let userSession = userSessionController?.currentUserSession,
             // Only a foreground-origin session is split at its cutoff. A background-only session is
             // never sliced at its own max; foregrounding it ends it whole,
             // which `UserSessionController.attachPart` handles after this returns `false`.
@@ -197,13 +208,17 @@ class SessionController: SessionControllable {
     /// starts a new part with the same `SessionState`. Used by the heartbeat-driven max-duration
     /// detector and the manual `endUserSession()` API. The order — end-part → end-user-session
     /// → start-part — guarantees that `attachPart` for the new part sees no active user session.
+    /// While user-session work is deferred to the storage queue, the user session is ended there, and the new
+    /// part is deferred behind it (see `afterPendingUserSessionResolutions`), keeping that order.
     func rollPartForUserSessionExpiry(reason: TerminationReason, at now: Date) {
         let info = _session.safeValue
         let currentState = info.session?.state ?? .unknown
         guard info.session != nil else { return }
 
         endSession(at: now)
-        userSessionController?.endActiveUserSession(reason: reason, at: now)
+        afterPendingUserSessionResolutions { [weak self] in
+            self?.userSessionController?.endActiveUserSession(reason: reason, at: now)
+        }
         startSession(state: currentState, startTime: now)
     }
 
@@ -213,9 +228,10 @@ class SessionController: SessionControllable {
     /// `s2`. The caller sets the in-memory `s2` snapshot; this method only writes records, so both the
     /// closed foreground-origin session and the new background-only tail upload as normal parts.
     ///
-    /// Runs at SDK start before `sessionLifecycle.startSession()` and before unsent data is uploaded,
-    /// so the prior record is still present and the OTel handler is ready to mint the tail span. This
-    /// is the cold-start equivalent of `applyBackgroundSplitIfNeeded`'s warm split.
+    /// Runs on the storage queue as part of the bootstrap (see `bootstrapUserSession`), before the first part's
+    /// record is created and before unsent data is uploaded, so the prior record is still present, and the OTel
+    /// handler is ready to mint the tail span. Its storage writes run right away, in order.
+    /// This is the cold-start equivalent of `applyBackgroundSplitIfNeeded`'s warm split.
     func writeColdStartBackgroundSplit(
         prior: EmbraceSession,
         cutoff: Date,
@@ -245,10 +261,6 @@ class SessionController: SessionControllable {
         }
         span.end(endTime: tailEnd)
 
-        let sessionPartNumber = lock.locked {
-            nextSessionPartNumberNoLock(storage: storage)
-        }
-
         storage.addSession(
             id: newId,
             processId: prior.processId,
@@ -262,13 +274,13 @@ class SessionController: SessionControllable {
             coldStart: false,
             cleanExit: prior.cleanExit,
             appTerminated: prior.appTerminated,
-            sessionNumber: sessionPartNumber,
             userSessionId: s2.id,
             userSessionStartTime: s2.startTime,
             userSessionMaxDuration: s2.maxDuration,
             userSessionInactivityTimeout: s2.inactivityTimeout,
             userSessionLastForegroundEnd: nil,
-            userSessionPartIndex: 1
+            userSessionPartIndex: 1,
+            sessionNumberCounterKey: Self.sessionPartNumberKey
         )
     }
 
@@ -364,12 +376,33 @@ class SessionController: SessionControllable {
             // Resolve which user session this new part belongs to. The user-session controller
             // decides whether to reuse the active user session or start a new one, and returns
             // the snapshot we stamp onto the new part record.
-            let userSession = userSessionController?.attachPart(state: state, startTime: startTime)
+            //
+            // That needs the user session bootstrapped from the prior process's last part, which
+            // `Embrace.start` queues on the storage queue (see `bootstrapUserSession`), since reading
+            // it here would wait on the storage while it's still loading, on the main thread. So a part
+            // started while that (or other user-session work) is pending gets its user session on the
+            // storage queue too, after it, right before its record is created. Until then the part has
+            // no user session: signals
+            // created meanwhile carry an empty user-session id, which is filled in when they're stored
+            // (spans) or processed (logs, log batches), and user-session metadata waits for it (see
+            // `MetadataHandler.currentContext(for:)`).
+            let deferred = _userSessionResolution.withLock { resolution -> Bool in
+                guard resolution.pending > 0 else {
+                    return false
+                }
+                resolution.pending += 1
+                return true
+            }
 
-            // Permanent per-part counter — bumped on every new part record and stamped onto
-            // the part's `sessionNumber` column.
-            let sessionPartNumber = nextSessionPartNumberNoLock(storage: storage)
+            let userSession = deferred ? nil : userSessionController?.attachPart(state: state, startTime: startTime)
+            let resolveUserSession: (() -> EmbraceUserSession?)? =
+                deferred
+                ? { [weak self] in
+                    self?.resolveDeferredUserSession(partId: newId, state: state, startTime: startTime)
+                } : nil
 
+            // The permanent per-part counter is bumped on the storage queue and stamped onto the
+            // part's `sessionNumber` column, so the returned part carries 0 (see `SessionPayloadBuilder`).
             let session = storage.addSession(
                 id: newId,
                 processId: ProcessIdentifier.current,
@@ -378,13 +411,14 @@ class SessionController: SessionControllable {
                 spanId: span.context.spanId,
                 startTime: startTime,
                 coldStart: isColdStart,
-                sessionNumber: sessionPartNumber,
                 userSessionId: userSession?.id,
                 userSessionStartTime: userSession?.startTime,
                 userSessionMaxDuration: userSession?.maxDuration,
                 userSessionInactivityTimeout: userSession?.inactivityTimeout,
                 userSessionLastForegroundEnd: userSession?.lastForegroundPartEnd,
-                userSessionPartIndex: userSession?.partIndex ?? 0
+                userSessionPartIndex: userSession?.partIndex ?? 0,
+                sessionNumberCounterKey: Self.sessionPartNumberKey,
+                resolveUserSession: resolveUserSession
             )
 
             // start heartbeat
@@ -397,7 +431,8 @@ class SessionController: SessionControllable {
         }
 
         _session.withLock {
-            $0.session = sessionInfo.session
+            // A deferred part's user session can be resolved on the storage queue before the part is set here.
+            $0.session = withResolvedUserSession(sessionInfo.session)
             $0.sessionSpan = sessionInfo.span
         }
 
@@ -411,30 +446,140 @@ class SessionController: SessionControllable {
         return sessionInfo.session
     }
 
-    /// Increments the per-part counter and persists the new value asynchronously.
-    /// Must be called while holding `lock` so increments are persisted in the same order they are generated.
-    private func nextSessionPartNumberNoLock(storage: EmbraceStorage) -> EMBInt {
-        // If the preload queued in `init` hasn't run yet, wait for it. The storage context is serial,
-        // so the preload's completion has set the counter by the time this returns, and the assignment
-        // below is only a defensive fallback. Waiting on the main queue is fine here: this only happens
-        // for a part started before the preload ran, which `Embrace.start` already prevents.
-        if _sessionPartNumber.withLock({ $0 }) == nil {
-            let stored = storage.fetchCountForPermanentResource(key: Self.sessionPartNumberKey, allowMainQueue: true)
-            _sessionPartNumber.withLock { current in
-                if current == nil {
-                    current = stored
-                }
+    /// Bootstraps the user session from the prior process's last part (see `UserSessionController.bootstrap`), on
+    /// the storage queue, since the storage may still be loading. Called by `Embrace.start` before it starts the
+    /// first part: that part is then deferred behind it (see `startSession`), and the unsent data, which deletes the
+    /// prior part, is sent after it. Its storage writes run right away, in order, so they land before the first
+    /// part's record.
+    ///
+    /// Whether to bootstrap, and the time expiry is judged at, are decided when this is called.
+    func bootstrapUserSession() {
+        // As in `startSession`: a disabled SDK doesn't start (or end) user sessions.
+        guard let storage, sdkStateProvider?.isEnabled == true else {
+            return
+        }
+
+        let now = userSessionController?.now ?? Date()
+        _userSessionResolution.withLock { $0.pending += 1 }
+
+        storage.coreData.performAsyncOperation { [weak self] _ in
+            defer { self?._userSessionResolution.withLock { $0.pending -= 1 } }
+
+            storage.coreData.performAsyncOperationsInline {
+                self?.userSessionController?.bootstrap(priorSession: storage.fetchLatestSession(), now: now)
+            }
+        }
+    }
+
+    /// Resolves the user session of a part started while user-session work was pending (see `startSession`).
+    /// Called on the storage queue right before the part's record is created, after that work, with its storage
+    /// writes running right away, so the writes of `attachPart` land before the new record. `startSession` already
+    /// checked the SDK was enabled, as it does before attaching a part right away.
+    private func resolveDeferredUserSession(
+        partId: EmbraceIdentifier,
+        state: SessionState,
+        startTime: Date
+    ) -> EmbraceUserSession? {
+        let userSession = userSessionController?.attachPart(state: state, startTime: startTime)
+
+        // Recorded together with the update of the in-memory part, under the same lock `startSession` sets the part
+        // with: whichever runs second applies the user session.
+        _session.withLock {
+            _userSessionResolution.withLock {
+                $0.resolvedParts[partId.stringValue] = userSession
+                $0.pending -= 1
+            }
+            if let userSession, let session = $0.session, session.id == partId {
+                $0.session = session.with(userSession: userSession)
             }
         }
 
-        let next: EMBInt = _sessionPartNumber.withLock { current in
-            let next = (current ?? 0) + 1
-            current = next
-            return next
+        return userSession
+    }
+
+    /// Whether user-session work is still queued on the storage queue (see `startSession`), so the in-memory
+    /// user session may not be up to date yet.
+    var hasPendingUserSessionWork: Bool {
+        _userSessionResolution.withLock { $0.pending > 0 }
+    }
+
+    /// The current user session's id once every user-session work queued so far has run (see `startSession`).
+    /// Must not be called on the main thread: it can wait for the storage queue.
+    func currentUserSessionIdAfterPendingWork() -> EmbraceIdentifier? {
+        if hasPendingUserSessionWork {
+            storage?.coreData.performOperation { _ in }
+        }
+        return currentUserSession?.id
+    }
+
+    /// The user session of the given part, waiting for it if it's still being resolved on the storage queue
+    /// (see `startSession`). Only the current part and the deferred ones are known: `nil` for any other.
+    /// Must not be called on the main thread: it can wait for the storage queue.
+    func userSessionId(ofPart partId: EmbraceIdentifier) -> EmbraceIdentifier? {
+        if let session = currentSession, session.id == partId, let userSessionId = session.userSessionId {
+            return userSessionId
         }
 
-        storage.setCountForPermanentResource(key: Self.sessionPartNumberKey, value: next)
-        return next
+        if hasPendingUserSessionWork {
+            // a deferred part's resolution was queued when it started, so it has run once this returns
+            storage?.coreData.performOperation { _ in }
+        }
+
+        if let resolved = _userSessionResolution.withLock({ $0.resolvedParts[partId.stringValue] }) {
+            return resolved.id
+        }
+
+        let session = currentSession
+        return session?.id == partId ? session?.userSessionId : nil
+    }
+
+    /// Runs `work`, which uses the in-memory user session, once every pending user-session resolution has run
+    /// (see `startSession`): on the storage queue, after them, if any is pending (so off the calling thread), or
+    /// right away otherwise. On the storage queue, its storage writes run inline, so they land after the pending
+    /// resolutions and before the records of the parts started after this call.
+    private func afterPendingUserSessionResolutions(_ work: @escaping () -> Void) {
+        guard let storage else {
+            work()
+            return
+        }
+
+        // Counted as pending until it runs, so a part started after this call is deferred behind it.
+        let pending = _userSessionResolution.withLock { resolution -> Bool in
+            guard resolution.pending > 0 else {
+                return false
+            }
+            resolution.pending += 1
+            return true
+        }
+        guard pending else {
+            work()
+            return
+        }
+
+        storage.coreData.performAsyncOperation { [weak self] _ in
+            storage.coreData.performAsyncOperationsInline(work)
+            self?._userSessionResolution.withLock { $0.pending -= 1 }
+        }
+    }
+
+    /// Replaces the in-memory part with `updated`, a copy derived from it. If the part's user session was
+    /// resolved on the storage queue after that copy was made (see `startSession`), it's applied to the copy.
+    private func setCurrentSession(_ updated: EmbraceSession?) {
+        _session.withLock {
+            $0.session = withResolvedUserSession(updated)
+        }
+    }
+
+    /// Returns the given part with the user session it was resolved to on the storage queue (see `startSession`),
+    /// if it doesn't have one yet. Called while holding the `_session` lock, so it's ordered with the resolution.
+    private func withResolvedUserSession(_ session: EmbraceSession?) -> EmbraceSession? {
+        guard let session,
+            session.userSessionId == nil,
+            let userSession = _userSessionResolution.withLock({ $0.resolvedParts[session.id.stringValue] })
+        else {
+            return session
+        }
+        return session.with(userSession: userSession)
     }
 
     /// Ends the session session taking into account that the lock is held externally
@@ -505,7 +650,9 @@ class SessionController: SessionControllable {
         )
 
         if isForeground {
-            userSessionController?.markForegroundPartEnded(at: now)
+            afterPendingUserSessionResolutions { [weak self] in
+                self?.userSessionController?.markForegroundPartEnded(at: now)
+            }
         }
 
         // post internal notification
@@ -554,9 +701,7 @@ class SessionController: SessionControllable {
             }
 
             let updatedSession = storage?.updateSession(session: session, state: state)
-            _session.withLock {
-                $0.session = updatedSession
-            }
+            setCurrentSession(updatedSession)
 
             if let span = sessionInfo.sessionSpan {
                 SessionSpanUtils.setState(span: span, state: state)
@@ -572,9 +717,7 @@ class SessionController: SessionControllable {
             }
 
             let updatedSession = storage?.updateSession(session: session, appTerminated: appTerminated)
-            _session.withLock {
-                $0.session = updatedSession
-            }
+            setCurrentSession(updatedSession)
 
             if let span = sessionInfo.sessionSpan {
                 SessionSpanUtils.setTerminated(span: span, terminated: appTerminated)
@@ -607,9 +750,7 @@ class SessionController: SessionControllable {
             }
 
             let updatedSession = storage?.updateSession(session: session, lastHeartbeatTime: heartbeat)
-            _session.withLock {
-                $0.session = updatedSession
-            }
+            setCurrentSession(updatedSession)
 
             if let span = sessionInfo.sessionSpan {
                 SessionSpanUtils.setHeartbeat(span: span, heartbeat: heartbeat)
@@ -647,12 +788,16 @@ class SessionController: SessionControllable {
     /// latest at call time: a new part added after this call (as `startSession` does right
     /// after `attachPart`) is not considered.
     ///
+    /// It also runs on the storage queue, inside `performAsyncOperationsInline`, when the user session
+    /// work is deferred (see `startSession`). There the write runs right away, which still lands before
+    /// the record of the part being resolved.
+    ///
     /// Idempotent: if the latest part already has a `userSessionTerminationReason`, the call
     /// is a no-op. This protects the bootstrap-driven expiry path from overwriting a reason
     /// the prior process recorded (e.g. `.manual` from a manual end that the process executed
     /// just before dying), and preserves the precedence rule that the first-set reason wins.
     ///
-    /// **Lock contract:** this method MUST NOT acquire `SessionController.lock`. It is reached
+    /// **Lock contract:** this method MUST NOT acquire `SessionController.lock`. It can be reached
     /// from `SessionController.startSession` (via `attachPart`), where `lock` is already held,
     /// and re-acquiring the non-reentrant `UnfairLock` on the same thread is undefined behavior.
     /// Keep this method to storage-only writes.

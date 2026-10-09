@@ -84,8 +84,10 @@ class SpyStorage: Storage {
     }
 
     var didCallCreate = false
+    var savedLogs: [EmbraceLog] = []
     func saveLog(_ log: EmbraceLog) {
         didCallCreate = true
+        savedLogs.append(log)
     }
 
     var didCallFetchAllExcludingProcessIdentifier = false

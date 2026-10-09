@@ -41,6 +41,7 @@ extension Notification.Name {
 /// - Important: `bootstrap()` MUST run before unsent data is uploaded — the previous process's
 ///   last part is the source of our user-session reconstruction. If that record is uploaded and
 ///   deleted first, the snapshot is lost and a fresh user session starts on the next part.
+///   It runs on the storage queue, ahead of the first part (see `SessionController.bootstrapUserSession`).
 final class UserSessionController {
 
     /// Minimum interval between accepted manual end-user-session calls. Prevents customers from
@@ -70,6 +71,11 @@ final class UserSessionController {
         currentUserSession?.id
     }
 
+    /// The current time, as this controller sees it (see `dateProvider`).
+    var now: Date {
+        dateProvider()
+    }
+
     init(
         storage: EmbraceStorage,
         config: EmbraceConfigurable,
@@ -83,8 +89,9 @@ final class UserSessionController {
     // MARK: - Bootstrap
 
     /// Reconstructs the in-memory snapshot from the prior process's most recent persisted
-    /// `SessionRecord`. Call once at SDK start, before `sessionLifecycle.startSession()` and
-    /// before `UnsentDataHandler.sendUnsentData`.
+    /// `SessionRecord`. Called at most once per process, after SDK start, on the storage queue, before the first
+    /// part's `attachPart` and its record, and before `UnsentDataHandler.sendUnsentData` (see
+    /// `SessionController.bootstrapUserSession`).
     ///
     /// If the prior record has no user-session columns (legacy v6 row) or no record exists,
     /// the snapshot is left empty and the next `attachPart` call starts a new user session
@@ -96,7 +103,10 @@ final class UserSessionController {
     /// part record (no-op if the prior process already stamped one) and the user-session-end
     /// notification fires, so cold-start expiry produces the same telemetry as mid-session
     /// expiry instead of silently dropping the snapshot.
-    func bootstrap(priorSession: EmbraceSession?) {
+    ///
+    /// - Parameter now: The time expiry is judged at. `SessionController.bootstrapUserSession` passes the time it
+    ///   was called at, since the bootstrap itself runs later, on the storage queue. Defaults to the current time.
+    func bootstrap(priorSession: EmbraceSession?, now: Date? = nil) {
         guard
             let latest = priorSession,
             let userSessionId = latest.userSessionId,
@@ -126,7 +136,7 @@ final class UserSessionController {
             isBackgroundOnly: isBackgroundOnly
         )
 
-        let now = dateProvider()
+        let now = now ?? dateProvider()
 
         // Split at cold start: a foreground-origin user session whose background part ran past its
         // cutoff `C` while the prior process was backgrounded must be sliced. The foreground-origin
@@ -181,7 +191,9 @@ final class UserSessionController {
 
     /// Resolves which user session a brand-new part belongs to.
     ///
-    /// Called from `SessionController.startSession` before the new `SessionRecord` is inserted.
+    /// Called from `SessionController.startSession` before the new `SessionRecord` is inserted, or, for parts
+    /// started while user-session work is pending (like the bootstrap), on the storage queue right before the record
+    /// is created (see `SessionController.startSession`).
     /// The returned snapshot's `partIndex` is the index the caller should stamp on the new part.
     ///
     /// If there is no active user session, or the active one has expired (max duration reached,

@@ -12,7 +12,7 @@ import Foundation
 
 extension EmbraceStorage {
 
-    /// Adds a session to the storage synchronously.
+    /// Adds a session to the storage asynchronously; the record is created and saved on the storage queue.
     /// - Parameters:
     ///   - id: Identifier of the session
     ///   - processId: `ProcessIdentifier` of the session
@@ -23,8 +23,17 @@ extension EmbraceStorage {
     ///   - endTime: `Date` of when the session ended (optional)
     ///   - lastHeartbeatTime: `Date` of the last heartbeat for the session (optional).
     ///   - crashReportId: Identifier of the crash report linked with this session
-    ///   - completion: A block called when the sesson has been added to storage
-    /// - Returns: The newly stored `SessionRecord`
+    ///   - sessionNumber: Number of the session. Ignored when `sessionNumberCounterKey` is set.
+    ///   - sessionNumberCounterKey: Key of a permanent counter resource. When set, the counter is incremented
+    ///     in the same storage-queue block that creates the record, and its new value becomes the stored
+    ///     session's number. The returned copy then has a `sessionNumber` of 0; fetch the stored session to read it.
+    ///   - resolveUserSession: When set, called on the storage queue right before the record is created, and the
+    ///     user session it returns replaces the `userSession*` values (except the termination reason). Every
+    ///     operation queued before this call has run by then, and the async operations it issues on this storage
+    ///     run right away, before the record exists (see `CoreDataWrapper.performAsyncOperationsInline`).
+    ///     The returned copy then has no user session; fetch the stored session to read it.
+    ///   - completion: A block called when the session has been added to storage
+    /// - Returns: An in-memory copy of the session built from the given values, returned without waiting for the record to be stored.
     @discardableResult
     package func addSession(
         id: EmbraceIdentifier,
@@ -47,12 +56,14 @@ extension EmbraceStorage {
         userSessionLastForegroundEnd: Date? = nil,
         userSessionPartIndex: EMBInt = 0,
         userSessionTerminationReason: TerminationReason? = nil,
+        sessionNumberCounterKey: String? = nil,
+        resolveUserSession: (() -> EmbraceUserSession?)? = nil,
         completion: (() -> Void)? = nil
     ) -> EmbraceSession? {
 
         let hbTime = lastHeartbeatTime ?? Date()
 
-        coreData.performAsyncOperation { [self] _ in
+        coreData.performAsyncOperation { [self] context in
 
             defer {
                 if let completion {
@@ -61,6 +72,18 @@ extension EmbraceStorage {
                     }
                 }
             }
+
+            var userSession: EmbraceUserSession?
+            if let resolveUserSession {
+                coreData.performAsyncOperationsInline {
+                    userSession = resolveUserSession()
+                }
+            }
+
+            let number =
+                sessionNumberCounterKey.map {
+                    incrementCountForPermanentResource(key: $0, context: context)
+                } ?? sessionNumber
 
             let created = SessionRecord.create(
                 context: coreData.context,
@@ -75,13 +98,15 @@ extension EmbraceStorage {
                 coldStart: coldStart,
                 cleanExit: cleanExit,
                 appTerminated: appTerminated,
-                sessionNumber: sessionNumber,
-                userSessionId: userSessionId,
-                userSessionStartTime: userSessionStartTime,
-                userSessionMaxDuration: userSessionMaxDuration,
-                userSessionInactivityTimeout: userSessionInactivityTimeout,
-                userSessionLastForegroundEnd: userSessionLastForegroundEnd,
-                userSessionPartIndex: userSessionPartIndex,
+                sessionNumber: number,
+                userSessionId: resolveUserSession == nil ? userSessionId : userSession?.id,
+                userSessionStartTime: resolveUserSession == nil ? userSessionStartTime : userSession?.startTime,
+                userSessionMaxDuration: resolveUserSession == nil ? userSessionMaxDuration : userSession?.maxDuration,
+                userSessionInactivityTimeout: resolveUserSession == nil
+                    ? userSessionInactivityTimeout : userSession?.inactivityTimeout,
+                userSessionLastForegroundEnd: resolveUserSession == nil
+                    ? userSessionLastForegroundEnd : userSession?.lastForegroundPartEnd,
+                userSessionPartIndex: resolveUserSession == nil ? userSessionPartIndex : (userSession?.partIndex ?? 0),
                 userSessionTerminationReason: userSessionTerminationReason
             )
             guard created else {
@@ -105,13 +130,13 @@ extension EmbraceStorage {
             coldStart: coldStart,
             cleanExit: cleanExit,
             appTerminated: appTerminated,
-            sessionNumber: sessionNumber,
-            userSessionId: userSessionId,
-            userSessionStartTime: userSessionStartTime,
-            userSessionMaxDuration: userSessionMaxDuration,
-            userSessionInactivityTimeout: userSessionInactivityTimeout,
-            userSessionLastForegroundEnd: userSessionLastForegroundEnd,
-            userSessionPartIndex: userSessionPartIndex,
+            sessionNumber: sessionNumberCounterKey == nil ? sessionNumber : 0,
+            userSessionId: resolveUserSession == nil ? userSessionId : nil,
+            userSessionStartTime: resolveUserSession == nil ? userSessionStartTime : nil,
+            userSessionMaxDuration: resolveUserSession == nil ? userSessionMaxDuration : nil,
+            userSessionInactivityTimeout: resolveUserSession == nil ? userSessionInactivityTimeout : nil,
+            userSessionLastForegroundEnd: resolveUserSession == nil ? userSessionLastForegroundEnd : nil,
+            userSessionPartIndex: resolveUserSession == nil ? userSessionPartIndex : 0,
             userSessionTerminationReason: userSessionTerminationReason
         )
     }
@@ -236,7 +261,8 @@ extension EmbraceStorage {
     }
 
     /// Updates values for the given session id
-    /// - Returns: Immutable copy of the modified `SessionRecord`, if any
+    /// - Returns: An in-memory copy of the given session with the given values applied.
+    ///   The record is updated asynchronously, and values only set by the storage (like the session number, or a deferred part's user session) aren't refreshed.
     @discardableResult
     package func updateSession(
         session: EmbraceSession,
@@ -330,6 +356,62 @@ extension EmbraceStorage {
 }
 
 extension EmbraceSession {
+    /// Returns a copy of this session that belongs to the given user session, with the values a part record
+    /// takes from it when it's created.
+    package func with(userSession: EmbraceUserSession) -> EmbraceSession {
+        return ImmutableSessionRecord(
+            id: id,
+            processId: processId,
+            state: state,
+            traceId: traceId,
+            spanId: spanId,
+            startTime: startTime,
+            endTime: endTime,
+            lastHeartbeatTime: lastHeartbeatTime,
+            crashReportId: crashReportId,
+            coldStart: coldStart,
+            cleanExit: cleanExit,
+            appTerminated: appTerminated,
+            sessionNumber: sessionNumber,
+            userSessionId: userSession.id,
+            userSessionStartTime: userSession.startTime,
+            userSessionMaxDuration: userSession.maxDuration,
+            userSessionInactivityTimeout: userSession.inactivityTimeout,
+            userSessionLastForegroundEnd: userSession.lastForegroundPartEnd,
+            userSessionPartIndex: userSession.partIndex,
+            userSessionTerminationReason: userSessionTerminationReason
+        )
+    }
+
+    /// Returns a copy of this session with the values that only the storage assigns taken from `stored`, the
+    /// session's stored record: the part number and, if this copy has no user session, the user session.
+    /// Everything else (like the termination reason, which is only backfilled into the record) is this copy's.
+    package func withStorageAssignedValues(from stored: EmbraceSession) -> EmbraceSession {
+        let userSessionSource: EmbraceSession = userSessionId == nil ? stored : self
+        return ImmutableSessionRecord(
+            id: id,
+            processId: processId,
+            state: state,
+            traceId: traceId,
+            spanId: spanId,
+            startTime: startTime,
+            endTime: endTime,
+            lastHeartbeatTime: lastHeartbeatTime,
+            crashReportId: crashReportId,
+            coldStart: coldStart,
+            cleanExit: cleanExit,
+            appTerminated: appTerminated,
+            sessionNumber: stored.sessionNumber,
+            userSessionId: userSessionSource.userSessionId,
+            userSessionStartTime: userSessionSource.userSessionStartTime,
+            userSessionMaxDuration: userSessionSource.userSessionMaxDuration,
+            userSessionInactivityTimeout: userSessionSource.userSessionInactivityTimeout,
+            userSessionLastForegroundEnd: userSessionLastForegroundEnd ?? userSessionSource.userSessionLastForegroundEnd,
+            userSessionPartIndex: userSessionSource.userSessionPartIndex,
+            userSessionTerminationReason: userSessionTerminationReason
+        )
+    }
+
     func updated(
         state: SessionState? = nil,
         lastHeartbeatTime: Date? = nil,

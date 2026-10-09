@@ -27,6 +27,19 @@ class MockSessionController: SessionControllable {
     var currentSession: EmbraceSession?
     var currentSessionSpan: EmbraceSpan?
     var currentUserSession: EmbraceUserSession?
+
+    var hasPendingUserSessionWork = false
+    func currentUserSessionIdAfterPendingWork() -> EmbraceIdentifier? {
+        currentUserSession?.id
+    }
+
+    /// What `userSessionId(ofPart:)` returns. Defaults to the current user session's id.
+    var stubbedUserSessionIdOfPart: EmbraceIdentifier?
+    private(set) var userSessionIdOfPartRequests: [EmbraceIdentifier] = []
+    func userSessionId(ofPart partId: EmbraceIdentifier) -> EmbraceIdentifier? {
+        userSessionIdOfPartRequests.append(partId)
+        return stubbedUserSessionIdOfPart ?? currentUserSession?.id
+    }
     weak var spanHandler: EmbraceSpanHandler?
 
     /// Forces the user session that the next started part will belong to.

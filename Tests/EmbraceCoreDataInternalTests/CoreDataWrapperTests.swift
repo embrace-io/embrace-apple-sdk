@@ -5,6 +5,7 @@
 import CoreData
 import EmbraceCommonInternal
 import Foundation
+import SQLite3
 import TestSupport
 import XCTest
 
@@ -196,14 +197,268 @@ class CoreDataWrapperTests: XCTestCase {
         // this test just ensure things compile.
         wrapper.performOperation { _ in }
     }
+
+    func test_init_doesNotWaitForTheStoreToLoad() throws {
+        // given an existing store on disk
+        let storageMechanism = try makeOnDiskStorageMechanism()
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
+        try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false).save()
+
+        // and another connection holding an exclusive lock on it, so loading it stalls
+        var db: OpaquePointer?
+        XCTAssertEqual(sqlite3_open(storageMechanism.fileURL!.path, &db), SQLITE_OK)
+        defer { sqlite3_close(db) }
+        XCTAssertEqual(sqlite3_exec(db, "BEGIN EXCLUSIVE", nil, nil, nil), SQLITE_OK)
+
+        // (released anyway after a while, so a regression that waits for the load fails instead of hanging)
+        let releaseLock = lockReleaser(db)
+        DispatchQueue.global().asyncAfter(deadline: .now() + 10) { _ = releaseLock() }
+
+        // when creating the wrapper, and queueing an operation while the load is stalled
+        wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
+        wrapper.performAsyncOperation(save: true) { context in
+            _ = MockRecord.create(context: context, id: "test")
+        }
+
+        // then the initializer returned while the lock was still held
+        XCTAssertTrue(releaseLock(), "the initializer waited for the store to load")
+
+        // and the operation queued meanwhile ran against the store once it loaded
+
+        let result = wrapper.fetch(withRequest: NSFetchRequest<MockRecord>(entityName: MockRecord.entityName))
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.objectID.isTemporaryID, false)
+    }
+
+    func test_init_operationsWorkRightAfterInit() throws {
+        // given a wrapper with a store on disk
+        let options = CoreDataWrapper.Options(
+            storageMechanism: try makeOnDiskStorageMechanism(),
+            enableBackgroundTasks: false,
+            entities: [MockRecord.entityDescription]
+        )
+        wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
+
+        // when writing and reading right after init
+        wrapper.performAsyncOperation(save: true) { context in
+            _ = MockRecord.create(context: context, id: "test")
+        }
+        let result = wrapper.fetch(withRequest: NSFetchRequest<MockRecord>(entityName: MockRecord.entityName))
+
+        // then the operations ran against the loaded store
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result.first?.objectID.isTemporaryID, false)
+    }
+
+    func test_init_doesNotThrow_whenTheStoreFailsToLoad() throws {
+        // given a storage path that can't be opened as a store
+        let storageMechanism = try makeOnDiskStorageMechanism()
+        try FileManager.default.createDirectory(at: storageMechanism.fileURL!, withIntermediateDirectories: true)
+
+        // when creating the wrapper
+        let logger = MockLogger()
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
+        wrapper = try CoreDataWrapper(options: options, logger: logger, isTesting: false)
+
+        // then operations don't crash and the failure is logged
+        let request = NSFetchRequest<MockRecord>(entityName: MockRecord.entityName)
+        XCTAssertEqual(wrapper.fetch(withRequest: request).count, 0)
+        XCTAssertEqual(wrapper.count(withRequest: request), 0)
+        XCTAssertTrue(
+            logger.loggedMessages.contains {
+                $0.level == .critical && $0.message.contains("Error loading persistent stores")
+            })
+        XCTAssertFalse(wrapper.isStoreLoaded)
+    }
+
+    func test_onInitialLoad_reportsLoaded() throws {
+        // given a wrapper with a store on disk
+        let options = CoreDataWrapper.Options(
+            storageMechanism: try makeOnDiskStorageMechanism(),
+            enableBackgroundTasks: false,
+            entities: [MockRecord.entityDescription]
+        )
+        wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
+
+        // when registering for the initial load result
+        var reported = false
+        var reportedError: Error?
+        wrapper.onInitialLoad { error in
+            reported = true
+            reportedError = error
+        }
+
+        // then, once the context's queue gets to it, it reports the store as loaded
+        // (`isStoreLoaded` runs on the same serial queue, after the callback)
+        XCTAssertTrue(wrapper.isStoreLoaded)
+        XCTAssertTrue(reported)
+        XCTAssertNil(reportedError)
+    }
+
+    func test_onInitialLoad_reportsFailure() throws {
+        // given a wrapper whose store fails to load
+        let storageMechanism = try makeOnDiskStorageMechanism()
+        try FileManager.default.createDirectory(at: storageMechanism.fileURL!, withIntermediateDirectories: true)
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
+        wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
+
+        // when registering for the initial load result
+        var reported = false
+        var reportedError: Error?
+        wrapper.onInitialLoad { error in
+            reported = true
+            reportedError = error
+        }
+
+        // then, once the context's queue gets to it, it reports the failure
+        // (`isStoreLoaded` runs on the same serial queue, after the callback)
+        XCTAssertFalse(wrapper.isStoreLoaded)
+        XCTAssertTrue(reported)
+        XCTAssertNotNil(reportedError)
+    }
+
+    func test_save_whenTheStoreFailedToLoad_failsWithoutTrying() throws {
+        // given a wrapper whose store failed to load
+        let storageMechanism = try makeOnDiskStorageMechanism()
+        try FileManager.default.createDirectory(at: storageMechanism.fileURL!, withIntermediateDirectories: true)
+
+        let logger = MockLogger()
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
+        wrapper = try CoreDataWrapper(options: options, logger: logger, isTesting: false)
+
+        // when inserting and saving
+        let saved = wrapper.performOperation { context in
+            _ = MockRecord.create(context: context, id: "test")
+            return self.wrapper.saveIfNeeded()
+        }
+
+        // then the save fails without attempting it (which would raise and log a save failure)
+        XCTAssertFalse(saved)
+        XCTAssertFalse(logger.loggedMessages.contains { $0.message.contains("CoreData save failed") })
+
+        // and the pending record is still visible to fetches
+        let request = NSFetchRequest<MockRecord>(entityName: MockRecord.entityName)
+        XCTAssertEqual(wrapper.fetch(withRequest: request).count, 1)
+    }
+
+    func test_failedLoad_isNotRetried_whenTheStoreBecomesAvailable() throws {
+        // given a wrapper whose store failed to load
+        let storageMechanism = try makeOnDiskStorageMechanism()
+        try FileManager.default.createDirectory(at: storageMechanism.fileURL!, withIntermediateDirectories: true)
+
+        let options = CoreDataWrapper.Options(
+            storageMechanism: storageMechanism, enableBackgroundTasks: false, entities: [MockRecord.entityDescription])
+        wrapper = try CoreDataWrapper(options: options, logger: MockLogger(), isTesting: false)
+        XCTAssertFalse(wrapper.isStoreLoaded)
+
+        // when the store becomes loadable and a record is saved
+        try FileManager.default.removeItem(at: storageMechanism.fileURL!)
+        wrapper.performAsyncOperation(save: true) { context in
+            _ = MockRecord.create(context: context, id: "test")
+        }
+
+        // then the store is not attached late (records created meanwhile would duplicate stored ones)
+        XCTAssertFalse(wrapper.isStoreLoaded)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: storageMechanism.fileURL!.path))
+    }
+
+    func test_performAsyncOperationsInline_runsTheAsyncOperationsItIssuesRightAway() throws {
+        // given an operation that queues one async operation, then issues two more inline
+        var order: [String] = []
+        wrapper.performAsyncOperation { [wrapper] _ in
+            wrapper!.performAsyncOperation { _ in order.append("queued") }
+            wrapper!.performAsyncOperationsInline {
+                wrapper!.performAsyncOperation { _ in order.append("inline 1") }
+                wrapper!.performAsyncOperation { _ in order.append("inline 2") }
+            }
+            order.append("outer")
+        }
+
+        // when the queue runs (twice: the second drain also covers what the first one's operations queued)
+        wrapper.performOperation { _ in }
+        wrapper.performOperation { _ in }
+
+        // then the inline ones ran right away, in order, and the queued one after the outer operation
+        XCTAssertEqual(order, ["inline 1", "inline 2", "outer", "queued"])
+    }
+
+    func test_performAsyncOperationsInline_doesNotAffectOtherThreads() throws {
+        // given an inline block that waits for an async operation issued from another thread
+        var order: [String] = []
+        wrapper.performAsyncOperation { [wrapper] _ in
+            wrapper!.performAsyncOperationsInline {
+                // a separate thread (`DispatchQueue.sync` would usually run the block on this one)
+                let issued = DispatchSemaphore(value: 0)
+                Thread {
+                    wrapper!.performAsyncOperation { _ in order.append("other thread") }
+                    issued.signal()
+                }.start()
+                issued.wait()
+                order.append("inline")
+            }
+        }
+
+        // when the queue runs (twice: the second drain also covers what the first one's operations queued)
+        wrapper.performOperation { _ in }
+        wrapper.performOperation { _ in }
+
+        // then the other thread's operation was queued as usual
+        XCTAssertEqual(order, ["inline", "other thread"])
+    }
+
+    func test_performAsyncOperationsInline_endsWithTheBlock() throws {
+        // given an operation that runs an inline block, then queues an async operation
+        var order: [String] = []
+        wrapper.performAsyncOperation { [wrapper] _ in
+            wrapper!.performAsyncOperationsInline {}
+            wrapper!.performAsyncOperation { _ in order.append("queued") }
+            order.append("outer")
+        }
+
+        // when the queue runs (twice: the second drain also covers what the first one's operations queued)
+        wrapper.performOperation { _ in }
+        wrapper.performOperation { _ in }
+
+        // then the async operation was queued, since the inline block had ended
+        XCTAssertEqual(order, ["outer", "queued"])
+    }
+
+    /// Releases the exclusive lock held by `db` once, from whichever caller gets there first.
+    /// The returned closure returns whether that call released it.
+    private func lockReleaser(_ db: OpaquePointer?) -> () -> Bool {
+        let lock = NSLock()
+        var released = false
+        return {
+            lock.lock()
+            defer { lock.unlock() }
+            guard !released else { return false }
+            released = true
+            XCTAssertEqual(sqlite3_exec(db, "COMMIT", nil, nil, nil), SQLITE_OK)
+            return true
+        }
+    }
+
+    private func makeOnDiskStorageMechanism() throws -> StorageMechanism {
+        let baseURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        addTeardownBlock { try? FileManager.default.removeItem(at: baseURL) }
+        return .onDisk(name: "CoreDataWrapperTests", baseURL: baseURL, journalMode: .delete)
+    }
 }
 
 private class MockRecord: NSManagedObject {
     @NSManaged var id: String
 
     class func create(context: NSManagedObjectContext, id: String) -> MockRecord {
-        let record = MockRecord(context: context)
-        record.id = id
+        // inserts must run on the context's queue, where the wrapper loads the store
+        var record: MockRecord!
+        context.performAndWait {
+            record = MockRecord(context: context)
+            record.id = id
+        }
         return record
     }
 

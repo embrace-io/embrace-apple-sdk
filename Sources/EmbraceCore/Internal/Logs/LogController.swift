@@ -161,11 +161,15 @@ class LogController: LogBatcherDelegate {
             // Process the stack trace
             addStacktraceBlock?(attributesBuilder)
 
-            var finalAttributes =
-                attributesBuilder
-                // app properties make requests to the db so can be time consuming.
-                .addApplicationProperties()
-                .build()
+            // app properties make requests to the db so can be time consuming,
+            // and so can filling in a missing user-session id (it can wait for the part's user session to be resolved).
+            if let userSessionId = fillMissingUserSessionId(attributesBuilder) {
+                attributesBuilder.addApplicationProperties(userSessionId: userSessionId, processId: ProcessIdentifier.current)
+            } else {
+                attributesBuilder.addApplicationProperties()
+            }
+
+            var finalAttributes = attributesBuilder.build()
 
             // handle attachment data
             if let attachment {
@@ -218,6 +222,69 @@ class LogController: LogBatcherDelegate {
         }
     }
 
+    /// Returns the part id of a log whose user-session id is empty, or nil.
+    ///
+    /// A log created right after the SDK starts can predate the resolution of its part's user session, which
+    /// happens on the storage queue when the part's record is created (see `SessionController.startSession`).
+    private func partMissingUserSessionId(in attributes: EmbraceAttributes) -> EmbraceIdentifier? {
+        guard (attributes[LogSemantics.keyUserSessionId] as? String)?.isEmpty == true,
+            let partId = attributes[LogSemantics.keyPartId] as? String,
+            !partId.isEmpty
+        else {
+            return nil
+        }
+        return EmbraceIdentifier(stringValue: partId)
+    }
+
+    /// Stamps the user-session id of a log that's missing it (see `partMissingUserSessionId(in:)`), and returns it.
+    /// Must not be called on the main thread: it can wait for the part's user session to be resolved
+    /// (see `SessionController.userSessionId(ofPart:)`).
+    private func fillMissingUserSessionId(_ attributesBuilder: EmbraceLogAttributesBuilder) -> EmbraceIdentifier? {
+        guard let partId = partMissingUserSessionId(in: attributesBuilder.attributes) else {
+            return nil
+        }
+        guard let userSessionId = sessionController?.userSessionId(ofPart: partId) else {
+            // debug: a warning would be sent as an internal log, which can belong to the same part
+            Embrace.logger.debug("Couldn't find the user session of the part \(partId.stringValue) of a log.")
+            return nil
+        }
+
+        attributesBuilder.addSessionIdentifier(partId: partId, userSessionId: userSessionId)
+        return userSessionId
+    }
+
+    /// Adds a log that was created outside `createLog`, like the ones coming through the OTel bridge, possibly
+    /// on the main thread. A log that's missing its user-session id is added from the processing queue, after
+    /// trying to fill it in (unchanged if the part has none, see `fillMissingUserSessionId(_:)`); any other log
+    /// is added right away.
+    func addLogFillingUserSessionId(_ log: EmbraceLog) {
+        guard partMissingUserSessionId(in: log.attributes) != nil else {
+            addLog(log)
+            return
+        }
+
+        queue.async { [self] in
+            let attributesBuilder = EmbraceLogAttributesBuilder(session: nil, initialAttributes: log.attributes)
+            guard fillMissingUserSessionId(attributesBuilder) != nil else {
+                addLog(log)
+                return
+            }
+
+            addLog(
+                DefaultEmbraceLog(
+                    id: log.id,
+                    severity: log.severity,
+                    type: log.type,
+                    timestamp: log.timestamp,
+                    body: log.body,
+                    attributes: attributesBuilder.build(),
+                    sessionId: log.sessionId,
+                    processId: log.processId
+                )
+            )
+        }
+    }
+
     func addLog(_ log: EmbraceLog) {
         // save log
         storage?.saveLog(log)
@@ -236,13 +303,17 @@ extension LogController {
             return
         }
 
+        // A part's user session can still be being resolved on the storage queue right after the SDK starts (see
+        // `SessionController.startSession`). This runs on the batcher's queue, so it can wait for it.
+        let userSessionId = session.userSessionId ?? sessionController?.userSessionId(ofPart: session.id)
+
         do {
             let resourcePayload = try createResourcePayload(
-                userSessionId: session.userSessionId,
+                userSessionId: userSessionId,
                 processId: session.processId
             )
             let metadataPayload = try createMetadataPayload(
-                userSessionId: session.userSessionId,
+                userSessionId: userSessionId,
                 processId: session.processId
             )
 

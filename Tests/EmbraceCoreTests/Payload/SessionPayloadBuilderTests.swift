@@ -64,6 +64,103 @@ final class SessionPayloadBuilderTests: XCTestCase {
         XCTAssertNil(resource)
     }
 
+    func test_usesSessionNumberFromStoredSession() throws {
+        // given a session whose number was assigned by storage
+        storage.addMetadata(
+            key: SessionController.sessionPartNumberKey,
+            value: "41",
+            type: .requiredResource,
+            lifespan: .permanent
+        )
+        let session = try XCTUnwrap(
+            storage.addSession(
+                id: TestConstants.sessionId,
+                processId: ProcessIdentifier.current,
+                state: .foreground,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: Date(timeIntervalSince1970: 0),
+                endTime: Date(timeIntervalSince1970: 60),
+                sessionNumberCounterKey: SessionController.sessionPartNumberKey
+            ))
+
+        // when building a session payload from the in-memory session, which doesn't carry the number
+        XCTAssertEqual(session.sessionNumber, 0)
+        let payload = SessionPayloadBuilder.build(for: session, storage: storage)
+
+        // then the session span contains the stored session-part number
+        let sessionSpan = payload?.data["spans"]?.first { $0.name == "emb-session" }
+        let sessionNumberAttr = sessionSpan?.attributes.first { $0.key == "emb.session_part_number" }
+        XCTAssertEqual(sessionNumberAttr?.value, "42")
+    }
+
+    func test_usesUserSessionFromStoredSession() throws {
+        // given a part whose user session was resolved on the storage queue
+        let userSession = ImmutableUserSession(
+            id: .random,
+            startTime: Date(timeIntervalSince1970: 0),
+            maxDuration: 100,
+            inactivityTimeout: 10,
+            lastForegroundPartEnd: nil,
+            partIndex: 3,
+            endTime: nil,
+            terminationReason: nil,
+            isBackgroundOnly: false
+        )
+        let session = try XCTUnwrap(
+            storage.addSession(
+                id: TestConstants.sessionId,
+                processId: ProcessIdentifier.current,
+                state: .foreground,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: Date(timeIntervalSince1970: 0),
+                endTime: Date(timeIntervalSince1970: 60),
+                resolveUserSession: { userSession }
+            ))
+
+        // and a property of that user session
+        storage.addMetadata(
+            key: "prop", value: "value", type: .customProperty,
+            lifespan: .userSession, lifespanId: userSession.id.stringValue
+        )
+
+        // when building a session payload from the in-memory part, which doesn't have the user session
+        XCTAssertNil(session.userSessionId)
+        let payload = SessionPayloadBuilder.build(for: session, storage: storage)
+
+        // then the session span has the stored user session and its properties
+        let sessionSpan = try XCTUnwrap(payload?.data["spans"]?.first { $0.name == "emb-session" })
+        let attributes = Dictionary(uniqueKeysWithValues: sessionSpan.attributes.map { ($0.key, $0.value) })
+        XCTAssertEqual(attributes["emb.user_session_id"], userSession.id.stringValue)
+        XCTAssertEqual(attributes["emb.user_session_part_index"], "3")
+        XCTAssertEqual(attributes["emb.properties.prop"], "value")
+    }
+
+    func test_doesNotTakeTheBackfilledTerminationReasonFromTheStoredSession() throws {
+        // given a stored part whose record got a termination reason backfilled, and the in-memory copy without it
+        let session = try XCTUnwrap(
+            storage.addSession(
+                id: TestConstants.sessionId,
+                processId: ProcessIdentifier.current,
+                state: .foreground,
+                traceId: TestConstants.traceId,
+                spanId: TestConstants.spanId,
+                startTime: Date(timeIntervalSince1970: 0),
+                endTime: Date(timeIntervalSince1970: 60),
+                userSessionId: .random,
+                userSessionPartIndex: 1
+            ))
+        storage.setUserSessionTerminationReasonOnLatestSessionIfNeeded(.manual)
+
+        // when building a session payload from the in-memory copy
+        let payload = SessionPayloadBuilder.build(for: session, storage: storage)
+
+        // then the payload has no termination reason, as the in-memory copy
+        let sessionSpan = try XCTUnwrap(payload?.data["spans"]?.first { $0.name == "emb-session" })
+        XCTAssertNil(sessionSpan.attributes.first { $0.key == "emb.user_session_termination_reason" })
+    }
+
     func test_userSessionMetadata_isIncludedInEveryPartOfTheUserSession() throws {
         let userSessionId = EmbraceIdentifier.random
 

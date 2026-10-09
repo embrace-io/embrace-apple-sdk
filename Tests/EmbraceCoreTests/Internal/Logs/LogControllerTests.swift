@@ -423,6 +423,143 @@ class LogControllerTests: XCTestCase {
         thenLogIsCreatedCorrectly(try XCTUnwrap(createdLog))
     }
 
+    func test_createLog_beforeThePartUserSessionIsResolved_takesItFromThePart() throws {
+        // given a part whose user session isn't in memory yet, but is resolved
+        let part = MockSession(
+            id: .random, processId: .random, state: .foreground, traceId: "trace", spanId: "span", startTime: Date())
+        sessionController.currentSession = part
+        let userSessionId = EmbraceIdentifier.random
+        sessionController.stubbedUserSessionIdOfPart = userSessionId
+        givenLogController()
+
+        // when creating a log
+        var createdLog: EmbraceLog?
+        whenCreatingLog { createdLog = $0 }
+
+        // then it has the part's user-session id, and the properties of that user session
+        let attributes = try XCTUnwrap(createdLog).attributes
+        XCTAssertEqual(attributes[LogSemantics.keySessionId] as? String, userSessionId.stringValue)
+        XCTAssertEqual(attributes[LogSemantics.keyUserSessionId] as? String, userSessionId.stringValue)
+        XCTAssertEqual(attributes[LogSemantics.keyPartId] as? String, part.id.stringValue)
+        XCTAssertEqual(storage?.fetchCustomPropertiesForUserSessionIdReceivedParameter, userSessionId)
+    }
+
+    func test_createLog_whenThePartHasNoUserSession_isStillAdded() throws {
+        // given a part whose user session can't be found
+        let part = MockSession(
+            id: .random, processId: .random, state: .foreground, traceId: "trace", spanId: "span", startTime: Date())
+        sessionController.currentSession = part
+        sessionController.currentUserSession = nil
+        sessionController.stubbedUserSessionIdOfPart = nil
+        givenLogController()
+
+        // when creating a log
+        whenCreatingLog()
+
+        // then it's still added, with an empty user-session id
+        let saved = try XCTUnwrap(storage?.savedLogs.first)
+        XCTAssertEqual(saved.attributes[LogSemantics.keyUserSessionId] as? String, "")
+        XCTAssertEqual(saved.attributes[LogSemantics.keyPartId] as? String, part.id.stringValue)
+    }
+
+    func test_createLog_withAResolvedUserSession_keepsIt() throws {
+        // given a part with its user session, and a resolution that would say otherwise
+        let part = randomSession()
+        sessionController.currentSession = part
+        sessionController.stubbedUserSessionIdOfPart = .random
+        givenLogController()
+
+        // when creating a log
+        var createdLog: EmbraceLog?
+        whenCreatingLog { createdLog = $0 }
+
+        // then it keeps the part's user session
+        let attributes = try XCTUnwrap(createdLog).attributes
+        XCTAssertEqual(attributes[LogSemantics.keyUserSessionId] as? String, part.userSessionId?.stringValue)
+    }
+
+    func test_addLogFillingUserSessionId_withoutUserSessionId_addsItWithThePartUserSession() throws {
+        // given a log created before its part's user session was resolved
+        let partId = EmbraceIdentifier.random
+        let userSessionId = EmbraceIdentifier.random
+        sessionController.stubbedUserSessionIdOfPart = userSessionId
+        givenLogController()
+        let log = MockLog(
+            attributes: [
+                LogSemantics.keySessionId: "", LogSemantics.keyUserSessionId: "", LogSemantics.keyPartId: partId.stringValue
+            ],
+            sessionId: partId
+        )
+
+        // when adding it (with the logging queue held, to check it isn't added before the queue runs)
+        loggingQueue.suspend()
+        sut.addLogFillingUserSessionId(log)
+
+        // then it's added from the logging queue, with the part's user-session id
+        XCTAssertFalse(storage?.didCallCreate ?? true)
+        loggingQueue.resume()
+        waitForLoggingQueue()
+        let saved = try XCTUnwrap(storage?.savedLogs.first)
+        XCTAssertEqual(saved.id, log.id)
+        XCTAssertEqual(saved.attributes[LogSemantics.keySessionId] as? String, userSessionId.stringValue)
+        XCTAssertEqual(saved.attributes[LogSemantics.keyUserSessionId] as? String, userSessionId.stringValue)
+        XCTAssertEqual(saved.attributes[LogSemantics.keyPartId] as? String, partId.stringValue)
+    }
+
+    func test_batchFinished_forAPartWithoutUserSessionYet_usesThePartRecord() throws {
+        // given a batch of a part whose user session isn't in memory yet, but is resolved
+        let part = MockSession(
+            id: .random, processId: .random, state: .foreground, traceId: "trace", spanId: "span", startTime: Date())
+        let userSessionId = EmbraceIdentifier.random
+        sessionController.stubbedUserSessionIdOfPart = userSessionId
+        givenLogController()
+
+        // when the batch finishes
+        whenInvokingBatchFinished(withLogs: [randomLogRecord()], session: part)
+
+        // then its payloads are built for that user session
+        try thenFetchesResourcesFromStorage(userSessionId: userSessionId)
+        try thenFetchesMetadataFromStorage(userSessionId: userSessionId)
+    }
+
+    func test_addLogFillingUserSessionId_whenThePartHasNoUserSession_isStillAdded() throws {
+        // given a log whose part's user session can't be found
+        sessionController.currentUserSession = nil
+        sessionController.stubbedUserSessionIdOfPart = nil
+        givenLogController()
+        let log = MockLog(
+            attributes: [
+                LogSemantics.keySessionId: "", LogSemantics.keyUserSessionId: "", LogSemantics.keyPartId: "part"
+            ]
+        )
+
+        // when adding it
+        sut.addLogFillingUserSessionId(log)
+        waitForLoggingQueue()
+
+        // then it's still added, unchanged
+        let saved = try XCTUnwrap(storage?.savedLogs.first)
+        XCTAssertEqual(saved.id, log.id)
+        XCTAssertEqual(saved.attributes[LogSemantics.keyUserSessionId] as? String, "")
+    }
+
+    func test_addLogFillingUserSessionId_withUserSessionId_addsItRightAway() throws {
+        // given a log with its user session
+        givenLogController()
+        let log = MockLog(
+            attributes: [
+                LogSemantics.keySessionId: "us", LogSemantics.keyUserSessionId: "us", LogSemantics.keyPartId: "part"
+            ]
+        )
+
+        // when adding it
+        sut.addLogFillingUserSessionId(log)
+
+        // then it's added right away, unchanged
+        let saved = try XCTUnwrap(storage?.savedLogs.first)
+        XCTAssertEqual(saved.attributes[LogSemantics.keyUserSessionId] as? String, "us")
+    }
+
     func test_createLogWithAttachment_success() throws {
         givenEmbraceLogUploader()
         givenLogController()
