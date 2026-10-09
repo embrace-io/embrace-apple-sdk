@@ -342,13 +342,6 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
         storage?.setSpanAttribute(id: span.context.spanId, traceId: span.context.traceId, key: key, value: value)
     }
 
-    func onSpanAttributesUpdated(_ span: EmbraceSpan, attributes: EmbraceAttributes) {
-        for (key, value) in attributes {
-            bridge.updateSpanAttribute(span, key: key, value: value)
-        }
-        storage?.setSpanAttributes(id: span.context.spanId, traceId: span.context.traceId, attributes: attributes)
-    }
-
     func onSpanEnded(_ span: any EmbraceSpan, endTime: Date) {
         // Auto-terminating spans are dropped from the cache when they end on their own, so the cache
         // doesn't hold every one of them for the whole session. Their code is deliberately kept:

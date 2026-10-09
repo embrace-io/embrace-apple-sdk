@@ -419,54 +419,6 @@ extension EmbraceSpan {
     }
 }
 
-// MARK: Batched Attributes
-extension DefaultEmbraceSpan {
-
-    /// Sets several internal attributes as one update, without limits, like `_setInternalAttribute`
-    /// does for one.
-    ///
-    /// They are applied under a single lock, and the handler is notified once, so storage writes
-    /// them in one save instead of one per attribute.
-    func _setInternalAttributes(_ attributes: EmbraceAttributes) {
-        guard let handler, !attributes.isEmpty else {
-            return
-        }
-
-        guard !hasEnded else {
-            logIgnoredMutation("attributes")
-            return
-        }
-
-        state.withLock { data in
-            for (key, value) in attributes {
-                if data.attributes[key] == nil {
-                    data.internalAttributeCount += 1
-                }
-                data.attributes[key] = value
-            }
-        }
-
-        handler.onSpanAttributesUpdated(self, attributes: attributes)
-    }
-}
-
-extension EmbraceSpan {
-    /// Sets several attributes at once.
-    ///
-    /// An SDK-internal span stores them with a single write. Any other span gets one `setAttribute`
-    /// per key.
-    func setAttributes(_ attributes: EmbraceAttributes) {
-        guard let span = self as? InternalEmbraceSpan else {
-            for (key, value) in attributes {
-                setAttribute(key: key, value: value)
-            }
-            return
-        }
-
-        span._setInternalAttributes(attributes)
-    }
-}
-
 // MARK: Internal Session Events
 protocol EmbraceSpanSessionEvents {
     @discardableResult

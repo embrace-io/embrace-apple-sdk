@@ -40,13 +40,11 @@
             service = makeService()
         }
 
-        /// The default checkpoint interval is long enough that the timer never fires during a test. The
-        /// debugger check defaults to detached, so the suite also runs from Xcode. The remote config gate
+        /// The debugger check defaults to detached, so the suite also runs from Xcode. The remote config gate
         /// is bypassed by default; the remote config tests turn it back on. There's no display link by
         /// default, so no real frame lands while a test waits with a part open; frames are recorded
         /// through the tracker.
         private func makeService(
-            checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval,
             debuggerAttached: @escaping () -> Bool = { false },
             environment: [String: String] = [:],
             ignoresRemoteConfig: Bool = true,
@@ -58,7 +56,6 @@
                 embraceNotificationCenter: embraceNotificationCenter,
                 flushStorage: { [unowned self] in self.flushes.append(self.endedSmoothnessSpans.count) },
                 thermalState: { [unowned self] in self.thermalState },
-                checkpointInterval: checkpointInterval,
                 debuggerAttached: debuggerAttached,
                 environment: environment,
                 ignoresRemoteConfig: ignoresRemoteConfig,
@@ -506,185 +503,6 @@
             XCTAssertFalse(tracker.isSessionOpen)
         }
 
-        // MARK: - Checkpoint
-
-        func test_foregroundPartStart_opensSpanAsIncomplete() throws {
-            startService()
-
-            startPart(.foreground)
-
-            let span = try XCTUnwrap(smoothnessSpans.first)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyComplete] as? Bool, false)
-            XCTAssertNil(span.attributes[SpanSemantics.Smoothness.keyFrameCount])
-        }
-
-        func test_partWillEnd_marksSpanComplete() throws {
-            startService()
-            startPart(.foreground)
-
-            endPart()
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyComplete] as? Bool, true)
-        }
-
-        func test_willTerminate_marksSpanComplete() throws {
-            startService()
-            startPart(.foreground)
-
-            postWillTerminate()
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyComplete] as? Bool, true)
-        }
-
-        func test_checkpoint_writesMetricsSoFarToOpenSpan() throws {
-            startService()
-            startPart(.foreground)
-            let tracker = try XCTUnwrap(service.tracker)
-            let before = Date()
-
-            tracker.recordFrame(lateBy: 0)
-            tracker.recordFrame(lateBy: 1.0 / 60.0)
-            tracker.recordFrame(lateBy: 1)
-            service.checkpoint()
-
-            let span = try XCTUnwrap(smoothnessSpans.first)
-            XCTAssertNil(span.endTime)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 3)
-            XCTAssertEqual(
-                span.attributes[SpanSemantics.Smoothness.keyNormalizedDroppedFrames] as? Double ?? 0,
-                1 + tracker.hangThreshold * 60,
-                accuracy: accuracy
-            )
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 1)
-            XCTAssertEqual(peakThermalState(of: span), SpanSemantics.Smoothness.ThermalState.nominal)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyComplete] as? Bool, false)
-            let checkpointTime = try XCTUnwrap(span.attributes[SpanSemantics.Smoothness.keyCheckpointTime] as? EMBInt)
-            XCTAssertGreaterThanOrEqual(checkpointTime, before.nanosecondsSince1970Truncated)
-            XCTAssertLessThanOrEqual(checkpointTime, Date().nanosecondsSince1970Truncated)
-        }
-
-        func test_checkpoint_includesThermalStateWithoutNotification() {
-            startService()
-            startPart(.foreground)
-
-            thermalState = .serious
-            service.checkpoint()
-            thermalState = .nominal
-            endPart()
-
-            XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.first), SpanSemantics.Smoothness.ThermalState.serious)
-        }
-
-        func test_partWillEnd_afterCheckpoint_overwritesWithFinalMetrics() throws {
-            startService()
-            startPart(.foreground)
-            let tracker = try XCTUnwrap(service.tracker)
-
-            tracker.recordFrame(lateBy: 0)
-            service.checkpoint()
-            tracker.recordFrame(lateBy: 0)
-            endPart()
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 2)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyComplete] as? Bool, true)
-        }
-
-        func test_checkpoint_withNoOpenPart_isNoOp() throws {
-            startService()
-            startPart(.foreground)
-            endPart()
-            let span = try XCTUnwrap(endedSmoothnessSpans.first as? MockSpan)
-
-            service.checkpoint()
-
-            XCTAssertEqual(span.ignoredMutationCount, 0)
-            XCTAssertNil(span.attributes[SpanSemantics.Smoothness.keyCheckpointTime])
-        }
-
-        func test_checkpoint_beforeStart_isNoOp() {
-            service.install(otel: otel)
-
-            service.checkpoint()
-
-            XCTAssertTrue(smoothnessSpans.isEmpty)
-        }
-
-        func test_checkpointsOffMain_racingPartWillEnd_neverOverwriteFinalMetrics() throws {
-            startService()
-            startPart(.foreground)
-            let tracker = try XCTUnwrap(service.tracker)
-            for _ in 0..<100 {
-                tracker.recordFrame(lateBy: 0)
-            }
-
-            let done = expectation(description: "checkpoints done")
-            let stop = EmbraceAtomic(false)
-            DispatchQueue.global().async {
-                while !stop.load() {
-                    self.service.checkpoint()
-                }
-                done.fulfill()
-            }
-            for _ in 0..<1_000 {
-                tracker.recordFrame(lateBy: 0)
-            }
-            endPart()
-            stop.store(true)
-            wait(for: [done], timeout: 5)
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first as? MockSpan)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 1_100)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyComplete] as? Bool, true)
-            XCTAssertEqual(span.ignoredMutationCount, 0)
-        }
-
-        func test_checkpointTimer_writesMetricsWhileSpanIsOpen() throws {
-            service = makeService(checkpointInterval: 0.05)
-            startService()
-            startPart(.foreground)
-            try XCTUnwrap(service.tracker).recordFrame(lateBy: 0)
-            let span = try XCTUnwrap(smoothnessSpans.first)
-
-            let waited = expectation(description: "past several intervals")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { waited.fulfill() }
-            wait(for: [waited], timeout: 2)
-            // Ends the span, which waits for any checkpoint in flight, so the span can be read safely.
-            // The end doesn't write a checkpoint time, so one being set means the timer fired.
-            service.stop()
-
-            XCTAssertNotNil(span.attributes[SpanSemantics.Smoothness.keyCheckpointTime])
-        }
-
-        func test_checkpointTimer_stopsWhenSpanEnds() throws {
-            service = makeService(checkpointInterval: 0.05)
-            startService()
-            startPart(.foreground)
-
-            endPart()
-            let ended = expectation(description: "past several intervals")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { ended.fulfill() }
-            wait(for: [ended], timeout: 2)
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first as? MockSpan)
-            XCTAssertNil(span.attributes[SpanSemantics.Smoothness.keyCheckpointTime])
-            XCTAssertEqual(span.ignoredMutationCount, 0)
-        }
-
-        func test_zeroCheckpointInterval_writesNoCheckpoints() throws {
-            service = makeService(checkpointInterval: 0)
-            startService()
-            startPart(.foreground)
-
-            let waited = expectation(description: "waited")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { waited.fulfill() }
-            wait(for: [waited], timeout: 2)
-
-            XCTAssertNil(try XCTUnwrap(smoothnessSpans.first).attributes[SpanSemantics.Smoothness.keyCheckpointTime])
-        }
-
         // MARK: - Thermal state
 
         func test_peakThermalState_isStateAtOpenWhenUnchanged() {
@@ -1009,11 +827,6 @@
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
             XCTAssertEqual(endedSmoothnessSpans.count, 1)
             XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 1)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyComplete] as? Bool, true)
-            XCTAssertEqual(
-                span.attributes[SpanSemantics.Smoothness.keyEndReason] as? String,
-                SpanSemantics.Smoothness.EndReason.remoteDisabled
-            )
         }
 
         func test_remote_disabledWhileRunning_opensNoFurtherSpans() {
@@ -1064,30 +877,6 @@
 
             XCTAssertEqual(smoothnessSpans.count, 1)
             XCTAssertEqual(endedSmoothnessSpans.count, 1)
-        }
-
-        func test_remote_partEndingNormally_hasNoEndReason() throws {
-            makeRemoteGatedService()
-            setRemotelyEnabled(true)
-            startService()
-            startPart(.foreground)
-
-            endPart()
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first)
-            XCTAssertNil(span.attributes[SpanSemantics.Smoothness.keyEndReason])
-        }
-
-        func test_remote_stop_hasNoEndReason() throws {
-            makeRemoteGatedService()
-            setRemotelyEnabled(true)
-            startService()
-            startPart(.foreground)
-
-            service.stop()
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first)
-            XCTAssertNil(span.attributes[SpanSemantics.Smoothness.keyEndReason])
         }
 
         func test_remote_reenabled_opensFromNextPart() {
@@ -1150,7 +939,6 @@
 
             endPart()
             XCTAssertEqual(endedSmoothnessSpans.count, 1)
-            XCTAssertEqual(endedSmoothnessSpans.first?.attributes[SpanSemantics.Smoothness.keyComplete] as? Bool, true)
         }
 
         func test_enableTwiceWhileActivateQueued_buildsOnePipeline() {
@@ -1454,7 +1242,6 @@
                 embraceNotificationCenter: embraceNotificationCenter,
                 flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
                 thermalState: { .nominal },
-                checkpointInterval: 0,
                 debuggerAttached: { false },
                 ignoresRemoteConfig: true,
                 attachesDisplayLink: false
@@ -1513,47 +1300,26 @@
             payload.attributes.first { $0.key == key }?.value
         }
 
-        func test_killedPart_keepsCheckpointedMetrics_andIsFlaggedIncomplete() throws {
-            let session = try startPartWithSpan(frames: 3)
-            service.checkpoint()
+        func test_killedPart_isRecoveredWithoutMetrics() throws {
+            let session = try startPartWithSpan(frames: 2)
 
             // Killed without a crash report: the part never ends and the span is never closed.
             let span = try recoverSmoothnessSpan(of: session)
 
-            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyFrameCount, of: span), "3")
-            XCTAssertNotNil(attribute(SpanSemantics.Smoothness.keyNormalizedDroppedFrames, of: span))
-            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyHangCount, of: span), "0")
-            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyPeakThermalState, of: span), SpanSemantics.Smoothness.ThermalState.nominal)
-            XCTAssertNotNil(attribute(SpanSemantics.Smoothness.keyCheckpointTime, of: span))
-            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyComplete, of: span), "false")
+            XCTAssertNil(attribute(SpanSemantics.Smoothness.keyFrameCount, of: span))
             XCTAssertNotEqual(span.status, EmbraceSpanStatus.error.name)
         }
 
-        func test_crashedPart_keepsCheckpointedMetrics_andIsFailed() throws {
+        func test_crashedPart_isFailed() throws {
             let session = try startPartWithSpan(frames: 2)
-            service.checkpoint()
 
             let span = try recoverSmoothnessSpan(of: session, crashReportId: "crash")
 
-            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyFrameCount, of: span), "2")
-            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyComplete, of: span), "false")
             XCTAssertEqual(span.status, EmbraceSpanStatus.error.name)
         }
 
-        func test_killedPartBeforeFirstCheckpoint_isFlaggedIncompleteWithoutMetrics() throws {
+        func test_cleanlyEndedPart_isStoredWithFinalMetrics() throws {
             let session = try startPartWithSpan(frames: 2)
-
-            let span = try recoverSmoothnessSpan(of: session)
-
-            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyComplete, of: span), "false")
-            XCTAssertNil(attribute(SpanSemantics.Smoothness.keyFrameCount, of: span))
-            XCTAssertNil(attribute(SpanSemantics.Smoothness.keyCheckpointTime, of: span))
-        }
-
-        func test_cleanlyEndedPart_isStoredComplete_withFinalMetrics() throws {
-            let session = try startPartWithSpan(frames: 1)
-            service.checkpoint()
-            try XCTUnwrap(service.tracker).recordFrame(lateBy: 0)
 
             embraceNotificationCenter.post(
                 name: .embraceSessionPartWillEndSync,
@@ -1563,7 +1329,6 @@
 
             let span = try recoverSmoothnessSpan(of: session)
             XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyFrameCount, of: span), "2")
-            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyComplete, of: span), "true")
         }
     }
 
@@ -1640,7 +1405,6 @@
                 embraceNotificationCenter: Embrace.notificationCenter,
                 flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
                 thermalState: { .nominal },
-                checkpointInterval: 0,
                 debuggerAttached: { false },
                 ignoresRemoteConfig: true,
                 attachesDisplayLink: false
@@ -1733,7 +1497,6 @@
             XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyNormalizedDroppedFrames, of: span).flatMap(Double.init) ?? 0, 1, accuracy: 1e-9)
             XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyHangCount, of: span), "0")
             XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyPeakThermalState, of: span), SpanSemantics.Smoothness.ThermalState.nominal)
-            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyComplete, of: span), "true")
 
             // Not sent again with the next part, which carries its own span.
             let nextData = try XCTUnwrap(payloads[next.id.stringValue])

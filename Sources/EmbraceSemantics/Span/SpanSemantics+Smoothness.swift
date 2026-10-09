@@ -30,27 +30,6 @@ extension SpanSemantics {
         /// `ThermalState` values.
         public static let keyPeakThermalState = "smoothness.peak_thermal_state"
 
-        /// Whether the span's metrics cover its whole duration. `false` from the moment the span opens,
-        /// and set to `true` only when the span ends normally. A span still `false` was recovered after
-        /// the app was killed or crashed, so its metrics are only as fresh as `keyCheckpointTime`, or
-        /// missing if no checkpoint was written. iOS-only.
-        public static let keyComplete = "smoothness.complete"
-
-        /// When the metrics on the span were last written while it was open, in nanoseconds since 1970.
-        /// On an incomplete span, the metrics cover the span's start up to this time, not up to its end
-        /// time. iOS-only.
-        public static let keyCheckpointTime = "smoothness.checkpoint_time"
-
-        /// Why the span ended before its session part did, so its duration covers only part of the
-        /// part. Absent when the span ended with its part. One of the `EndReason` values. iOS-only.
-        public static let keyEndReason = "smoothness.end_reason"
-
-        /// Values for `keyEndReason`.
-        public struct EndReason {
-            /// Remote config turned smoothness off for this device while the part was open.
-            public static let remoteDisabled = "remote_disabled"
-        }
-
         /// Values for `keyPeakThermalState`, mirroring `ProcessInfo.ThermalState`.
         public struct ThermalState {
             public static let nominal = "nominal"

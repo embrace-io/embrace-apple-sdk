@@ -93,35 +93,4 @@ class InternalEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(handler.validateAttributeCallCount, 0)
         XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
     }
-
-    func test_setAttributes_notifiesHandlerOnce() throws {
-        // given a span
-        let span = testSpan
-
-        // when setting several attributes at once, one of them already present
-        span.setAttributes(["key": "value", "otherKey": "otherValue", "myKey": "newValue"])
-
-        // then they are all set
-        // the internal counter only counts the new ones
-        // and the handler is notified once, without per-attribute notifications
-        XCTAssertEqual(span.attributes["key"] as! String, "value")
-        XCTAssertEqual(span.attributes["otherKey"] as! String, "otherValue")
-        XCTAssertEqual(span.attributes["myKey"] as! String, "newValue")
-        XCTAssertEqual(span.state.safeValue.internalAttributeCount, 3)
-        XCTAssertEqual(handler.validateAttributeCallCount, 0)
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 1)
-        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 0)
-    }
-
-    func test_setAttributes_afterEnd_isIgnored() throws {
-        // given an ended span
-        let span = makeTestSpan(endTime: Date(timeIntervalSince1970: 2))
-
-        // when setting several attributes at once
-        span.setAttributes(["key": "value"])
-
-        // then nothing changes and the handler isn't notified
-        XCTAssertNil(span.attributes["key"])
-        XCTAssertEqual(handler.onSpanAttributesUpdatedCallCount, 0)
-    }
 }

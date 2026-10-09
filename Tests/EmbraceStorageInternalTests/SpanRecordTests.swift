@@ -334,29 +334,6 @@ class SpanRecordTests: XCTestCase {
         }
     }
 
-    func test_setSpanAttributes_mergesWithExisting() {
-        // given inserted span
-        storage.upsertSpan(
-            MockSpan(
-                id: "id",
-                name: "a name",
-                attributes: ["key": "value", "otherKey": "otherValue"]
-            ))
-
-        // when setting several attributes at once
-        storage.setSpanAttributes(id: "id", traceId: TestConstants.traceId, attributes: ["key": "newValue", "newKey": "newValue"])
-
-        // then they are added or updated, and the rest are kept
-        let spans: [SpanRecord] = storage.fetchAll()
-        XCTAssertEqual(spans.count, 1)
-
-        let attributes = EmbraceAttributes.keyValueDecode(spans[0].attributes)
-        XCTAssertEqual(attributes.count, 3)
-        XCTAssertEqual(attributes["key"], "newValue")
-        XCTAssertEqual(attributes["newKey"], "newValue")
-        XCTAssertEqual(attributes["otherKey"], "otherValue")
-    }
-
     func test_upsertSpanAsync_isSeenByWritesQueuedAfterIt() {
         // when inserting a span asynchronously and queueing writes to it right away
         storage.upsertSpanAsync(
@@ -364,7 +341,7 @@ class SpanRecordTests: XCTestCase {
                 id: "id",
                 name: "a name"
             ))
-        storage.setSpanAttributes(id: "id", traceId: TestConstants.traceId, attributes: ["key": "value"])
+        storage.setSpanAttribute(id: "id", traceId: TestConstants.traceId, key: "key", value: "value")
         storage.endSpan(id: "id", traceId: TestConstants.traceId, endTime: Date(timeIntervalSince1970: 50))
 
         // then the span exists and both writes landed on it

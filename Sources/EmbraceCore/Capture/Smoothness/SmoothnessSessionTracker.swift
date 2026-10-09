@@ -94,13 +94,6 @@
         /// tracker, and must never `DispatchQueue.main.sync`.
         var onSessionClosed: ((_ partId: EmbraceIdentifier, _ stats: SmoothnessSessionStats) -> Void)?
 
-        /// Called from `checkpoint(at:)` with the open part's stats so far, whose `endTime` is the
-        /// checkpoint time. The part stays open.
-        ///
-        /// Invoked with the tracker's lock held, so checkpoints and the close are reported in order and a
-        /// checkpoint can never land after the close. Same rules as `onSessionClosed`.
-        var onSessionCheckpoint: ((_ partId: EmbraceIdentifier, _ stats: SmoothnessSessionStats) -> Void)?
-
         /// Maximum late time a single tick can contribute to the session's dropped frames.
         var hangThreshold: TimeInterval {
             get { lock.locked { state.hangThreshold } }
@@ -305,19 +298,6 @@
                 guard let current = currentSession(), current.state == .foreground else { return }
 
                 state.lastEndedPartId = current.id
-            }
-        }
-
-        /// Reports the open part's stats so far without closing it. No-ops if no part is open.
-        ///
-        /// - Returns: Whether a part was open and has been reported.
-        @discardableResult
-        func checkpoint(at time: Date) -> Bool {
-            lock.locked {
-                guard let session = state.openSession else { return false }
-
-                onSessionCheckpoint?(session.partId, stats(for: session, endTime: time))
-                return true
             }
         }
 
