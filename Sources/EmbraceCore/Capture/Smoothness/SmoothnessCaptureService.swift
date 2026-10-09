@@ -22,27 +22,14 @@
     #endif
 
     /// Service that measures rendering smoothness and emits one `smoothness` span per foreground session
-    /// part.
+    /// part. The span opens when the part starts and ends just before the part's payload is built.
     ///
-    /// The span opens when the foreground part starts, so it is persisted with that part's id right
-    /// away, and ends just before the part's payload is built, carrying the part's frame count,
-    /// dropped frames normalized to 60fps, hang count, and the most severe thermal state seen while it
-    /// was open.
+    /// On terminate, the span is ended and flushed to storage. A part killed any other way (crash,
+    /// watchdog, jetsam) leaves the span open; the next launch closes it without metrics.
     ///
-    /// When the app is terminated while a foreground part is open (e.g. swiped away from the app
-    /// switcher), the part is never ended, so the span is ended on `willTerminate` instead and flushed
-    /// to storage before the notification returns.
-    ///
-    /// A part that never ends cleanly otherwise (crash, watchdog or jetsam kill) leaves the span open in
-    /// storage, and it is closed when the next launch recovers the session, without metrics. It is
-    /// flagged as failed only if a crash report was found.
-    ///
-    /// Installed by default but gated by remote config (`EmbraceConfigurable.isSmoothnessEnabled`). Until
-    /// it's enabled for the device the service is dormant: no `CADisplayLink`, no spans.
-    /// - Enabled while running: the pipeline starts, and the first span is the next foreground part's,
-    ///   so no span covers only part of a part.
-    /// - Disabled while running: the pipeline is torn down at once, and an open span ends with the
-    ///   frames counted so far.
+    /// Installed by default but dormant (no `CADisplayLink`, no spans) until remote config enables it
+    /// (`EmbraceConfigurable.isSmoothnessEnabled`). Enabled while running, it measures from the next
+    /// foreground part. Disabled while running, it ends the open span with the frames counted so far.
     public final class SmoothnessCaptureService: CaptureService {
 
         public convenience override init() {
@@ -64,8 +51,6 @@
 
         /// - Parameters:
         ///   - flushStorage: Blocks until pending storage writes, including the span's end, are on disk.
-        ///   - thermalState: Reads the device's current thermal state.
-        ///   - debuggerAttached: Whether a debugger is attached. The service disables itself if so.
         ///   - environment: Checked for `EMBAllowWatchdogInDebugger=1`, which keeps it enabled anyway.
         ///   - ignoresRemoteConfig: Runs whether or not remote config enables smoothness.
         ///   - attachesDisplayLink: Whether the frame timing source runs a real `CADisplayLink`. Tests
@@ -126,8 +111,6 @@
         }
 
         public override func onStop() {
-            // A part still open here is closed with the frames counted so far, which ends its span
-            // normally.
             tearDown()
         }
 
@@ -155,11 +138,8 @@
             }
         }
 
-        /// Frames counted so far in the open foreground part, or `0` while the service isn't running
-        /// (e.g. disabled because a debugger is attached) or no foreground part is open.
-        ///
-        /// SPI for benchmarks, to prove the service is active in the measured run. Reads the existing
-        /// per-part count, so it adds nothing to the per-tick path.
+        /// Frames counted so far in the open foreground part, or `0` if none is open or the service isn't
+        /// running. SPI for benchmarks, to prove the service is active.
         @_spi(Private)
         public var openPartFrameCount: Int {
             tracker?.openFrameCount ?? 0
@@ -167,18 +147,16 @@
 
         // MARK: - Internal
 
-        /// The per-tick hang ceiling currently applied, from `HangLimits.hangThreshold`.
         var hangThreshold: TimeInterval {
             data.withLock { $0.hangThreshold }
         }
 
-        /// The live tracker, or `nil` while the service isn't running.
+        /// `nil` while the service isn't running.
         var tracker: SmoothnessSessionTracker? {
             data.withLock { $0.pipeline?.tracker }
         }
 
-        /// The live frame timing source, which owns the `CADisplayLink`, or `nil` while the service
-        /// isn't running.
+        /// `nil` while the service isn't running.
         var frameTimingSource: FrameTimingSource? {
             data.withLock { $0.pipeline?.source }
         }
@@ -212,7 +190,6 @@
 
         // MARK: - Private
 
-        /// Whether a debugger keeps the service from running.
         private var isBlockedByDebugger: Bool {
             debuggerAttached() && environment["EMBAllowWatchdogInDebugger"] != "1"
         }
@@ -230,9 +207,7 @@
             }
         }
 
-        /// Builds the timing source → tracker pipeline and stores it, but only if the
-        /// service is active, remote config lets it run, and no pipeline is live. Must be called on the
-        /// main thread.
+        /// Builds and stores the timing source → tracker pipeline. Must be called on the main thread.
         ///
         /// Every activation runs on main, so two can't interleave, and one that finds a live pipeline
         /// no-ops instead of replacing it. A teardown can still race in off main between the build and
@@ -362,10 +337,7 @@
         /// auto-termination code: `autoTerminateSpans()` runs just before the part-will-end hook and
         /// would end the span as an error first.
         ///
-        /// Its storage write is queued rather than awaited, so the tracker's lock, which an off-main
-        /// close waits on with the `SessionController` lock held, isn't held for a CoreData round
-        /// trip. The span's later writes and the part's payload build are queued on the same storage
-        /// context after it, so they still see it.
+        /// Later writes and the part's payload build are queued after it on the same storage context.
         private func openSpan(partId: EmbraceIdentifier, startTime: Date) {
             guard
                 let span = try? otel?.createInternalSpan(
@@ -389,7 +361,7 @@
         }
 
         /// Called with the tracker's lock held, and usually the `SessionController` lock too. Keep it
-        /// to one span end.
+        /// minimal.
         private func endSpan(partId: EmbraceIdentifier, stats: SmoothnessSessionStats) {
             let currentThermalState = thermalState()
             let closed = data.withLock { data -> OpenSpan? in
@@ -412,7 +384,6 @@
     }
 
     extension ProcessInfo.ThermalState {
-        /// Raises `self` to `other` if `other` is more severe.
         fileprivate mutating func raise(to other: ProcessInfo.ThermalState) {
             if other.rawValue > rawValue {
                 self = other
