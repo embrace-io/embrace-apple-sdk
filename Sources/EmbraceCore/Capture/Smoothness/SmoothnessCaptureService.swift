@@ -18,6 +18,7 @@
         import EmbraceSemantics
         import EmbraceConfiguration
         import EmbraceStorageInternal
+        import EmbraceObjCUtilsInternal
     #endif
 
     /// Service that measures rendering smoothness and emits one `smoothness` span per foreground session
@@ -83,7 +84,7 @@
             flushStorage: @escaping () -> Void,
             thermalState: @escaping () -> ProcessInfo.ThermalState = { ProcessInfo.processInfo.thermalState },
             checkpointInterval: TimeInterval = SmoothnessCaptureService.defaultCheckpointInterval,
-            debuggerAttached: @escaping () -> Bool = isDebuggerAttached,
+            debuggerAttached: @escaping () -> Bool = { EMBDevice.isDebuggerAttached },
             environment: [String: String] = ProcessInfo.processInfo.environment,
             ignoresRemoteConfig: Bool = false,
             attachesDisplayLink: Bool = true
