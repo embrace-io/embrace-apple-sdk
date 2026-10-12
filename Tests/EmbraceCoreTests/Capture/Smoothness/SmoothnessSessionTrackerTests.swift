@@ -20,9 +20,8 @@
         private var embraceNotificationCenter: NotificationCenter!
         private var tracker: SmoothnessSessionTracker!
         private var currentSession: EmbraceSession?
-        private var opened: [EmbraceIdentifier] = []
+        private var events: [Event] = []
         private var reported: [SmoothnessSessionStats] = []
-        private var reportedPartIds: [EmbraceIdentifier] = []
 
         override func setUp() {
             super.setUp()
@@ -35,12 +34,11 @@
                 notificationCenter: notificationCenter,
                 embraceNotificationCenter: embraceNotificationCenter
             )
-            opened = []
+            events = []
             reported = []
-            reportedPartIds = []
-            tracker.onSessionOpened = { [unowned self] partId, _ in self.opened.append(partId) }
+            tracker.onSessionOpened = { [unowned self] partId, _ in self.events.append(.opened(partId)) }
             tracker.onSessionClosed = { [unowned self] partId, stats in
-                self.reportedPartIds.append(partId)
+                self.events.append(.closed(partId))
                 self.reported.append(stats)
             }
         }
@@ -54,6 +52,25 @@
         }
 
         // MARK: - Helpers
+
+        private enum Event: Equatable {
+            case opened(EmbraceIdentifier)
+            case closed(EmbraceIdentifier)
+        }
+
+        private var opened: [EmbraceIdentifier] {
+            events.compactMap { if case .opened(let id) = $0 { return id } else { return nil } }
+        }
+
+        private var reportedPartIds: [EmbraceIdentifier] {
+            events.compactMap { if case .closed(let id) = $0 { return id } else { return nil } }
+        }
+
+        /// The part the tracker reported opening and hasn't reported closing, if any.
+        private var openPartId: EmbraceIdentifier? {
+            if case .opened(let id)? = events.last { return id }
+            return nil
+        }
 
         /// Makes a new part current and posts its start, as `SessionController` does.
         @discardableResult
@@ -100,15 +117,14 @@
         func testForegroundPartStartOpens() {
             let session = startPart(.foreground)
 
-            XCTAssertTrue(tracker.isSessionOpen)
-            XCTAssertEqual(tracker.openPartId, session.id)
+            XCTAssertEqual(openPartId, session.id)
             XCTAssertEqual(opened, [session.id])
         }
 
         func testBackgroundPartStartIsIgnored() {
             startPart(.background)
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
             XCTAssertTrue(opened.isEmpty)
         }
 
@@ -118,7 +134,7 @@
 
             notificationCenter.post(name: .embraceSessionPartDidStart, object: stale)
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
         }
 
         func testLatePartStartAfterPartEndedIsIgnored() {
@@ -129,7 +145,7 @@
             endPart(session)
             notificationCenter.post(name: .embraceSessionPartDidStart, object: session)
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
             XCTAssertTrue(opened.isEmpty)
         }
 
@@ -140,13 +156,12 @@
             endPart()
             startPart(.background)
             endPart()
-            startPart(.foreground)
-            opened = []
+            let third = startPart(.foreground)
 
             tracker.open(partId: first.id, at: Date())
 
-            XCTAssertNotEqual(tracker.openPartId, first.id)
-            XCTAssertTrue(opened.isEmpty)
+            XCTAssertEqual(openPartId, third.id)
+            XCTAssertEqual(opened, [first.id, third.id])
         }
 
         func testOpenForNonCurrentPartDoesNotCloseOpenPart() {
@@ -154,7 +169,7 @@
 
             tracker.open(partId: .random, at: Date())
 
-            XCTAssertEqual(tracker.openPartId, session.id)
+            XCTAssertEqual(openPartId, session.id)
             XCTAssertTrue(reported.isEmpty)
         }
 
@@ -164,7 +179,7 @@
 
             tracker.open(partId: session.id, at: Date())
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
         }
 
         func testStaleEndDoesNotAllowReopeningEndedPart() {
@@ -175,7 +190,7 @@
             endPart(MockSession.with(id: .random, state: .background))
             tracker.open(partId: session.id, at: Date())
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
             XCTAssertEqual(opened, [session.id])
         }
 
@@ -185,7 +200,7 @@
 
             endPart()
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
             XCTAssertEqual(reported.count, 1)
             XCTAssertEqual(reportedPartIds, [session.id])
             XCTAssertGreaterThanOrEqual(reported.first?.endTime ?? .distantPast, before)
@@ -227,7 +242,7 @@
 
             endPart(MockSession.with(id: .random, state: .background))
 
-            XCTAssertTrue(tracker.isSessionOpen)
+            XCTAssertNotNil(openPartId)
             XCTAssertTrue(reported.isEmpty)
         }
 
@@ -252,7 +267,7 @@
 
             let second = startPart(.foreground)
 
-            XCTAssertEqual(tracker.openPartId, second.id)
+            XCTAssertEqual(openPartId, second.id)
             XCTAssertEqual(reportedPartIds, [first.id])
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 2.5, accuracy: accuracy)
         }
@@ -266,7 +281,7 @@
             var closedBeforePostReturned: Bool?
             DispatchQueue.global().async {
                 self.endPart()
-                closedBeforePostReturned = !self.tracker.isSessionOpen
+                closedBeforePostReturned = closedOnMain != nil
                 posted.fulfill()
             }
             wait(for: [posted], timeout: 1)
@@ -282,14 +297,14 @@
             currentSession = MockSession.with(id: id, state: .background)
             postDidBecomeActive()
             drainMain()
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
 
             // `iOSSessionLifecycle` flips the same part to foreground and posts no part start.
             currentSession = MockSession.with(id: id, state: .foreground)
             postDidBecomeActive()
             drainMain()
 
-            XCTAssertEqual(tracker.openPartId, id)
+            XCTAssertEqual(openPartId, id)
             XCTAssertEqual(opened, [id])
         }
 
@@ -318,7 +333,7 @@
 
             tracker.openCurrentForegroundPart()
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
         }
 
         func testCloseOpenSessionReportsWhicheverPartIsOpen() {
@@ -327,7 +342,7 @@
             tracker.closeOpenSession(at: Date())
 
             XCTAssertEqual(reportedPartIds, [session.id])
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
         }
 
         func testCloseOpenSessionReturnsWhetherItClosed() {
@@ -359,7 +374,7 @@
             tracker.openCurrentForegroundPart()
             tracker.open(partId: session.id, at: Date())
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
             XCTAssertEqual(opened, [session.id])
         }
 
@@ -490,7 +505,7 @@
         func testHangThresholdUpdateAppliesToOpenSession() {
             startPart(.foreground)
 
-            tracker.hangThreshold = 0.5
+            tracker.setHangThreshold(0.5)
             handle(delay: 2.0)
             endPart()
 
@@ -503,7 +518,7 @@
 
             tick(delayInFrames: 120)
 
-            XCTAssertTrue(tracker.isSessionOpen)
+            XCTAssertNotNil(openPartId)
             XCTAssertTrue(reported.isEmpty)
         }
 
@@ -513,15 +528,16 @@
             let part = startPart(.foreground)
             tick(delayInFrames: 0)
 
-            XCTAssertTrue(tracker.invalidate(at: Date()))
+            tracker.invalidate(at: Date())
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
             XCTAssertEqual(reportedPartIds, [part.id])
             XCTAssertEqual(reported.first?.frameCount, 1)
         }
 
-        func testInvalidateWithNoOpenPartReturnsFalse() {
-            XCTAssertFalse(tracker.invalidate(at: Date()))
+        func testInvalidateWithNoOpenPartReportsNothing() {
+            tracker.invalidate(at: Date())
+
             XCTAssertTrue(reported.isEmpty)
         }
 
@@ -534,7 +550,7 @@
             drainMain()
             tracker.openCurrentForegroundPart()
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
             XCTAssertTrue(opened.isEmpty)
         }
 
@@ -557,7 +573,7 @@
             tracker.openCurrentForegroundPart()
             postDidBecomeActive()
             drainMain()
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertNil(openPartId)
             XCTAssertTrue(opened.isEmpty)
         }
 
@@ -567,7 +583,7 @@
 
             let next = startPart(.foreground)
 
-            XCTAssertEqual(tracker.openPartId, next.id)
+            XCTAssertEqual(openPartId, next.id)
         }
 
         func testSkipCurrentForegroundPartDoesNotSkipBackgroundPart() {
@@ -579,7 +595,7 @@
             currentSession = MockSession.with(id: part.id, state: .foreground)
             tracker.openCurrentForegroundPart()
 
-            XCTAssertEqual(tracker.openPartId, part.id)
+            XCTAssertEqual(openPartId, part.id)
         }
     }
 

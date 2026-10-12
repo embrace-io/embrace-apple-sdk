@@ -97,7 +97,7 @@
                 deliverTicks(measuredTickCount)
             }
 
-            XCTAssertTrue(tracker.isSessionOpen)
+            XCTAssertGreaterThan(tracker.openFrameCount, 0)
         }
 
         /// Ticks between foreground parts still compute lateness and take the tracker's lock.
@@ -106,7 +106,7 @@
                 deliverTicks(measuredTickCount)
             }
 
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertEqual(tracker.openFrameCount, 0)
         }
 
         func test_tickCost_staysWithinBudget() {

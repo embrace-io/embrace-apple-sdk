@@ -124,7 +124,7 @@
                 return (data.pipeline?.tracker, wasEnabled)
             }
             // Set outside `data`'s lock: the tracker calls back into it with its own lock held.
-            tracker?.hangThreshold = hangThreshold
+            tracker?.setHangThreshold(hangThreshold)
 
             // Before start, the value is only stored; `onStart()` applies it.
             guard !ignoresRemoteConfig, isEnabled != wasEnabled, state.load(order: .acquire) == .active else { return }

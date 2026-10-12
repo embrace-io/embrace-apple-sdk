@@ -128,6 +128,10 @@
             otel.endedSpans.filter { $0.name == SpanSemantics.Smoothness.name }
         }
 
+        private var openSmoothnessSpans: [EmbraceSpan] {
+            smoothnessSpans.filter { $0.endTime == nil }
+        }
+
         // MARK: - Lifecycle
 
         func test_start_buildsPipeline() {
@@ -212,7 +216,7 @@
 
             XCTAssertNotNil(service.tracker)
             // The part was already current, so activation opens it.
-            XCTAssertEqual(service.tracker?.openPartId, currentSession?.id)
+            XCTAssertEqual(openSmoothnessSpans.count, 1)
             XCTAssertEqual(smoothnessSpans.count, 1)
         }
 
@@ -371,7 +375,7 @@
 
             tracker.recordFrame(lateBy: 0)
             tracker.recordFrame(lateBy: 2.0 / 60.0)
-            tracker.recordFrame(lateBy: tracker.hangThreshold)
+            tracker.recordFrame(lateBy: service.hangThreshold)
             endPart()
 
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
@@ -384,7 +388,7 @@
             let tracker = try XCTUnwrap(service.tracker)
 
             tracker.recordFrame(lateBy: 0)
-            tracker.recordFrame(lateBy: tracker.hangThreshold + 0.001)
+            tracker.recordFrame(lateBy: service.hangThreshold + 0.001)
             tracker.recordFrame(lateBy: 0)
             tracker.recordFrame(lateBy: 5)
             endPart()
@@ -500,7 +504,7 @@
             wait(for: [ended], timeout: 5)
 
             XCTAssertEqual(endedSmoothnessSpans.count, 1)
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertTrue(openSmoothnessSpans.isEmpty)
         }
 
         // MARK: - Thermal state
@@ -613,7 +617,7 @@
                 accuracy: accuracy
             )
             XCTAssertEqual(peakThermalState(of: span), SpanSemantics.Smoothness.ThermalState.nominal)
-            XCTAssertFalse(tracker.isSessionOpen)
+            XCTAssertTrue(openSmoothnessSpans.isEmpty)
         }
 
         func test_willTerminate_flushesStorageAfterEndingSpan() {
@@ -678,7 +682,7 @@
             drainMain()
 
             XCTAssertEqual(smoothnessSpans.count, 1)
-            XCTAssertFalse(try XCTUnwrap(service.tracker).isSessionOpen)
+            XCTAssertTrue(openSmoothnessSpans.isEmpty)
         }
 
         func test_willTerminate_twice_flushesOnce() {
@@ -700,7 +704,7 @@
             service.onConfigUpdated(MockEmbraceConfigurable(hangLimits: HangLimits(hangThreshold: 0.5)))
 
             XCTAssertEqual(service.hangThreshold, 0.5)
-            XCTAssertEqual(try XCTUnwrap(service.tracker).hangThreshold, 0.5)
+            assertHangCeiling(0.5)
         }
 
         func test_onConfigUpdated_beforeStart_isAppliedOnStart() throws {
@@ -708,7 +712,23 @@
 
             startService()
 
-            XCTAssertEqual(try XCTUnwrap(service.tracker).hangThreshold, 0.5)
+            assertHangCeiling(0.5)
+        }
+
+        /// Records one tick far past any threshold in a new part and checks it was capped to `ceiling`.
+        private func assertHangCeiling(_ ceiling: TimeInterval, file: StaticString = #filePath, line: UInt = #line) {
+            startPart(.foreground)
+            service.tracker?.recordFrame(lateBy: 10)
+            endPart()
+
+            let span = endedSmoothnessSpans.last
+            XCTAssertEqual(
+                span?.attributes[SpanSemantics.Smoothness.keyNormalizedDroppedFrames] as? Double ?? 0,
+                ceiling * SmoothnessSessionStats.referenceFrameRate,
+                accuracy: accuracy,
+                file: file,
+                line: line
+            )
         }
 
         // MARK: - Remote config
@@ -752,7 +772,7 @@
 
             startService()
 
-            XCTAssertEqual(service.tracker?.openPartId, currentSession?.id)
+            XCTAssertEqual(openSmoothnessSpans.count, 1)
             XCTAssertEqual(smoothnessSpans.count, 1)
         }
 
@@ -783,9 +803,9 @@
             XCTAssertTrue(smoothnessSpans.isEmpty)
 
             endPart()
-            let next = startPart(.foreground)
+            startPart(.foreground)
 
-            XCTAssertEqual(service.tracker?.openPartId, next.id)
+            XCTAssertEqual(openSmoothnessSpans.count, 1)
             XCTAssertEqual(smoothnessSpans.count, 1)
         }
 
@@ -1084,7 +1104,7 @@
             drainMain()
 
             let span = try XCTUnwrap(smoothnessSpans.first)
-            XCTAssertEqual(service.tracker?.openPartId, session.id)
+            XCTAssertNil(span.endTime)
 
             controller.endSession()
 
@@ -1113,7 +1133,7 @@
             drainMain()
 
             let span = try XCTUnwrap(smoothnessSpans.first)
-            XCTAssertEqual(service.tracker?.openPartId, session.id)
+            XCTAssertNil(span.endTime)
 
             controller.endSession()
 
@@ -1194,7 +1214,6 @@
             let next = try XCTUnwrap(controller.currentSession)
             XCTAssertEqual(next.startTime, rollTime)
             XCTAssertEqual(smoothnessSpans.count, 2)
-            XCTAssertEqual(service.tracker?.openPartId, next.id)
             XCTAssertNil(smoothnessSpans.last?.endTime)
         }
     }
@@ -1266,10 +1285,10 @@
             service.install(otel: handler)
             service.start()
             let tracker = try XCTUnwrap(service.tracker)
-            XCTAssertEqual(tracker.openPartId, session.id)
             for _ in 0..<frames {
                 tracker.recordFrame(lateBy: 0)
             }
+            XCTAssertEqual(tracker.openFrameCount, frames)
             return session
         }
 
@@ -1471,7 +1490,6 @@
             let part = try XCTUnwrap(controller.startSession(state: .foreground))
             drainMain()
             let tracker = try XCTUnwrap(service.tracker)
-            XCTAssertEqual(tracker.openPartId, part.id)
             tracker.recordFrame(lateBy: 0)
             tracker.recordFrame(lateBy: 0)
             tracker.recordFrame(lateBy: 1.0 / 60.0)
@@ -1515,7 +1533,6 @@
 
             let next = try XCTUnwrap(controller.startSession(state: .foreground))
             drainMain()
-            XCTAssertEqual(service.tracker?.openPartId, next.id)
 
             // The ended part's record is removed once its payload is built, so rebuild it to fetch as the
             // upload would have if it had run now.

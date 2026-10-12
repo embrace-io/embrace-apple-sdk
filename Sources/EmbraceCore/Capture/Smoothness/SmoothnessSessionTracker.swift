@@ -8,7 +8,6 @@
 
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
-        import EmbraceConfiguration
         import EmbraceSemantics
     #endif
 
@@ -20,7 +19,7 @@
     /// (`duration * referenceFrameRate`).
     ///
     /// `frameCount` does not mean the same as Android's: see its doc comment.
-    struct SmoothnessSessionStats: Equatable {
+    struct SmoothnessSessionStats {
 
         /// The fixed frame rate all dropped-frame counts are normalized to.
         static let referenceFrameRate: Double = 60
@@ -94,18 +93,6 @@
         /// tracker, and must never `DispatchQueue.main.sync`.
         var onSessionClosed: ((_ partId: EmbraceIdentifier, _ stats: SmoothnessSessionStats) -> Void)?
 
-        /// Maximum late time a single tick can contribute to the session's dropped frames.
-        var hangThreshold: TimeInterval {
-            get { lock.locked { state.hangThreshold } }
-            set { lock.locked { state.hangThreshold = newValue } }
-        }
-
-        /// Whether a foreground session is currently being accumulated.
-        var isSessionOpen: Bool { lock.locked { state.openSession != nil } }
-
-        /// The id of the part currently being accumulated, if any.
-        var openPartId: EmbraceIdentifier? { lock.locked { state.openSession?.partId } }
-
         /// Frames counted so far in the part currently being accumulated, or `0` if none is open.
         var openFrameCount: Int { lock.locked { state.openSession?.frameCount ?? 0 } }
 
@@ -120,10 +107,10 @@
         ///     notification are posted.
         ///   - embraceNotificationCenter: Where `.embraceSessionPartWillEndSync` is posted.
         init(
-            hangThreshold: TimeInterval = HangLimits.defaultHangThreshold,
-            currentSession: @escaping () -> EmbraceSession? = { Embrace.client?.sessionController.currentSession },
-            notificationCenter: NotificationCenter = .default,
-            embraceNotificationCenter: NotificationCenter = Embrace.notificationCenter
+            hangThreshold: TimeInterval,
+            currentSession: @escaping () -> EmbraceSession?,
+            notificationCenter: NotificationCenter,
+            embraceNotificationCenter: NotificationCenter
         ) {
             self.state = State(hangThreshold: hangThreshold)
             self.currentSession = currentSession
@@ -155,6 +142,11 @@
         deinit {
             notificationCenter.removeObserver(self)
             embraceNotificationCenter.removeObserver(self)
+        }
+
+        /// Sets the maximum late time a single tick can contribute to the session's dropped frames.
+        func setHangThreshold(_ hangThreshold: TimeInterval) {
+            lock.locked { state.hangThreshold = hangThreshold }
         }
 
         // MARK: - Frame accounting
@@ -203,11 +195,11 @@
         // MARK: - Session lifecycle
 
         /// Opens the current part if it is foreground and not already open. Call on the main thread.
-        func openCurrentForegroundPart(at startTime: Date = Date()) {
+        func openCurrentForegroundPart() {
             // Early exit only; `open` repeats the check under the lock.
             guard let session = currentSession(), session.state == .foreground else { return }
 
-            open(partId: session.id, at: startTime)
+            open(partId: session.id, at: Date())
         }
 
         /// Opens an accumulator for `partId`, closing any other part that was left open.
@@ -274,17 +266,13 @@
         /// Called when the tracker is retired. Its observers stay registered until it is released,
         /// which can happen a main turn later, and a part start delivered in that window must not open
         /// a span nothing will end.
-        ///
-        /// - Returns: Whether a part was open and has now been reported.
-        @discardableResult
-        func invalidate(at endTime: Date) -> Bool {
+        func invalidate(at endTime: Date) {
             lock.locked {
                 state.isInvalidated = true
-                guard let partId = state.openSession?.partId else { return false }
+                guard let partId = state.openSession?.partId else { return }
 
                 state.lastEndedPartId = partId
                 closeLocked(at: endTime)
-                return true
             }
         }
 
