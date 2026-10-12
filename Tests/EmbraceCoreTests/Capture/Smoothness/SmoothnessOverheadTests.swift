@@ -135,7 +135,7 @@
 
             handler(FrameTimingSource.Tick(delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
             handler(FrameTimingSource.Tick(delay: frameDuration, frameInterval: frameDuration, previousFrameInterval: frameDuration))
-            tracker.closeOpenSession(at: Date())
+            tracker.invalidate(at: Date())
 
             XCTAssertEqual(reported?.frameCount, 2)
             XCTAssertEqual(reported?.normalizedDroppedFrames ?? 0, 1, accuracy: 1e-9)

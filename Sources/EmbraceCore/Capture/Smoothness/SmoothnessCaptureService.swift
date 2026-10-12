@@ -318,7 +318,7 @@
         /// Span storage writes are queued asynchronously, and the process can be killed as soon as
         /// this returns, so they are flushed synchronously. A later will-end for the same part no-ops.
         @objc private func appWillTerminate() {
-            guard let tracker, tracker.closeOpenSession(at: Date()) else { return }
+            guard let tracker, tracker.invalidate(at: Date()) else { return }
 
             flushStorage()
         }
@@ -351,13 +351,9 @@
 
             // Seeded here since the change notification only fires on transitions.
             let initialThermalState = thermalState()
-            let previous = data.withLock { data -> OpenSpan? in
-                let previous = data.openSpan
+            data.withLock { data in
                 data.openSpan = OpenSpan(partId: partId, span: span, peakThermalState: initialThermalState)
-                return previous
             }
-            // The tracker closes a part before opening the next, so this only fires if a span leaked.
-            previous?.span.end()
         }
 
         /// Called with the tracker's lock held, and usually the `SessionController` lock too. Keep it

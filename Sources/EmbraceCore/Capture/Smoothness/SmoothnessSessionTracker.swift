@@ -196,34 +196,30 @@
 
         /// Opens the current part if it is foreground and not already open. Call on the main thread.
         func openCurrentForegroundPart() {
-            // Early exit only; `open` repeats the check under the lock.
-            guard let session = currentSession(), session.state == .foreground else { return }
+            guard let session = currentSession() else { return }
 
             open(partId: session.id, at: Date())
         }
 
-        /// Opens an accumulator for `partId`, closing any other part that was left open.
+        /// Opens an accumulator for `partId`.
         ///
-        /// No-ops if `partId` is already open, has already ended or been skipped, or isn't the current
-        /// foreground part, or if the tracker has been invalidated.
+        /// No-ops if any part is already open, if `partId` has already ended or been skipped, or isn't the
+        /// current foreground part, or if the tracker has been invalidated. Every part end closes the open
+        /// part through the will-end hook, so another part is never still open here.
         ///
         /// The current part is checked under the lock, so a part that ends between a caller's own check
         /// and this call can't be reopened. `currentSession` still returns the ending part during the
         /// will-end hook, so `lastEndedPartId` covers that window.
         func open(partId: EmbraceIdentifier, at startTime: Date) {
             lock.locked {
-                if state.openSession?.partId == partId { return }
-
-                guard !state.isInvalidated,
+                guard state.openSession == nil, !state.isInvalidated,
                     let current = currentSession(), current.id == partId, current.state == .foreground,
                     state.lastEndedPartId != partId
                 else {
                     return
                 }
 
-                closeLocked(at: startTime)
-
-                state.openSession = OpenSession(partId: partId, startTime: startTime)
+                state.openSession = OpenSession(partId: partId)
                 onSessionOpened?(partId, startTime)
             }
         }
@@ -244,35 +240,23 @@
             }
         }
 
-        /// Closes whichever part is open and reports it. No-ops if none is.
+        /// Closes whichever part is open and reports it, and stops the tracker from opening any part
+        /// again.
         ///
-        /// Marks the closed part as ended, so a later open or will-end for it is ignored.
+        /// Called when the tracker is retired or the app terminates. Its observers stay registered until
+        /// it is released, which can happen a main turn later, and a part start delivered in that window
+        /// must not open a span nothing will end.
         ///
         /// - Returns: Whether a part was open and has now been reported.
         @discardableResult
-        func closeOpenSession(at endTime: Date) -> Bool {
+        func invalidate(at endTime: Date) -> Bool {
             lock.locked {
+                state.isInvalidated = true
                 guard let partId = state.openSession?.partId else { return false }
 
                 state.lastEndedPartId = partId
                 closeLocked(at: endTime)
                 return true
-            }
-        }
-
-        /// Closes whichever part is open, like `closeOpenSession(at:)`, and stops the tracker from
-        /// opening any part again.
-        ///
-        /// Called when the tracker is retired. Its observers stay registered until it is released,
-        /// which can happen a main turn later, and a part start delivered in that window must not open
-        /// a span nothing will end.
-        func invalidate(at endTime: Date) {
-            lock.locked {
-                state.isInvalidated = true
-                guard let partId = state.openSession?.partId else { return }
-
-                state.lastEndedPartId = partId
-                closeLocked(at: endTime)
             }
         }
 
@@ -293,7 +277,6 @@
 
         private struct OpenSession {
             let partId: EmbraceIdentifier
-            let startTime: Date
             var frameCount = 0
             var droppedDuration: TimeInterval = 0
             var cappedTickCount = 0
@@ -338,18 +321,11 @@
 
         /// `SessionController` posts this asynchronously on the main thread.
         ///
-        /// The checks here are early exits only; `open` repeats them under the lock.
-        ///
         /// Opens now rather than at the part's start time. Frames are only accumulated from here, so a
         /// backdated span would count the unmeasured gap as smooth. And the previous part ends at exactly
         /// the part's start time, so a span starting there would also be fetched into its payload.
         @objc private func sessionPartDidStart(_ notification: Notification) {
-            guard let session = notification.object as? EmbraceSession,
-                session.state == .foreground,
-                currentSession()?.id == session.id
-            else {
-                return
-            }
+            guard let session = notification.object as? EmbraceSession, session.state == .foreground else { return }
 
             open(partId: session.id, at: Date())
         }

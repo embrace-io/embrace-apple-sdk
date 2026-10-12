@@ -184,7 +184,7 @@
 
         func testStaleEndDoesNotAllowReopeningEndedPart() {
             let session = startPart(.foreground)
-            tracker.closeOpenSession(at: Date())
+            endPart()
 
             // A stale will-end for a part that is neither open nor current.
             endPart(MockSession.with(id: .random, state: .background))
@@ -261,17 +261,6 @@
             XCTAssertEqual(reported.count, 1)
         }
 
-        func testStartWhileOpenClosesPreviousSession() {
-            let first = startPart(.foreground)
-            tick(delayInFrames: 2.5)
-
-            let second = startPart(.foreground)
-
-            XCTAssertEqual(openPartId, second.id)
-            XCTAssertEqual(reportedPartIds, [first.id])
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 2.5, accuracy: accuracy)
-        }
-
         func testPartEndFromBackgroundThreadClosesSynchronously() {
             startPart(.foreground)
             var closedOnMain: Bool?
@@ -336,46 +325,24 @@
             XCTAssertNil(openPartId)
         }
 
-        func testCloseOpenSessionReportsWhicheverPartIsOpen() {
-            let session = startPart(.foreground)
-
-            tracker.closeOpenSession(at: Date())
-
-            XCTAssertEqual(reportedPartIds, [session.id])
-            XCTAssertNil(openPartId)
-        }
-
-        func testCloseOpenSessionReturnsWhetherItClosed() {
-            XCTAssertFalse(tracker.closeOpenSession(at: Date()))
-
+        func testInvalidateReturnsWhetherItClosed() {
             startPart(.foreground)
 
-            XCTAssertTrue(tracker.closeOpenSession(at: Date()))
-            XCTAssertFalse(tracker.closeOpenSession(at: Date()))
+            XCTAssertTrue(tracker.invalidate(at: Date()))
+            XCTAssertFalse(tracker.invalidate(at: Date()))
             XCTAssertEqual(reported.count, 1)
         }
 
-        func testCloseOpenSessionThenWillEndReportsOnce() {
+        func testInvalidateThenWillEndReportsOnce() {
             startPart(.foreground)
             tick(delayInFrames: 0)
 
-            tracker.closeOpenSession(at: Date())
+            tracker.invalidate(at: Date())
             tick(delayInFrames: 0)
             endPart()
 
             XCTAssertEqual(reported.count, 1)
             XCTAssertEqual(reported.first?.frameCount, 1)
-        }
-
-        func testCloseOpenSessionPreventsReopeningSamePart() {
-            let session = startPart(.foreground)
-
-            tracker.closeOpenSession(at: Date())
-            tracker.openCurrentForegroundPart()
-            tracker.open(partId: session.id, at: Date())
-
-            XCTAssertNil(openPartId)
-            XCTAssertEqual(opened, [session.id])
         }
 
         // MARK: - Accounting
