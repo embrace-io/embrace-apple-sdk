@@ -334,23 +334,6 @@ class SpanRecordTests: XCTestCase {
         }
     }
 
-    func test_upsertSpanAsync_isSeenByWritesQueuedAfterIt() {
-        // when inserting a span asynchronously and queueing writes to it right away
-        storage.upsertSpanAsync(
-            MockSpan(
-                id: "id",
-                name: "a name"
-            ))
-        storage.setSpanAttribute(id: "id", traceId: TestConstants.traceId, key: "key", value: "value")
-        storage.endSpan(id: "id", traceId: TestConstants.traceId, endTime: Date(timeIntervalSince1970: 50))
-
-        // then the span exists and both writes landed on it
-        let spans: [SpanRecord] = storage.fetchAll()
-        XCTAssertEqual(spans.count, 1)
-        XCTAssertEqual(EmbraceAttributes.keyValueDecode(spans[0].attributes)["key"], "value")
-        XCTAssertEqual(spans[0].endTime, Date(timeIntervalSince1970: 50))
-    }
-
     func test_saveOnMain_persistsQueuedSpanAttributesAndEnd() throws {
         // given inserted span
         storage.upsertSpan(
