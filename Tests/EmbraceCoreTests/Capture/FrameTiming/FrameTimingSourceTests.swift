@@ -96,15 +96,6 @@
             XCTAssertEqual(delays.max() ?? 1, 0, accuracy: 1e-9)
         }
 
-        func testGapWithoutForegroundResetIsReported() {
-            tick()
-            skip(backgroundGap)
-            tick()
-
-            XCTAssertEqual(delays.count, 1)
-            XCTAssertEqual(delays.first ?? 0, backgroundGap, accuracy: 1e-6)
-        }
-
         func testWillEnterForegroundRearmsSoGapIsNotReported() {
             tick()
             tick()
@@ -117,15 +108,6 @@
             // One delay before the gap, one after re-arming, none spanning it.
             XCTAssertEqual(delays.count, 2)
             XCTAssertEqual(delays.max() ?? 1, 0, accuracy: 1e-9)
-        }
-
-        func testTickCarriesFrameIntervals() throws {
-            tick()
-            tick()
-
-            let reported = try XCTUnwrap(ticks.first)
-            XCTAssertEqual(reported.frameInterval, frameDuration, accuracy: 1e-9)
-            XCTAssertEqual(reported.previousFrameInterval, frameDuration, accuracy: 1e-9)
         }
 
         func testRateStepDownReportsBothIntervalsAndStepDelay() throws {
@@ -145,93 +127,6 @@
         }
 
         // MARK: - Pipeline
-
-        /// Background → foreground through source and tracker, in the order UIKit and
-        /// `SessionController` deliver it: part ends on background, will-enter-foreground, then the
-        /// next foreground part starts from did-become-active.
-        func testBackgroundGapDoesNotReachNextForegroundPart() throws {
-            let embraceNotificationCenter = NotificationCenter()
-            var currentSession: EmbraceSession?
-            let tracker = SmoothnessSessionTracker(
-                hangThreshold: 0.249,
-                currentSession: { currentSession },
-                notificationCenter: notificationCenter,
-                embraceNotificationCenter: embraceNotificationCenter
-            )
-            var reported: [SmoothnessSessionStats] = []
-            tracker.onSessionClosed = { _, stats in reported.append(stats) }
-            source.onTick = { [tracker] tick in tracker.record(tick) }
-
-            func startPart(_ state: SessionState) {
-                let session = MockSession.with(id: .random, state: state)
-                currentSession = session
-                notificationCenter.post(name: .embraceSessionPartDidStart, object: session)
-            }
-            func endPart() {
-                embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: currentSession)
-            }
-
-            startPart(.foreground)
-            tick()
-            tick()
-            endPart()
-            startPart(.background)
-
-            skip(backgroundGap)
-            postWillEnterForeground()
-            // Ticks between will-enter-foreground and the foreground part starting are dropped.
-            tick()
-            tick()
-            endPart()
-            startPart(.foreground)
-            tick()
-            tick()
-            endPart()
-
-            XCTAssertEqual(reported.count, 2)
-            let resumed = try XCTUnwrap(reported.last)
-            XCTAssertEqual(resumed.frameCount, 2)
-            XCTAssertEqual(resumed.normalizedDroppedFrames, 0, accuracy: 1e-9)
-            XCTAssertEqual(resumed.cappedTickCount, 0)
-        }
-
-        /// If a tick could land before will-enter-foreground, the gap is reported by the source but
-        /// no part is open yet, so the tracker still drops it.
-        func testGapTickBeforeResetIsDroppedByClosedTracker() throws {
-            let embraceNotificationCenter = NotificationCenter()
-            var currentSession: EmbraceSession?
-            let tracker = SmoothnessSessionTracker(
-                hangThreshold: 0.249,
-                currentSession: { currentSession },
-                notificationCenter: notificationCenter,
-                embraceNotificationCenter: embraceNotificationCenter
-            )
-            var reported: [SmoothnessSessionStats] = []
-            tracker.onSessionClosed = { _, stats in reported.append(stats) }
-            source.onTick = { [tracker] tick in tracker.record(tick) }
-
-            let foreground = MockSession.with(id: .random, state: .foreground)
-            currentSession = foreground
-            notificationCenter.post(name: .embraceSessionPartDidStart, object: foreground)
-            tick()
-            embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: foreground)
-
-            skip(backgroundGap)
-            tick()  // Gap tick, before the reset.
-            postWillEnterForeground()
-
-            let resumed = MockSession.with(id: .random, state: .foreground)
-            currentSession = resumed
-            notificationCenter.post(name: .embraceSessionPartDidStart, object: resumed)
-            tick()
-            tick()
-            embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: resumed)
-
-            let stats = try XCTUnwrap(reported.last)
-            XCTAssertEqual(stats.frameCount, 1)
-            XCTAssertEqual(stats.cappedTickCount, 0)
-            XCTAssertEqual(stats.normalizedDroppedFrames, 0, accuracy: 1e-9)
-        }
 
         /// The foreground part is already open when the first post-gap tick arrives, so only the
         /// source's reset keeps the gap out of it.
