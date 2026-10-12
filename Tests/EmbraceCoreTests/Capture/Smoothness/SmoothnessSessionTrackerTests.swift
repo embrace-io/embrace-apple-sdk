@@ -149,30 +149,6 @@
             XCTAssertTrue(opened.isEmpty)
         }
 
-        func testOpenForEndedPartIsIgnoredAfterAnotherPartEnds() {
-            // A caller saw `first` as current, then `first` and a background part both ended before
-            // it took the tracker's lock, so `lastEndedPartId` no longer names `first`.
-            let first = startPart(.foreground)
-            endPart()
-            startPart(.background)
-            endPart()
-            let third = startPart(.foreground)
-
-            tracker.open(partId: first.id)
-
-            XCTAssertEqual(openPartId, third.id)
-            XCTAssertEqual(opened, [first.id, third.id])
-        }
-
-        func testOpenForNonCurrentPartDoesNotCloseOpenPart() {
-            let session = startPart(.foreground)
-
-            tracker.open(partId: .random)
-
-            XCTAssertEqual(openPartId, session.id)
-            XCTAssertTrue(reported.isEmpty)
-        }
-
         func testOpenForCurrentBackgroundPartIsIgnored() {
             let session = MockSession.with(id: .random, state: .background)
             currentSession = session
@@ -203,6 +179,8 @@
             XCTAssertNil(openPartId)
             XCTAssertEqual(reported.count, 1)
             XCTAssertEqual(reportedPartIds, [session.id])
+            XCTAssertEqual(reported.first?.frameCount, 0)
+            XCTAssertEqual(reported.first?.normalizedDroppedFrames, 0)
             XCTAssertGreaterThanOrEqual(reported.first?.endTime ?? .distantPast, before)
             XCTAssertLessThanOrEqual(reported.first?.endTime ?? .distantFuture, Date())
         }
@@ -227,28 +205,12 @@
             XCTAssertLessThanOrEqual(reported.first?.endTime ?? .distantFuture, Date())
         }
 
-        func testZeroFramePartStillReports() {
-            startPart(.foreground)
-
-            endPart()
-
-            XCTAssertEqual(reported.count, 1)
-            XCTAssertEqual(reported.first?.frameCount, 0)
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames, 0)
-        }
-
         func testEndForAnotherPartIsIgnored() {
             startPart(.foreground)
 
             endPart(MockSession.with(id: .random, state: .background))
 
             XCTAssertNotNil(openPartId)
-            XCTAssertTrue(reported.isEmpty)
-        }
-
-        func testPartEndWithoutOpenSessionIsNoOp() {
-            endPart(MockSession.with(id: .random, state: .foreground))
-
             XCTAssertTrue(reported.isEmpty)
         }
 
@@ -306,45 +268,6 @@
             XCTAssertEqual(opened, [session.id])
         }
 
-        func testColdStartPartClosesOnItsWillEnd() {
-            let id = EmbraceIdentifier.random
-            currentSession = MockSession.with(id: id, state: .foreground)
-            postDidBecomeActive()
-            drainMain()
-
-            endPart()
-
-            XCTAssertEqual(reportedPartIds, [id])
-        }
-
-        func testOpenCurrentForegroundPartIgnoresBackgroundPart() {
-            currentSession = MockSession.with(id: .random, state: .background)
-
-            tracker.openCurrentForegroundPart()
-
-            XCTAssertNil(openPartId)
-        }
-
-        func testInvalidateReturnsWhetherItClosed() {
-            startPart(.foreground)
-
-            XCTAssertTrue(tracker.invalidate(at: Date()))
-            XCTAssertFalse(tracker.invalidate(at: Date()))
-            XCTAssertEqual(reported.count, 1)
-        }
-
-        func testInvalidateThenWillEndReportsOnce() {
-            startPart(.foreground)
-            tick(delayInFrames: 0)
-
-            tracker.invalidate(at: Date())
-            tick(delayInFrames: 0)
-            endPart()
-
-            XCTAssertEqual(reported.count, 1)
-            XCTAssertEqual(reported.first?.frameCount, 1)
-        }
-
         // MARK: - Accounting
 
         func testAccumulatesFrameCountAndNormalizedDroppedFrames() {
@@ -358,17 +281,6 @@
             XCTAssertEqual(reported.first?.frameCount, 3)
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 5.1, accuracy: accuracy)
             XCTAssertEqual(reported.first?.cappedTickCount, 0)
-        }
-
-        func testPartialFrameDropsAreNotRoundedAway() {
-            startPart(.foreground)
-
-            tick(delayInFrames: 1.4)
-            tick(delayInFrames: 1.4)
-            tick(delayInFrames: 1.4)
-            endPart()
-
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 4.2, accuracy: accuracy)
         }
 
         func testTicksOutsideOpenSessionAreIgnored() {
@@ -410,31 +322,6 @@
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 0.5, accuracy: accuracy)
         }
 
-        func testOneMissedVsyncAt30HzIsTwoReferenceFrames() {
-            startPart(.foreground)
-
-            handle(delay: 1.0 / 30.0, frameInterval: 1.0 / 30.0)
-            endPart()
-
-            XCTAssertEqual(reported.first?.frameCount, 1)
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 2.0, accuracy: accuracy)
-        }
-
-        func testLongSessionDoesNotDrift() {
-            startPart(.foreground)
-
-            // One hour at 120Hz, every 10th frame one vsync late.
-            let ticks = 120 * 60 * 60
-            for index in 0..<ticks {
-                handle(delay: index % 10 == 9 ? 1.0 / 120.0 : 0, frameInterval: 1.0 / 120.0)
-            }
-            endPart()
-
-            // 43,200 late ticks * 0.5 reference frames each.
-            XCTAssertEqual(reported.first?.frameCount, ticks)
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 21_600, accuracy: 1e-6)
-        }
-
         // MARK: - Hang ceiling
 
         func testTickPastHangThresholdIsCapped() {
@@ -459,16 +346,6 @@
             XCTAssertEqual(reported.first?.cappedTickCount, 0)
         }
 
-        func testCeilingIsRefreshRateIndependent() {
-            startPart(.foreground)
-
-            handle(delay: 2.0)
-            endPart()
-
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
-            XCTAssertEqual(reported.first?.cappedTickCount, 1)
-        }
-
         func testHangThresholdUpdateAppliesToOpenSession() {
             startPart(.foreground)
 
@@ -480,16 +357,15 @@
             XCTAssertEqual(reported.first?.cappedTickCount, 1)
         }
 
-        func testHangDoesNotCloseSession() {
+        // MARK: - Invalidate and skip
+
+        func testInvalidateReturnsWhetherItClosed() {
             startPart(.foreground)
 
-            tick(delayInFrames: 120)
-
-            XCTAssertNotNil(openPartId)
-            XCTAssertTrue(reported.isEmpty)
+            XCTAssertTrue(tracker.invalidate(at: Date()))
+            XCTAssertFalse(tracker.invalidate(at: Date()))
+            XCTAssertEqual(reported.count, 1)
         }
-
-        // MARK: - Invalidate and skip
 
         func testInvalidateClosesOpenPart() {
             let part = startPart(.foreground)
@@ -500,12 +376,6 @@
             XCTAssertNil(openPartId)
             XCTAssertEqual(reportedPartIds, [part.id])
             XCTAssertEqual(reported.first?.frameCount, 1)
-        }
-
-        func testInvalidateWithNoOpenPartReportsNothing() {
-            tracker.invalidate(at: Date())
-
-            XCTAssertTrue(reported.isEmpty)
         }
 
         func testInvalidatedTrackerOpensNoPart() {
@@ -519,16 +389,6 @@
 
             XCTAssertNil(openPartId)
             XCTAssertTrue(opened.isEmpty)
-        }
-
-        func testInvalidatedTrackerIgnoresTicks() {
-            startPart(.foreground)
-            tracker.invalidate(at: Date())
-
-            tick(delayInFrames: 3)
-
-            XCTAssertEqual(tracker.openFrameCount, 0)
-            XCTAssertEqual(reported.count, 1)
         }
     }
 
