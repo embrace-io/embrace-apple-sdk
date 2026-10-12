@@ -213,11 +213,7 @@ public final class CaptureServicesOptionsBuilder {
         }
 
         /// Adds a new `SmoothnessCaptureService`.
-        /// - Note: Part of the default capture services. It stays dormant until remote config enables it
-        ///   for the device.
-        /// - Note: Available on iOS and tvOS only. Frame timing relies on
-        ///   `CADisplayLink`, which has no standalone initializer on macOS and
-        ///   is not available on watchOS.
+        /// - Note: Stays dormant until remote config enables it. Available on iOS and tvOS only.
         /// - Note: If there was another `SmoothnessCaptureService` previously added, it will be replaced with the new one.
         @discardableResult
         public func addSmoothnessCaptureService() -> Self {
