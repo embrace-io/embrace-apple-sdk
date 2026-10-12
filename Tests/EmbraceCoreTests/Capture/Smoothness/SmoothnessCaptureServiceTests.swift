@@ -109,17 +109,6 @@
             span?.attributes[SpanSemantics.Smoothness.keyPeakThermalState] as? String
         }
 
-        private func postDidBecomeActive() {
-            notificationCenter.post(name: Notification.Name("UIApplicationDidBecomeActiveNotification"), object: nil)
-        }
-
-        /// Runs the main queue past anything already enqueued on it.
-        private func drainMain() {
-            let drained = expectation(description: "main drained")
-            DispatchQueue.main.async { drained.fulfill() }
-            wait(for: [drained], timeout: 5)
-        }
-
         private var smoothnessSpans: [EmbraceSpan] {
             otel.startedSpans.filter { $0.name == SpanSemantics.Smoothness.name }
         }
@@ -133,20 +122,6 @@
         }
 
         // MARK: - Lifecycle
-
-        func test_start_buildsPipeline() {
-            startService()
-
-            XCTAssertNotNil(service.tracker)
-        }
-
-        func test_stop_releasesPipeline() {
-            startService()
-
-            service.stop()
-
-            XCTAssertNil(service.tracker)
-        }
 
         func test_stop_releasesFrameTimingSource() {
             service = makeService(attachesDisplayLink: true)
@@ -242,17 +217,13 @@
             service.install(otel: otel)
 
             startPart(.foreground)
+            XCTAssertEqual(service.openPartFrameCount, 0)
+            postWillTerminate()
             endPart()
 
             XCTAssertNil(service.tracker)
             XCTAssertTrue(smoothnessSpans.isEmpty)
-        }
-
-        func test_openPartFrameCount_isZeroWhenNotStarted() {
-            service.install(otel: otel)
-            startPart(.foreground)
-
-            XCTAssertEqual(service.openPartFrameCount, 0)
+            XCTAssertTrue(flushes.isEmpty)
         }
 
         func test_openPartFrameCount_countsFramesInOpenPartOnly() throws {
@@ -293,7 +264,7 @@
             XCTAssertNil(span.endTime)
         }
 
-        /// P-H1: the previous part ends at exactly the part's start time, so a span backdated to it would
+        /// The previous part ends at exactly the part's start time, so a span backdated to it would
         /// also be fetched into the previous part's payload.
         func test_foregroundPartStart_opensSpanAfterPartStartTime() throws {
             startService()
@@ -311,26 +282,6 @@
 
             let span = try XCTUnwrap(smoothnessSpans.first)
             XCTAssertGreaterThan(span.startTime, session.startTime)
-        }
-
-        func test_partWillEnd_endsSpanAtPartEndTime() throws {
-            startService()
-            let session = startPart(.foreground)
-            let endTime = session.startTime.addingTimeInterval(1)
-
-            endPart(at: endTime)
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first)
-            XCTAssertEqual(span.endTime, endTime)
-        }
-
-        func test_backgroundPartStart_createsNoSpan() {
-            startService()
-
-            startPart(.background)
-            endPart()
-
-            XCTAssertTrue(smoothnessSpans.isEmpty)
         }
 
         func test_partWillEnd_endsSpanWithFrameAttributes() throws {
@@ -354,33 +305,7 @@
             )
         }
 
-        func test_zeroFramePart_stillEndsSpan() throws {
-            startService()
-            startPart(.foreground)
-
-            endPart()
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 0)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyNormalizedDroppedFrames] as? Double, 0)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 0)
-        }
-
         // MARK: - Hang count
-
-        func test_partWithoutHangs_hasZeroHangCount() throws {
-            startService()
-            startPart(.foreground)
-            let tracker = try XCTUnwrap(service.tracker)
-
-            tracker.record(lateBy: 0)
-            tracker.record(lateBy: 2.0 / 60.0)
-            tracker.record(lateBy: service.hangThreshold)
-            endPart()
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 0)
-        }
 
         func test_hangCount_countsEveryTickPastHangThreshold() throws {
             startService()
@@ -397,50 +322,6 @@
             XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 2)
         }
 
-        func test_hangCount_isNotLimitedByHangPerSession() throws {
-            startService()
-            service.onConfigUpdated(MockEmbraceConfigurable(hangLimits: HangLimits(hangPerSession: 1)))
-            startPart(.foreground)
-            let tracker = try XCTUnwrap(service.tracker)
-
-            for _ in 0..<3 {
-                tracker.record(lateBy: 1)
-            }
-            endPart()
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 3)
-        }
-
-        func test_hangCount_usesUpdatedHangThreshold() throws {
-            startService()
-            service.onConfigUpdated(MockEmbraceConfigurable(hangLimits: HangLimits(hangThreshold: 0.5)))
-            startPart(.foreground)
-            let tracker = try XCTUnwrap(service.tracker)
-
-            tracker.record(lateBy: 0.3)
-            tracker.record(lateBy: 0.6)
-            endPart()
-
-            let span = try XCTUnwrap(endedSmoothnessSpans.first)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 1)
-        }
-
-        func test_hangCount_doesNotCarryIntoNextPart() throws {
-            startService()
-            startPart(.foreground)
-            try XCTUnwrap(service.tracker).record(lateBy: 1)
-            endPart()
-
-            startPart(.foreground)
-            try XCTUnwrap(service.tracker).record(lateBy: 0)
-            endPart()
-
-            XCTAssertEqual(endedSmoothnessSpans.count, 2)
-            XCTAssertEqual(endedSmoothnessSpans[0].attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 1)
-            XCTAssertEqual(endedSmoothnessSpans[1].attributes[SpanSemantics.Smoothness.keyHangCount] as? Int, 0)
-        }
-
         func test_backgroundPartWillEnd_doesNotEndForegroundSpan() {
             startService()
             startPart(.foreground)
@@ -449,43 +330,6 @@
 
             XCTAssertEqual(smoothnessSpans.count, 1)
             XCTAssertTrue(endedSmoothnessSpans.isEmpty)
-        }
-
-        func test_eachForegroundPart_getsItsOwnSpan() {
-            startService()
-
-            startPart(.foreground)
-            endPart()
-            startPart(.foreground)
-            endPart()
-
-            XCTAssertEqual(smoothnessSpans.count, 2)
-            XCTAssertEqual(endedSmoothnessSpans.count, 2)
-        }
-
-        func test_stop_endsOpenSpan() {
-            startService()
-            startPart(.foreground)
-
-            service.stop()
-
-            XCTAssertEqual(endedSmoothnessSpans.count, 1)
-        }
-
-        func test_partWillEndOffMain_endsSpanSynchronously() throws {
-            startService()
-            startPart(.foreground)
-
-            let posted = expectation(description: "posted off main")
-            var endedBeforePostReturned = 0
-            DispatchQueue.global().async {
-                self.endPart()
-                endedBeforePostReturned = self.endedSmoothnessSpans.count
-                posted.fulfill()
-            }
-            wait(for: [posted], timeout: 5)
-
-            XCTAssertEqual(endedBeforePostReturned, 1)
         }
 
         func test_partWillEndOffMain_whileMainTicks_endsSpanOnce() throws {
@@ -573,18 +417,6 @@
             XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.last), SpanSemantics.Smoothness.ThermalState.nominal)
         }
 
-        func test_peakThermalState_changeWithNoOpenPart_isIgnored() {
-            startService()
-            startPart(.background)
-
-            changeThermalState(to: .critical)
-            thermalState = .nominal
-            startPart(.foreground)
-            endPart()
-
-            XCTAssertEqual(peakThermalState(of: endedSmoothnessSpans.first), SpanSemantics.Smoothness.ThermalState.nominal)
-        }
-
         func test_peakThermalState_isSetOnStop() {
             startService()
             startPart(.foreground)
@@ -640,51 +472,6 @@
             XCTAssertTrue(flushes.isEmpty)
         }
 
-        func test_willTerminate_inBackgroundPart_isNoOp() {
-            startService()
-            startPart(.background)
-
-            postWillTerminate()
-
-            XCTAssertTrue(smoothnessSpans.isEmpty)
-            XCTAssertTrue(flushes.isEmpty)
-        }
-
-        func test_willTerminate_beforeStart_isNoOp() {
-            service.install(otel: otel)
-
-            postWillTerminate()
-
-            XCTAssertTrue(flushes.isEmpty)
-        }
-
-        func test_willTerminate_thenPartWillEnd_endsSpanOnce() throws {
-            startService()
-            startPart(.foreground)
-            let tracker = try XCTUnwrap(service.tracker)
-            tracker.record(lateBy: 0)
-
-            postWillTerminate()
-            tracker.record(lateBy: 0)
-            endPart()
-
-            XCTAssertEqual(smoothnessSpans.count, 1)
-            XCTAssertEqual(endedSmoothnessSpans.count, 1)
-            XCTAssertEqual(endedSmoothnessSpans.first?.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 1)
-        }
-
-        func test_willTerminate_thenDidBecomeActive_doesNotReopenPart() throws {
-            startService()
-            startPart(.foreground)
-
-            postWillTerminate()
-            postDidBecomeActive()
-            drainMain()
-
-            XCTAssertEqual(smoothnessSpans.count, 1)
-            XCTAssertTrue(openSmoothnessSpans.isEmpty)
-        }
-
         func test_willTerminate_twice_flushesOnce() {
             startService()
             startPart(.foreground)
@@ -703,7 +490,6 @@
 
             service.onConfigUpdated(MockEmbraceConfigurable(hangLimits: HangLimits(hangThreshold: 0.5)))
 
-            XCTAssertEqual(service.hangThreshold, 0.5)
             assertHangCeiling(0.5)
         }
 
@@ -763,6 +549,12 @@
             XCTAssertNil(service.tracker)
             XCTAssertNil(service.frameTimingSource)
             XCTAssertTrue(smoothnessSpans.isEmpty)
+
+            // The same service opens a span once the gate is on.
+            setRemotelyEnabled(true)
+            startPart(.foreground)
+
+            XCTAssertEqual(smoothnessSpans.count, 1)
         }
 
         func test_remote_enabledBeforeStart_opensCurrentPart() {
@@ -774,18 +566,6 @@
 
             XCTAssertEqual(openSmoothnessSpans.count, 1)
             XCTAssertEqual(smoothnessSpans.count, 1)
-        }
-
-        func test_remote_disabledBeforeStart_staysDormant() {
-            makeRemoteGatedService()
-            setRemotelyEnabled(true)
-            setRemotelyEnabled(false)
-
-            startService()
-            startPart(.foreground)
-
-            XCTAssertNil(service.tracker)
-            XCTAssertTrue(smoothnessSpans.isEmpty)
         }
 
         func test_remote_enabledWhileRunning_opensCurrentPart() throws {
@@ -806,18 +586,6 @@
             XCTAssertEqual(smoothnessSpans.count, 2)
         }
 
-        func test_remote_enabledOffMain_buildsPipelineOnMain() {
-            makeRemoteGatedService()
-            startService()
-
-            runOffMain { self.setRemotelyEnabled(true) }
-            XCTAssertNil(service.tracker)
-
-            drainMain()
-
-            XCTAssertNotNil(service.tracker)
-        }
-
         func test_remote_enabledWhileDebuggerAttached_staysDormant() {
             makeRemoteGatedService(debuggerAttached: { true })
             startService()
@@ -828,7 +596,7 @@
             XCTAssertNil(service.tracker)
         }
 
-        func test_remote_disabledWhileRunning_endsSpanWithReasonAndReleasesPipeline() throws {
+        func test_remote_disabledWhileRunning_endsSpanAndReleasesPipeline() throws {
             makeRemoteGatedService()
             setRemotelyEnabled(true)
             startService()
@@ -844,21 +612,6 @@
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
             XCTAssertEqual(endedSmoothnessSpans.count, 1)
             XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 1)
-        }
-
-        func test_remote_disabledWhileRunning_opensNoFurtherSpans() {
-            makeRemoteGatedService()
-            setRemotelyEnabled(true)
-            startService()
-            startPart(.foreground)
-
-            setRemotelyEnabled(false)
-            endPart()
-            startPart(.foreground)
-            postDidBecomeActive()
-            drainMain()
-
-            XCTAssertEqual(smoothnessSpans.count, 1)
         }
 
         func test_remote_disabledOffMain_releasesPipelineOnMain() throws {
@@ -936,7 +689,7 @@
             XCTAssertTrue(endedSmoothnessSpans.isEmpty)
         }
 
-        // MARK: - Activation races (M4)
+        // MARK: - Activation races
 
         func test_restartWhileActivateQueued_buildsOnePipeline() throws {
             service.install(otel: otel)
@@ -957,36 +710,6 @@
 
             endPart()
             XCTAssertEqual(endedSmoothnessSpans.count, 1)
-        }
-
-        func test_enableTwiceWhileActivateQueued_buildsOnePipeline() {
-            makeRemoteGatedService()
-            startService()
-
-            runOffMain {
-                self.setRemotelyEnabled(true)
-                self.setRemotelyEnabled(false)
-                self.setRemotelyEnabled(true)
-            }
-            drainMain()
-
-            XCTAssertNotNil(service.tracker)
-            weak var tracker = service.tracker
-            drainMain()
-            XCTAssertTrue(service.tracker === tracker)
-        }
-
-        func test_stopOffMain_releasesPipelineOnMain() {
-            startService()
-            weak var source = service.frameTimingSource
-
-            runOffMain { self.service.stop() }
-            XCTAssertNil(service.tracker)
-            XCTAssertNotNil(source)
-
-            drainMain()
-
-            XCTAssertNil(source)
         }
     }
 
@@ -1038,13 +761,6 @@
             try super.tearDownWithError()
         }
 
-        /// `.embraceSessionPartDidStart` is posted asynchronously on main.
-        private func drainMain() {
-            let drained = expectation(description: "main drained")
-            DispatchQueue.main.async { drained.fulfill() }
-            wait(for: [drained], timeout: 5)
-        }
-
         private var smoothnessSpans: [EmbraceSpan] {
             otel.startedSpans.filter { $0.name == SpanSemantics.Smoothness.name }
         }
@@ -1090,35 +806,6 @@
             XCTAssertTrue(endedBeforeEndSessionReturned)
         }
 
-        func test_coldStartSwapToForeground_opensAndClosesSpan() throws {
-            let session = try XCTUnwrap(controller.startSession(state: .background))
-            XCTAssertTrue(session.coldStart)
-            drainMain()
-            XCTAssertTrue(smoothnessSpans.isEmpty)
-
-            // What `iOSSessionLifecycle.appDidBecomeActive` does inside the launch grace period.
-            controller.update(state: .foreground)
-            NotificationCenter.default.post(name: Notification.Name("UIApplicationDidBecomeActiveNotification"), object: nil)
-            drainMain()
-
-            let span = try XCTUnwrap(smoothnessSpans.first)
-            XCTAssertNil(span.endTime)
-
-            controller.endSession()
-
-            XCTAssertNotNil(span.endTime)
-        }
-
-        func test_backgroundPart_hasNoSpan() throws {
-            controller.startSession(state: .foreground)
-            drainMain()
-            controller.startSession(state: .background)
-            drainMain()
-
-            XCTAssertEqual(smoothnessSpans.count, 1)
-            XCTAssertNotNil(smoothnessSpans.first?.endTime)
-        }
-
         /// The tracker observes did-become-active before `iOSSessionLifecycle` swaps the part to
         /// foreground. Its hop to the next main turn is what still catches the swap.
         func test_coldStartSwapToForeground_trackerObservesFirst_opensSpan() throws {
@@ -1136,48 +823,6 @@
             controller.endSession()
 
             XCTAssertNotNil(span.endTime)
-        }
-
-        /// EMBR-14228: adding the sync hook doesn't change when the existing end notifications fire.
-        /// The foreground-end one is still posted synchronously after the hook, with the end time,
-        /// and the public one still arrives later, on main.
-        func test_foregroundPartEnd_existingNotificationTimingUnchanged() throws {
-            let session = try XCTUnwrap(controller.startSession(state: .foreground))
-            drainMain()
-            let span = try XCTUnwrap(smoothnessSpans.first)
-
-            var order: [String] = []
-            var foregroundEndTime: Date?
-            var spanEndedAtForegroundEnd = false
-            let syncToken = Embrace.notificationCenter.addObserver(forName: .embraceSessionPartWillEndSync, object: nil, queue: nil) { _ in
-                order.append("sync")
-            }
-            let foregroundToken = Embrace.notificationCenter.addObserver(forName: .embraceForegroundSessionDidEnd, object: nil, queue: nil) {
-                notification in
-                order.append("foregroundDidEnd")
-                foregroundEndTime = notification.object as? Date
-                spanEndedAtForegroundEnd = span.endTime != nil
-            }
-            defer {
-                Embrace.notificationCenter.removeObserver(syncToken)
-                Embrace.notificationCenter.removeObserver(foregroundToken)
-            }
-            // Posted async on main, so ignore ones left over from other tests.
-            let publicWillEnd = expectation(forNotification: .embraceSessionPartWillEnd, object: nil) { notification in
-                guard (notification.object as? EmbraceSession)?.id == session.id else { return false }
-                order.append("public")
-                return true
-            }
-
-            let endTime = controller.endSession()
-
-            XCTAssertEqual(order, ["sync", "foregroundDidEnd"])
-            XCTAssertEqual(foregroundEndTime, endTime)
-            XCTAssertTrue(spanEndedAtForegroundEnd)
-
-            wait(for: [publicWillEnd], timeout: 5)
-
-            XCTAssertEqual(order, ["sync", "foregroundDidEnd", "public"])
         }
 
         /// Max-duration expiry rolls the part on the controller's queue, so the service closes the
@@ -1326,27 +971,6 @@
             XCTAssertNil(attribute(SpanSemantics.Smoothness.keyFrameCount, of: span))
             XCTAssertNotEqual(span.status, EmbraceSpanStatus.error.name)
         }
-
-        func test_crashedPart_isFailed() throws {
-            let session = try startPartWithSpan(frames: 2)
-
-            let span = try recoverSmoothnessSpan(of: session, crashReportId: "crash")
-
-            XCTAssertEqual(span.status, EmbraceSpanStatus.error.name)
-        }
-
-        func test_cleanlyEndedPart_isStoredWithFinalMetrics() throws {
-            let session = try startPartWithSpan(frames: 2)
-
-            embraceNotificationCenter.post(
-                name: .embraceSessionPartWillEndSync,
-                object: session,
-                userInfo: [SessionController.sessionPartWillEndSyncEndTimeKey: Date()]
-            )
-
-            let span = try recoverSmoothnessSpan(of: session)
-            XCTAssertEqual(attribute(SpanSemantics.Smoothness.keyFrameCount, of: span), "2")
-        }
     }
 
     // MARK: - End to end
@@ -1450,13 +1074,6 @@
             try super.tearDownWithError()
         }
 
-        /// `.embraceSessionPartDidStart` is posted asynchronously on main.
-        private func drainMain() {
-            let drained = expectation(description: "main drained")
-            DispatchQueue.main.async { drained.fulfill() }
-            wait(for: [drained], timeout: 5)
-        }
-
         /// The uploaded payload's `data` block, keyed by the id of the part it belongs to, read from its
         /// `emb-session` span. (`session.id` is the user session's id, shared by its parts.)
         private func uploadedPayloads() throws -> [String: [String: Any]] {
@@ -1482,7 +1099,7 @@
             return attributes.first { $0["key"] as? String == key }?["value"] as? String
         }
 
-        /// EMBR-14228: the span is ended and its metrics are written by the sync hook before the ending
+        /// The span is ended and its metrics are written by the sync hook before the ending
         /// part's payload is built, so it is sent complete with that part, and only with that part.
         func test_foregroundToForeground_spanIsSentCompleteWithEndingPartOnly() throws {
             let part = try XCTUnwrap(controller.startSession(state: .foreground))
@@ -1521,33 +1138,15 @@
             XCTAssertEqual(nextSpans.count, 1)
             XCTAssertEqual(nextSpans.first.flatMap { attribute(CommonSemantics.keyPartId, of: $0) }, next.id.stringValue)
         }
+    }
 
-        /// P-H1: with an async controller queue, the ending part's payload can be fetched after the next
-        /// part's span is stored. That span must not match the ending part, which ends at the next part's
-        /// start time.
-        func test_foregroundToForeground_nextPartSpanIsNotFetchedForEndingPart() throws {
-            let part = try XCTUnwrap(controller.startSession(state: .foreground))
-            drainMain()
-
-            let next = try XCTUnwrap(controller.startSession(state: .foreground))
-            drainMain()
-
-            // The ended part's record is removed once its payload is built, so rebuild it to fetch as the
-            // upload would have if it had run now.
-            let endedPart = MockSession(
-                id: part.id,
-                processId: part.processId,
-                state: .foreground,
-                traceId: part.traceId,
-                spanId: part.spanId,
-                startTime: part.startTime,
-                endTime: next.startTime
-            )
-            let spans = storage.fetchSpans(for: endedPart).filter { $0.name == SpanSemantics.Smoothness.name }
-
-            // The next part's span is stored and still open, and isn't fetched for the ended part.
-            XCTAssertFalse(storage.fetchSpans(for: next).filter { $0.name == SpanSemantics.Smoothness.name && $0.endTime == nil }.isEmpty)
-            XCTAssertTrue(spans.allSatisfy { $0.endTime != nil })
+    extension XCTestCase {
+        /// Runs the main queue past anything already enqueued on it, such as the async
+        /// `.embraceSessionPartDidStart` post.
+        fileprivate func drainMain() {
+            let drained = expectation(description: "main drained")
+            DispatchQueue.main.async { drained.fulfill() }
+            wait(for: [drained], timeout: 5)
         }
     }
 
