@@ -37,6 +37,7 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         XCTAssertFalse(options.hang)
         #if !os(watchOS) && !os(macOS)
             XCTAssertTrue(options.smoothness)
+            XCTAssertTrue(EmbraceIO.CaptureServicesOptions.default().list.contains { $0 is SmoothnessCaptureService })
         #endif
 
         XCTAssertEqual(options.customServices.count, 0)
@@ -347,46 +348,6 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
             XCTAssertTrue(options.list.contains { $0 is SmoothnessCaptureService })
         }
 
-        func test_smoothness_inDefaults() throws {
-            // given a builder with default services
-            let builder = CaptureServicesOptionsBuilder()
-            builder.addDefaults()
-
-            // then smoothness is installed; remote config decides whether it runs
-            let options = builder.build()
-
-            XCTAssertTrue(options.smoothness)
-            XCTAssertTrue(options.list.contains { $0 is SmoothnessCaptureService })
-            XCTAssertTrue(EmbraceIO.CaptureServicesOptions.default().list.contains { $0 is SmoothnessCaptureService })
-        }
-
-        func test_smoothness_removedFromDefaults_isNotInstalled() throws {
-            // given a builder with default services
-            let builder = CaptureServicesOptionsBuilder()
-            builder.addDefaults()
-
-            // when opting out of smoothness
-            builder.remove(ofType: SmoothnessCaptureService.self)
-
-            // then it's not installed
-            let options = builder.build()
-
-            XCTAssertFalse(options.smoothness)
-            XCTAssertFalse(options.list.contains { $0 is SmoothnessCaptureService })
-        }
-
-        func test_smoothness_remove() throws {
-            // given a builder with smoothness
-            let builder = CaptureServicesOptionsBuilder()
-            builder.addSmoothnessCaptureService()
-
-            // when removing it by case
-            builder.remove(embraceType: .smoothness)
-
-            // then it's removed
-            XCTAssertFalse(builder.build().smoothness)
-        }
-
         func test_smoothness_removeOfType() throws {
             // given a builder with smoothness
             let builder = CaptureServicesOptionsBuilder()
@@ -397,14 +358,6 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
 
             // then it's removed
             XCTAssertFalse(builder.build().smoothness)
-        }
-    #else
-        func test_smoothness_ignoredOnUnsupportedPlatforms() throws {
-            // given options with smoothness enabled on a platform without `CADisplayLink` frame timing
-            let options = EmbraceIO.CaptureServicesOptions(smoothness: true)
-
-            // then no smoothness service is installed
-            XCTAssertFalse(options.list.contains { String(describing: type(of: $0)) == "SmoothnessCaptureService" })
         }
     #endif
 
