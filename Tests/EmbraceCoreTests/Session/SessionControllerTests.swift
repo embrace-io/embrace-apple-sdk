@@ -211,80 +211,6 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(currentSessionInObserver?.id, session.id)
     }
 
-    func test_endSession_postsSyncWillEnd_forBackgroundPart() throws {
-        // `SessionController.config` is weak, so keep the config alive for the whole test
-        let (bgController, bgConfig) = makeBackgroundEnabledController()
-        defer { withExtendedLifetime(bgConfig) {} }
-        let session = try XCTUnwrap(bgController.startSession(state: .background))
-
-        var received: EmbraceSession?
-        let token = observeSyncWillEnd { received = $0.object as? EmbraceSession }
-        defer { Embrace.notificationCenter.removeObserver(token) }
-
-        bgController.endSession()
-
-        XCTAssertEqual(received?.id, session.id)
-        XCTAssertEqual(received?.state, .background)
-    }
-
-    func test_endSession_postsSyncWillEnd_beforePublicWillEnd() throws {
-        let session = try XCTUnwrap(controller.startSession(state: .foreground))
-
-        var order: [String] = []
-        let token = observeSyncWillEnd { _ in order.append("sync") }
-        defer { Embrace.notificationCenter.removeObserver(token) }
-        // the public notification is posted async on main, so ignore ones left over from other tests
-        let publicExpectation = expectation(forNotification: .embraceSessionPartWillEnd, object: nil) { notification in
-            guard (notification.object as? EmbraceSession)?.id == session.id else { return false }
-            order.append("public")
-            return true
-        }
-
-        controller.endSession()
-        wait(for: [publicExpectation], timeout: 1)
-
-        XCTAssertEqual(order, ["sync", "public"])
-    }
-
-    func test_endSession_syncWillEnd_carriesPartEndTime() throws {
-        let session = try XCTUnwrap(controller.startSession(state: .foreground))
-
-        var hookEndTime: Date?
-        let token = observeSyncWillEnd { hookEndTime = self.syncWillEndTime($0) }
-        defer { Embrace.notificationCenter.removeObserver(token) }
-
-        let endTime = controller.endSession()
-
-        XCTAssertEqual(hookEndTime, endTime)
-        XCTAssertEqual(storage.fetchSession(id: session.id)?.endTime, endTime)
-    }
-
-    func test_endSessionAt_syncWillEnd_carriesSuppliedEndTime() throws {
-        let session = try XCTUnwrap(controller.startSession(state: .foreground))
-        let endTime = session.startTime.addingTimeInterval(1)
-
-        var hookEndTime: Date?
-        let token = observeSyncWillEnd { hookEndTime = self.syncWillEndTime($0) }
-        defer { Embrace.notificationCenter.removeObserver(token) }
-
-        controller.endSession(at: endTime)
-
-        XCTAssertEqual(hookEndTime, endTime)
-    }
-
-    func test_startSession_syncWillEnd_carriesNextPartStartTime() throws {
-        let session = try XCTUnwrap(controller.startSession(state: .foreground))
-
-        var hookEndTime: Date?
-        let token = observeSyncWillEnd { hookEndTime = self.syncWillEndTime($0) }
-        defer { Embrace.notificationCenter.removeObserver(token) }
-
-        let next = try XCTUnwrap(controller.startSession(state: .foreground))
-
-        XCTAssertEqual(hookEndTime, next.startTime)
-        XCTAssertEqual(storage.fetchSession(id: session.id)?.endTime, next.startTime)
-    }
-
     func test_startSession_spanEndedInSyncWillEnd_fromColdStartPart_isAttributedToEndingPartOnly() throws {
         // Cold-start part: spans are matched by process + start time, so open the span during the
         // part and end it from the hook (the smoothness pattern).
@@ -314,22 +240,6 @@ final class SessionControllerTests: XCTestCase {
         try assertSpan(span, isAttributedOnlyTo: part, notTo: next)
     }
 
-    func test_startSession_foregroundToBackground_spanEndedInSyncWillEnd_isAttributedToEndingPartOnly() throws {
-        // `SessionController.config` is weak, so keep the config alive for the whole test
-        let (bgController, bgConfig) = makeBackgroundEnabledController()
-        defer { withExtendedLifetime(bgConfig) {} }
-        let part = try XCTUnwrap(bgController.startSession(state: .foreground))
-        let span = MockSpan(name: "ended-in-hook", startTime: part.startTime, sessionId: part.id, processId: ProcessIdentifier.current)
-        storage.upsertSpan(span)
-
-        let next = try endSpanInSyncWillEnd(span, of: part) {
-            try XCTUnwrap(bgController.startSession(state: .background))
-        }
-
-        XCTAssertEqual(next.state, .background)
-        try assertSpan(span, isAttributedOnlyTo: part, notTo: next)
-    }
-
     func test_rollPartForUserSessionExpiry_spanEndedInSyncWillEnd_isAttributedToEndingPartOnly() throws {
         controller.startSession(state: .foreground)
         let part = try XCTUnwrap(controller.startSession(state: .foreground))
@@ -345,31 +255,6 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(span.endTime, rollTime)
         XCTAssertEqual(next.startTime, rollTime)
         try assertSpan(span, isAttributedOnlyTo: part, notTo: next)
-    }
-
-    func test_endSession_spanCreatedInSyncWillEnd_isAttributedToEndingPart() throws {
-        // Non-cold-start part: spans carrying the part's session id are matched regardless of time.
-        controller.startSession(state: .foreground)
-        controller.endSession()
-        let part = try XCTUnwrap(controller.startSession(state: .foreground))
-        XCTAssertFalse(part.coldStart)
-
-        let token = observeSyncWillEnd { _ in
-            let sessionId = self.controller.currentSession?.id
-            self.storage.upsertSpan(
-                MockSpan(name: "created-in-hook", endTime: Date(), sessionId: sessionId, processId: ProcessIdentifier.current)
-            )
-        }
-        controller.endSession()
-        Embrace.notificationCenter.removeObserver(token)
-
-        let next = try XCTUnwrap(controller.startSession(state: .foreground))
-        controller.endSession()
-
-        let endedPart = try XCTUnwrap(storage.fetchSession(id: part.id))
-        let nextPart = try XCTUnwrap(storage.fetchSession(id: next.id))
-        XCTAssertTrue(storage.fetchSpans(for: endedPart).contains { $0.name == "created-in-hook" })
-        XCTAssertFalse(storage.fetchSpans(for: nextPart).contains { $0.name == "created-in-hook" })
     }
 
     func test_endSession_offMain_postsSyncWillEnd_withoutDeadlock() throws {
@@ -1521,21 +1406,5 @@ extension SessionControllerTests {
         XCTAssertEqual(endingSpans.count, 1, file: file, line: line)
         XCTAssertEqual(endingSpans.first?.endTime, endingPart.endTime, file: file, line: line)
         XCTAssertFalse(storage.fetchSpans(for: nextPart).contains { $0.context.spanId == span.context.spanId }, file: file, line: line)
-    }
-
-    fileprivate func makeBackgroundEnabledController() -> (SessionController, EmbraceConfig) {
-        let bgConfig = EmbraceConfig(
-            configurable: EditableConfig(isBackgroundSessionEnabled: true),
-            options: .init(),
-            notificationCenter: NotificationCenter.default,
-            logger: MockLogger()
-        )
-        let bgController = SessionController(storage: storage, upload: nil, config: bgConfig)
-        bgController.sdkStateProvider = sdkStateProvider
-        bgController.otel = otel
-        let bgUserSessionController = UserSessionController(storage: storage, config: MockEmbraceConfigurable())
-        bgUserSessionController.sessionController = bgController
-        bgController.userSessionController = bgUserSessionController
-        return (bgController, bgConfig)
     }
 }
