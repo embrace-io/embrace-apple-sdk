@@ -695,25 +695,12 @@ extension SessionController {
 extension Notification.Name {
     static let embraceForegroundSessionDidEnd = Notification.Name("embrace.session.foreground.end")
 
-    /// Posted synchronously on `Embrace.notificationCenter` just before a session part ends, for every
-    /// part state. The `object` is the `EmbraceSession` (the part) that is about to end.
+    /// Posted synchronously on `Embrace.notificationCenter` just before a session part ends, while
+    /// `currentSession` still returns it and before its payload is queued. `object` is the ending
+    /// `EmbraceSession`; `userInfo[SessionController.sessionPartWillEndSyncEndTimeKey]` is its end time.
     ///
-    /// The `userInfo` carries the part's end time under `SessionController.sessionPartWillEndSyncEndTimeKey`.
-    ///
-    /// Unlike `embraceSessionPartWillEnd`, this is posted before the session span ends and before the
-    /// part's payload is queued for upload, while `currentSession` still returns the ending part. Spans
-    /// ended from an observer at the part's end time are attributed to the ending part only. A later end
-    /// time overlaps the next part, whose payload would then include the span too, because the next part
-    /// starts at exactly this end time. Prefer spans opened earlier in the part:
-    /// cold-start parts match spans by start time only, so a span *started* in the observer is dropped
-    /// from a cold-start part's payload.
-    ///
-    /// Contract for observers:
-    /// - Called with the `SessionController` lock held, so do minimal work.
-    /// - May be called on the main thread or on `SessionController.queue` (e.g. max-duration expiry,
-    ///   `endUserSession()`). Never `DispatchQueue.main.sync` from the observer.
-    /// - Also posted when `startSession` ends a part that is still in progress.
-    /// - Never start or end a session from the observer; the lock is not reentrant.
-    /// - Filter on `session.state` if only foreground or background parts are relevant.
+    /// Observers are called with the `SessionController` lock held, on main or `SessionController.queue`:
+    /// - Do minimal work, and never `DispatchQueue.main.sync`.
+    /// - Never start or end a session; the lock is not reentrant.
     static let embraceSessionPartWillEndSync = Notification.Name("embrace.session.part.will_end.sync")
 }
