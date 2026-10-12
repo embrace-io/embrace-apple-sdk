@@ -28,8 +28,9 @@
     /// watchdog, jetsam) leaves the span open; the next launch closes it without metrics.
     ///
     /// Installed by default but dormant (no `CADisplayLink`, no spans) until remote config enables it
-    /// (`EmbraceConfigurable.isSmoothnessEnabled`). Enabled while running, it measures from the next
-    /// foreground part. Disabled while running, it ends the open span with the frames counted so far.
+    /// (`EmbraceConfigurable.isSmoothnessEnabled`). Enabled while running, it opens a span for the
+    /// current foreground part from that point. Disabled while running, it ends the open span with the
+    /// frames counted so far.
     public final class SmoothnessCaptureService: CaptureService {
 
         public convenience override init() {
@@ -104,10 +105,7 @@
                 return
             }
 
-            // Opens a part that started before the tracker existed. That part isn't a partial one:
-            // config applied before start comes from the cache, so the device was already in the
-            // rollout when it started.
-            onMain { [weak self] in self?.activate(opensCurrentPart: true) }
+            onMain { [weak self] in self?.activate() }
         }
 
         public override func onStop() {
@@ -130,8 +128,8 @@
             guard !ignoresRemoteConfig, isEnabled != wasEnabled, state.load(order: .acquire) == .active else { return }
 
             if isEnabled {
-                logger?.debug("[Smoothness] Enabled by remote config. Measuring from the next foreground part.")
-                onMain { [weak self] in self?.activate(opensCurrentPart: false) }
+                logger?.debug("[Smoothness] Enabled by remote config.")
+                onMain { [weak self] in self?.activate() }
             } else {
                 logger?.debug("[Smoothness] Disabled by remote config.")
                 tearDown()
@@ -213,10 +211,7 @@
         /// no-ops instead of replacing it. A teardown can still race in off main between the build and
         /// the store; the recheck under the lock then drops the new pipeline, which releases its
         /// CADisplayLink here on main.
-        ///
-        /// - Parameter opensCurrentPart: Whether to open the current foreground part now. `false` when
-        ///   enabled partway through a part, which then gets no span.
-        private func activate(opensCurrentPart: Bool) {
+        private func activate() {
             guard !isBlockedByDebugger,
                 data.withLock({ $0.pipeline == nil && isRunnable($0) })
             else {
@@ -239,19 +234,14 @@
             let source = FrameTimingSource(notificationCenter: notificationCenter, attachesDisplayLink: attachesDisplayLink)
             source.onTick = Self.makeTickHandler(tracker: tracker)
 
-            // Before the store, so nothing can open the part in between; opens are delivered on main.
-            if !opensCurrentPart {
-                tracker.skipCurrentForegroundPart()
-            }
-
             let stored = data.withLock { data -> Bool in
                 guard state.load(order: .acquire) == .active, data.pipeline == nil, isRunnable(data) else { return false }
                 data.pipeline = Pipeline(source: source, tracker: tracker)
                 return true
             }
 
-            // The first foreground part may have started before the tracker existed.
-            if stored && opensCurrentPart {
+            // The current foreground part may have started before the tracker existed.
+            if stored {
                 tracker.openCurrentForegroundPart()
             }
         }

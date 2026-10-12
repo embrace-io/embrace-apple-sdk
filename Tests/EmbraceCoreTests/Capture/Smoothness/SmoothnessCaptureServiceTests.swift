@@ -260,8 +260,8 @@
             startPart(.foreground)
             let tracker = try XCTUnwrap(service.tracker)
 
-            tracker.recordFrame(lateBy: 0)
-            tracker.recordFrame(lateBy: 1.0 / 60.0)
+            tracker.record(lateBy: 0)
+            tracker.record(lateBy: 1.0 / 60.0)
             XCTAssertEqual(service.openPartFrameCount, 2)
 
             endPart()
@@ -338,9 +338,9 @@
             startPart(.foreground)
             let tracker = try XCTUnwrap(service.tracker)
 
-            tracker.recordFrame(lateBy: 0)
-            tracker.recordFrame(lateBy: 1.0 / 60.0)
-            tracker.recordFrame(lateBy: 2.5 / 60.0)
+            tracker.record(lateBy: 0)
+            tracker.record(lateBy: 1.0 / 60.0)
+            tracker.record(lateBy: 2.5 / 60.0)
             endPart()
 
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
@@ -373,9 +373,9 @@
             startPart(.foreground)
             let tracker = try XCTUnwrap(service.tracker)
 
-            tracker.recordFrame(lateBy: 0)
-            tracker.recordFrame(lateBy: 2.0 / 60.0)
-            tracker.recordFrame(lateBy: service.hangThreshold)
+            tracker.record(lateBy: 0)
+            tracker.record(lateBy: 2.0 / 60.0)
+            tracker.record(lateBy: service.hangThreshold)
             endPart()
 
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
@@ -387,10 +387,10 @@
             startPart(.foreground)
             let tracker = try XCTUnwrap(service.tracker)
 
-            tracker.recordFrame(lateBy: 0)
-            tracker.recordFrame(lateBy: service.hangThreshold + 0.001)
-            tracker.recordFrame(lateBy: 0)
-            tracker.recordFrame(lateBy: 5)
+            tracker.record(lateBy: 0)
+            tracker.record(lateBy: service.hangThreshold + 0.001)
+            tracker.record(lateBy: 0)
+            tracker.record(lateBy: 5)
             endPart()
 
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
@@ -404,7 +404,7 @@
             let tracker = try XCTUnwrap(service.tracker)
 
             for _ in 0..<3 {
-                tracker.recordFrame(lateBy: 1)
+                tracker.record(lateBy: 1)
             }
             endPart()
 
@@ -418,8 +418,8 @@
             startPart(.foreground)
             let tracker = try XCTUnwrap(service.tracker)
 
-            tracker.recordFrame(lateBy: 0.3)
-            tracker.recordFrame(lateBy: 0.6)
+            tracker.record(lateBy: 0.3)
+            tracker.record(lateBy: 0.6)
             endPart()
 
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
@@ -429,11 +429,11 @@
         func test_hangCount_doesNotCarryIntoNextPart() throws {
             startService()
             startPart(.foreground)
-            try XCTUnwrap(service.tracker).recordFrame(lateBy: 1)
+            try XCTUnwrap(service.tracker).record(lateBy: 1)
             endPart()
 
             startPart(.foreground)
-            try XCTUnwrap(service.tracker).recordFrame(lateBy: 0)
+            try XCTUnwrap(service.tracker).record(lateBy: 0)
             endPart()
 
             XCTAssertEqual(endedSmoothnessSpans.count, 2)
@@ -499,7 +499,7 @@
                 ended.fulfill()
             }
             for _ in 0..<10_000 {
-                tracker.recordFrame(lateBy: 0)
+                tracker.record(lateBy: 0)
             }
             wait(for: [ended], timeout: 5)
 
@@ -602,8 +602,8 @@
             startPart(.foreground)
             let tracker = try XCTUnwrap(service.tracker)
 
-            tracker.recordFrame(lateBy: 0)
-            tracker.recordFrame(lateBy: 1.0 / 60.0)
+            tracker.record(lateBy: 0)
+            tracker.record(lateBy: 1.0 / 60.0)
             postWillTerminate()
 
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
@@ -662,10 +662,10 @@
             startService()
             startPart(.foreground)
             let tracker = try XCTUnwrap(service.tracker)
-            tracker.recordFrame(lateBy: 0)
+            tracker.record(lateBy: 0)
 
             postWillTerminate()
-            tracker.recordFrame(lateBy: 0)
+            tracker.record(lateBy: 0)
             endPart()
 
             XCTAssertEqual(smoothnessSpans.count, 1)
@@ -718,7 +718,7 @@
         /// Records one tick far past any threshold in a new part and checks it was capped to `ceiling`.
         private func assertHangCeiling(_ ceiling: TimeInterval, file: StaticString = #filePath, line: UInt = #line) {
             startPart(.foreground)
-            service.tracker?.recordFrame(lateBy: 10)
+            service.tracker?.record(lateBy: 10)
             endPart()
 
             let span = endedSmoothnessSpans.last
@@ -788,25 +788,22 @@
             XCTAssertTrue(smoothnessSpans.isEmpty)
         }
 
-        func test_remote_enabledWhileRunning_skipsCurrentPartAndOpensNext() throws {
+        func test_remote_enabledWhileRunning_opensCurrentPart() throws {
             makeRemoteGatedService()
             startService()
             startPart(.foreground)
 
             setRemotelyEnabled(true)
 
-            // The pipeline runs, but the part that was already open gets no span, even when the app
-            // becomes active again during it.
             XCTAssertNotNil(service.tracker)
-            postDidBecomeActive()
-            drainMain()
-            XCTAssertTrue(smoothnessSpans.isEmpty)
+            XCTAssertEqual(openSmoothnessSpans.count, 1)
+            XCTAssertEqual(smoothnessSpans.count, 1)
 
             endPart()
             startPart(.foreground)
 
             XCTAssertEqual(openSmoothnessSpans.count, 1)
-            XCTAssertEqual(smoothnessSpans.count, 1)
+            XCTAssertEqual(smoothnessSpans.count, 2)
         }
 
         func test_remote_enabledOffMain_buildsPipelineOnMain() {
@@ -836,7 +833,7 @@
             setRemotelyEnabled(true)
             startService()
             startPart(.foreground)
-            try XCTUnwrap(service.tracker).recordFrame(lateBy: 0)
+            try XCTUnwrap(service.tracker).record(lateBy: 0)
             weak var source = service.frameTimingSource
             XCTAssertNotNil(source)
 
@@ -899,7 +896,7 @@
             XCTAssertEqual(endedSmoothnessSpans.count, 1)
         }
 
-        func test_remote_reenabled_opensFromNextPart() {
+        func test_remote_reenabled_opensCurrentPart() {
             makeRemoteGatedService()
             setRemotelyEnabled(true)
             startService()
@@ -909,11 +906,12 @@
             setRemotelyEnabled(true)
 
             XCTAssertNotNil(service.tracker)
-            XCTAssertEqual(smoothnessSpans.count, 1)
+            XCTAssertEqual(openSmoothnessSpans.count, 1)
+            XCTAssertEqual(smoothnessSpans.count, 2)
 
             endPart()
             startPart(.foreground)
-            XCTAssertEqual(smoothnessSpans.count, 2)
+            XCTAssertEqual(smoothnessSpans.count, 3)
         }
 
         func test_remote_unchangedConfig_keepsPipeline() {
@@ -1286,7 +1284,7 @@
             service.start()
             let tracker = try XCTUnwrap(service.tracker)
             for _ in 0..<frames {
-                tracker.recordFrame(lateBy: 0)
+                tracker.record(lateBy: 0)
             }
             XCTAssertEqual(tracker.openFrameCount, frames)
             return session
@@ -1490,9 +1488,9 @@
             let part = try XCTUnwrap(controller.startSession(state: .foreground))
             drainMain()
             let tracker = try XCTUnwrap(service.tracker)
-            tracker.recordFrame(lateBy: 0)
-            tracker.recordFrame(lateBy: 0)
-            tracker.recordFrame(lateBy: 1.0 / 60.0)
+            tracker.record(lateBy: 0)
+            tracker.record(lateBy: 0)
+            tracker.record(lateBy: 1.0 / 60.0)
 
             let next = try XCTUnwrap(controller.startSession(state: .foreground))
             drainMain()
@@ -1550,6 +1548,14 @@
             // The next part's span is stored and still open, and isn't fetched for the ended part.
             XCTAssertFalse(storage.fetchSpans(for: next).filter { $0.name == SpanSemantics.Smoothness.name && $0.endTime == nil }.isEmpty)
             XCTAssertTrue(spans.allSatisfy { $0.endTime != nil })
+        }
+    }
+
+    extension SmoothnessSessionTracker {
+        /// Records a tick whose lateness is exactly `lateBy`: a zero frame interval disables the noise
+        /// floor and step-down correction.
+        fileprivate func record(lateBy: TimeInterval) {
+            record(FrameTimingSource.Tick(delay: lateBy, frameInterval: 0, previousFrameInterval: 0))
         }
     }
 

@@ -85,7 +85,7 @@
         private func openSession() {
             let session = MockSession.with(id: .random, state: .foreground)
             currentSession = session
-            tracker.open(partId: session.id, at: Date())
+            tracker.open(partId: session.id)
         }
 
         // MARK: - Tests

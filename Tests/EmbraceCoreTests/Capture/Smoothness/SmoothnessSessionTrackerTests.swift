@@ -158,7 +158,7 @@
             endPart()
             let third = startPart(.foreground)
 
-            tracker.open(partId: first.id, at: Date())
+            tracker.open(partId: first.id)
 
             XCTAssertEqual(openPartId, third.id)
             XCTAssertEqual(opened, [first.id, third.id])
@@ -167,7 +167,7 @@
         func testOpenForNonCurrentPartDoesNotCloseOpenPart() {
             let session = startPart(.foreground)
 
-            tracker.open(partId: .random, at: Date())
+            tracker.open(partId: .random)
 
             XCTAssertEqual(openPartId, session.id)
             XCTAssertTrue(reported.isEmpty)
@@ -177,7 +177,7 @@
             let session = MockSession.with(id: .random, state: .background)
             currentSession = session
 
-            tracker.open(partId: session.id, at: Date())
+            tracker.open(partId: session.id)
 
             XCTAssertNil(openPartId)
         }
@@ -188,7 +188,7 @@
 
             // A stale will-end for a part that is neither open nor current.
             endPart(MockSession.with(id: .random, state: .background))
-            tracker.open(partId: session.id, at: Date())
+            tracker.open(partId: session.id)
 
             XCTAssertNil(openPartId)
             XCTAssertEqual(opened, [session.id])
@@ -529,40 +529,6 @@
 
             XCTAssertEqual(tracker.openFrameCount, 0)
             XCTAssertEqual(reported.count, 1)
-        }
-
-        func testSkipCurrentForegroundPartKeepsItClosed() {
-            // given a foreground part that is current before the tracker hears its start
-            currentSession = MockSession.with(id: .random, state: .foreground)
-
-            tracker.skipCurrentForegroundPart()
-
-            tracker.openCurrentForegroundPart()
-            postDidBecomeActive()
-            drainMain()
-            XCTAssertNil(openPartId)
-            XCTAssertTrue(opened.isEmpty)
-        }
-
-        func testSkipCurrentForegroundPartStillOpensNextPart() {
-            currentSession = MockSession.with(id: .random, state: .foreground)
-            tracker.skipCurrentForegroundPart()
-
-            let next = startPart(.foreground)
-
-            XCTAssertEqual(openPartId, next.id)
-        }
-
-        func testSkipCurrentForegroundPartDoesNotSkipBackgroundPart() {
-            // given a background cold-start part, later swapped to foreground in place
-            let part = MockSession.with(id: .random, state: .background)
-            currentSession = part
-            tracker.skipCurrentForegroundPart()
-
-            currentSession = MockSession.with(id: part.id, state: .foreground)
-            tracker.openCurrentForegroundPart()
-
-            XCTAssertEqual(openPartId, part.id)
         }
     }
 
