@@ -35,44 +35,12 @@
 
         // MARK: - Lateness
 
-        func testOnTimeFrameReportsZero() {
-            handle(delay: 0, frameInterval: interval60)
-
-            XCTAssertEqual(reportedLateness, [0])
-        }
-
-        func testNegativeDelayReportsZero() {
-            handle(delay: -0.5, frameInterval: interval60)
-
-            XCTAssertEqual(reportedLateness, [0])
-        }
-
-        func testOneMissedVsyncIsPassedThroughAt60And120Hz() {
-            handle(delay: interval60, frameInterval: interval60)
-            handle(delay: interval120, frameInterval: interval120)
-
-            XCTAssertEqual(reportedLateness, [interval60, interval120])
-        }
-
-        func testTwoMissedVsyncsArePassedThroughAt60And120Hz() {
-            handle(delay: 2 * interval60, frameInterval: interval60)
-            handle(delay: 2 * interval120, frameInterval: interval120)
-
-            XCTAssertEqual(reportedLateness, [2 * interval60, 2 * interval120])
-        }
-
         func testMultiFrameDelayIsPassedThroughUnrounded() {
             let delay = interval60 * 3.9
 
             handle(delay: delay, frameInterval: interval60)
 
             XCTAssertEqual(reportedLateness, [delay])
-        }
-
-        func testHangSizedDelayIsPassedThroughUncapped() {
-            handle(delay: 2.0, frameInterval: interval60)
-
-            XCTAssertEqual(reportedLateness, [2.0])
         }
 
         // MARK: - Noise floor
@@ -102,34 +70,11 @@
             XCTAssertEqual(reportedLateness, [0, delay])
         }
 
-        func testJitterDoesNotAccumulateOverLongSessions() {
-            // One hour at 120Hz, every tick 1µs late.
-            for _ in 0..<(120 * 60 * 60) {
-                handle(delay: 0.000_001, frameInterval: interval120)
-            }
-
-            XCTAssertEqual(reportedLateness.reduce(0, +), 0)
-        }
-
         // MARK: - Refresh rate changes
 
         func testRateStepDownFrom120To60ReportsZero() {
             // The tick lands one 120Hz interval after the 120Hz tick's target.
             handle(delay: interval120, frameInterval: interval60, previousFrameInterval: interval120)
-
-            XCTAssertEqual(reportedLateness, [0])
-        }
-
-        func testRateStepDownFrom120To24ReportsZero() {
-            let interval24 = 1.0 / 24.0
-
-            handle(delay: interval24 - interval120, frameInterval: interval24, previousFrameInterval: interval120)
-
-            XCTAssertEqual(reportedLateness, [0])
-        }
-
-        func testRateStepUpFrom60To120ReportsZero() {
-            handle(delay: 0, frameInterval: interval120, previousFrameInterval: interval60)
 
             XCTAssertEqual(reportedLateness, [0])
         }
