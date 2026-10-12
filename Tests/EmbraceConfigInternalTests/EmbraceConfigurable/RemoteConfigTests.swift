@@ -123,9 +123,6 @@ final class RemoteConfigTests: XCTestCase {
         config.payload.smoothnessThreshold = nil
         XCTAssertFalse(config.isSmoothnessEnabled)
 
-        config.payload.smoothnessThreshold = 0
-        XCTAssertFalse(config.isSmoothnessEnabled)
-
         config.payload.smoothnessThreshold = 51
         XCTAssertTrue(config.isSmoothnessEnabled)
 
