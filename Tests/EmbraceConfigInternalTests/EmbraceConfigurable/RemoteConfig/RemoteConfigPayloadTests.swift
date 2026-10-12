@@ -145,22 +145,6 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.maxExperimentVariantLength, 0)
     }
 
-    func test_onHavingInvalidSmoothnessThreshold_RemoteConfigPayload_shouldTreatItAsAbsent() throws {
-        // given a remote config with a smoothness threshold of the wrong type
-        let data = Data(
-            """
-            {
-                "smoothness_pct_enabled": "5"
-            }
-            """.utf8)
-
-        // when decoding payload
-        let payload = try XCTUnwrap(try JSONDecoder().decode(RemoteConfigPayload.self, from: data))
-
-        // then it's ignored, which leaves smoothness off
-        XCTAssertNil(payload.smoothnessThreshold)
-    }
-
     func test_onHavingOldAndInvalidRemoteConfigPayload_RemoteConfigPayload_shouldBeCreatedWithDefaults() throws {
         // given an invalid remote config
         let data = try getRemoteConfigData(forResource: "invalid_remote_config")
@@ -173,7 +157,6 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.backgroundSessionThreshold, 0)
         XCTAssertNil(payload.nsfThreshold)
         XCTAssertNil(payload.traceparentInjectionThreshold)
-        XCTAssertNil(payload.smoothnessThreshold)
         XCTAssertEqual(payload.uiLoadInstrumentationEnabled, true)
         XCTAssert(payload.viewControllerClassNameBlocklist.isEmpty)
         XCTAssertEqual(payload.uiInstrumentationCaptureHostingControllers, false)
