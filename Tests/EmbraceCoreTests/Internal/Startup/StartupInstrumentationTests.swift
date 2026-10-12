@@ -229,4 +229,66 @@ class StartupInstrumentationTests: XCTestCase {
         XCTAssertEqual(parent!.attributes["key1"] as! String, "value1")
         XCTAssertEqual(parent!.attributes["key2"] as! String, "value2")
     }
+
+    func test_endSpans_endsSpansOutsideOfLock() {
+        // given started main spans
+        provider.firstFrameTime = nil
+        instrumentation.buildMainSpans()
+
+        // and a handler that checks if the instrumentation's lock is free when a span ends
+        var lockWasFree: [Bool] = []
+        otel.onSpanEndedCallback = { [instrumentation] _ in
+            lockWasFree.append(instrumentation!.state.isLockFree)
+        }
+        defer { otel.onSpanEndedCallback = nil }
+
+        // when the spans are ended
+        instrumentation.endSpans(Date(timeIntervalSince1970: 15))
+
+        // then the first frame and root spans are ended without holding the lock
+        XCTAssertEqual(lockWasFree, [true, true])
+    }
+
+    func test_buildSecondarySpans_createsSpansOutsideOfLock() {
+        // given started main spans
+        provider.firstFrameTime = nil
+        instrumentation.buildMainSpans()
+
+        // and a handler that checks if the instrumentation's lock is free when a span is created
+        var lockWasFree: [Bool] = []
+        otel.onSpanStartedCallback = { [instrumentation] _ in
+            lockWasFree.append(instrumentation!.state.isLockFree)
+        }
+        defer { otel.onSpanStartedCallback = nil }
+
+        // when the secondary spans are created
+        instrumentation.buildSecondarySpans(provider.appDidFinishLaunchingEndTime)
+
+        // then the app init, sdk setup and sdk start spans are created without holding the lock
+        XCTAssertEqual(lockWasFree, [true, true, true])
+    }
+
+    func test_createStartupChildSpan_createsSpanOutsideOfLock() {
+        // given started main spans
+        provider.firstFrameTime = nil
+        instrumentation.buildMainSpans()
+
+        // and a handler that checks if the instrumentation's lock is free when a span is created
+        var lockWasFree: [Bool] = []
+        otel.onSpanStartedCallback = { [instrumentation] _ in
+            lockWasFree.append(instrumentation!.state.isLockFree)
+        }
+        defer { otel.onSpanStartedCallback = nil }
+
+        // when a completed child span is created
+        let span = instrumentation.createStartupChildSpan(
+            name: "test",
+            startTime: Date(timeIntervalSince1970: 10),
+            endTime: Date(timeIntervalSince1970: 11)
+        )
+
+        // then it is created without holding the lock
+        XCTAssertNotNil(span)
+        XCTAssertEqual(lockWasFree, [true])
+    }
 }
