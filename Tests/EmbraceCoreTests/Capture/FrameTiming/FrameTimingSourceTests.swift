@@ -135,7 +135,7 @@
 
             // The first tick after the reset only arms.
             XCTAssertEqual(stats.frameCount, 2)
-            XCTAssertEqual(stats.cappedTickCount, 0)
+            XCTAssertEqual(stats.hangCount, 0)
             XCTAssertEqual(stats.normalizedDroppedFrames, 0, accuracy: 1e-9)
         }
 
@@ -144,23 +144,23 @@
             let stats = try foregroundPartStatsAfterGap(resetOnWillEnterForeground: false)
 
             XCTAssertEqual(stats.frameCount, 3)
-            XCTAssertEqual(stats.cappedTickCount, 1)
+            XCTAssertEqual(stats.hangCount, 1)
             XCTAssertGreaterThan(stats.normalizedDroppedFrames, 0)
         }
 
         /// Foreground part, background gap, then a new foreground part that starts before the first
         /// post-gap tick. Returns the stats of that second part.
-        private func foregroundPartStatsAfterGap(resetOnWillEnterForeground: Bool) throws -> SmoothnessSessionStats {
+        private func foregroundPartStatsAfterGap(resetOnWillEnterForeground: Bool) throws -> SmoothnessPartStats {
             let embraceNotificationCenter = NotificationCenter()
             var currentSession: EmbraceSession?
-            let tracker = SmoothnessSessionTracker(
+            let tracker = SmoothnessPartTracker(
                 hangThreshold: 0.249,
                 currentSession: { currentSession },
                 notificationCenter: notificationCenter,
                 embraceNotificationCenter: embraceNotificationCenter
             )
-            var reported: [SmoothnessSessionStats] = []
-            tracker.onSessionClosed = { _, stats in reported.append(stats) }
+            var reported: [SmoothnessPartStats] = []
+            tracker.onPartClosed = { _, stats in reported.append(stats) }
             source.onTick = { [tracker] tick in tracker.record(tick) }
 
             let foreground = MockSession.with(id: .random, state: .foreground)

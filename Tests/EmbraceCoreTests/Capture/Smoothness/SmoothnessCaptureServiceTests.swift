@@ -510,7 +510,7 @@
             let span = endedSmoothnessSpans.last
             XCTAssertEqual(
                 span?.attributes[SpanSemantics.Smoothness.keyNormalizedDroppedFrames] as? Double ?? 0,
-                ceiling * SmoothnessSessionStats.referenceFrameRate,
+                ceiling * SmoothnessPartStats.referenceFrameRate,
                 accuracy: accuracy,
                 file: file,
                 line: line
@@ -785,11 +785,11 @@
             drainMain()
             let span = try XCTUnwrap(smoothnessSpans.first)
             let tracker = try XCTUnwrap(service.tracker)
-            let serviceOnSessionClosed = tracker.onSessionClosed
+            let serviceOnPartClosed = tracker.onPartClosed
             var closedOnMain: Bool?
-            tracker.onSessionClosed = { partId, stats in
+            tracker.onPartClosed = { partId, stats in
                 closedOnMain = Thread.isMainThread
-                serviceOnSessionClosed?(partId, stats)
+                serviceOnPartClosed?(partId, stats)
             }
 
             // `async`, not `sync`: a `sync` from main runs the block on main.
@@ -832,11 +832,11 @@
             drainMain()
             let span = try XCTUnwrap(smoothnessSpans.first)
             let tracker = try XCTUnwrap(service.tracker)
-            let serviceOnSessionClosed = tracker.onSessionClosed
+            let serviceOnPartClosed = tracker.onPartClosed
             var closedOnMain: Bool?
-            tracker.onSessionClosed = { partId, stats in
+            tracker.onPartClosed = { partId, stats in
                 closedOnMain = Thread.isMainThread
-                serviceOnSessionClosed?(partId, stats)
+                serviceOnPartClosed?(partId, stats)
             }
             let rollTime = Date()
 
@@ -1150,7 +1150,7 @@
         }
     }
 
-    extension SmoothnessSessionTracker {
+    extension SmoothnessPartTracker {
         /// Records a tick whose lateness is exactly `lateBy`: a zero frame interval disables the noise
         /// floor and step-down correction.
         fileprivate func record(lateBy: TimeInterval) {

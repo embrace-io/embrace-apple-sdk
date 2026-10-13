@@ -21,7 +21,7 @@
         import EmbraceObjCUtilsInternal
     #endif
 
-    /// Service that measures rendering smoothness and emits one `smoothness` span per foreground session
+    /// Service that measures rendering smoothness and emits one `smoothness` span per foreground
     /// part. The span opens when the part starts and ends just before the part's payload is built.
     ///
     /// On terminate, the span is ended and flushed to storage. A part killed any other way (crash,
@@ -115,7 +115,7 @@
         public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
             let hangThreshold = config.hangLimits.hangThreshold
             let isEnabled = config.isSmoothnessEnabled
-            let (tracker, wasEnabled) = data.withLock { data -> (SmoothnessSessionTracker?, Bool) in
+            let (tracker, wasEnabled) = data.withLock { data -> (SmoothnessPartTracker?, Bool) in
                 let wasEnabled = data.isRemotelyEnabled
                 data.hangThreshold = hangThreshold
                 data.isRemotelyEnabled = isEnabled
@@ -150,7 +150,7 @@
         }
 
         /// `nil` while the service isn't running.
-        var tracker: SmoothnessSessionTracker? {
+        var tracker: SmoothnessPartTracker? {
             data.withLock { $0.pipeline?.tracker }
         }
 
@@ -165,7 +165,7 @@
         /// (subsystem `io.embrace.sdk`, category `Smoothness`, name `Tick`) so its cost can be profiled
         /// in Instruments. The choice is made once here, so the per-tick path never branches on it.
         static func makeTickHandler(
-            tracker: SmoothnessSessionTracker,
+            tracker: SmoothnessPartTracker,
             environment: [String: String] = ProcessInfo.processInfo.environment
         ) -> (FrameTimingSource.Tick) -> Void {
             let handler: (FrameTimingSource.Tick) -> Void = { [weak tracker] tick in
@@ -218,16 +218,16 @@
                 return
             }
 
-            let tracker = SmoothnessSessionTracker(
+            let tracker = SmoothnessPartTracker(
                 hangThreshold: hangThreshold,
                 currentSession: currentSession,
                 notificationCenter: notificationCenter,
                 embraceNotificationCenter: embraceNotificationCenter
             )
-            tracker.onSessionOpened = { [weak self] partId, startTime in
+            tracker.onPartOpened = { [weak self] partId, startTime in
                 self?.openSpan(partId: partId, startTime: startTime)
             }
-            tracker.onSessionClosed = { [weak self] partId, stats in
+            tracker.onPartClosed = { [weak self] partId, stats in
                 self?.endSpan(partId: partId, stats: stats)
             }
 
@@ -236,7 +236,7 @@
 
             let stored = data.withLock { data -> Bool in
                 guard state.load(order: .acquire) == .active, data.pipeline == nil, isRunnable(data) else { return false }
-                data.pipeline = Pipeline(source: source, tracker: tracker)
+                data.pipeline = FramePipeline(source: source, tracker: tracker)
                 return true
             }
 
@@ -252,7 +252,7 @@
         /// display link delivers its ticks. The tracker is invalidated first, so a part start delivered
         /// before that release can't open a span.
         private func tearDown() {
-            let pipeline = data.withLock { data -> Pipeline? in
+            let pipeline = data.withLock { data -> FramePipeline? in
                 let previous = data.pipeline
                 data.pipeline = nil
                 return previous
@@ -266,9 +266,9 @@
             }
         }
 
-        private struct Pipeline {
+        private struct FramePipeline {
             let source: FrameTimingSource
-            let tracker: SmoothnessSessionTracker
+            let tracker: SmoothnessPartTracker
         }
 
         private struct OpenSpan {
@@ -281,7 +281,7 @@
             var hangThreshold: TimeInterval = HangLimits.defaultHangThreshold
             /// From `EmbraceConfigurable.isSmoothnessEnabled`. Off until a config says otherwise.
             var isRemotelyEnabled = false
-            var pipeline: Pipeline?
+            var pipeline: FramePipeline?
             var openSpan: OpenSpan?
         }
 
@@ -348,7 +348,7 @@
 
         /// Called with the tracker's lock held, and usually the `SessionController` lock too. Keep it
         /// minimal.
-        private func endSpan(partId: EmbraceIdentifier, stats: SmoothnessSessionStats) {
+        private func endSpan(partId: EmbraceIdentifier, stats: SmoothnessPartStats) {
             let currentThermalState = thermalState()
             let closed = data.withLock { data -> OpenSpan? in
                 guard var open = data.openSpan, open.partId == partId else { return nil }
@@ -363,7 +363,7 @@
             // Always ended, including with zero frames: the span is already persisted and zero is valid.
             span.setAttribute(key: SpanSemantics.Smoothness.keyFrameCount, value: stats.frameCount)
             span.setAttribute(key: SpanSemantics.Smoothness.keyNormalizedDroppedFrames, value: stats.normalizedDroppedFrames)
-            span.setAttribute(key: SpanSemantics.Smoothness.keyHangCount, value: stats.cappedTickCount)
+            span.setAttribute(key: SpanSemantics.Smoothness.keyHangCount, value: stats.hangCount)
             span.setAttribute(key: SpanSemantics.Smoothness.keyPeakThermalState, value: closed.peakThermalState.semanticValue)
             span.end(endTime: stats.endTime)
         }

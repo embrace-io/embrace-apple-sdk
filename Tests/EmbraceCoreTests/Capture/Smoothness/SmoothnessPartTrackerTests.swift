@@ -11,24 +11,24 @@
 
     @testable import EmbraceCore
 
-    final class SmoothnessSessionTrackerTests: XCTestCase {
+    final class SmoothnessPartTrackerTests: XCTestCase {
 
         private let frameDuration = 1.0 / 60.0
         private let accuracy = 1e-9
 
         private var notificationCenter: NotificationCenter!
         private var embraceNotificationCenter: NotificationCenter!
-        private var tracker: SmoothnessSessionTracker!
+        private var tracker: SmoothnessPartTracker!
         private var currentSession: EmbraceSession?
         private var events: [Event] = []
-        private var reported: [SmoothnessSessionStats] = []
+        private var reported: [SmoothnessPartStats] = []
 
         override func setUp() {
             super.setUp()
             notificationCenter = NotificationCenter()
             embraceNotificationCenter = NotificationCenter()
             currentSession = nil
-            tracker = SmoothnessSessionTracker(
+            tracker = SmoothnessPartTracker(
                 hangThreshold: 0.249,
                 currentSession: { [unowned self] in self.currentSession },
                 notificationCenter: notificationCenter,
@@ -36,8 +36,8 @@
             )
             events = []
             reported = []
-            tracker.onSessionOpened = { [unowned self] partId, _ in self.events.append(.opened(partId)) }
-            tracker.onSessionClosed = { [unowned self] partId, stats in
+            tracker.onPartOpened = { [unowned self] partId, _ in self.events.append(.opened(partId)) }
+            tracker.onPartClosed = { [unowned self] partId, stats in
                 self.events.append(.closed(partId))
                 self.reported.append(stats)
             }
@@ -226,7 +226,7 @@
         func testPartEndFromBackgroundThreadClosesSynchronously() {
             startPart(.foreground)
             var closedOnMain: Bool?
-            tracker.onSessionClosed = { _, _ in closedOnMain = Thread.isMainThread }
+            tracker.onPartClosed = { _, _ in closedOnMain = Thread.isMainThread }
 
             let posted = expectation(description: "posted off main")
             var closedBeforePostReturned: Bool?
@@ -280,10 +280,10 @@
 
             XCTAssertEqual(reported.first?.frameCount, 3)
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 5.1, accuracy: accuracy)
-            XCTAssertEqual(reported.first?.cappedTickCount, 0)
+            XCTAssertEqual(reported.first?.hangCount, 0)
         }
 
-        func testTicksOutsideOpenSessionAreIgnored() {
+        func testTicksOutsideOpenPartAreIgnored() {
             tick(delayInFrames: 5.5)
 
             startPart(.foreground)
@@ -297,7 +297,7 @@
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 1.5, accuracy: accuracy)
         }
 
-        func testNewSessionStartsFromZero() {
+        func testNewPartStartsFromZero() {
             startPart(.foreground)
             tick(delayInFrames: 3.5)
             endPart()
@@ -333,7 +333,7 @@
             // Capped to 0.249s = 14.94 reference frames.
             XCTAssertEqual(reported.first?.frameCount, 1)
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
-            XCTAssertEqual(reported.first?.cappedTickCount, 1)
+            XCTAssertEqual(reported.first?.hangCount, 1)
         }
 
         func testTickAtHangThresholdIsNotCapped() {
@@ -343,10 +343,10 @@
             endPart()
 
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
-            XCTAssertEqual(reported.first?.cappedTickCount, 0)
+            XCTAssertEqual(reported.first?.hangCount, 0)
         }
 
-        func testHangThresholdUpdateAppliesToOpenSession() {
+        func testHangThresholdUpdateAppliesToOpenPart() {
             startPart(.foreground)
 
             tracker.setHangThreshold(0.5)
@@ -354,7 +354,7 @@
             endPart()
 
             XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 30, accuracy: accuracy)
-            XCTAssertEqual(reported.first?.cappedTickCount, 1)
+            XCTAssertEqual(reported.first?.hangCount, 1)
         }
 
         // MARK: - Invalidate and skip

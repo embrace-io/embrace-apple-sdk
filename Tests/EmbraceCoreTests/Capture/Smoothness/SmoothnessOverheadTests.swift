@@ -12,7 +12,7 @@
     @testable import EmbraceCore
 
     /// Measures the per-tick cost of the Smoothness hot path: `FrameTimingSource.handleTick` →
-    /// the production tick handler → `SmoothnessSessionTracker`.
+    /// the production tick handler → `SmoothnessPartTracker`.
     ///
     /// Ticks are driven synchronously on main, as in `FrameTimingSourceTests`, through a source with no
     /// display link. Simulator numbers are a regression guard only; release sign-off uses
@@ -39,7 +39,7 @@
         private let frameDuration = 1.0 / 60.0
 
         private var source: FrameTimingSource!
-        private var tracker: SmoothnessSessionTracker!
+        private var tracker: SmoothnessPartTracker!
         private var now: CFTimeInterval = 1_000
         private var currentSession: EmbraceSession?
 
@@ -47,7 +47,7 @@
             try super.setUpWithError()
             try XCTSkipIfSanitizing()
 
-            tracker = SmoothnessSessionTracker(
+            tracker = SmoothnessPartTracker(
                 hangThreshold: 0.249,
                 currentSession: { [unowned self] in self.currentSession },
                 notificationCenter: NotificationCenter(),
@@ -82,7 +82,7 @@
             }
         }
 
-        private func openSession() {
+        private func openPart() {
             let session = MockSession.with(id: .random, state: .foreground)
             currentSession = session
             tracker.open(partId: session.id)
@@ -90,8 +90,8 @@
 
         // MARK: - Tests
 
-        func test_tickCost_withOpenSession() {
-            openSession()
+        func test_tickCost_withOpenPart() {
+            openPart()
 
             measure(metrics: [XCTClockMetric(), XCTCPUMetric()]) {
                 deliverTicks(measuredTickCount)
@@ -101,7 +101,7 @@
         }
 
         /// Ticks between foreground parts still compute lateness and take the tracker's lock.
-        func test_tickCost_withoutSession() {
+        func test_tickCost_withoutOpenPart() {
             measure(metrics: [XCTClockMetric(), XCTCPUMetric()]) {
                 deliverTicks(measuredTickCount)
             }
@@ -110,7 +110,7 @@
         }
 
         func test_tickCost_staysWithinBudget() {
-            openSession()
+            openPart()
             // Warm up so the first-touch cost isn't attributed to the steady state.
             deliverTicks(10_000)
 
@@ -125,13 +125,13 @@
         }
 
         func test_signpostedTickHandler_stillForwardsTicks() {
-            var reported: SmoothnessSessionStats?
-            tracker.onSessionClosed = { _, stats in reported = stats }
+            var reported: SmoothnessPartStats?
+            tracker.onPartClosed = { _, stats in reported = stats }
             let handler = SmoothnessCaptureService.makeTickHandler(
                 tracker: tracker,
                 environment: ["EMBSmoothnessSignposts": "1"]
             )
-            openSession()
+            openPart()
 
             handler(FrameTimingSource.Tick(delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
             handler(FrameTimingSource.Tick(delay: frameDuration, frameInterval: frameDuration, previousFrameInterval: frameDuration))

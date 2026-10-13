@@ -8,7 +8,7 @@
 
     @testable import EmbraceCore
 
-    /// Tests `SmoothnessSessionTracker.lateness(of:)`.
+    /// Tests `SmoothnessPartTracker.lateness(of:)`.
     final class SmoothnessLatenessTests: XCTestCase {
 
         private var reportedLateness: [TimeInterval] = []
@@ -25,7 +25,7 @@
 
         private func handle(delay: TimeInterval, frameInterval: TimeInterval, previousFrameInterval: TimeInterval? = nil) {
             reportedLateness.append(
-                SmoothnessSessionTracker.lateness(
+                SmoothnessPartTracker.lateness(
                     of: FrameTimingSource.Tick(
                         delay: delay,
                         frameInterval: frameInterval,
@@ -53,7 +53,7 @@
         }
 
         func testLatenessAtNoiseFloorIsPassedThroughUnchanged() {
-            let delay = interval60 * SmoothnessSessionTracker.noiseFloorFraction
+            let delay = interval60 * SmoothnessPartTracker.noiseFloorFraction
 
             handle(delay: delay, frameInterval: interval60)
 
