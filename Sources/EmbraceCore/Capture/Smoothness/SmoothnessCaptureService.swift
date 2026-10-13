@@ -119,7 +119,7 @@
                 let wasEnabled = data.isRemotelyEnabled
                 data.hangThreshold = hangThreshold
                 data.isRemotelyEnabled = isEnabled
-                return (data.pipeline?.tracker, wasEnabled)
+                return (data.capture?.tracker, wasEnabled)
             }
             // Set outside `data`'s lock: the tracker calls back into it with its own lock held.
             tracker?.setHangThreshold(hangThreshold)
@@ -151,16 +151,14 @@
 
         /// `nil` while the service isn't running.
         var tracker: SmoothnessPartTracker? {
-            data.withLock { $0.pipeline?.tracker }
+            data.withLock { $0.capture?.tracker }
         }
 
         /// `nil` while the service isn't running.
         var frameTimingSource: FrameTimingSource? {
-            data.withLock { $0.pipeline?.source }
+            data.withLock { $0.capture?.source }
         }
 
-        /// Builds the closure `FrameTimingSource` calls on every tick.
-        ///
         /// In debug builds, `EMBSmoothnessSignposts=1` wraps each tick in an `os_signpost` interval
         /// (subsystem `io.embrace.sdk`, category `Smoothness`, name `Tick`) so its cost can be profiled
         /// in Instruments. The choice is made once here, so the per-tick path never branches on it.
@@ -192,7 +190,7 @@
             debuggerAttached() && environment["EMBAllowWatchdogInDebugger"] != "1"
         }
 
-        /// Whether remote config lets the pipeline run. Call with `data`'s lock held.
+        /// Whether remote config lets the capture run. Call with `data`'s lock held.
         private func isRunnable(_ data: MutableData) -> Bool {
             ignoresRemoteConfig || data.isRemotelyEnabled
         }
@@ -205,15 +203,11 @@
             }
         }
 
-        /// Builds and stores the timing source → tracker pipeline. Must be called on the main thread.
-        ///
-        /// Every activation runs on main, so two can't interleave, and one that finds a live pipeline
-        /// no-ops instead of replacing it. A teardown can still race in off main between the build and
-        /// the store; the recheck under the lock then drops the new pipeline, which releases its
-        /// CADisplayLink here on main.
+        /// Must be called on the main thread. The recheck under the lock drops the new capture if a
+        /// teardown raced in off main while it was being built.
         private func activate() {
             guard !isBlockedByDebugger,
-                data.withLock({ $0.pipeline == nil && isRunnable($0) })
+                data.withLock({ $0.capture == nil && isRunnable($0) })
             else {
                 return
             }
@@ -235,38 +229,35 @@
             source.onTick = Self.makeTickHandler(tracker: tracker)
 
             let stored = data.withLock { data -> Bool in
-                guard state.load(order: .acquire) == .active, data.pipeline == nil, isRunnable(data) else { return false }
-                data.pipeline = FramePipeline(source: source, tracker: tracker)
+                guard state.load(order: .acquire) == .active, data.capture == nil, isRunnable(data) else { return false }
+                data.capture = ActiveCapture(source: source, tracker: tracker)
                 return true
             }
 
             // The current foreground part may have started before the tracker existed.
             if stored {
-                tracker.openCurrentForegroundPart()
+                tracker.open()
             }
         }
 
-        /// Takes the live pipeline out, closes its open part, and releases it on main.
-        ///
-        /// Releasing the pipeline invalidates its `CADisplayLink`, which must happen on main, where the
-        /// display link delivers its ticks. The tracker is invalidated first, so a part start delivered
-        /// before that release can't open a span.
+        /// Closes the open part and releases the capture on main, where its `CADisplayLink` must be
+        /// invalidated.
         private func tearDown() {
-            let pipeline = data.withLock { data -> FramePipeline? in
-                let previous = data.pipeline
-                data.pipeline = nil
+            let capture = data.withLock { data -> ActiveCapture? in
+                let previous = data.capture
+                data.capture = nil
                 return previous
             }
-            guard let pipeline else { return }
+            guard let capture else { return }
 
-            pipeline.tracker.invalidate(at: Date())
+            capture.tracker.invalidate(at: Date())
 
             if !Thread.isMainThread {
-                DispatchQueue.main.async { withExtendedLifetime(pipeline) {} }
+                DispatchQueue.main.async { withExtendedLifetime(capture) {} }
             }
         }
 
-        private struct FramePipeline {
+        private struct ActiveCapture {
             let source: FrameTimingSource
             let tracker: SmoothnessPartTracker
         }
@@ -281,7 +272,7 @@
             var hangThreshold: TimeInterval = HangLimits.defaultHangThreshold
             /// From `EmbraceConfigurable.isSmoothnessEnabled`. Off until a config says otherwise.
             var isRemotelyEnabled = false
-            var pipeline: FramePipeline?
+            var capture: ActiveCapture?
             var openSpan: OpenSpan?
         }
 
@@ -323,11 +314,8 @@
 
         /// Called on main with the tracker's lock held, so a concurrent close waits for the span.
         ///
-        /// Created synchronously so the span is stamped with the part that is current right now. No
-        /// auto-termination code: `autoTerminateSpans()` runs just before the part-will-end hook and
+        /// No auto-termination code: `autoTerminateSpans()` runs just before the part-will-end hook and
         /// would end the span as an error first.
-        ///
-        /// Later writes and the part's payload build are queued after it on the same storage context.
         private func openSpan(partId: EmbraceIdentifier, startTime: Date) {
             guard
                 let span = try? otel?.createInternalSpan(

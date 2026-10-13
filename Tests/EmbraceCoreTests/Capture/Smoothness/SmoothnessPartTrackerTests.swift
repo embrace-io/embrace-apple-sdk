@@ -385,10 +385,68 @@
             startPart(.foreground)
             postDidBecomeActive()
             drainMain()
-            tracker.openCurrentForegroundPart()
+            tracker.open()
 
             XCTAssertNil(openPartId)
             XCTAssertTrue(opened.isEmpty)
+        }
+    }
+
+    // MARK: - Lateness
+
+    extension SmoothnessPartTrackerTests {
+
+        private var interval60: TimeInterval { 1.0 / 60.0 }
+        private var interval120: TimeInterval { 1.0 / 120.0 }
+
+        private func lateness(delay: TimeInterval, frameInterval: TimeInterval, previousFrameInterval: TimeInterval? = nil) -> TimeInterval {
+            SmoothnessPartTracker.lateness(
+                of: FrameTimingSource.Tick(
+                    delay: delay,
+                    frameInterval: frameInterval,
+                    previousFrameInterval: previousFrameInterval ?? frameInterval
+                ))
+        }
+
+        func testMultiFrameDelayIsPassedThroughUnrounded() {
+            let delay = interval60 * 3.9
+
+            XCTAssertEqual(lateness(delay: delay, frameInterval: interval60), delay)
+        }
+
+        func testJitterBelowNoiseFloorReportsZero() {
+            XCTAssertEqual(lateness(delay: 0.000_001, frameInterval: interval120), 0)
+            XCTAssertEqual(lateness(delay: interval60 * 0.4, frameInterval: interval60), 0)
+        }
+
+        func testLatenessAtNoiseFloorIsPassedThroughUnchanged() {
+            let delay = interval60 * SmoothnessPartTracker.noiseFloorFraction
+
+            XCTAssertEqual(lateness(delay: delay, frameInterval: interval60), delay)
+        }
+
+        func testNoiseFloorScalesWithFrameInterval() {
+            // 0.3 of a 60Hz frame is 0.6 of a 120Hz frame.
+            let delay = interval60 * 0.3
+
+            XCTAssertEqual(lateness(delay: delay, frameInterval: interval60), 0)
+            XCTAssertEqual(lateness(delay: delay, frameInterval: interval120), delay)
+        }
+
+        func testRateStepDownFrom120To60ReportsZero() {
+            // The tick lands one 120Hz interval after the 120Hz tick's target.
+            XCTAssertEqual(lateness(delay: interval120, frameInterval: interval60, previousFrameInterval: interval120), 0)
+        }
+
+        func testMissedFrameDuringRateStepDownIsCountedWithoutTheStep() {
+            // Steps 120 → 60Hz and also misses one 60Hz frame.
+            let late = lateness(delay: interval120 + interval60, frameInterval: interval60, previousFrameInterval: interval120)
+
+            XCTAssertEqual(late, interval60, accuracy: 1e-12)
+        }
+
+        func testMissedFrameDuringRateStepUpIsCountedInFull() {
+            XCTAssertEqual(lateness(delay: interval120, frameInterval: interval120, previousFrameInterval: interval60), interval120)
         }
     }
 

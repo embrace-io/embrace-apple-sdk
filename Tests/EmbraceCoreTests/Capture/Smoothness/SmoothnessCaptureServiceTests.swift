@@ -173,7 +173,7 @@
             XCTAssertEqual(endedSmoothnessSpans.count, 1)
         }
 
-        func test_startOffMain_buildsPipelineOnMain() {
+        func test_startOffMain_buildsCaptureOnMain() {
             service.install(otel: otel)
             currentSession = MockSession.with(id: .random, state: .foreground)
 
@@ -195,7 +195,7 @@
             XCTAssertEqual(smoothnessSpans.count, 1)
         }
 
-        func test_stopBeforeActivateRuns_leavesNoPipeline() {
+        func test_stopBeforeActivateRuns_leavesNoCapture() {
             service.install(otel: otel)
             currentSession = MockSession.with(id: .random, state: .foreground)
 
@@ -596,7 +596,7 @@
             XCTAssertNil(service.tracker)
         }
 
-        func test_remote_disabledWhileRunning_endsSpanAndReleasesPipeline() throws {
+        func test_remote_disabledWhileRunning_endsSpanAndReleasesCapture() throws {
             makeRemoteGatedService()
             setRemotelyEnabled(true)
             startService()
@@ -614,7 +614,7 @@
             XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 1)
         }
 
-        func test_remote_disabledOffMain_releasesPipelineOnMain() throws {
+        func test_remote_disabledOffMain_releasesCaptureOnMain() throws {
             makeRemoteGatedService()
             setRemotelyEnabled(true)
             startService()
@@ -667,7 +667,7 @@
             XCTAssertEqual(smoothnessSpans.count, 3)
         }
 
-        func test_remote_unchangedConfig_keepsPipeline() {
+        func test_remote_unchangedConfig_keepsCapture() {
             makeRemoteGatedService()
             setRemotelyEnabled(true)
             startService()
@@ -691,7 +691,7 @@
 
         // MARK: - Activation races
 
-        func test_restartWhileActivateQueued_buildsOnePipeline() throws {
+        func test_restartWhileActivateQueued_buildsOneCapture() throws {
             service.install(otel: otel)
             currentSession = MockSession.with(id: .random, state: .foreground)
 
@@ -703,7 +703,7 @@
             }
             drainMain()
 
-            // The second finds the first's pipeline and no-ops, so no span is replaced or leaked.
+            // The second finds the first's capture and no-ops, so no span is replaced or leaked.
             XCTAssertNotNil(service.tracker)
             XCTAssertEqual(smoothnessSpans.count, 1)
             XCTAssertTrue(endedSmoothnessSpans.isEmpty)

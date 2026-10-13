@@ -157,36 +157,27 @@
 
         // MARK: - Part lifecycle
 
-        /// Opens the current part if it is foreground and not already open. Call on the main thread.
-        func openCurrentForegroundPart() {
-            guard let session = currentSession() else { return }
-
-            open(partId: session.id)
-        }
-
-        /// Opens now rather than at the part's start time. Frames are only accumulated from here, so a
-        /// backdated span would count the unmeasured gap as smooth. And the previous part ends at exactly
-        /// the part's start time, so a span starting there would also be fetched into its payload.
-        func open(partId: EmbraceIdentifier) {
+        /// Opens the current foreground part, if it is `partId` (or any part when `nil`). Call on the main
+        /// thread.
+        ///
+        /// Opens now rather than at the part's start time, so the unmeasured gap isn't counted as smooth
+        /// and the span isn't also fetched into the previous part's payload.
+        func open(partId: EmbraceIdentifier? = nil) {
             lock.locked {
                 guard state.openPart == nil, !state.isInvalidated,
-                    let current = currentSession(), current.id == partId, current.state == .foreground,
-                    state.lastEndedPartId != partId
+                    let current = currentSession(), current.id == partId ?? current.id, current.state == .foreground,
+                    state.lastEndedPartId != current.id
                 else {
                     return
                 }
 
-                state.openPart = OpenPart(partId: partId)
-                onPartOpened?(partId, Date())
+                state.openPart = OpenPart(partId: current.id)
+                onPartOpened?(current.id, Date())
             }
         }
 
-        /// Closes whichever part is open and reports it, and stops the tracker from opening any part
-        /// again.
-        ///
-        /// Called when the tracker is retired or the app terminates. Its observers stay registered until
-        /// it is released, which can happen a main turn later, and a part start delivered in that window
-        /// must not open a span nothing will end.
+        /// Closes and reports the open part, and stops the tracker from opening any part again, since its
+        /// observers can outlive retirement by a main turn.
         ///
         /// - Returns: Whether a part was open and has now been reported.
         @discardableResult
@@ -234,16 +225,14 @@
             guard let part = state.openPart else { return }
 
             state.openPart = nil
-            onPartClosed?(part.partId, stats(for: part, endTime: endTime))
-        }
-
-        private func stats(for part: OpenPart, endTime: Date) -> SmoothnessPartStats {
-            SmoothnessPartStats(
-                endTime: endTime,
-                frameCount: part.frameCount,
-                normalizedDroppedFrames: part.droppedDuration * SmoothnessPartStats.referenceFrameRate,
-                hangCount: part.hangCount
-            )
+            onPartClosed?(
+                part.partId,
+                SmoothnessPartStats(
+                    endTime: endTime,
+                    frameCount: part.frameCount,
+                    normalizedDroppedFrames: part.droppedDuration * SmoothnessPartStats.referenceFrameRate,
+                    hangCount: part.hangCount
+                ))
         }
 
         /// `SessionController` posts this asynchronously on the main thread.
@@ -259,18 +248,13 @@
         /// performs the swap from the same notification, isn't guaranteed.
         @objc private func appDidBecomeActive(_ notification: Notification) {
             DispatchQueue.main.async { [weak self] in
-                self?.openCurrentForegroundPart()
+                self?.open()
             }
         }
 
-        /// `SessionController` posts this synchronously with its lock held, on whichever thread is
-        /// ending the part. Matching on the open part id is enough to filter out background parts.
-        ///
-        /// Marks the part as ended if it is open or current, so a late open for it is ignored. Any other
-        /// id is stale and ignored, so it can't overwrite the record of the part that did end.
-        ///
-        /// Closes at the part's own end time, since the next part starts at exactly that time and a
-        /// later end would put the span in the next part's payload too.
+        /// Posted synchronously with `SessionController`'s lock held. Records the part as ended if it is
+        /// open or current, so a late open is ignored, and closes at the part's own end time so the span
+        /// stays out of the next part's payload.
         @objc private func sessionPartWillEnd(_ notification: Notification) {
             guard let session = notification.object as? EmbraceSession else { return }
 
