@@ -99,7 +99,7 @@
         private func drainMain() {
             let drained = expectation(description: "main drained")
             DispatchQueue.main.async { drained.fulfill() }
-            wait(for: [drained], timeout: 1)
+            wait(for: [drained], timeout: .defaultTimeout)
         }
 
         private func tick(delayInFrames: Double) {
@@ -235,7 +235,7 @@
                 closedBeforePostReturned = closedOnMain != nil
                 posted.fulfill()
             }
-            wait(for: [posted], timeout: 1)
+            wait(for: [posted], timeout: .defaultTimeout)
 
             XCTAssertEqual(closedOnMain, false)
             XCTAssertEqual(closedBeforePostReturned, true)
