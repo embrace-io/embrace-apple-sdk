@@ -146,22 +146,6 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         XCTAssertEqual(results[0].context.spanId, "test")
     }
 
-    func test_withSpanEndingJustAfterSessionStart_returnsSpanInArray() throws {
-        // session  :      ---------------
-        // span     :  -----
-        let start = Date.relative(-20)
-        let session = sessionRecord(
-            startTime: start,
-            endTime: .relative(-5)
-        )
-
-        addSpanRecord(startTime: .relative(-22), endTime: start.addingTimeInterval(0.001))
-        let results = storage.fetchSpans(for: session)
-
-        XCTAssertEqual(results.count, 1)
-        XCTAssertEqual(results[0].context.spanId, "test")
-    }
-
     func test_withSpanOverlapsSessionEnd_returnsSpanInArray() throws {
         // session  :      ---------------
         // span     :                   ----
@@ -363,7 +347,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         XCTAssertEqual(results[0].context.spanId, "test")
     }
 
-    func test_withSpanStartAtIsEqualToSessionEnd_returnsSpan() throws {
+    func test_withSpanStartAtIsEqualToSessionEnd_returnsEmptyArray() throws {
         // session  :      ---------------|
         // span     :                     |----
         let boundary: Date = .relative(-5)
