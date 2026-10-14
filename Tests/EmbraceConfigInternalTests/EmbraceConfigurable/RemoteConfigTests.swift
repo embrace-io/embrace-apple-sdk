@@ -116,7 +116,7 @@ final class RemoteConfigTests: XCTestCase {
         // given a config
         let config = RemoteConfig(options: options, logger: logger)
 
-        // then isSmoothnessEnabled returns the correct values based on smoothness_pct_enabled
+        // then isSmoothnessEnabled returns the correct values based on pct_smoothness_enabled
         config.payload.smoothnessThreshold = 100
         XCTAssertTrue(config.isSmoothnessEnabled)
 

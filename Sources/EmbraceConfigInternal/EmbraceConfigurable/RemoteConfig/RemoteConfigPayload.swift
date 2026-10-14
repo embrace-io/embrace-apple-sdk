@@ -68,7 +68,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         case nsfThreshold = "nsf_pct_enabled"
         case traceparentInjectionThreshold = "traceparent_injection_pct_enabled"
-        case smoothnessThreshold = "smoothness_pct_enabled"
+        case smoothnessThreshold = "pct_smoothness_enabled"
 
         case walModeThreshold = "core_data_wal_mode_pct_enabled"
         case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled_v2"
