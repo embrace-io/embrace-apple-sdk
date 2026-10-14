@@ -11,14 +11,7 @@
         import EmbraceSemantics
     #endif
 
-    /// Frame accounting for one closed foreground part.
-    ///
-    /// Uses Android's smoothness units: `normalizedDroppedFrames` is the total late time expressed in
-    /// 60fps reference frames, so it is refresh-rate independent (one dropped frame is 0.5 at 120Hz, 2.0
-    /// at 30Hz). Expected frames are not stored; like Android, they are implied by the part's duration
-    /// (`duration * referenceFrameRate`).
-    ///
-    /// `frameCount` does not mean the same as Android's: see its doc comment.
+    /// Frame accounting for one closed foreground part, with dropped frames in Android's 60fps reference units.
     struct SmoothnessPartStats {
 
         /// The fixed frame rate all dropped-frame counts are normalized to.

@@ -28,7 +28,6 @@
             /// `targetTimestamp`. A positive value means the frame arrived later than promised.
             let delay: TimeInterval
 
-            /// This tick's frame interval (`targetTimestamp - timestamp`).
             let frameInterval: TimeInterval
 
             /// The previous tick's frame interval. Differs from `frameInterval` when the refresh

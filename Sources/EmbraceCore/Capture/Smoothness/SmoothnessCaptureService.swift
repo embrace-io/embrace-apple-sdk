@@ -53,7 +53,6 @@
         /// - Parameters:
         ///   - flushStorage: Blocks until pending storage writes, including the span's end, are on disk.
         ///   - environment: Checked for `EMBAllowWatchdogInDebugger=1`, which keeps it enabled anyway.
-        ///   - ignoresRemoteConfig: Runs whether or not remote config enables smoothness.
         ///   - attachesDisplayLink: Whether the frame timing source runs a real `CADisplayLink`. Tests
         ///     pass `false` and drive frames through the tracker.
         init(
@@ -270,7 +269,6 @@
 
         private struct MutableData {
             var hangThreshold: TimeInterval = HangLimits.defaultHangThreshold
-            /// From `EmbraceConfigurable.isSmoothnessEnabled`. Off until a config says otherwise.
             var isRemotelyEnabled = false
             var capture: ActiveCapture?
             var openSpan: OpenSpan?
