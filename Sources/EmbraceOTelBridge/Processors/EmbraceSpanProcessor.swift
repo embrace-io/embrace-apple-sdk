@@ -173,9 +173,11 @@ class EmbraceSpanProcessor: SpanProcessor {
     /// backend can correlate every signal back to a user session/part — `session.id` carries
     /// the user-session UUID in v7, `emb.user_session_id` mirrors it, and `emb.session_part_id`
     /// carries the part UUID (the value `session.id` had pre-v7).
+    ///
+    /// `emb.state` is deliberately not stamped. As with spans created through the SDK, only the
+    /// session span carries it.
     private func injectAttributes(_ span: ReadableSpan, delegate: EmbraceSpanProcessorDelegate) {
         span.setAttribute(key: SpanSemantics.keyEmbraceType, value: .string(EmbraceType.performance.rawValue))
-        span.setAttribute(key: SpanSemantics.Session.keyState, value: .string(delegate.currentSessionState.rawValue))
 
         let userSessionId = delegate.currentUserSessionId?.stringValue ?? ""
         let partId = delegate.currentSessionId?.stringValue ?? ""
