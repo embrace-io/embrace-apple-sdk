@@ -457,10 +457,11 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
 // MARK: EmbraceOTelDelegate
 extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
 
-    /// Attribute keys stamped by `EmbraceSpanProcessor.injectAttributes()` before the span
-    /// reaches the delegate. These must always be preserved in storage regardless of the
-    /// attribute count limit. The three identity keys (`session.id`, `emb.user_session_id`,
-    /// `emb.session_part_id`) are protected so the cross-cutting stamping survives sanitization.
+    /// Attribute keys stamped by the bridge's span and log processors before the signal reaches
+    /// the delegate. These must always be preserved in storage regardless of the attribute count
+    /// limit. The three identity keys (`session.id`, `emb.user_session_id`, `emb.session_part_id`)
+    /// are protected so the cross-cutting stamping survives sanitization. `emb.state` is only
+    /// stamped on logs.
     static let bridgeProtectedKeys: Set<String> = [
         SpanSemantics.keyEmbraceType,
         SpanSemantics.Session.keyState,

@@ -175,7 +175,6 @@ class EmbraceSpanProcessor: SpanProcessor {
     /// carries the part UUID (the value `session.id` had pre-v7).
     private func injectAttributes(_ span: ReadableSpan, delegate: EmbraceSpanProcessorDelegate) {
         span.setAttribute(key: SpanSemantics.keyEmbraceType, value: .string(EmbraceType.performance.rawValue))
-        span.setAttribute(key: SpanSemantics.Session.keyState, value: .string(delegate.currentSessionState.rawValue))
 
         let userSessionId = delegate.currentUserSessionId?.stringValue ?? ""
         let partId = delegate.currentSessionId?.stringValue ?? ""
