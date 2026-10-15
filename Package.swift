@@ -19,7 +19,7 @@ import PackageDescription
 let package = Package(
     name: "EmbraceIO",
     platforms: [
-        .iOS(.v13), .tvOS(.v13), .macOS(.v13), .watchOS(.v6)
+        .iOS(.v15), .tvOS(.v15), .macOS(.v13), .watchOS(.v9)
     ],
     products: [
         .library(name: "EmbraceIO", targets: ["EmbraceIO"]),

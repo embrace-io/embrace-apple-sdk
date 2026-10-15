@@ -12,7 +12,6 @@ import SwiftUI
 #endif
 
 /// The environment key for injecting `EmbraceTraceViewLogger` into SwiftUI's `EnvironmentValues`.
-@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 private struct EmbraceTraceViewLoggerEnvironmentKey: EnvironmentKey {
     static let defaultValue: EmbraceTraceViewLogger = EmbraceTraceViewLogger(
         otel: Embrace.client?.otel,
@@ -21,7 +20,6 @@ private struct EmbraceTraceViewLoggerEnvironmentKey: EnvironmentKey {
     )
 }
 
-@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension EnvironmentValues {
     /// Provides the singleton `EmbraceTraceViewLogger` used by `EmbraceTraceView`.
     var embraceTraceViewLogger: EmbraceTraceViewLogger {
@@ -40,7 +38,6 @@ extension EnvironmentValues {
 ///      spans can be created within the same render cycle.
 ///
 /// If any dependency (OTel client, configuration, etc.) is absent, tracing is effectively disabled.
-@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 final class EmbraceTraceViewLogger {
     // MARK: – Properties
 

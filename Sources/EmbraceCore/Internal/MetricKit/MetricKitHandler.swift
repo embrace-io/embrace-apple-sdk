@@ -153,7 +153,6 @@ import Foundation
             }
         }
 
-        @available(iOS 14.0, *)
         func didReceive(_ payloads: [MXDiagnosticPayload]) {
             for payload in payloads {
                 handlePayload(MetricKitDiagnosticPayload(payload: payload))
@@ -177,7 +176,6 @@ class MetricKitDiagnosticPayload {
     }
 
     #if canImport(MetricKit) && !os(tvOS)
-        @available(iOS 14.0, *)
         init(payload: MXDiagnosticPayload) {
             self.startTime = payload.timeStampBegin
             self.endTime = payload.timeStampEnd

@@ -73,17 +73,13 @@ struct AverageMemory: Codable {
 
     extension MetaData {
 
-        @available(iOS 13.0, macOS 12.0, *)
+        @available(macOS 12.0, *)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
         init?(from metaData: MXMetaData?) {
             guard let metaData = metaData else { return nil }
 
-            if #available(iOS 14.0, *) {
-                self.platformArchitecture = metaData.platformArchitecture
-            } else {
-                self.platformArchitecture = ""
-            }
+            self.platformArchitecture = metaData.platformArchitecture
 
             if #available(iOS 17.0, macOS 14.0, *) {
                 self.lowPowerModeEnabled = metaData.lowPowerModeEnabled
@@ -108,7 +104,7 @@ struct AverageMemory: Codable {
 
     extension Histogram {
 
-        @available(iOS 13.0, macOS 12.0, *)
+        @available(macOS 12.0, *)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
         init?(histogram: MXHistogram<UnitDuration>?) {
@@ -128,7 +124,7 @@ struct AverageMemory: Codable {
 
     extension AverageMemory {
 
-        @available(iOS 13.0, macOS 12.0, *)
+        @available(macOS 12.0, *)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
         init?(average: MXAverage<UnitInformationStorage>?) {
@@ -142,7 +138,7 @@ struct AverageMemory: Codable {
 
     extension SignpostIntervalData {
 
-        @available(iOS 13.0, macOS 12.0, *)
+        @available(macOS 12.0, *)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
         init?(intervalData: MXSignpostIntervalData?) {
@@ -153,11 +149,7 @@ struct AverageMemory: Codable {
             self.averageMemory = AverageMemory(average: intervalData.averageMemory)
             self.cumulativeLogicalWrites = intervalData.cumulativeLogicalWrites?.bytesValue ?? 0
 
-            if #available(iOS 15.0, *) {
-                self.cumulativeHitchTimeRatio = intervalData.cumulativeHitchTimeRatio?.value ?? 0
-            } else {
-                self.cumulativeHitchTimeRatio = 0
-            }
+            self.cumulativeHitchTimeRatio = intervalData.cumulativeHitchTimeRatio?.value ?? 0
         }
     }
 
@@ -165,7 +157,7 @@ struct AverageMemory: Codable {
 
         static let allowedSignpostCategories = ["EmbraceSDK"]
 
-        @available(iOS 13.0, macOS 12.0, *)
+        @available(macOS 12.0, *)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
         init(payload: MXMetricPayload) {

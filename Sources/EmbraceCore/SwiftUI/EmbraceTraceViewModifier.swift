@@ -44,7 +44,6 @@ import SwiftUI
 ///   - attributes: Optional metadata (key/value pairs) to enrich trace analysis.
 ///   - contentComplete: A value that when changed, will flag the View as content complete.
 /// - Returns: A new `View` wrapped with Embrace tracing instrumentation.
-@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 extension View {
     public func embraceTrace(
         _ viewName: String,

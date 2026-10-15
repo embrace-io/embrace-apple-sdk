@@ -222,28 +222,24 @@ struct SessionTaskResumeSwizzler: URLSessionSwizzler {
     }
 
     func install() throws {
-        if #available(iOS 15.0, tvOS 15.0, macOS 12, watchOS 8, *) {
-            try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
-                return { [weak handler = self.handler] task in
-                    let handled = handler?.create(task: task) ?? true
+        try swizzleInstanceMethod { originalImplementation -> BlockImplementationType in
+            return { [weak handler = self.handler] task in
+                let handled = handler?.create(task: task) ?? true
 
-                    // setting task delegate on background tasks is not supported and throws an exception.
-                    if !task.isBackgroundTask {
-                        // if the task was handled by this swizzler
-                        // by the time resume was called it probably means
-                        // it was an async/await task
-                        // we set a proxy delegate to get a callback when the task finishes
-                        if handled, let handler = handler, task.state == .suspended {
-                            let originalDelegate = task.delegate
-                            task.delegate = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
-                        }
+                // setting task delegate on background tasks is not supported and throws an exception.
+                if !task.isBackgroundTask {
+                    // if the task was handled by this swizzler
+                    // by the time resume was called it probably means
+                    // it was an async/await task
+                    // we set a proxy delegate to get a callback when the task finishes
+                    if handled, let handler = handler, task.state == .suspended {
+                        let originalDelegate = task.delegate
+                        task.delegate = EmbraceMakeURLSessionDelegateProxy(originalDelegate, handler)
                     }
-                    // call original
-                    originalImplementation(task, Self.selector)
                 }
+                // call original
+                originalImplementation(task, Self.selector)
             }
-        } else {
-            // only supported in ios 15+
         }
     }
 }

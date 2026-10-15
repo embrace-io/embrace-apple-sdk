@@ -12,7 +12,7 @@ Pod::Spec.new do |spec|
   spec.author                         = "Embrace.io"
   spec.source                         = { :git => "https://github.com/embrace-io/embrace-apple-sdk.git", :tag => spec.version }
   spec.requires_arc                   = true
-  spec.ios.deployment_target          = "13.0"
+  spec.ios.deployment_target          = "15.0"
   spec.swift_version                  = "5.9"
   spec.default_subspec = "EmbraceIO"
 

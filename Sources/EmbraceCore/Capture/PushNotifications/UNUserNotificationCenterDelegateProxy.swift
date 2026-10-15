@@ -55,21 +55,12 @@ extension UNUserNotificationCenterDelegateProxy: UNUserNotificationCenterDelegat
         )
 
         // call original
-        if #available(iOS 14.0, tvOS 14.0, watchOS 7.0, *) {
-            originalDelegate?.userNotificationCenter?(
-                center,
-                willPresent: notification,
-                withCompletionHandler: completionHandler
-            )
-                ?? completionHandler(.list)
-        } else {
-            originalDelegate?.userNotificationCenter?(
-                center,
-                willPresent: notification,
-                withCompletionHandler: completionHandler
-            )
-                ?? completionHandler(.alert)
-        }
+        originalDelegate?.userNotificationCenter?(
+            center,
+            willPresent: notification,
+            withCompletionHandler: completionHandler
+        )
+            ?? completionHandler(.list)
     }
     #if !os(tvOS)
         func userNotificationCenter(
