@@ -112,6 +112,24 @@ final class RemoteConfigTests: XCTestCase {
         XCTAssertFalse(config.traceparentInjectionEnabled)
     }
 
+    func test_isSmoothnessEnabled() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        // then isSmoothnessEnabled returns the correct values based on pct_smoothness_enabled
+        config.payload.smoothnessThreshold = 100
+        XCTAssertTrue(config.isSmoothnessEnabled)
+
+        config.payload.smoothnessThreshold = nil
+        XCTAssertFalse(config.isSmoothnessEnabled)
+
+        config.payload.smoothnessThreshold = 51
+        XCTAssertTrue(config.isSmoothnessEnabled)
+
+        config.payload.smoothnessThreshold = 49
+        XCTAssertFalse(config.isSmoothnessEnabled)
+    }
+
     func test_SpanEventsLimits() {
         // given a config
         let config = RemoteConfig(options: options, logger: logger)

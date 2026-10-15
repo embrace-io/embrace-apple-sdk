@@ -81,10 +81,21 @@ public protocol EmbraceConfigurable: AnyObject {
     /// Whether a `traceparent` header is injected into captured network requests.
     var traceparentInjectionEnabled: Bool { get }
 
+    /// Whether `SmoothnessCaptureService` measures rendering smoothness on this device.
+    ///
+    /// The service is installed by default but stays dormant, with no `CADisplayLink`, until this is
+    /// `true`. Changes take effect while the app runs.
+    var isSmoothnessEnabled: Bool { get }
+
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:
     ///     - completion: A completion block that receives a `Result`. On success it carries `true`
     ///     if the configuration now has different values and `false` if not. On failure it carries an
     ///     `Error` describing the issue that prevented the update.
     func update(completion: @escaping (Result<Bool, Error>) -> Void)
+}
+
+extension EmbraceConfigurable {
+    /// Off unless a configuration opts the device in, so existing conformers keep smoothness dormant.
+    public var isSmoothnessEnabled: Bool { false }
 }

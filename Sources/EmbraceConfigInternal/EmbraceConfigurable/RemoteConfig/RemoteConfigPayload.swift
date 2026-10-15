@@ -15,6 +15,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var backgroundSessionThreshold: Float
     var nsfThreshold: Float?
     var traceparentInjectionThreshold: Float?
+    var smoothnessThreshold: Float?
     var walModeThreshold: Float
 
     var uiLoadInstrumentationEnabled: Bool
@@ -67,6 +68,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         case nsfThreshold = "nsf_pct_enabled"
         case traceparentInjectionThreshold = "traceparent_injection_pct_enabled"
+        case smoothnessThreshold = "pct_smoothness_enabled"
 
         case walModeThreshold = "core_data_wal_mode_pct_enabled"
         case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled_v2"
@@ -152,6 +154,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         // network span forwarding (new flat keys — old SDKs keep reading legacy nested key)
         nsfThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .nsfThreshold)
         traceparentInjectionThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .traceparentInjectionThreshold)
+
+        // smoothness (off when absent)
+        smoothnessThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .smoothnessThreshold)
 
         // is wal mode enabled config
         walModeThreshold =
@@ -454,6 +459,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         backgroundSessionThreshold = 0.0
         nsfThreshold = nil
         traceparentInjectionThreshold = nil
+        smoothnessThreshold = nil
         walModeThreshold = 100.0
 
         uiLoadInstrumentationEnabled = true
