@@ -349,9 +349,11 @@ package class Embrace {
             metricKit.lastSession = priorSession
             metricKit.install()
 
-            // start instrumentation
-            startupInstrumentation.buildMainSpans()
+            // Start the session before the startup spans. A span is stamped with the identity of the
+            // session that is active when it is created, so building them first would leave the startup
+            // trace without session ids.
             sessionLifecycle.startSession()
+            startupInstrumentation.buildMainSpans()
             captureServices.install()
 
             // WARNING: This is dangerous as it calls out to external code.
