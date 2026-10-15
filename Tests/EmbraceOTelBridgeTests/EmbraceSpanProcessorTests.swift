@@ -66,7 +66,6 @@ final class EmbraceSpanProcessorTests: XCTestCase {
     // MARK: - Attribute injection on external spans
 
     func test_onStart_injectsEmbraceTypeOnExternalSpan() {
-        mockDelegate.currentSessionState = .foreground
         mockDelegate.currentSessionId = EmbraceIdentifier(stringValue: "part-123")
         mockDelegate.currentUserSessionId = EmbraceIdentifier(stringValue: "user-123")
         let span = tracer.spanBuilder(spanName: "external").startSpan()
@@ -77,7 +76,8 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         }
         let data = readable.toSpanData()
         XCTAssertEqual(data.attributes[SpanSemantics.keyEmbraceType], .string(EmbraceType.performance.rawValue))
-        XCTAssertEqual(data.attributes[SpanSemantics.Session.keyState], .string("foreground"))
+        // emb.state is only carried by the session span.
+        XCTAssertNil(data.attributes[SpanSemantics.Session.keyState])
         // session.id carries the user-session id; the part id lives under emb.session_part_id.
         XCTAssertEqual(data.attributes[SpanSemantics.keySessionId], .string("user-123"))
         XCTAssertEqual(data.attributes[SpanSemantics.Session.keyUserSessionId], .string("user-123"))
@@ -308,7 +308,6 @@ class MockSpanProcessorDelegate: EmbraceSpanProcessorDelegate {
     var internalSpanNames: Set<String> = []
     var startedSpans: [ReadableSpan] = []
     var endedSpans: [ReadableSpan] = []
-    var currentSessionState: SessionState = .foreground
     var currentSessionId: EmbraceIdentifier? = nil
     var currentUserSessionId: EmbraceIdentifier? = nil
 
