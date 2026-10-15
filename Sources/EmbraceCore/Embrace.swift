@@ -329,13 +329,9 @@ package class Embrace {
                 return self
             }
 
-            // embrace process start spans
-            let spans = createProcessStartSpans()
-            defer {
-                for span in spans {
-                    span.end()
-                }
-            }
+            // The process start spans are only created once the session has started (see below), but
+            // `emb-sdk-start-process` still has to measure from here.
+            let sdkStartProcessTime = Date()
 
             // set sdk state
             state = .started
@@ -349,9 +345,19 @@ package class Embrace {
             metricKit.lastSession = priorSession
             metricKit.install()
 
-            // start instrumentation
-            startupInstrumentation.buildMainSpans()
+            // Start the session before the startup and process start spans. A span is stamped with the
+            // identity of the session that is active when it is created, so building them first would
+            // leave them without session ids.
             sessionLifecycle.startSession()
+            startupInstrumentation.buildMainSpans()
+
+            let spans = createProcessStartSpans(sdkStartProcessTime: sdkStartProcessTime)
+            defer {
+                for span in spans {
+                    span.end()
+                }
+            }
+
             captureServices.install()
 
             // WARNING: This is dangerous as it calls out to external code.

@@ -351,10 +351,6 @@ extension EmbraceOTelBridge: EmbraceSpanProcessorDelegate {
         delegate?.onEndSpan(adapter)
     }
 
-    package var currentSessionState: SessionState {
-        metadataProvider?.currentSessionState ?? .unknown
-    }
-
     package var currentSessionId: EmbraceIdentifier? {
         metadataProvider?.currentSessionId
     }
@@ -367,6 +363,10 @@ extension EmbraceOTelBridge: EmbraceSpanProcessorDelegate {
 // MARK: - EmbraceLogProcessorDelegate
 
 extension EmbraceOTelBridge: EmbraceLogProcessorDelegate {
+
+    package var currentSessionState: SessionState {
+        metadataProvider?.currentSessionState ?? .unknown
+    }
 
     package func isInternalLog(_ log: ReadableLogRecord) -> Bool {
         guard case let .string(logId) = log.attributes[LogSemantics.keyId] else {
