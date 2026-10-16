@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name                           = "EmbraceIO"
-  spec.version                        = "6.22.1"
+  spec.version                        = "7.0.0"
   spec.summary                        = "Visibility into your users that you didn't have before."
   spec.description                    = <<-DESC
                       Embrace is the only performance monitoring platform focused solely on mobile. We are built
@@ -45,14 +45,12 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
     subs.dependency "EmbraceIO/EmbraceSemantics"
     subs.dependency "EmbraceIO/EmbraceConfiguration"
-    subs.dependency "EmbraceIO/EmbraceKSCrashBacktraceSupport"
   end
 
   spec.subspec 'EmbraceCommonInternal' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceAtomicsShim"
     subs.dependency "EmbraceIO/EmbraceSemantics"
-    subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
   spec.subspec 'EmbraceAtomicsShim' do |subs|
@@ -62,7 +60,6 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceSemantics' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
-    subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
   spec.subspec 'EmbraceCaptureService' do |subs|
