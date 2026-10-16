@@ -11,7 +11,6 @@ import Foundation
     import EmbraceConfiguration
 #endif
 
-@available(macOS 12.0, *)
 class MetricKitMetricsCaptureService: CaptureService, MetricKitMetricsPayloadListener {
 
     let options: MetricKitCaptureServiceOptions

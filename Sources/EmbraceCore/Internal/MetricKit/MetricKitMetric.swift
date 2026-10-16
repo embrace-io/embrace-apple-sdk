@@ -73,7 +73,6 @@ struct AverageMemory: Codable {
 
     extension MetaData {
 
-        @available(macOS 12.0, *)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
         init?(from metaData: MXMetaData?) {
@@ -104,7 +103,6 @@ struct AverageMemory: Codable {
 
     extension Histogram {
 
-        @available(macOS 12.0, *)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
         init?(histogram: MXHistogram<UnitDuration>?) {
@@ -124,7 +122,6 @@ struct AverageMemory: Codable {
 
     extension AverageMemory {
 
-        @available(macOS 12.0, *)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
         init?(average: MXAverage<UnitInformationStorage>?) {
@@ -138,7 +135,6 @@ struct AverageMemory: Codable {
 
     extension SignpostIntervalData {
 
-        @available(macOS 12.0, *)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
         init?(intervalData: MXSignpostIntervalData?) {
@@ -157,7 +153,6 @@ struct AverageMemory: Codable {
 
         static let allowedSignpostCategories = ["EmbraceSDK"]
 
-        @available(macOS 12.0, *)
         @available(tvOS, unavailable)
         @available(watchOS, unavailable)
         init(payload: MXMetricPayload) {
