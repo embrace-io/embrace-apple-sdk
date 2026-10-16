@@ -18,12 +18,7 @@ class EmbraceUploadCache {
     let coreData: CoreDataWrapper
     let logger: InternalLogger
 
-    /// - Parameter isTesting: Forces an in-memory store when true. See `EmbraceUpload.init`.
-    init(
-        options: EmbraceUpload.CacheOptions,
-        logger: InternalLogger,
-        isTesting: Bool = ProcessInfo.processInfo.isTesting
-    ) throws {
+    init(options: EmbraceUpload.CacheOptions, logger: InternalLogger) throws {
         self.options = options
         self.logger = logger
 
@@ -45,7 +40,7 @@ class EmbraceUploadCache {
             enableBackgroundTasks: options.enableBackgroundTasks,
             entities: [UploadDataRecord.entityDescription]
         )
-        self.coreData = try CoreDataWrapper(options: coreDataOptions, logger: logger, isTesting: isTesting)
+        self.coreData = try CoreDataWrapper(options: coreDataOptions, logger: logger)
     }
 
     func fetchUploadDataRequest(id: String, type: EmbraceUploadType) -> NSFetchRequest<UploadDataRecord> {
