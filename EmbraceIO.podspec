@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name                           = "EmbraceIO"
-  spec.version                        = "6.22.1"
+  spec.version                        = "7.0.0-rc1"
   spec.summary                        = "Visibility into your users that you didn't have before."
   spec.description                    = <<-DESC
                       Embrace is the only performance monitoring platform focused solely on mobile. We are built
@@ -28,9 +28,7 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCore"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceCrash"
-    subs.dependency "EmbraceIO/EmbraceCrashlyticsSupport"
     subs.dependency "EmbraceIO/EmbraceKSCrashBacktraceSupport"
-    subs.dependency "EmbraceIO/EmbraceOTelBridge"
     subs.dependency "EmbraceIO/EmbraceSemantics"
   end
 
@@ -39,7 +37,6 @@ Pod::Spec.new do |spec|
     subs.dependency "EmbraceIO/EmbraceCaptureService"
     subs.dependency "EmbraceIO/EmbraceCommonInternal"
     subs.dependency "EmbraceIO/EmbraceConfigInternal"
-    subs.dependency "EmbraceIO/EmbraceKSCrashBacktraceSupport"
     subs.dependency "EmbraceIO/EmbraceStorageInternal"
     subs.dependency "EmbraceIO/EmbraceUploadInternal"
     subs.dependency "EmbraceIO/EmbraceObjCUtilsInternal"
@@ -50,9 +47,8 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceCommonInternal' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
-    subs.dependency "EmbraceIO/EmbraceAtomicsShim"
     subs.dependency "EmbraceIO/EmbraceSemantics"
-    subs.dependency "EmbraceIO/OpenTelemetrySdk"
+    subs.dependency "EmbraceIO/EmbraceAtomicsShim"
   end
 
   spec.subspec 'EmbraceAtomicsShim' do |subs|
@@ -62,7 +58,7 @@ Pod::Spec.new do |spec|
 
   spec.subspec 'EmbraceSemantics' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
-    subs.dependency "EmbraceIO/OpenTelemetrySdk"
+    subs.dependency "EmbraceIO/EmbraceCommonInternal"
   end
 
   spec.subspec 'EmbraceCaptureService' do |subs|
@@ -81,13 +77,6 @@ Pod::Spec.new do |spec|
   spec.subspec 'EmbraceConfiguration' do |subs|
     subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
     subs.dependency "EmbraceIO/EmbraceSemantics"
-  end
-
-  spec.subspec 'EmbraceOTelBridge' do |subs|
-    subs.source_files = "Sources/#{subs.module_name}/**/*.{h,m,mm,c,cpp,swift}"
-    subs.dependency "EmbraceIO/EmbraceCommonInternal"
-    subs.dependency "EmbraceIO/EmbraceSemantics"
-    subs.dependency "EmbraceIO/OpenTelemetrySdk"
   end
 
   spec.subspec 'EmbraceStorageInternal' do |subs|
