@@ -424,6 +424,11 @@ extension LogController {
                     return
                 }
 
+                // The batch is now saved in the upload cache and will be sent even if the process dies, but the
+                // logs stay in storage until this removal is saved. If the process dies in between, the next
+                // launch batches them again from storage and they're uploaded twice. Each upload gets a new id,
+                // so the upload cache can't catch it; the duplicates keep their log record ids, so they can be
+                // deduplicated by those.
                 self.storage?.remove(logs: logs)
             }
         } catch let exception {
