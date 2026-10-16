@@ -331,11 +331,20 @@ jobs:
 
       - name: Push EmbraceIO Podspec
         run: |
-          if pod trunk info EmbraceIO 2>&1 | grep -F " - $RC_VERSION (" > /dev/null; then
-            echo "::warning::Version '$RC_VERSION' already exists in CocoaPods. Skipping and continuing"
-          else
-            pod trunk push embrace-apple-sdk/EmbraceIO.podspec --allow-warnings
-          fi
+          # Use only the CDN trunk source; a git-cloned master repo triggers GitHub API calls that can time out
+          pod repo remove master || true
+          pod repo add-cdn trunk https://cdn.cocoapods.org/ || true
+
+          for attempt in 1 2 3; do
+            if pod trunk info EmbraceIO 2>&1 | grep -F " - $RC_VERSION (" > /dev/null; then
+              echo "::warning::Version '$RC_VERSION' already exists in CocoaPods. Skipping and continuing"
+              exit 0
+            fi
+            pod trunk push embrace-apple-sdk/EmbraceIO.podspec --allow-warnings && exit 0
+            echo "Push attempt $attempt failed, retrying in 60s..."
+            sleep 60
+          done
+          exit 1
   create_internal_release:
     runs-on: ubuntu-latest
     timeout-minutes: 5
