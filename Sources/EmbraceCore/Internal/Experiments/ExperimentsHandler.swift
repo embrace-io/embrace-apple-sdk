@@ -399,14 +399,12 @@ package class ExperimentsHandler {
                 object: nil
             )
         #elseif os(watchOS)
-            if #available(watchOS 7.0, *) {
-                NotificationCenter.default.addObserver(
-                    self,
-                    selector: #selector(onAppWillSuspend),
-                    name: WKExtension.applicationDidEnterBackgroundNotification,
-                    object: nil
-                )
-            }
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(onAppWillSuspend),
+                name: WKExtension.applicationDidEnterBackgroundNotification,
+                object: nil
+            )
         #endif
     }
 

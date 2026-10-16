@@ -10,7 +10,6 @@ import os
 
     /// Represents a MetricKit signpost interval for SDK performance monitoring
     /// Signposts are automatically collected by MetricKit and included in MXMetricPayload
-    @available(iOS 13.0, macOS 12.0, *)
     public class EmbraceMetricKitSpan {
 
         // MARK: - Public

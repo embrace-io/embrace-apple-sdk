@@ -33,7 +33,6 @@ import SwiftUI
 ///     ProfileDetailView(user: someUser)
 /// }
 /// ```
-@available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
 public struct EmbraceTraceView<Content: View, Value: Equatable>: View {
     @Environment(\.embraceTraceViewContext)
     private var context: EmbraceTraceViewContext

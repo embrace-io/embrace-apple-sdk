@@ -108,7 +108,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         try otherSwizzler?.install()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func testWithPreviousSwizzledProxy_taskWithDelegate_callsTaskDelegateOnly() throws {
         /*
          This test checks what happens when there's a delegate assigned when creating a
@@ -142,7 +141,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         unswizzleOtherSwizzler()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func testWithProxySwizzledAfterEmbrace_taskWithDelegate_callsTaskDelegateOnly() throws {
         /*
          This test checks what happens when there's a delegate assigned when creating a
@@ -176,7 +174,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         unswizzleDefaultCaptureService()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func test_taskWithDelegate_callsTaskDelegateOnly() throws {
         givenCaptureServiceInstalled()
         givenTaskDelegate()
@@ -197,7 +194,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         unswizzleDefaultCaptureService()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func test_taskWithDelegate_thatDoesNotImplementMethods_callsSessionDelegateOnly() throws {
         givenCaptureServiceInstalled()
         givenTaskDelegate(NotImplementedURLSessionDelegate())
@@ -219,7 +215,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         unswizzleDefaultCaptureService()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func test_async_taskWithNoDelegate_callsNothing() async throws {
         givenCaptureServiceInstalled()
         givenSessionDelegate()
@@ -236,7 +231,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         unswizzleDefaultCaptureService()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func test_async_taskWithDelegate_callsSessionDelegate() async throws {
         givenCaptureServiceInstalled()
         givenSessionDelegate()
@@ -253,7 +247,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         unswizzleDefaultCaptureService()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func test_async_taskWithDelegate_doesNotCallSessionDelegate() async throws {
         givenCaptureServiceInstalled()
 

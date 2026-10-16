@@ -8,7 +8,6 @@
     import WebKit
     import XCTest
 
-    @available(iOS 14.5, *)
     class WKNavigationDelegateProxyTests: XCTestCase {
 
         // had to retain these because the test crashes when deallocating instances of these classes

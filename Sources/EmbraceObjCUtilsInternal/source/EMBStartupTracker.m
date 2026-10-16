@@ -95,7 +95,7 @@
     // Now that we know the app has started and is active,
     // we can track the first frame, otherwise we might get
     // a first frame when the app isn't visible.
-    if (@available(macOS 14.0, tvOS 9.0, iOS 3.0, *)) {
+    if (@available(macOS 14.0, *)) {
         [[EMBDisplayLinkProxy shared] trackNextTick:^{
             [EMBStartupTracker shared].firstFrameTime = [NSDate date];
         }];
