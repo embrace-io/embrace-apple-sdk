@@ -236,7 +236,7 @@ jobs:
           zip -r "embrace_$RC_VERSION.zip" "embrace_$RC_VERSION"
 
       - name: Store Release Archive
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Embrace Release Archive
           path: embrace_${{ env.RC_VERSION }}.zip
@@ -263,7 +263,7 @@ jobs:
           persist-credentials: false
 
       - name: Download Embrace Release Archive
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: Embrace Release Archive
 
@@ -331,11 +331,20 @@ jobs:
 
       - name: Push EmbraceIO Podspec
         run: |
-          if pod trunk info EmbraceIO 2>&1 | grep -F " - $RC_VERSION (" > /dev/null; then
-            echo "::warning::Version '$RC_VERSION' already exists in CocoaPods. Skipping and continuing"
-          else
-            pod trunk push embrace-apple-sdk/EmbraceIO.podspec --allow-warnings
-          fi
+          # Use only the CDN trunk source; a git-cloned master repo triggers GitHub API calls that can time out
+          pod repo remove master || true
+          pod repo add-cdn trunk https://cdn.cocoapods.org/ || true
+
+          for attempt in 1 2 3; do
+            if pod trunk info EmbraceIO 2>&1 | grep -F " - $RC_VERSION (" > /dev/null; then
+              echo "::warning::Version '$RC_VERSION' already exists in CocoaPods. Skipping and continuing"
+              exit 0
+            fi
+            pod trunk push embrace-apple-sdk/EmbraceIO.podspec --allow-warnings && exit 0
+            echo "Push attempt $attempt failed, retrying in 60s..."
+            sleep 60
+          done
+          exit 1
   create_internal_release:
     runs-on: ubuntu-latest
     timeout-minutes: 5

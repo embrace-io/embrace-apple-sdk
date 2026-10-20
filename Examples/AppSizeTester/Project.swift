@@ -8,7 +8,7 @@ let project = Project(
             destinations: .iOS,
             product: .app,
             bundleId: "com.embraceio.AppSizeTester",
-            deploymentTargets: .iOS("13.0"),
+            deploymentTargets: .iOS("15.0"),
             infoPlist: .extendingDefault(
                 with: [
                     "UILaunchScreen": [
@@ -33,7 +33,7 @@ let project = Project(
             destinations: .iOS,
             product: .app,
             bundleId: "com.embraceio.AppSizeTesterWithSDK",
-            deploymentTargets: .iOS("13.0"),
+            deploymentTargets: .iOS("15.0"),
             infoPlist: .extendingDefault(
                 with: [
                     "UILaunchScreen": [

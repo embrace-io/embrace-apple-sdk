@@ -211,7 +211,7 @@
 
 - (void)webView:(WKWebView *)webView
      authenticationChallenge:(NSURLAuthenticationChallenge *)challenge
-    shouldAllowDeprecatedTLS:(void (^)(BOOL))decisionHandler API_AVAILABLE(macos(11.0), ios(14.0))
+    shouldAllowDeprecatedTLS:(void (^)(BOOL))decisionHandler
 {
     if ([self.originalDelegate
             respondsToSelector:@selector((webView:authenticationChallenge:shouldAllowDeprecatedTLS:))]) {
@@ -225,7 +225,7 @@
 
 - (void)webView:(WKWebView *)webView
      navigationAction:(WKNavigationAction *)navigationAction
-    didBecomeDownload:(WKDownload *)download API_AVAILABLE(macos(11.3), ios(14.5))
+    didBecomeDownload:(WKDownload *)download
 {
     if ([self.originalDelegate respondsToSelector:@selector(webView:navigationAction:didBecomeDownload:)]) {
         [self.originalDelegate webView:webView navigationAction:navigationAction didBecomeDownload:download];
@@ -234,7 +234,7 @@
 
 - (void)webView:(WKWebView *)webView
     navigationResponse:(WKNavigationResponse *)navigationResponse
-     didBecomeDownload:(WKDownload *)download API_AVAILABLE(macos(11.3), ios(14.5))
+     didBecomeDownload:(WKDownload *)download
 {
     if ([self.originalDelegate respondsToSelector:@selector(webView:navigationResponse:didBecomeDownload:)]) {
         [self.originalDelegate webView:webView navigationResponse:navigationResponse didBecomeDownload:download];

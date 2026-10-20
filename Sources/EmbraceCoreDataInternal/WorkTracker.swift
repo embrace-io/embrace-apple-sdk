@@ -49,12 +49,10 @@ internal class WorkTracker {
                 self?.didEnterBackground()
             }
         #elseif os(watchOS)
-            if #available(watchOS 7.0, *) {
-                self.observer = NotificationCenter.default.addObserver(
-                    forName: WKExtension.applicationDidEnterBackgroundNotification, object: nil, queue: nil
-                ) { [weak self] _ in
-                    self?.didEnterBackground()
-                }
+            self.observer = NotificationCenter.default.addObserver(
+                forName: WKExtension.applicationDidEnterBackgroundNotification, object: nil, queue: nil
+            ) { [weak self] _ in
+                self?.didEnterBackground()
             }
         #endif
     }

@@ -61,7 +61,7 @@ import Foundation
 
             #if DEBUG
                 // Remove this when we know stuff works
-                if #available(iOS 16.0, tvOS 16.0, watchOS 9.0, *) {
+                if #available(iOS 16.0, tvOS 16.0, *) {
                     let uuid = UUID().uuidString
                     let url: URL = .documentsDirectory.appendingPathComponent("\(uuid)_em.json")
                     try? data.write(to: url)
@@ -142,7 +142,7 @@ import Foundation
 
                 #if DEBUG
                     // Remove this when we know stuff works
-                    if #available(iOS 16.0, tvOS 16.0, watchOS 9.0, *) {
+                    if #available(iOS 16.0, tvOS 16.0, *) {
                         let uuid = UUID().uuidString
                         let url: URL = .documentsDirectory.appendingPathComponent("\(uuid)_mx.json")
                         try? payload.jsonRepresentation().write(to: url)
@@ -153,7 +153,6 @@ import Foundation
             }
         }
 
-        @available(iOS 14.0, *)
         func didReceive(_ payloads: [MXDiagnosticPayload]) {
             for payload in payloads {
                 handlePayload(MetricKitDiagnosticPayload(payload: payload))
@@ -177,7 +176,6 @@ class MetricKitDiagnosticPayload {
     }
 
     #if canImport(MetricKit) && !os(tvOS)
-        @available(iOS 14.0, *)
         init(payload: MXDiagnosticPayload) {
             self.startTime = payload.timeStampBegin
             self.endTime = payload.timeStampEnd

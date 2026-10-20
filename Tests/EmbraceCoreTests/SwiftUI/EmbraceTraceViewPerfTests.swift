@@ -9,7 +9,6 @@
 
     @testable import EmbraceCore
 
-    @available(iOS 13, macOS 10.15, tvOS 13, *)
     final class EmbraceTraceViewPerfTests: XCTestCase {
 
         var mockOTel: MockOTelSignalsHandler!
