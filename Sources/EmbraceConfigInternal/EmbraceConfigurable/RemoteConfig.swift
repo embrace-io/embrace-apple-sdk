@@ -119,6 +119,8 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var traceparentInjectionEnabled: Bool { isEnabled(threshold: payload.traceparentInjectionThreshold ?? 0) }
 
+    public var isSmoothnessEnabled: Bool { isEnabled(threshold: payload.smoothnessThreshold ?? 0) }
+
     public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 
     public var isWalModeEnabled: Bool { isEnabled(threshold: payload.walModeThreshold) }
