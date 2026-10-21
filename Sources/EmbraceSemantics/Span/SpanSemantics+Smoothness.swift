@@ -9,7 +9,7 @@ extension EmbraceType {
 extension SpanSemantics {
     /// Attribute keys for smoothness spans. Matches Android's `emb.smoothness` semconv.
     public struct Smoothness {
-        public static let name = "smoothness"
+        public static let name = "emb-smoothness"
 
         /// Display link ticks (vsyncs) while the span was open, not frames the app rendered. An idle
         /// screen still counts at the display's refresh rate. Android's `frame_count` only counts rendered

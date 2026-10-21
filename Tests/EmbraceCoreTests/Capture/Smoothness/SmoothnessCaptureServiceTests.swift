@@ -297,6 +297,8 @@
             let span = try XCTUnwrap(endedSmoothnessSpans.first)
             XCTAssertEqual(endedSmoothnessSpans.count, 1)
             XCTAssertNotNil(span.endTime)
+            XCTAssertEqual(span.name, "emb-smoothness")
+            XCTAssertEqual(span.attributes[SpanSemantics.keyPrivate] as? String, "true")
             XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameCount] as? Int, 3)
             XCTAssertEqual(
                 span.attributes[SpanSemantics.Smoothness.keyNormalizedDroppedFrames] as? Double ?? 0,
