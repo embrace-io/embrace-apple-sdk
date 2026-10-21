@@ -319,7 +319,8 @@
                 let span = try? otel?.createInternalSpan(
                     name: SpanSemantics.Smoothness.name,
                     type: .smoothness,
-                    startTime: startTime
+                    startTime: startTime,
+                    attributes: [SpanSemantics.keyPrivate: "true"]
                 )
             else {
                 return
