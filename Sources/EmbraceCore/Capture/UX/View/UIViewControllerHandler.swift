@@ -24,6 +24,7 @@
 
         weak var dataSource: UIViewControllerHandlerDataSource?
         private let queue: DispatchableQueue
+        private let frameCountTotals: () -> SmoothnessFrameCounts?
 
         struct ViewControllerHandlerMutableData {
             var parentSpans: [String: EmbraceSpan] = [:]
@@ -34,11 +35,19 @@
             var visibilitySpans: [String: EmbraceSpan] = [:]
             var uiReadySpans: [String: EmbraceSpan] = [:]
             var alreadyFinishedUiReadyIds: Set<String> = []
+            /// Smoothness totals when each visibility span started, if smoothness was running.
+            var visibilityFrameCountStarts: [String: SmoothnessFrameCounts] = [:]
         }
         internal let data = EmbraceMutex(ViewControllerHandlerMutableData())
 
-        init(queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility)) {
+        /// - Parameter frameCountTotals: Smoothness running totals, or `nil` while smoothness isn't
+        ///   running. Read on the calling thread at each screen boundary, before the hop to `queue`.
+        init(
+            queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility),
+            frameCountTotals: @escaping () -> SmoothnessFrameCounts? = UIViewControllerHandler.smoothnessFrameCountTotals
+        ) {
             self.queue = queue
+            self.frameCountTotals = frameCountTotals
             Embrace.notificationCenter.addObserver(
                 self,
                 selector: #selector(foregroundSessionDidEnd),
@@ -61,11 +70,13 @@
 
         @objc func foregroundSessionDidEnd(_ notification: Notification? = nil) {
             let now = notification?.object as? Date ?? Date()
+            let frameCounts = frameCountTotals()
 
             // end all parent spans and visibility spans if the app enters the background
             // also clear all the cached spans
             queue.async {
-                for span in self.data.withLock({ $0.visibilitySpans.values }) {
+                for (id, span) in self.data.withLock({ $0.visibilitySpans }) {
+                    self.setFrameCounts(on: span, id: id, endCounts: frameCounts)
                     span.end(endTime: now)
                 }
 
@@ -82,6 +93,7 @@
                     $0.visibilitySpans.removeAll()
                     $0.uiReadySpans.removeAll()
                     $0.alreadyFinishedUiReadyIds.removeAll()
+                    $0.visibilityFrameCountStarts.removeAll()
                 }
 
             }
@@ -300,6 +312,7 @@
 
             let className = vc.className
             let viewName = vc.emb_viewName
+            let frameCounts = frameCountTotals()
 
             queue.async {
                 guard let otel = self.dataSource?.otel else {
@@ -317,7 +330,10 @@
                         startTime: now
                     )
                 {
-                    self.data.withLock { $0.visibilitySpans[id] = visibilitySpan }
+                    self.data.withLock {
+                        $0.visibilitySpans[id] = visibilitySpan
+                        $0.visibilityFrameCountStarts[id] = frameCounts
+                    }
                 }
 
                 if let span = self.data.withLock({ $0.viewDidAppearSpans.removeValue(forKey: id) }) {
@@ -365,11 +381,14 @@
                 return
             }
 
+            let frameCounts = frameCountTotals()
+
             queue.async {
                 let now = Date()
 
                 // end visibility span
                 if let span = self.data.withLock({ $0.self.visibilitySpans[id] }) {
+                    self.setFrameCounts(on: span, id: id, endCounts: frameCounts)
                     span.end(endTime: now)
                     self.data.withLock { $0.visibilitySpans[id] = nil }
                 }
@@ -430,6 +449,24 @@
             for span in spans {
                 span.end(errorCode: .userAbandon, endTime: time)
             }
+        }
+
+        /// Writes the frames counted since the visibility span `id` started, if smoothness was running at
+        /// both ends, and forgets the start.
+        private func setFrameCounts(on span: EmbraceSpan, id: String, endCounts: SmoothnessFrameCounts?) {
+            guard let start = data.withLock({ $0.visibilityFrameCountStarts.removeValue(forKey: id) }), let endCounts else {
+                return
+            }
+
+            let counts = endCounts - start
+            span.setAttribute(key: SpanSemantics.Smoothness.keyDroppedFrames, value: counts.droppedFrames)
+            span.setAttribute(key: SpanSemantics.Smoothness.keyExpectedFrames, value: counts.expectedFrames)
+        }
+
+        /// The running `SmoothnessCaptureService`'s totals, if one is installed.
+        static func smoothnessFrameCountTotals() -> SmoothnessFrameCounts? {
+            let service = Embrace.client?.captureServices.services.first { $0 is SmoothnessCaptureService }
+            return (service as? SmoothnessCaptureService)?.frameCountTotals
         }
 
         private func createSpan(

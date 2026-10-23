@@ -172,6 +172,17 @@ extension SpanPayload {
                 ))
         }
 
+        // Written onto the live span by `SmoothnessCaptureService` just before the part ends, and only
+        // kept on the stored span, not the session record.
+        if let span {
+            attributeArray.append(
+                contentsOf: span.attributes
+                    .filter { $0.key.hasPrefix(SpanSemantics.Smoothness.keyPrefix) }
+                    .sorted { $0.key < $1.key }
+                    .map { Attribute(key: $0.key, value: String(describing: $0.value)) }
+            )
+        }
+
         attributeArray.append(
             contentsOf: properties.compactMap { record in
                 guard !record.key.starts(with: "emb.user") else {

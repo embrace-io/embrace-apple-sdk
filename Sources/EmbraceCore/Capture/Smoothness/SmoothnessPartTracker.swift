@@ -11,32 +11,8 @@
         import EmbraceSemantics
     #endif
 
-    /// Frame accounting for one closed foreground part, with dropped frames in Android's 60fps reference units.
-    struct SmoothnessPartStats {
-
-        /// The fixed frame rate all dropped-frame counts are normalized to.
-        static let referenceFrameRate: Double = 60
-
-        let endTime: Date
-
-        /// Display link ticks (vsyncs) delivered while the part was open, not frames the app
-        /// rendered.
-        ///
-        /// The display link fires at the display's refresh rate whether or not the app draws, so an idle
-        /// screen still counts 60 or 120 per second. Android's `frameCount` only counts rendered frames,
-        /// so ratios against it are not comparable across platforms.
-        let frameCount: Int
-
-        /// Total late time while the part was open, after the hang ceiling is applied, in 60fps
-        /// reference frames.
-        let normalizedDroppedFrames: Double
-
-        /// Ticks later than the hang threshold.
-        let hangCount: Int
-    }
-
-    /// Accumulates frame lateness for the current foreground part, capping each tick at `hangThreshold`.
-    /// Opens on part start, or on did-become-active for the cold-start swap, and closes from
+    /// Tracks the current foreground part and reports the frames the accumulator counted while it was
+    /// open. Opens on part start, or on did-become-active for the cold-start swap, and closes from
     /// `.embraceSessionPartWillEndSync`. Must be created on main; one lock guards all state, since the
     /// close can run off main.
     final class SmoothnessPartTracker {
@@ -45,22 +21,27 @@
         ///
         /// Invoked with the tracker's lock held, so a concurrent close waits until it returns. Must not
         /// call back into the tracker.
-        var onPartOpened: ((_ partId: EmbraceIdentifier, _ startTime: Date) -> Void)?
+        var onPartOpened: ((_ partId: EmbraceIdentifier) -> Void)?
 
         /// Called when a foreground part closes, on whichever thread closed it. When the close comes
         /// from `.embraceSessionPartWillEndSync`, the `SessionController` lock is also held.
         ///
         /// Invoked with the tracker's lock held. Must do minimal work, must not call back into the
         /// tracker, and must never `DispatchQueue.main.sync`.
-        var onPartClosed: ((_ partId: EmbraceIdentifier, _ stats: SmoothnessPartStats) -> Void)?
+        var onPartClosed: ((_ partId: EmbraceIdentifier, _ counts: SmoothnessFrameCounts) -> Void)?
 
-        /// Frames counted so far in the part currently being accumulated, or `0` if none is open.
-        var openFrameCount: Int { lock.locked { state.openPart?.frameCount ?? 0 } }
+        /// Frames counted so far in the part currently open, or `nil` if none is.
+        var openPartCounts: SmoothnessFrameCounts? {
+            lock.locked {
+                guard let start = state.openPart?.start else { return nil }
+                return accumulator.totals - start
+            }
+        }
 
         /// Must be called on the main thread.
         ///
         /// - Parameters:
-        ///   - hangThreshold: Per-tick ceiling, shared with `HangCaptureService`.
+        ///   - accumulator: The running totals each part is measured against.
         ///   - currentSession: Returns the current session part. Called with the tracker's lock held, so
         ///     it must not take `SessionController`'s lock, which is held while the will-end hook takes
         ///     the tracker's lock. `SessionController.currentSession` only takes its own session mutex.
@@ -68,12 +49,12 @@
         ///     notification are posted.
         ///   - embraceNotificationCenter: Where `.embraceSessionPartWillEndSync` is posted.
         init(
-            hangThreshold: TimeInterval,
+            accumulator: FrameAccumulator,
             currentSession: @escaping () -> EmbraceSession?,
             notificationCenter: NotificationCenter,
             embraceNotificationCenter: NotificationCenter
         ) {
-            self.state = TrackerState(hangThreshold: hangThreshold)
+            self.accumulator = accumulator
             self.currentSession = currentSession
             self.notificationCenter = notificationCenter
             self.embraceNotificationCenter = embraceNotificationCenter
@@ -105,56 +86,13 @@
             embraceNotificationCenter.removeObserver(self)
         }
 
-        /// Sets the maximum late time a single tick can contribute to the part's dropped frames.
-        func setHangThreshold(_ hangThreshold: TimeInterval) {
-            lock.locked { state.hangThreshold = hangThreshold }
-        }
-
-        // MARK: - Frame accounting
-
-        /// Lateness below this fraction of the tick's frame interval counts as on time.
-        static let noiseFloorFraction: Double = 0.5
-
-        /// Feed this from `FrameTimingSource.onTick`. No-ops while no part is open.
-        func record(_ tick: FrameTimingSource.Tick) {
-            var late = Self.lateness(of: tick)
-
-            lock.locked {
-                guard state.openPart != nil else { return }
-
-                if late > state.hangThreshold {
-                    late = state.hangThreshold
-                    state.openPart?.hangCount += 1
-                }
-
-                state.openPart?.frameCount += 1
-                state.openPart?.droppedDuration += late
-            }
-        }
-
-        /// The tick's lateness, never negative, after two corrections that keep time which isn't a
-        /// dropped frame from adding up over long parts:
-        /// - **Refresh rate step-down.** When the frame interval grows between ticks (ProMotion adaptive
-        ///   refresh, Low Power Mode, thermal caps), the tick lands up to that growth after the previous
-        ///   `targetTimestamp` even though no frame was missed. The growth is subtracted.
-        /// - **Noise floor.** Ticks land on vsync boundaries, so a real miss is late by at least about one
-        ///   frame interval. Lateness below `noiseFloorFraction` of the tick's frame interval is scheduling
-        ///   jitter and counts as `0`. Lateness at or above it is passed through unchanged, not quantized
-        ///   into whole missed vsyncs, so partial-frame drops aren't lost.
-        static func lateness(of tick: FrameTimingSource.Tick) -> TimeInterval {
-            let rateStepDown = max(0, tick.frameInterval - tick.previousFrameInterval)
-            let late = tick.delay - rateStepDown
-
-            return late < noiseFloorFraction * tick.frameInterval ? 0 : max(0, late)
-        }
-
         // MARK: - Part lifecycle
 
         /// Opens the current foreground part, if it is `partId` (or any part when `nil`). Call on the main
         /// thread.
         ///
-        /// Opens now rather than at the part's start time, so the unmeasured gap isn't counted as smooth
-        /// and the span isn't also fetched into the previous part's payload.
+        /// Counts from now rather than from the part's start, so frames before the tracker existed aren't
+        /// attributed to the part.
         func open(partId: EmbraceIdentifier? = nil) {
             lock.locked {
                 guard state.openPart == nil, !state.isInvalidated,
@@ -164,8 +102,8 @@
                     return
                 }
 
-                state.openPart = OpenPart(partId: current.id)
-                onPartOpened?(current.id, Date())
+                state.openPart = OpenPart(partId: current.id, start: accumulator.totals)
+                onPartOpened?(current.id)
             }
         }
 
@@ -174,13 +112,13 @@
         ///
         /// - Returns: Whether a part was open and has now been reported.
         @discardableResult
-        func invalidate(at endTime: Date) -> Bool {
+        func invalidate() -> Bool {
             lock.locked {
                 state.isInvalidated = true
                 guard let partId = state.openPart?.partId else { return false }
 
                 state.lastEndedPartId = partId
-                closeLocked(at: endTime)
+                closeLocked()
                 return true
             }
         }
@@ -189,17 +127,15 @@
 
         private struct OpenPart {
             let partId: EmbraceIdentifier
-            var frameCount = 0
-            var droppedDuration: TimeInterval = 0
-            var hangCount = 0
+            /// The accumulator's totals when the part opened.
+            let start: SmoothnessFrameCounts
         }
 
         private struct TrackerState {
-            var hangThreshold: TimeInterval
             var openPart: OpenPart?
             /// The last part that ended, which must not be opened again.
             var lastEndedPartId: EmbraceIdentifier?
-            /// Set by `invalidate(at:)`. No part opens once it's set.
+            /// Set by `invalidate()`. No part opens once it's set.
             var isInvalidated = false
         }
 
@@ -207,25 +143,19 @@
         private static let didBecomeActiveNotification =
             Notification.Name("UIApplicationDidBecomeActiveNotification")
 
+        private let accumulator: FrameAccumulator
         private let currentSession: () -> EmbraceSession?
         private let notificationCenter: NotificationCenter
         private let embraceNotificationCenter: NotificationCenter
         private let lock = UnfairLock()
-        private var state: TrackerState
+        private var state = TrackerState()
 
         /// Must be called with `lock` held.
-        private func closeLocked(at endTime: Date) {
+        private func closeLocked() {
             guard let part = state.openPart else { return }
 
             state.openPart = nil
-            onPartClosed?(
-                part.partId,
-                SmoothnessPartStats(
-                    endTime: endTime,
-                    frameCount: part.frameCount,
-                    normalizedDroppedFrames: part.droppedDuration * SmoothnessPartStats.referenceFrameRate,
-                    hangCount: part.hangCount
-                ))
+            onPartClosed?(part.partId, accumulator.totals - part.start)
         }
 
         /// `SessionController` posts this asynchronously on the main thread.
@@ -245,13 +175,11 @@
             }
         }
 
-        /// Posted synchronously with `SessionController`'s lock held. Records the part as ended if it is
-        /// open or current, so a late open is ignored, and closes at the part's own end time so the span
-        /// stays out of the next part's payload.
+        /// Posted synchronously with `SessionController`'s lock held, while the part's session span is
+        /// still open. Records the part as ended if it is open or current, so a late open is ignored.
         @objc private func sessionPartWillEnd(_ notification: Notification) {
             guard let session = notification.object as? EmbraceSession else { return }
 
-            let endTime = notification.userInfo?[SessionController.sessionPartWillEndSyncEndTimeKey] as? Date ?? Date()
             lock.locked {
                 let isOpen = state.openPart?.partId == session.id
                 guard isOpen || currentSession()?.id == session.id else { return }
@@ -259,7 +187,7 @@
                 state.lastEndedPartId = session.id
                 guard isOpen else { return }
 
-                closeLocked(at: endTime)
+                closeLocked()
             }
         }
     }

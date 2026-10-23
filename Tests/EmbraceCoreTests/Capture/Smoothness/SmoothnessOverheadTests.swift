@@ -12,7 +12,7 @@
     @testable import EmbraceCore
 
     /// Measures the per-tick cost of the Smoothness hot path: `FrameTimingSource.handleTick` →
-    /// the production tick handler → `SmoothnessPartTracker`.
+    /// the production tick handler → `FrameAccumulator`.
     ///
     /// Ticks are driven synchronously on main, as in `FrameTimingSourceTests`, through a source with no
     /// display link. Simulator numbers are a regression guard only; release sign-off uses
@@ -39,6 +39,7 @@
         private let frameDuration = 1.0 / 60.0
 
         private var source: FrameTimingSource!
+        private var accumulator: FrameAccumulator!
         private var tracker: SmoothnessPartTracker!
         private var now: CFTimeInterval = 1_000
         private var currentSession: EmbraceSession?
@@ -47,20 +48,22 @@
             try super.setUpWithError()
             try XCTSkipIfSanitizing()
 
+            accumulator = FrameAccumulator(hangThreshold: 0.249)
             tracker = SmoothnessPartTracker(
-                hangThreshold: 0.249,
+                accumulator: accumulator,
                 currentSession: { [unowned self] in self.currentSession },
                 notificationCenter: NotificationCenter(),
                 embraceNotificationCenter: NotificationCenter()
             )
             source = FrameTimingSource(notificationCenter: NotificationCenter(), attachesDisplayLink: false)
-            source.onTick = SmoothnessCaptureService.makeTickHandler(tracker: tracker, environment: [:])
+            source.onTick = SmoothnessCaptureService.makeTickHandler(accumulator: accumulator, environment: [:])
             now = 1_000
         }
 
         override func tearDown() {
             source = nil
             tracker = nil
+            accumulator = nil
             currentSession = nil
             super.tearDown()
         }
@@ -68,7 +71,7 @@
         // MARK: - Helpers
 
         /// Delivers `count` ticks. Every 10th tick is one frame late and every 1,000th is past the
-        /// hang ceiling, so the drop and cap branches are exercised along with the on-time path.
+        /// hang threshold, so the drop and hang branches are exercised along with the on-time path.
         private func deliverTicks(_ count: Int) {
             for index in 0..<count {
                 var timestamp = now
@@ -97,16 +100,17 @@
                 deliverTicks(measuredTickCount)
             }
 
-            XCTAssertGreaterThan(tracker.openFrameCount, 0)
+            XCTAssertGreaterThan(tracker.openPartCounts?.expectedFrames ?? 0, 0)
         }
 
-        /// Ticks between foreground parts still compute lateness and take the tracker's lock.
+        /// Ticks between foreground parts still add to the running totals, which screens use.
         func test_tickCost_withoutOpenPart() {
             measure(metrics: [XCTClockMetric(), XCTCPUMetric()]) {
                 deliverTicks(measuredTickCount)
             }
 
-            XCTAssertEqual(tracker.openFrameCount, 0)
+            XCTAssertNil(tracker.openPartCounts)
+            XCTAssertGreaterThan(accumulator.totals.expectedFrames, 0)
         }
 
         func test_tickCost_staysWithinBudget() {
@@ -125,20 +129,20 @@
         }
 
         func test_signpostedTickHandler_stillForwardsTicks() {
-            var reported: SmoothnessPartStats?
-            tracker.onPartClosed = { _, stats in reported = stats }
+            var reported: SmoothnessFrameCounts?
+            tracker.onPartClosed = { _, counts in reported = counts }
             let handler = SmoothnessCaptureService.makeTickHandler(
-                tracker: tracker,
+                accumulator: accumulator,
                 environment: ["EMBSmoothnessSignposts": "1"]
             )
             openPart()
 
             handler(FrameTimingSource.Tick(delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
             handler(FrameTimingSource.Tick(delay: frameDuration, frameInterval: frameDuration, previousFrameInterval: frameDuration))
-            tracker.invalidate(at: Date())
+            tracker.invalidate()
 
-            XCTAssertEqual(reported?.frameCount, 2)
-            XCTAssertEqual(reported?.normalizedDroppedFrames ?? 0, 1, accuracy: 1e-9)
+            XCTAssertEqual(reported?.expectedFrames, 3)
+            XCTAssertEqual(reported?.droppedFrames, 1)
         }
     }
 

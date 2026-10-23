@@ -7,26 +7,27 @@ extension EmbraceType {
 }
 
 extension SpanSemantics {
-    /// Attribute keys for smoothness spans. Matches Android's `emb.smoothness` semconv.
+    /// Smoothness attribute keys, written onto the foreground session part and onto each
+    /// `emb-screen-view`. Matches Android's `emb.smoothness` semconv.
     public struct Smoothness {
-        public static let name = "emb-smoothness"
 
-        /// Display link ticks (vsyncs) while the span was open, not frames the app rendered. An idle
-        /// screen still counts at the display's refresh rate. Android's `frame_count` only counts rendered
-        /// frames, so ratios against it are not comparable across platforms.
-        public static let keyFrameCount = "smoothness.frame_count"
+        /// Prefix shared by every smoothness attribute key.
+        public static let keyPrefix = "smoothness."
 
-        /// Total late time while the span was open, in 60fps reference frames. On iOS this is main-thread
-        /// lateness only: frames missed in the commit, render server, or GPU while the main thread was
-        /// free are not counted, unlike Android, which includes render time.
-        public static let keyNormalizedDroppedFrames = "smoothness.normalized_dropped_frames"
+        /// Frame intervals the main thread overran, in whole frames at the display's native refresh rate.
+        /// On iOS this is main-thread lateness only: frames missed in the commit, render server, or GPU
+        /// while the main thread was free are not counted, unlike Android, which includes render time.
+        public static let keyDroppedFrames = "smoothness.dropped_frames"
 
-        /// Main-thread hangs while the span was open: frames later than the hang threshold, each of which
-        /// had its contribution to `keyNormalizedDroppedFrames` capped. Counts every stall, including ones
-        /// past `HangLimits.hangPerSession` that emit no hang span. iOS-only.
+        /// Display link ticks plus dropped frames. An idle screen still counts at the display's refresh
+        /// rate; Android only counts rendered frames.
+        public static let keyExpectedFrames = "smoothness.expected_frames"
+
+        /// Main-thread hangs in the session part: ticks later than the hang threshold. Counts every stall,
+        /// including ones past `HangLimits.hangPerSession` that emit no hang span. iOS-only.
         public static let keyHangCount = "smoothness.hang_count"
 
-        /// Most severe device thermal state observed while the span was open. iOS-only; one of the
+        /// Most severe device thermal state observed in the session part. iOS-only; one of the
         /// `ThermalState` values.
         public static let keyPeakThermalState = "smoothness.peak_thermal_state"
 
