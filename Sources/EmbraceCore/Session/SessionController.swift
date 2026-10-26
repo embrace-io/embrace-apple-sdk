@@ -36,6 +36,9 @@ class SessionController: SessionControllable {
 
     static let sessionPartNumberKey = "emb.session_part_number"
 
+    /// `userInfo` key for the ending part's end time (`Date`) on `.embraceSessionPartWillEndSync`.
+    static let sessionPartWillEndSyncEndTimeKey = "endTime"
+
     private let _attachmentCount = EmbraceAtomic<Int32>(0)
 
     /// In-memory copy of the persisted per-part counter, so starting a part never has to wait on storage.
@@ -470,6 +473,13 @@ class SessionController: SessionControllable {
         // auto terminate spans
         otel?.autoTerminateSpans()
 
+        // post synchronous internal notification while the part is still current
+        Embrace.notificationCenter.post(
+            name: .embraceSessionPartWillEndSync,
+            object: inProgressSession,
+            userInfo: [SessionController.sessionPartWillEndSyncEndTimeKey: now]
+        )
+
         // post public notification
         let mainQueueSession = inProgressSession
         DispatchQueue.main.async {
@@ -684,4 +694,13 @@ extension SessionController {
 // internal use
 extension Notification.Name {
     static let embraceForegroundSessionDidEnd = Notification.Name("embrace.session.foreground.end")
+
+    /// Posted synchronously on `Embrace.notificationCenter` just before a session part ends, while
+    /// `currentSession` still returns it and before its payload is queued. `object` is the ending
+    /// `EmbraceSession`; `userInfo[SessionController.sessionPartWillEndSyncEndTimeKey]` is its end time.
+    ///
+    /// Observers are called with the `SessionController` lock held, on main or `SessionController.queue`:
+    /// - Do minimal work, and never `DispatchQueue.main.sync`.
+    /// - Never start or end a session; the lock is not reentrant.
+    static let embraceSessionPartWillEndSync = Notification.Name("embrace.session.part.will_end.sync")
 }
