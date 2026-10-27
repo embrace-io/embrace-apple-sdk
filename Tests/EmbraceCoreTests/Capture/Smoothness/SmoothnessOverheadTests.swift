@@ -137,8 +137,8 @@
             )
             openPart()
 
-            handler(FrameTimingSource.Tick(delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
-            handler(FrameTimingSource.Tick(delay: frameDuration, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            handler(FrameTimingSource.Tick(timestamp: 0, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            handler(FrameTimingSource.Tick(timestamp: 0, delay: frameDuration, frameInterval: frameDuration, previousFrameInterval: frameDuration))
             tracker.invalidate()
 
             XCTAssertEqual(reported?.expectedFrames, 3)

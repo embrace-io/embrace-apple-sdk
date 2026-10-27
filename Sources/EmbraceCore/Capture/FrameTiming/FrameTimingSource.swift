@@ -24,6 +24,9 @@
     final class FrameTimingSource {
 
         struct Tick {
+            /// The display link's `timestamp`, in `CACurrentMediaTime` seconds.
+            let timestamp: CFTimeInterval
+
             /// Seconds between the tick's actual timestamp and the previous tick's
             /// `targetTimestamp`. A positive value means the frame arrived later than promised.
             let delay: TimeInterval
@@ -117,6 +120,7 @@
 
             onTick?(
                 Tick(
+                    timestamp: timestamp,
                     delay: timestamp - expectedTimestamp,
                     frameInterval: frameInterval,
                     previousFrameInterval: previousFrameInterval

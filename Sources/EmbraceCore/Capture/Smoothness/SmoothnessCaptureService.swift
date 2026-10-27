@@ -173,13 +173,22 @@
         /// in Instruments. The choice is made once here, so the per-tick path never branches on it.
         static func makeTickHandler(
             accumulator: FrameAccumulator,
-            focalMomentTracker: FocalMomentTracker? = nil,
+            focalMoments: (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)? = nil,
             environment: [String: String] = ProcessInfo.processInfo.environment
         ) -> (FrameTimingSource.Tick) -> Void {
-            let handler: (FrameTimingSource.Tick) -> Void = { [weak accumulator, weak focalMomentTracker] tick in
-                let measured = MeasuredTick(tick)
-                accumulator?.record(measured)
-                focalMomentTracker?.record(measured)
+            let handler: (FrameTimingSource.Tick) -> Void = {
+                [weak accumulator, weak focalMomentTracker = focalMoments?.tracker, weak activityMonitor = focalMoments?.activityMonitor] tick in
+                guard let focalMomentTracker, let activityMonitor else {
+                    accumulator?.record(MeasuredTick(tick))
+                    return
+                }
+
+                // The whole tick runs inside the monitor, so none of its handling counts as work.
+                activityMonitor.tick { activity in
+                    let measured = MeasuredTick(tick)
+                    accumulator?.record(measured)
+                    focalMomentTracker.record(measured, activity: activity)
+                }
             }
 
             #if DEBUG

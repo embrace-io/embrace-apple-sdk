@@ -32,6 +32,7 @@
             accumulator.record(
                 MeasuredTick(
                     FrameTimingSource.Tick(
+                        timestamp: 0,
                         delay: interval * delayInFrames,
                         frameInterval: interval,
                         previousFrameInterval: previousFrameInterval ?? interval
@@ -76,13 +77,13 @@
         // MARK: - Hangs
 
         func testTickPastHangThresholdIsCountedAndNotCapped() {
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: 2, frameInterval: interval60, previousFrameInterval: interval60)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: 2, frameInterval: interval60, previousFrameInterval: interval60)))
 
             XCTAssertEqual(accumulator.totals, SmoothnessFrameCounts(droppedFrames: 120, expectedFrames: 121, hangCount: 1))
         }
 
         func testTickAtHangThresholdIsNotAHang() {
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: 0.249, frameInterval: interval60, previousFrameInterval: interval60)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: 0.249, frameInterval: interval60, previousFrameInterval: interval60)))
 
             XCTAssertEqual(accumulator.totals.hangCount, 0)
         }
@@ -90,10 +91,10 @@
         func testHangThresholdUpdateApplies() {
             accumulator.setHangThreshold(0.5)
 
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: 0.3, frameInterval: interval60, previousFrameInterval: interval60)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: 0.3, frameInterval: interval60, previousFrameInterval: interval60)))
             XCTAssertEqual(accumulator.totals.hangCount, 0)
 
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: 0.6, frameInterval: interval60, previousFrameInterval: interval60)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: 0.6, frameInterval: interval60, previousFrameInterval: interval60)))
             XCTAssertEqual(accumulator.totals.hangCount, 1)
         }
 

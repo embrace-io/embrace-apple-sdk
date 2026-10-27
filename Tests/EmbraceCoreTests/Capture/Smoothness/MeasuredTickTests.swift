@@ -18,6 +18,7 @@
         private func lateness(delay: TimeInterval, frameInterval: TimeInterval, previousFrameInterval: TimeInterval? = nil) -> TimeInterval {
             MeasuredTick.lateness(
                 of: FrameTimingSource.Tick(
+                    timestamp: 0,
                     delay: delay,
                     frameInterval: frameInterval,
                     previousFrameInterval: previousFrameInterval ?? frameInterval

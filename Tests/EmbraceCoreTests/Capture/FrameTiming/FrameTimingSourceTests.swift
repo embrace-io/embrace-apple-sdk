@@ -58,6 +58,14 @@
 
         // MARK: - Tests
 
+        func testTickCarriesDisplayLinkTimestamp() {
+            tick()
+            let second = now
+            tick()
+
+            XCTAssertEqual(ticks.map(\.timestamp), [second])
+        }
+
         func testWillEnterForegroundOnOtherCenterIsIgnored() {
             tick()
             skip(backgroundGap)
