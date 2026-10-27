@@ -13,7 +13,7 @@
     @testable import EmbraceCore
 
     /// Pins the wiring the timeline depends on but cannot verify itself: that a real swizzled
-    /// appearance callback actually reaches the tracker, and that the gates combine correctly.
+    /// appearance callback actually reaches the handler, and that the gates combine correctly.
     ///
     /// These drive `vc.viewWillAppear(_:)` and friends so the **swizzle** runs. Calling the handler
     /// directly would prove nothing — the swizzle is where the decision to record is made, and it
@@ -35,16 +35,13 @@
             service.install(otel: mockOTel)
             service.start()
 
-            // The gate needs an SDK instance, so the tracker is injected directly. Everything the
-            // tests exercise below — the swizzles, the filter, the broker — is the real thing.
+            // The gate needs an SDK instance, so the handler is injected directly. Everything the
+            // tests exercise below — the swizzles, the filter, the handler — is the real thing.
             let sessionSpan = try mockOTel.createInternalSpan(
                 name: SpanSemantics.Session.name, type: .session, startTime: origin)
-            let reporter = ScreenStateReporter(otel: mockOTel)
-            reporter.recorder.onSessionPartStart(sessionSpan: sessionSpan, at: origin)
-
-            service.navigationTracker = ScreenNavigationTracker(reporter: reporter) { [weak service] vc in
-                service?.isViewControllerBlocked(vc) ?? true
-            }
+            let handler = ScreenTrackingHandler(otel: mockOTel)
+            handler.recorder.onSessionPartStart(sessionSpan: sessionSpan, at: origin)
+            service.screenTracker = handler
         }
 
         override func tearDownWithError() throws {
@@ -142,7 +139,7 @@
 
         func testVisibilityInstrumentationOffDisablesTracking() {
             // `instrumentVisibility` is what installs the `viewDidDisappear` swizzle; without those
-            // pause events the broker never clears its visible set and stops backdating load times.
+            // pause events the handler never clears its visible set and stops backdating load times.
             XCTAssertFalse(
                 ViewCaptureService.shouldTrackScreenNavigation(
                     instrumentVisibility: false, config: config(state: true, screen: true)))

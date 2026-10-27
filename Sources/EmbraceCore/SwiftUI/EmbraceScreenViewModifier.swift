@@ -90,7 +90,7 @@ struct EmbraceScreenModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onAppear {
-                ManualScreenRegistry.reporter?.onManualScreenAppear(
+                ScreenTrackingHandler.current?.manualScreenAppeared(
                     id: ObjectIdentifier(token),
                     name: name,
                     attributes: attributes,
@@ -101,9 +101,8 @@ struct EmbraceScreenModifier: ViewModifier {
                 // Keeps the visible set accurate: this is what lets a dismissed sheet hand the
                 // timeline back, and a screen that never reports going away stays counted
                 // forever, silently stopping later screens' load times from being backdated.
-                ManualScreenRegistry.reporter?.onManualScreenDisappear(
+                ScreenTrackingHandler.current?.manualScreenDisappeared(
                     id: ObjectIdentifier(token),
-                    name: name,
                     at: Date()
                 )
             }

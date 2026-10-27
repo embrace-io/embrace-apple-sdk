@@ -6,56 +6,27 @@
 
     import EmbraceSemantics
     import SwiftUI
+    import TestSupport
     import UIKit
     import XCTest
 
     @testable import EmbraceCore
 
-    /// Drives the public `.embraceScreen` modifier through real SwiftUI, rather than calling the
-    /// reporting protocol directly.
+    /// Drives the public `.embraceScreen` modifier through real SwiftUI into a real
+    /// ``ScreenTrackingHandler``, asserting on the transitions it records.
     ///
-    /// The rest of this feature's tests start one layer below, at `ScreenNavigationTracker`. That
-    /// leaves the modifier itself — the only part of this ticket a developer actually writes —
-    /// covered by nothing: its entire body could be replaced with `content` and every other test in
-    /// the feature would still pass.
+    /// The rest of this feature's tests start one layer below, at the handler. That leaves the
+    /// modifier itself — the only part of this feature a developer actually writes — covered by
+    /// nothing: its entire body could be replaced with `content` and every other test in the
+    /// feature would still pass.
     @available(iOS 13, tvOS 13, *)
     final class EmbraceScreenViewModifierTests: XCTestCase {
 
         // MARK: - Doubles
 
-        private final class SpyReporter: ManualScreenReporting {
-
-            struct Report {
-                let id: ObjectIdentifier
-                let name: String
-                let attributes: EmbraceAttributes
-            }
-
-            private(set) var appearances: [Report] = []
-            private(set) var disappearances: [Report] = []
-
-            var onAppear: (() -> Void)?
-            var onDisappear: (() -> Void)?
-
-            func onManualScreenAppear(
-                id: ObjectIdentifier,
-                name: String,
-                attributes: EmbraceAttributes,
-                at time: Date
-            ) {
-                appearances.append(Report(id: id, name: name, attributes: attributes))
-                onAppear?()
-            }
-
-            func onManualScreenDisappear(id: ObjectIdentifier, name: String, at time: Date) {
-                disappearances.append(Report(id: id, name: name, attributes: [:]))
-                onDisappear?()
-            }
-        }
-
-        /// Lets a test force a re-render, and remove the screen, from outside SwiftUI.
+        /// Lets a test force a re-render, and add or remove a screen, from outside SwiftUI.
         private final class Model: ObservableObject {
-            @Published var isVisible = true
+            @Published var showsDetail = false
             @Published var tick = 0
         }
 
@@ -66,6 +37,7 @@
             var count = 0
         }
 
+        /// A base screen, with a second one that can be shown over it — the shape of a sheet.
         private struct HostView: View {
             @ObservedObject var model: Model
             let name: String
@@ -75,9 +47,9 @@
             var body: some View {
                 renders.count += 1
                 return VStack {
-                    if model.isVisible {
-                        Text("content \(model.tick)")
-                            .embraceScreen(name, attributes: attributes)
+                    Text("base").embraceScreen(name, attributes: attributes)
+                    if model.showsDetail {
+                        Text("detail \(model.tick)").embraceScreen("Detail")
                     }
                 }
             }
@@ -85,48 +57,68 @@
 
         // MARK: - Fixture
 
-        private var spy: SpyReporter!
+        private var mockOTel: MockOTelSignalsHandler!
+        private var handler: ScreenTrackingHandler!
         private var model: Model!
         private var window: UIWindow!
         private var renders: RenderCounter!
-        private var registration: ManualScreenRegistry.Registration!
 
         override func setUpWithError() throws {
-            spy = SpyReporter()
+            mockOTel = MockOTelSignalsHandler()
+            handler = ScreenTrackingHandler(otel: mockOTel)
+            let sessionSpan = try mockOTel.createInternalSpan(
+                name: SpanSemantics.Session.name,
+                type: .session,
+                startTime: Date()
+            )
+            handler.recorder.onSessionPartStart(sessionSpan: sessionSpan, at: Date())
+            ScreenTrackingHandler.makeCurrent(handler)
+
             model = Model()
             renders = RenderCounter()
-            // Held strongly here: the registry's reference is weak, so a spy the test does not
-            // retain would vanish and every assertion below would pass vacuously.
-            registration = ManualScreenRegistry.publish(spy)
         }
 
         override func tearDownWithError() throws {
             window?.isHidden = true
             window = nil
+            // Process-global; a handler left here would follow the next test into an unrelated suite.
+            ScreenTrackingHandler.resignCurrent(handler)
+            handler = nil
+            mockOTel = nil
             model = nil
             renders = nil
-            registration = nil
-            spy = nil
+        }
+
+        private var stateSpan: EmbraceSpan? {
+            mockOTel.startedSpans.first { $0.name == "emb-state-screen-automatic" }
+        }
+
+        private var transitions: [EmbraceSpanEvent] {
+            stateSpan?.events.filter { $0.name == SpanSemantics.State.transitionEventName } ?? []
+        }
+
+        private var recordedScreens: [String] {
+            transitions.compactMap { $0.attributes[SpanSemantics.State.keyNewValue]?.description }
         }
 
         /// Puts the view on screen for real. SwiftUI only runs `onAppear` for a view in a window
         /// that is actually being displayed.
         private func present(name: String = "Home", attributes: EmbraceAttributes = [:]) {
-            let host = UIHostingController(
-                rootView: HostView(
-                    model: model, name: name, attributes: attributes, renders: renders))
+            present(HostView(model: model, name: name, attributes: attributes, renders: renders))
+        }
+
+        private func present<V: View>(_ view: V) {
             window = UIWindow(frame: UIScreen.main.bounds)
-            window.rootViewController = host
+            window.rootViewController = UIHostingController(rootView: view)
             window.makeKeyAndVisible()
         }
 
-        private func waitForAppearance() {
-            let reported = expectation(description: "screen reported as appeared")
-            // SwiftUI may report an appearance more than once for the same view, and does on some
-            // platforms. We only need to know it happened at least once.
-            reported.assertForOverFulfill = false
-            spy.onAppear = { reported.fulfill() }
-            wait(for: [reported], timeout: 10)
+        private func waitForTransitions(_ count: Int) {
+            let recorded = expectation(
+                for: NSPredicate { [unowned self] _, _ in self.transitions.count >= count },
+                evaluatedWith: nil
+            )
+            wait(for: [recorded], timeout: 10)
         }
 
         /// Lets SwiftUI actually run an update pass, and returns whether the body was rebuilt.
@@ -143,53 +135,41 @@
             return false
         }
 
-        private func waitForDisappearance() {
-            let reported = expectation(description: "screen reported as disappeared")
-            reported.assertForOverFulfill = false
-            spy.onDisappear = { reported.fulfill() }
-            wait(for: [reported], timeout: 10)
-        }
-
         // MARK: - The modifier reports at all
 
-        func testAppearingReportsTheDeclaredNameAndAttributes() throws {
+        func testAppearingRecordsTheDeclaredNameAndAttributes() throws {
             present(name: "ProductDetail", attributes: ["product_id": "42"])
-            waitForAppearance()
+            waitForTransitions(1)
 
-            let report = try XCTUnwrap(spy.appearances.first)
-            XCTAssertEqual(report.name, "ProductDetail")
-            XCTAssertEqual(report.attributes["product_id"]?.description, "42")
+            let transition = try XCTUnwrap(transitions.first)
+            XCTAssertEqual(transition.attributes[SpanSemantics.State.keyNewValue]?.description, "ProductDetail")
+            XCTAssertEqual(transition.attributes["product_id"]?.description, "42")
         }
 
         func testOmittedAttributesArriveEmptyRatherThanAsAnOptional() throws {
             present(name: "Home")
-            waitForAppearance()
+            waitForTransitions(1)
 
-            XCTAssertTrue(try XCTUnwrap(spy.appearances.first).attributes.isEmpty)
-        }
-
-        func testDisappearingIsReported() {
-            present()
-            waitForAppearance()
-
-            model.isVisible = false
-            waitForDisappearance()
-
-            XCTAssertEqual(spy.disappearances.count, 1)
+            let transition = try XCTUnwrap(transitions.first)
+            XCTAssertTrue(transition.attributes.keys.allSatisfy { SpanSemantics.State.isReserved($0) })
         }
 
         // MARK: - Screen identity
 
-        /// The whole reason the token lives in `@State`.
+        /// Covers both that a disappearance is reported and the reason the token lives in `@State`.
         ///
-        /// A plain `let` would allocate a fresh token every time SwiftUI rebuilds the modifier
-        /// struct, so the disappearance would carry a *different* id from the appearance. The
-        /// pipeline keys its visible-screen bookkeeping on that id, so the entry would never be
-        /// cleared — and one unpaired appearance permanently stops load times being backdated for
-        /// every later screen in the session.
-        func testTheSameScreenKeepsOneIdentityAcrossReRenders() throws {
-            present()
-            waitForAppearance()
+        /// Dismissing the screen on top hands the timeline back to the one underneath, which the
+        /// handler only does when the disappearance carries the *same* id as the appearance. A plain
+        /// `let` would allocate a fresh token every time SwiftUI rebuilds the modifier struct, so after
+        /// a re-render the ids would differ, nothing would be revealed, and the dismissed screen would
+        /// also stay counted as visible — permanently stopping load times being backdated for every
+        /// later screen in the session.
+        func testDismissingAScreenAfterAReRenderHandsTheTimelineBack() {
+            present(name: "Home")
+            waitForTransitions(1)
+
+            model.showsDetail = true
+            waitForTransitions(2)
 
             // Prove a rebuild actually happened before relying on it. Without this the test passes
             // whether or not the modifier's identity is stable, because SwiftUI would coalesce the
@@ -197,43 +177,38 @@
             model.tick += 1
             XCTAssertTrue(pumpRenderCycle(), "the view did not re-render; the test proves nothing")
 
-            model.isVisible = false
-            waitForDisappearance()
+            model.showsDetail = false
+            waitForTransitions(3)
 
-            let appeared = try XCTUnwrap(spy.appearances.first)
-            let disappeared = try XCTUnwrap(spy.disappearances.first)
-            XCTAssertEqual(
-                appeared.id, disappeared.id,
-                "a re-render must not change the screen's identity")
+            XCTAssertEqual(recordedScreens, ["Home", "Detail", "Home"])
         }
 
         /// Two views declaring the same name are two screens, not one — the id comes from the view
-        /// instance, not the name.
+        /// instance, not the name. Both pass the handler's gate, and the recorder then drops the second
+        /// as a repeat of the same value, which is what the count below records. Keyed by name, the
+        /// gate would have swallowed it and nothing would be counted.
         func testTwoViewsWithTheSameNameGetDistinctIdentities() throws {
-            let host = UIHostingController(
-                rootView: VStack {
+            present(
+                VStack {
                     Text("a").embraceScreen("Duplicate")
                     Text("b").embraceScreen("Duplicate")
                 })
-            window = UIWindow(frame: UIScreen.main.bounds)
-            window.rootViewController = host
+            waitForTransitions(1)
+            pumpRenderCycle()
 
-            let bothReported = expectation(description: "both screens reported")
-            bothReported.expectedFulfillmentCount = 2
-            spy.onAppear = { bothReported.fulfill() }
-            window.makeKeyAndVisible()
-            wait(for: [bothReported], timeout: 5)
+            handler.recorder.onSessionPartWillEnd(at: Date())
 
-            XCTAssertEqual(spy.appearances.count, 2)
-            XCTAssertNotEqual(spy.appearances[0].id, spy.appearances[1].id)
+            let span = try XCTUnwrap(stateSpan)
+            XCTAssertEqual(recordedScreens, ["Duplicate"])
+            XCTAssertEqual(span.attributes[SpanSemantics.State.keyDroppedByInstrumentation]?.description, "1")
         }
 
         // MARK: - The no-op contract
 
-        /// With no reporter published — the feature off, or the SDK not started — the modifier must
-        /// be inert rather than crashing or trapping.
-        func testWithNoReporterTheModifierIsInert() {
-            registration = nil
+        /// With no handler published — the feature off, or the SDK not started — the modifier must be
+        /// inert rather than crashing or trapping.
+        func testWithNoHandlerTheModifierIsInert() {
+            ScreenTrackingHandler.resignCurrent(handler)
 
             present()
             // Nothing to wait for; pump the run loop so any reporting would have happened.
@@ -241,7 +216,7 @@
             DispatchQueue.main.async { settled.fulfill() }
             wait(for: [settled], timeout: 5)
 
-            XCTAssertTrue(spy.appearances.isEmpty)
+            XCTAssertTrue(transitions.isEmpty)
         }
     }
 

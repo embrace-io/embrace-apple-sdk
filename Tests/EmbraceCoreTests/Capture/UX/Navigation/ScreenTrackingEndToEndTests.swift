@@ -53,11 +53,11 @@
         }
 
         override func tearDownWithError() throws {
-            // Stopped explicitly, because releasing it does not withdraw its registry publication:
-            // a service that has run `onInstall` is retained for the process lifetime by its own
-            // swizzle IMPs, which capture `self`. `IntegrationTestCase` only clears
-            // `Embrace.client`, so without this the reporter stays published into every later test
-            // in the bundle — and `ManualScreenRegistry` is process-global.
+            // Stopped explicitly, because releasing it does not withdraw its handler: a service that
+            // has run `onInstall` is retained for the process lifetime by its own swizzle IMPs, which
+            // capture `self`. `IntegrationTestCase` only clears `Embrace.client`, so without this the
+            // handler stays in `ScreenTrackingHandler.current` — a process-global — into every later
+            // test in the bundle.
             startedServices.forEach { $0.stop() }
             startedServices = []
             service = nil
@@ -80,13 +80,12 @@
         /// Stands in for `.embraceScreen` — the modifier's own wiring is covered by
         /// `EmbraceScreenViewModifierTests`; this is about what reaches the payload.
         private func declare(_ token: Token, _ name: String, attributes: EmbraceAttributes = [:]) {
-            ManualScreenRegistry.reporter?.onManualScreenAppear(
+            ScreenTrackingHandler.current?.manualScreenAppeared(
                 id: ObjectIdentifier(token), name: name, attributes: attributes, at: Date())
         }
 
-        private func undeclare(_ token: Token, _ name: String) {
-            ManualScreenRegistry.reporter?.onManualScreenDisappear(
-                id: ObjectIdentifier(token), name: name, at: Date())
+        private func undeclare(_ token: Token) {
+            ScreenTrackingHandler.current?.manualScreenDisappeared(id: ObjectIdentifier(token), at: Date())
         }
 
         /// Ends the part and builds the payload the uploader would send.
@@ -155,7 +154,7 @@
             visit(home)
             leave(home)
             declare(settingsToken, "Settings", attributes: ["source": "menu"])
-            undeclare(settingsToken, "Settings")
+            undeclare(settingsToken)
             visit(SettingsViewController())
 
             let (spans, _) = try endSessionAndBuildPayload()
@@ -273,7 +272,7 @@
             // The actual precondition: the gate left nothing published, so a declared screen has
             // nowhere to go. Without this the assertion below cannot distinguish a working gate
             // from a screen that was quietly delivered somewhere else.
-            XCTAssertNil(ManualScreenRegistry.reporter)
+            XCTAssertNil(ScreenTrackingHandler.current)
 
             visit(HomeViewController())
             declare(Token(), "Settings")

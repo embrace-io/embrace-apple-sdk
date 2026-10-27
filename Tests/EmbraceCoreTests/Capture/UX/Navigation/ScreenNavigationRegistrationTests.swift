@@ -12,11 +12,11 @@
     @testable import EmbraceCore
 
     /// Covers the step between "the gates say yes" and "a timeline exists": that `onStart` actually
-    /// builds the tracker, registers the recorder, and hooks app state.
+    /// builds the handler, registers the recorder, hooks app state and publishes the handler.
     ///
-    /// Every other test in this feature injects `navigationTracker` by hand, which means the whole
-    /// of `startScreenNavigationTrackingIfEnabled` could be deleted without a single failure. These
-    /// stand up a real SDK instance so that path runs for real.
+    /// Every other test in this feature injects `screenTracker` by hand, which means the whole of
+    /// `startScreenTrackingIfEnabled` could be deleted without a single failure. These stand up a
+    /// real SDK instance so that path runs for real.
     final class ScreenNavigationRegistrationTests: IntegrationTestCase {
 
         private final class Screen: UIViewController {}
@@ -27,8 +27,8 @@
         /// Every service these tests start, so teardown can stop them.
         ///
         /// `IntegrationTestCase` clears `Embrace.client` but does not stop capture services, and a
-        /// service that is still running is still published to `ManualScreenRegistry` — a
-        /// process-global. Without this, whether the next test sees a stale reporter depends on when
+        /// service that is still running still has its handler in `ScreenTrackingHandler.current` —
+        /// a process-global. Without this, whether the next test sees a stale handler depends on when
         /// ARC happens to release the previous SDK instance.
         private var startedServices: [ViewCaptureService] = []
 
@@ -64,20 +64,20 @@
 
         // MARK: - The gates decide whether anything is built
 
-        func testBothGatesOnBuildsTheTracker() throws {
+        func testBothGatesOnBuildsTheHandler() throws {
             let service = try startSDK(with: config(state: true, screen: true))
 
-            XCTAssertNotNil(service.navigationTracker)
+            XCTAssertNotNil(service.screenTracker)
         }
 
         func testEitherGateOffBuildsNothing() throws {
             let stateOff = try startSDK(with: config(state: false, screen: true))
-            XCTAssertNil(stateOff.navigationTracker)
+            XCTAssertNil(stateOff.screenTracker)
 
             Embrace.client = nil
 
             let screenOff = try startSDK(with: config(state: true, screen: false))
-            XCTAssertNil(screenOff.navigationTracker)
+            XCTAssertNil(screenOff.screenTracker)
         }
 
         func testVisibilityInstrumentationOffBuildsNothing() throws {
@@ -86,7 +86,7 @@
                 options: ViewCaptureService.Options(instrumentVisibility: false)
             )
 
-            XCTAssertNil(service.navigationTracker)
+            XCTAssertNil(service.screenTracker)
         }
 
         // MARK: - Registration actually happened
@@ -100,7 +100,7 @@
             vc.viewDidAppear(false)
 
             // Reads through the state controller, which only knows about the recorder if `register` ran.
-            // Deleting that call leaves the tracker working and the timeline invisible.
+            // Deleting that call leaves the handler working and the timeline invisible.
             let stamps = try XCTUnwrap(Embrace.client?.stateController.logAttributes)
             XCTAssertEqual(stamps["emb.state.screen-automatic"]?.description, "Screen")
             XCTAssertNil(
@@ -130,41 +130,41 @@
 
         // MARK: - Registering twice would duplicate the state span
 
-        func testRestartingTheServiceDoesNotBuildASecondTracker() throws {
+        func testRestartingTheServiceDoesNotBuildASecondHandler() throws {
             let service = try startSDK(with: config(state: true, screen: true))
-            let first = service.navigationTracker
+            let first = service.screenTracker
 
             service.stop()
             service.start()
 
-            // `StateController` has no `unregister`, so a second tracker would mean a second
+            // `StateController` has no `unregister`, so a second handler would mean a second
             // recorder and two `emb-state-screen-automatic` spans in every subsequent part.
-            XCTAssertTrue(first === service.navigationTracker)
+            XCTAssertTrue(first === service.screenTracker)
         }
 
-        /// A restart must re-publish. `onStop` withdraws, and the tracker is deliberately *not*
+        /// A restart must re-publish. `onStop` withdraws, and the handler is deliberately *not*
         /// rebuilt, so without re-publishing the service would keep recording UIKit screens while
         /// every SwiftUI one silently vanished.
-        func testRestartingTheServiceRepublishesTheRegistry() throws {
+        func testRestartingTheServiceRepublishesTheHandler() throws {
             let service = try startSDK(with: config(state: true, screen: true))
 
             service.stop()
-            XCTAssertNil(ManualScreenRegistry.reporter, "a stopped service must not stay published")
+            XCTAssertNil(ScreenTrackingHandler.current, "a stopped service must not stay published")
 
             service.start()
-            XCTAssertTrue(ManualScreenRegistry.reporter === service)
+            XCTAssertTrue(ScreenTrackingHandler.current === service.screenTracker)
         }
 
         // MARK: - The SwiftUI modifier's route into the SDK
 
-        /// The modifier's only route to the pipeline is this registry, so a screen declared in
-        /// SwiftUI reaching the state span depends on it having been published at start.
-        func testADeclaredScreenReachesTheStateSpanThroughTheRegistry() throws {
+        /// The modifier's only route to the timeline is `ScreenTrackingHandler.current`, so a screen
+        /// declared in SwiftUI reaching the state span depends on it having been published at start.
+        func testADeclaredScreenReachesTheStateSpanThroughTheCurrentHandler() throws {
             try startSDK(with: config(state: true, screen: true))
 
-            let reporter = try XCTUnwrap(
-                ManualScreenRegistry.reporter, "nothing published means the modifier is inert")
-            reporter.onManualScreenAppear(
+            let handler = try XCTUnwrap(
+                ScreenTrackingHandler.current, "nothing published means the modifier is inert")
+            handler.manualScreenAppeared(
                 id: ObjectIdentifier(Token()), name: "Settings", attributes: [:], at: Date())
 
             let stamps = try XCTUnwrap(Embrace.client?.stateController.logAttributes)
@@ -176,21 +176,37 @@
         func testNothingIsPublishedWhenTheFeatureIsOff() throws {
             try startSDK(with: config(state: true, screen: false))
 
-            XCTAssertNil(ManualScreenRegistry.reporter)
+            XCTAssertNil(ScreenTrackingHandler.current)
         }
 
-        /// Declared screens go through the same `serviceState` check as appearance callbacks, so a
-        /// stopped service does not keep recording a timeline behind the SDK's back.
+        /// Stopping withdraws the handler, and the modifier looks it up on every call, so a stopped
+        /// service does not keep recording declared screens behind the SDK's back.
         func testAStoppedServiceIgnoresDeclaredScreens() throws {
             let service = try startSDK(with: config(state: true, screen: true))
 
-            let reporter = try XCTUnwrap(ManualScreenRegistry.reporter)
             service.stop()
-            reporter.onManualScreenAppear(
+            ScreenTrackingHandler.current?.manualScreenAppeared(
                 id: ObjectIdentifier(Token()), name: "Settings", attributes: [:], at: Date())
 
             let stamps = try XCTUnwrap(Embrace.client?.stateController.logAttributes)
             XCTAssertNotEqual(stamps["emb.state.screen-automatic"]?.description, "Settings")
+        }
+
+        /// Stopping also unhooks app state, so backgrounding after a stop is not recorded either.
+        func testAStoppedServiceIgnoresAppStateChanges() throws {
+            let service = try startSDK(with: config(state: true, screen: true))
+
+            let vc = Screen()
+            vc.emb_instrumentation_state = .init(identifier: UUID().uuidString)
+            vc.viewWillAppear(false)
+            vc.viewDidAppear(false)
+
+            service.stop()
+            NotificationCenter.default.post(
+                name: UIApplication.didEnterBackgroundNotification, object: nil)
+
+            let stamps = try XCTUnwrap(Embrace.client?.stateController.logAttributes)
+            XCTAssertEqual(stamps["emb.state.screen-automatic"]?.description, "Screen")
         }
     }
 
