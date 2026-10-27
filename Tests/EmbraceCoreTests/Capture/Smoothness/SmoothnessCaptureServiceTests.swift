@@ -17,6 +17,9 @@
     final class SmoothnessCaptureServiceTests: XCTestCase {
 
         private let willEnterForegroundNotification = Notification.Name("UIApplicationWillEnterForegroundNotification")
+        private let willResignActiveNotification = Notification.Name("UIApplicationWillResignActiveNotification")
+        /// Shared so the suite installs one `sendEvent` swizzle.
+        private static let windowEventObserver = WindowEventObserver()
         private let frameDuration = 1.0 / 60.0
 
         private var otel: MockOTelSignalsHandler!
@@ -60,7 +63,8 @@
                 debuggerAttached: debuggerAttached,
                 environment: environment,
                 ignoresRemoteConfig: ignoresRemoteConfig,
-                attachesDisplayLink: attachesDisplayLink
+                attachesDisplayLink: attachesDisplayLink,
+                makeActivityMonitor: { ActivityMonitor(windowEventObserver: Self.windowEventObserver, runLoop: nil) }
             )
         }
 
@@ -704,6 +708,48 @@
 
             endPart()
             XCTAssertEqual(expectedFrames(of: session), 0)
+        }
+
+        // MARK: - Focal moment interrupts
+
+        /// Opens a focal moment that saw main-thread work, and collects what the tracker reports.
+        private func openFocalMoment() throws -> () -> [FocalMoment] {
+            let tracker = try XCTUnwrap(service.focalMomentTracker)
+            var moments: [FocalMoment] = []
+            tracker.onMoment = { moments.append($0) }
+            tracker.record(
+                MeasuredTick(FrameTimingSource.Tick(timestamp: 1, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration)),
+                activity: ActivityMonitor.Snapshot(touchBegan: true, touchChanged: true, activeTouchCount: 1, didWork: true)
+            )
+            return { moments }
+        }
+
+        func test_resignActive_interruptsOpenFocalMoment() throws {
+            startService()
+            let moments = try openFocalMoment()
+
+            notificationCenter.post(name: willResignActiveNotification, object: nil)
+
+            XCTAssertEqual(moments().map(\.outcome), [.interrupted])
+        }
+
+        func test_screenDidNavigate_interruptsOpenFocalMoment() throws {
+            startService()
+            let moments = try openFocalMoment()
+
+            service.screenDidNavigate()
+
+            XCTAssertEqual(moments().map(\.outcome), [.interrupted])
+        }
+
+        func test_stop_releasesFocalMomentTracker() throws {
+            startService()
+            weak var tracker = try XCTUnwrap(service.focalMomentTracker)
+
+            service.stop()
+
+            XCTAssertNil(service.focalMomentTracker)
+            XCTAssertNil(tracker)
         }
 
         // MARK: - Tick fan-out

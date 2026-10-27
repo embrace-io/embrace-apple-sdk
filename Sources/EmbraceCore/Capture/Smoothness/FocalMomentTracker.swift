@@ -38,7 +38,7 @@
     /// A moment with no main-thread work or scroll tracking, such as a tap on a dead area, is dropped: touch
     /// phases alone draw nothing, matching Android dropping moments with no rendered frame.
     ///
-    /// Not wired into the capture yet. Everything runs on main.
+    /// Moments aren't emitted yet. Everything runs on main.
     class FocalMomentTracker {
 
         static let defaultIdleThreshold: TimeInterval = 0.1

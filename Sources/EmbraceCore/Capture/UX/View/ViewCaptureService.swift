@@ -210,9 +210,11 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
-                        // If the state was already fulfilled, then call the original implementation.
+                        // If the state was already fulfilled, the controller is appearing again: only its
+                        // visibility is measured.
                         if let state = viewController.emb_instrumentation_state, state.viewDidAppearSpanCreated {
                             originalImplementation(viewController, selector, animated)
+                            self.handler.onViewDidReappear(viewController)
                             return
                         }
 

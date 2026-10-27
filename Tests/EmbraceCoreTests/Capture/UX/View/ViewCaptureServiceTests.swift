@@ -71,6 +71,19 @@
             XCTAssert(handler.onViewDidAppearEndCalled)
         }
 
+        func test_viewDidAppear_again_onlyReappears() {
+            let vc = MockViewController()
+            let state = ViewInstrumentationState(identifier: UUID().uuidString)
+            state.viewDidAppearSpanCreated = true
+            vc.emb_instrumentation_state = state
+
+            vc.viewDidAppear(false)
+
+            XCTAssertTrue(handler.onViewDidReappearCalled)
+            XCTAssertFalse(handler.onViewDidAppearStartCalled)
+            XCTAssertFalse(handler.onViewDidAppearEndCalled)
+        }
+
         func test_viewDidDisappear() {
             // given a ViewCaptureService
             // when viewDidDisappear is called on a UIViewController

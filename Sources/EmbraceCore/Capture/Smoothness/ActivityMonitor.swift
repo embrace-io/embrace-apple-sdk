@@ -19,7 +19,7 @@
     /// tick. Busy time can: an idle tick's wake only costs the display link's dispatch and an empty commit.
     /// Work done in the tick's wake before the tick is credited to that tick; work after it, to the next.
     ///
-    /// Not wired into the capture yet. Everything runs on main.
+    /// Everything runs on main.
     final class ActivityMonitor {
 
         struct Snapshot: Equatable {

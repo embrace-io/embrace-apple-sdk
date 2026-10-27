@@ -61,6 +61,8 @@
         ///   - environment: Checked for `EMBAllowWatchdogInDebugger=1`, which keeps it enabled anyway.
         ///   - attachesDisplayLink: Whether the frame timing source runs a real `CADisplayLink`. Tests
         ///     pass `false` and drive frames through the accumulator.
+        ///   - makeActivityMonitor: Builds the activity monitor for each capture. Tests pass one that
+        ///     doesn't observe the main run loop.
         init(
             currentSession: @escaping () -> EmbraceSession?,
             sessionSpan: @escaping (EmbraceIdentifier) -> EmbraceSpan?,
@@ -70,7 +72,8 @@
             debuggerAttached: @escaping () -> Bool = { EMBDevice.isDebuggerAttached },
             environment: [String: String] = ProcessInfo.processInfo.environment,
             ignoresRemoteConfig: Bool = false,
-            attachesDisplayLink: Bool = true
+            attachesDisplayLink: Bool = true,
+            makeActivityMonitor: @escaping () -> ActivityMonitor = { ActivityMonitor() }
         ) {
             self.currentSession = currentSession
             self.sessionSpan = sessionSpan
@@ -81,12 +84,19 @@
             self.environment = environment
             self.ignoresRemoteConfig = ignoresRemoteConfig
             self.attachesDisplayLink = attachesDisplayLink
+            self.makeActivityMonitor = makeActivityMonitor
             super.init()
 
             notificationCenter.addObserver(
                 self,
                 selector: #selector(thermalStateDidChange),
                 name: ProcessInfo.thermalStateDidChangeNotification,
+                object: nil
+            )
+            notificationCenter.addObserver(
+                self,
+                selector: #selector(appWillResignActive),
+                name: SmoothnessCaptureService.willResignActiveNotification,
                 object: nil
             )
         }
@@ -168,6 +178,16 @@
             data.withLock { $0.capture?.source }
         }
 
+        /// `nil` while the service isn't running, or if the activity monitor couldn't start.
+        var focalMomentTracker: FocalMomentTracker? {
+            data.withLock { $0.capture?.focalMoments?.tracker }
+        }
+
+        /// Called on main.
+        func screenDidNavigate() {
+            focalMomentTracker?.interrupt()
+        }
+
         /// In debug builds, `EMBSmoothnessSignposts=1` wraps each tick in an `os_signpost` interval
         /// (subsystem `io.embrace.sdk`, category `Smoothness`, name `Tick`) so its cost can be profiled
         /// in Instruments. The choice is made once here, so the per-tick path never branches on it.
@@ -247,19 +267,35 @@
                 self?.partClosed(partId: partId, counts: counts)
             }
 
+            let focalMoments = makeFocalMoments()
+
             let source = FrameTimingSource(notificationCenter: notificationCenter, attachesDisplayLink: attachesDisplayLink)
-            source.onTick = Self.makeTickHandler(accumulator: accumulator)
+            source.onTick = Self.makeTickHandler(accumulator: accumulator, focalMoments: focalMoments)
 
             let stored = data.withLock { data -> Bool in
                 guard state.load(order: .acquire) == .active, data.capture == nil, isRunnable(data) else { return false }
-                data.capture = ActiveCapture(source: source, accumulator: accumulator, tracker: tracker)
+                data.capture = ActiveCapture(source: source, accumulator: accumulator, tracker: tracker, focalMoments: focalMoments)
                 return true
             }
 
             // The current foreground part may have started before the tracker existed.
             if stored {
                 tracker.open()
+            } else {
+                focalMoments?.activityMonitor.stop()
             }
+        }
+
+        /// Must be called on main. `nil` if the activity monitor can't start; frames are still counted.
+        private func makeFocalMoments() -> (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)? {
+            let activityMonitor = makeActivityMonitor()
+            do {
+                try activityMonitor.start()
+            } catch {
+                logger?.warning("[Smoothness] Focal moments disabled: \(error.localizedDescription)")
+                return nil
+            }
+            return (FocalMomentTracker(), activityMonitor)
         }
 
         /// Closes the open part and releases the capture on main, where its `CADisplayLink` must be
@@ -274,8 +310,10 @@
 
             capture.tracker.invalidate()
 
-            if !Thread.isMainThread {
-                DispatchQueue.main.async { withExtendedLifetime(capture) {} }
+            if Thread.isMainThread {
+                capture.focalMoments?.activityMonitor.stop()
+            } else {
+                DispatchQueue.main.async { capture.focalMoments?.activityMonitor.stop() }
             }
         }
 
@@ -283,6 +321,7 @@
             let source: FrameTimingSource
             let accumulator: FrameAccumulator
             let tracker: SmoothnessPartTracker
+            let focalMoments: (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)?
         }
 
         private struct OpenPart {
@@ -306,6 +345,10 @@
         private let environment: [String: String]
         private let ignoresRemoteConfig: Bool
         private let attachesDisplayLink: Bool
+        private let makeActivityMonitor: () -> ActivityMonitor
+
+        /// Raw notification name to avoid a direct UIKit dependency.
+        private static let willResignActiveNotification = Notification.Name("UIApplicationWillResignActiveNotification")
 
         /// Lock order: the tracker's lock, then this one. Never call into the tracker while holding it.
         private let data = EmbraceMutex(MutableData())
@@ -316,6 +359,11 @@
             data.withLock { data in
                 data.openPart?.peakThermalState.raise(to: state)
             }
+        }
+
+        /// Posted on main.
+        @objc private func appWillResignActive() {
+            focalMomentTracker?.interrupt()
         }
 
         /// Called on main with the tracker's lock held.
