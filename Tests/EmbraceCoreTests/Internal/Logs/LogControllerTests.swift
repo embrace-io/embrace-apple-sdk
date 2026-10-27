@@ -435,14 +435,16 @@ class LogControllerTests: XCTestCase {
             type: .session,
             startTime: Date()
         )
-        let coordinator = StateCaptureCoordinator()
+        let stateController = StateController()
         let screen = StateRecorder<Screen>(
             stateName: "screen-automatic",
             defaultValue: .backgrounded,
             otel: otel
         )
-        coordinator.register(screen, sessionSpan: sessionSpan, at: Date())
-        sut.stateCoordinator = coordinator
+        let now = Date()
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: now)
+        stateController.register(screen, at: now)
+        sut.stateController = stateController
 
         let expectation = XCTestExpectation()
         sut.createLog(

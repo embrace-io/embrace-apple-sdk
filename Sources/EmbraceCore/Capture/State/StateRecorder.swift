@@ -9,7 +9,7 @@ import Foundation
     import EmbraceSemantics
 #endif
 
-/// The type-erased face of a ``StateRecorder``, so the coordinator can drive recorders of
+/// The type-erased face of a ``StateRecorder``, so the state controller can drive recorders of
 /// differing value types.
 protocol StateRecording: AnyObject {
 
@@ -65,7 +65,7 @@ private struct PendingTransition {
 /// while the lock is held.
 ///
 /// What forces that is the SDK's own logging, not the exporter chain: a log call reaches
-/// `StateCaptureCoordinator.logAttributes` and back into this lock, which is non-reentrant and so
+/// `StateController.logAttributes` and back into this lock, which is non-reentrant and so
 /// **traps** rather than deadlocking. This type logs from several failure branches, which is why
 /// each sits outside the `withLock` that detected it.
 ///

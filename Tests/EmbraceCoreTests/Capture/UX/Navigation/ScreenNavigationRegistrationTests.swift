@@ -99,9 +99,9 @@
             vc.viewWillAppear(false)
             vc.viewDidAppear(false)
 
-            // Reads through the coordinator, which only knows about the recorder if `register` ran.
+            // Reads through the state controller, which only knows about the recorder if `register` ran.
             // Deleting that call leaves the tracker working and the timeline invisible.
-            let stamps = try XCTUnwrap(Embrace.client?.stateCoordinator.logAttributes)
+            let stamps = try XCTUnwrap(Embrace.client?.stateController.logAttributes)
             XCTAssertEqual(stamps["emb.state.screen-automatic"]?.description, "Screen")
             XCTAssertNil(
                 stamps["emb.state.screen-automatic.value_type"],
@@ -121,7 +121,7 @@
             NotificationCenter.default.post(
                 name: UIApplication.didEnterBackgroundNotification, object: nil)
 
-            let stamps = try XCTUnwrap(Embrace.client?.stateCoordinator.logAttributes)
+            let stamps = try XCTUnwrap(Embrace.client?.stateController.logAttributes)
             XCTAssertEqual(stamps["emb.state.screen-automatic"]?.description, "Backgrounded")
             XCTAssertEqual(
                 stamps["emb.state.screen-automatic.value_type"]?.description, "system",
@@ -137,7 +137,7 @@
             service.stop()
             service.start()
 
-            // `StateCaptureCoordinator` has no `unregister`, so a second tracker would mean a second
+            // `StateController` has no `unregister`, so a second tracker would mean a second
             // recorder and two `emb-state-screen-automatic` spans in every subsequent part.
             XCTAssertTrue(first === service.navigationTracker)
         }
@@ -167,7 +167,7 @@
             reporter.onManualScreenAppear(
                 id: ObjectIdentifier(Token()), name: "Settings", attributes: [:], at: Date())
 
-            let stamps = try XCTUnwrap(Embrace.client?.stateCoordinator.logAttributes)
+            let stamps = try XCTUnwrap(Embrace.client?.stateController.logAttributes)
             XCTAssertEqual(stamps["emb.state.screen-automatic"]?.description, "Settings")
         }
 
@@ -189,7 +189,7 @@
             reporter.onManualScreenAppear(
                 id: ObjectIdentifier(Token()), name: "Settings", attributes: [:], at: Date())
 
-            let stamps = try XCTUnwrap(Embrace.client?.stateCoordinator.logAttributes)
+            let stamps = try XCTUnwrap(Embrace.client?.stateController.logAttributes)
             XCTAssertNotEqual(stamps["emb.state.screen-automatic"]?.description, "Settings")
         }
     }

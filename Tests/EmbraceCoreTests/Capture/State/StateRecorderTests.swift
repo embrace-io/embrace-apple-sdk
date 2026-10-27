@@ -114,7 +114,7 @@ final class StateRecorderTests: XCTestCase {
         )
     }
 
-    /// Registers the recorder against a running part, the way the coordinator does at startup.
+    /// Registers the recorder against a running part, the way the state controller does at startup.
     private func startedRecorder(
         defaultValue: String = "initial",
         maxTransitions: Int = 100
@@ -873,23 +873,24 @@ final class StateRecorderTests: XCTestCase {
         XCTAssertEqual(event.attributes[SpanSemantics.State.keyNewValue]?.description, "second")
     }
 
-    // MARK: - Coordinator
+    // MARK: - State controller
 
     func testLogsAreStampedWithEveryActiveState() throws {
-        let coordinator = StateCaptureCoordinator()
+        let stateController = StateController()
         let screen = StateRecorder<String>(
             stateName: "screen-automatic",
             defaultValue: "Initializing",
             otel: mockOTel
         )
-        coordinator.register(screen, sessionSpan: sessionSpan, at: partStart)
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        stateController.register(screen, at: partStart)
         screen.onStateChange(to: "ProductDetailViewController", at: time(1))
 
         let builder = EmbraceLogAttributesBuilder(
             session: nil,
             initialAttributes: ["existing": "kept"]
         )
-        let attributes = builder.addCurrentStates(coordinator).build()
+        let attributes = builder.addCurrentStates(stateController).build()
 
         XCTAssertEqual(attributes["existing"]?.description, "kept")
         XCTAssertEqual(
@@ -902,35 +903,37 @@ final class StateRecorderTests: XCTestCase {
     }
 
     func testLogStampsCarryTheCurrentValuesType() throws {
-        let coordinator = StateCaptureCoordinator()
+        let stateController = StateController()
         let screen = StateRecorder<TypedValue>(
             stateName: "screen-automatic",
             defaultValue: TypedValue("Initializing", type: .system),
             otel: mockOTel
         )
-        coordinator.register(screen, sessionSpan: sessionSpan, at: partStart)
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        stateController.register(screen, at: partStart)
 
         // Backgrounded by the SDK: typed.
         screen.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
-        var attributes = coordinator.logAttributes
+        var attributes = stateController.logAttributes
         XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "Backgrounded")
         XCTAssertEqual(attributes["emb.state.screen-automatic.value_type"]?.description, "system")
 
         // The same name from the app: untyped, so a log on it is not read as the SDK's.
         screen.onStateChange(to: TypedValue("Backgrounded"), at: time(2))
-        attributes = coordinator.logAttributes
+        attributes = stateController.logAttributes
         XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "Backgrounded")
         XCTAssertNil(attributes["emb.state.screen-automatic.value_type"])
     }
 
     func testACallerCannotOverrideAStateStamp() throws {
-        let coordinator = StateCaptureCoordinator()
+        let stateController = StateController()
         let screen = StateRecorder<String>(
             stateName: "screen-automatic",
             defaultValue: "Initializing",
             otel: mockOTel
         )
-        coordinator.register(screen, sessionSpan: sessionSpan, at: partStart)
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        stateController.register(screen, at: partStart)
         screen.onStateChange(to: "HomeViewController", at: time(1))
 
         // A log emitted with a forged value for a state the SDK owns.
@@ -938,25 +941,26 @@ final class StateRecorderTests: XCTestCase {
             session: nil,
             initialAttributes: ["emb.state.screen-automatic": "CheckoutViewController"]
         )
-        let attributes = builder.addCurrentStates(coordinator).build()
+        let attributes = builder.addCurrentStates(stateController).build()
 
         XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "HomeViewController")
     }
 
     func testAForgedValueTypeStampIsReplacedWhileTheStateHasOne() throws {
-        let coordinator = StateCaptureCoordinator()
+        let stateController = StateController()
         let screen = StateRecorder<TypedValue>(
             stateName: "screen-automatic",
             defaultValue: TypedValue("Initializing", type: .system),
             otel: mockOTel
         )
-        coordinator.register(screen, sessionSpan: sessionSpan, at: partStart)
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        stateController.register(screen, at: partStart)
 
         let builder = EmbraceLogAttributesBuilder(
             session: nil,
             initialAttributes: ["emb.state.screen-automatic.value_type": "forged"]
         )
-        let attributes = builder.addCurrentStates(coordinator).build()
+        let attributes = builder.addCurrentStates(stateController).build()
 
         XCTAssertEqual(attributes["emb.state.screen-automatic.value_type"]?.description, "system")
     }
@@ -965,19 +969,20 @@ final class StateRecorderTests: XCTestCase {
     /// key, so nothing overwrites a forged one and it has to be stripped. Untyped is every screen
     /// that came from the app.
     func testAForgedValueTypeStampIsStrippedWhileTheStateHasNone() throws {
-        let coordinator = StateCaptureCoordinator()
+        let stateController = StateController()
         let screen = StateRecorder<TypedValue>(
             stateName: "screen-automatic",
             defaultValue: TypedValue("Home"),
             otel: mockOTel
         )
-        coordinator.register(screen, sessionSpan: sessionSpan, at: partStart)
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        stateController.register(screen, at: partStart)
 
         let builder = EmbraceLogAttributesBuilder(
             session: nil,
             initialAttributes: ["emb.state.screen-automatic.value_type": "system"]
         )
-        let attributes = builder.addCurrentStates(coordinator).build()
+        let attributes = builder.addCurrentStates(stateController).build()
 
         XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "Home")
         XCTAssertNil(
@@ -987,14 +992,15 @@ final class StateRecorderTests: XCTestCase {
 
     /// The same strip for a state that has not been activated yet, which stamps nothing at all.
     func testAForgedStampIsStrippedForAStateThatIsNotActiveYet() throws {
-        let coordinator = StateCaptureCoordinator()
+        let stateController = StateController()
         let lazyState = StateRecorder<TypedValue>(
             stateName: "screen-automatic",
             defaultValue: TypedValue("Home"),
             otel: mockOTel,
             capturesOnCreation: false
         )
-        coordinator.register(lazyState, sessionSpan: sessionSpan, at: partStart)
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        stateController.register(lazyState, at: partStart)
 
         let builder = EmbraceLogAttributesBuilder(
             session: nil,
@@ -1003,7 +1009,7 @@ final class StateRecorderTests: XCTestCase {
                 "emb.state.screen-automatic.value_type": "system"
             ]
         )
-        let attributes = builder.addCurrentStates(coordinator).build()
+        let attributes = builder.addCurrentStates(stateController).build()
 
         XCTAssertNil(attributes["emb.state.screen-automatic"])
         XCTAssertNil(attributes["emb.state.screen-automatic.value_type"])
@@ -1012,21 +1018,22 @@ final class StateRecorderTests: XCTestCase {
     /// The check is on the `emb.state.` prefix, so the session's own `emb.state`
     /// (foreground/background, no trailing dot) survives it.
     func testTheSessionStateAttributeIsNotStripped() throws {
-        let coordinator = StateCaptureCoordinator()
-        coordinator.register(makeRecorder(), sessionSpan: sessionSpan, at: partStart)
+        let stateController = StateController()
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        stateController.register(makeRecorder(), at: partStart)
 
         let builder = EmbraceLogAttributesBuilder(
             session: nil,
             initialAttributes: [CommonSemantics.keyState: "foreground"]
         )
-        let attributes = builder.addCurrentStates(coordinator).build()
+        let attributes = builder.addCurrentStates(stateController).build()
 
         XCTAssertEqual(attributes[CommonSemantics.keyState]?.description, "foreground")
     }
 
-    /// The strip runs above the coordinator guard, so with nothing attached to stamp over a forged
+    /// The strip runs above the state controller guard, so with nothing attached to stamp over a forged
     /// key it is the only thing that removes one.
-    func testLogStampingIsANoOpWithoutACoordinator() {
+    func testLogStampingIsANoOpWithoutAStateController() {
         let builder = EmbraceLogAttributesBuilder(
             session: nil,
             initialAttributes: [
@@ -1040,20 +1047,58 @@ final class StateRecorderTests: XCTestCase {
         XCTAssertNil(attributes["emb.state.screen-automatic.value_type"])
     }
 
-    func testCoordinatorFansOutBoundariesAndAggregatesLogAttributes() throws {
-        let coordinator = StateCaptureCoordinator()
+    /// A recorder registered mid-part opens its span on the part the controller already saw start,
+    /// without the caller having to look the part up.
+    func testRegisteringMidPartOpensTheSpanOnTheRunningPart() throws {
+        let stateController = StateController()
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+
+        stateController.register(makeRecorder(), at: time(5))
+
+        let stateSpan = try XCTUnwrap(stateSpans.first)
+        XCTAssertEqual(stateSpans.count, 1)
+        XCTAssertEqual(stateSpan.startTime, time(5))
+
+        // Bound to that part: closing the part links its span to this state span.
+        stateController.onSessionPartWillEnd(at: time(60))
+        XCTAssertEqual(sessionSpan.links.first?.context.spanId, stateSpan.context.spanId)
+    }
+
+    func testRegisteringAfterThePartEndedOpensNoSpan() {
+        let stateController = StateController()
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        stateController.onSessionPartWillEnd(at: time(60))
+
+        stateController.register(makeRecorder(), at: time(61))
+
+        XCTAssertTrue(stateSpans.isEmpty)
+    }
+
+    func testRegisteringAfterThePartWasDiscardedOpensNoSpan() {
+        let stateController = StateController()
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        stateController.onSessionPartDiscarded(at: time(60))
+
+        stateController.register(makeRecorder(), at: time(61))
+
+        XCTAssertTrue(stateSpans.isEmpty)
+    }
+
+    func testStateControllerFansOutBoundariesAndAggregatesLogAttributes() throws {
+        let stateController = StateController()
         let recorder = makeRecorder()
 
-        coordinator.register(recorder, sessionSpan: sessionSpan, at: partStart)
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        stateController.register(recorder, at: partStart)
         XCTAssertEqual(stateSpans.count, 1)
 
         recorder.onStateChange(to: "second", at: time(1))
         XCTAssertEqual(
-            coordinator.logAttributes["emb.state.test-state"]?.description,
+            stateController.logAttributes["emb.state.test-state"]?.description,
             "second"
         )
 
-        coordinator.onSessionPartWillEnd(at: time(60))
+        stateController.onSessionPartWillEnd(at: time(60))
         XCTAssertEqual(stateSpans.first?.endTime, time(60))
     }
 }

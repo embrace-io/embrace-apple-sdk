@@ -82,7 +82,7 @@ package class Embrace {
     let userSessionController: UserSessionController
     let sessionLifecycle: SessionLifecycle
 
-    let stateCoordinator = StateCaptureCoordinator()
+    let stateController = StateController()
 
     let otelResources: EmbraceAttributes?
 
@@ -267,9 +267,9 @@ package class Embrace {
         // set providers
         sessionController.sdkStateProvider = self
         sessionController.otel = self.otel
-        sessionController.stateCoordinator = stateCoordinator
+        sessionController.stateController = stateController
         logController.sdkStateProvider = self
-        logController.stateCoordinator = stateCoordinator
+        logController.stateController = stateController
         logController.privateLogger = self
         Embrace.logger.otel = self.otel
 

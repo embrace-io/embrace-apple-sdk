@@ -53,7 +53,7 @@ class SessionController: SessionControllable {
     weak var otel: InternalOTelSignalsHandler?
     weak var userSessionController: UserSessionController?
     weak var experiments: ExperimentsHandler?
-    weak var stateCoordinator: StateCaptureCoordinator?
+    weak var stateController: StateController?
 
     private struct SessionInfo {
         var session: EmbraceSession? = nil
@@ -405,7 +405,7 @@ class SessionController: SessionControllable {
         // open a state span per active state, seeded with the value carried over from the
         // previous part. Synchronous so the spans exist for the whole part.
         if let sessionSpan = sessionInfo.span {
-            stateCoordinator?.onSessionPartStart(sessionSpan: sessionSpan, at: sessionSpan.startTime)
+            stateController?.onSessionPartStart(sessionSpan: sessionSpan, at: sessionSpan.startTime)
         }
 
         // post notification
@@ -485,7 +485,7 @@ class SessionController: SessionControllable {
 
         // close the state spans and link them from the part span. Must happen before the session
         // span ends below, so they land inside this part's payload.
-        stateCoordinator?.onSessionPartWillEnd(at: now)
+        stateController?.onSessionPartWillEnd(at: now)
 
         // end span
         if let inProgressSessionSpan {
@@ -690,7 +690,7 @@ extension SessionController {
         // and closes it — but it reports that as an error, which this avoids provoking.)
         // Discarding rather than ending: the accumulated counters must survive into the next part,
         // because a span that is about to be thrown away cannot carry them.
-        stateCoordinator?.onSessionPartDiscarded(at: time)
+        stateController?.onSessionPartDiscarded(at: time)
 
         storage?.deleteSession(id: session.id)
 

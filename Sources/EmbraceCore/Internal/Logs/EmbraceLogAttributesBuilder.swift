@@ -172,17 +172,17 @@ class EmbraceLogAttributesBuilder {
     /// Only meaningful for logs emitted during the live session — recovered logs from a previous
     /// process must not be stamped with this process's in-memory values.
     @discardableResult
-    func addCurrentStates(_ coordinator: StateCaptureCoordinator?) -> Self {
+    func addCurrentStates(_ stateController: StateController?) -> Self {
         // Cleared rather than left to the stamps below to overwrite: a state that is inactive, or
         // whose value has no type, writes no key at all, so a forged one would survive there.
         // `CommonSemantics.keyState` ("emb.state", no trailing dot) is deliberately not matched.
         attributes = attributes.filter { !SpanSemantics.State.isReserved($0.key) }
 
-        guard let coordinator else {
+        guard let stateController else {
             return self
         }
 
-        for (key, value) in coordinator.logAttributes {
+        for (key, value) in stateController.logAttributes {
             attributes[key] = value
         }
         return self

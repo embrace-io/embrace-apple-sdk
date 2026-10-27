@@ -23,7 +23,7 @@ final class SessionControllerStateSpansTests: XCTestCase {
     private var userSessionController: UserSessionController!
     private var configurable: MockEmbraceConfigurable!
     private var otel: MockOTelSignalsHandler!
-    private var coordinator: StateCaptureCoordinator!
+    private var stateController: StateController!
     private var recorder: StateRecorder<String>!
     private let sdkStateProvider = MockEmbraceSDKStateProvider()
 
@@ -42,15 +42,15 @@ final class SessionControllerStateSpansTests: XCTestCase {
         userSessionController.sessionController = controller
         controller.userSessionController = userSessionController
 
-        coordinator = StateCaptureCoordinator()
-        controller.stateCoordinator = coordinator
+        stateController = StateController()
+        controller.stateController = stateController
 
         recorder = StateRecorder(
             stateName: stateName,
             defaultValue: "Initializing",
             otel: otel
         )
-        coordinator.register(recorder, sessionSpan: nil)
+        stateController.register(recorder)
     }
 
     override func tearDownWithError() throws {
@@ -60,7 +60,7 @@ final class SessionControllerStateSpansTests: XCTestCase {
         userSessionController = nil
         configurable = nil
         otel = nil
-        coordinator = nil
+        stateController = nil
         recorder = nil
     }
 

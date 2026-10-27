@@ -198,7 +198,7 @@
 
         /// Evaluates the gate at start, never on a config refresh.
         ///
-        /// ``StateCaptureCoordinator`` has no `unregister`, so a recorder added later would start
+        /// ``StateController`` has no `unregister`, so a recorder added later would start
         /// its timeline mid-part with an `initial_value` for a screen the user had already left, and
         /// a gate turning *off* could not be honoured until relaunch anyway. Config is read from
         /// cache during setup, so this only costs the first launch after install.
@@ -212,7 +212,7 @@
                 return
             }
 
-            // Built at most once. `StateCaptureCoordinator` has no `unregister`, so a second tracker
+            // Built at most once. `StateController` has no `unregister`, so a second tracker
             // would mean a second recorder and two `emb-state-screen-automatic` spans in every
             // later part.
             if navigationTracker == nil {
@@ -225,10 +225,7 @@
                 }
                 navigationTracker = tracker
 
-                client.stateCoordinator.register(
-                    reporter.recorder,
-                    sessionSpan: client.sessionController.currentSessionSpan
-                )
+                client.stateController.register(reporter.recorder)
 
                 // Routed through this service rather than handing the lifecycle the tracker
                 // directly, so app-state transitions get the same `serviceState` check as

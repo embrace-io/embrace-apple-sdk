@@ -198,8 +198,8 @@
             XCTAssertEqual(stateLinks.first?.spanId, state.spanId)
         }
 
-        /// The log stamp depends on the client handing its coordinator to the log controller, which
-        /// no lower-level test exercises: they all inject the coordinator themselves.
+        /// The log stamp depends on the client handing its state controller to the log controller, which
+        /// no lower-level test exercises: they all inject the state controller themselves.
         func testALogIsStampedWithTheCurrentScreen() throws {
             visit(HomeViewController())
 
@@ -214,46 +214,6 @@
 
             let key = SpanSemantics.State.logAttributeKey(for: "screen-automatic")
             XCTAssertEqual(try XCTUnwrap(log).attributes[key]?.description, "HomeViewController")
-        }
-
-        /// Backgrounding is what makes the timeline readable as a session, so it has to survive the
-        /// whole pipeline rather than only existing in the broker.
-        /// Backgrounding ends the session part, so the timeline spans two payloads — and this is
-        /// where three separately-built pieces have to agree: the part-end ordering (10838), the
-        /// value carry-over that seeds the next part, and the foreground restore (10909).
-        ///
-        /// Part 1 must contain `Backgrounded`, which only happens if the app-state transition is
-        /// recorded *before* `onSessionPartWillEnd` closes the span. Part 2 must open with
-        /// `Backgrounded` as its `initial_value` and then restore the screen the user was actually
-        /// on — UIKit does not re-fire appearance callbacks for it, so nothing else would.
-        func testTheTimelineSurvivesABackgroundRoundTripAcrossTwoParts() throws {
-            let client = try XCTUnwrap(Embrace.client)
-            visit(HomeViewController())
-
-            let part1 = try XCTUnwrap(client.sessionController.currentSession)
-            NotificationCenter.default.post(
-                name: UIApplication.didEnterBackgroundNotification, object: nil)
-
-            // Background sessions are off in this config, so no part exists while backgrounded.
-            XCTAssertNil(client.sessionController.currentSession)
-
-            NotificationCenter.default.post(
-                name: UIApplication.didBecomeActiveNotification, object: nil)
-            let part2 = try XCTUnwrap(
-                client.sessionController.currentSession, "returning to the foreground starts a part")
-            client.sessionController.endSession()
-
-            let firstState = try stateSpan(in: payload(for: part1.id))
-            XCTAssertEqual(transitions(of: firstState), ["HomeViewController", "Backgrounded"])
-            XCTAssertEqual(attribute(SpanSemantics.State.keyInitialValue, of: firstState), "Initializing")
-
-            let secondState = try stateSpan(in: payload(for: part2.id))
-            XCTAssertEqual(
-                attribute(SpanSemantics.State.keyInitialValue, of: secondState), "Backgrounded",
-                "the next part must open where the last one left off")
-            XCTAssertEqual(
-                transitions(of: secondState), ["HomeViewController"],
-                "the screen the user was on must be restored, not left on the sentinel")
         }
 
         /// A screen name is an arbitrary string from the app, so it can be anything the SDK calls

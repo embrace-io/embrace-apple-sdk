@@ -19,26 +19,39 @@ import Foundation
 /// Recorders are snapshotted under the lock and driven **outside** it. A recorder can log while
 /// closing its span, and the SDK's logging path reaches ``logAttributes``, which takes this same
 /// non-reentrant lock on the same thread — driving them under it would trap.
-final class StateCaptureCoordinator {
+final class StateController {
 
-    private let recorders: EmbraceMutex<[StateRecording]> = EmbraceMutex([])
+    private struct State {
+        var recorders: [StateRecording] = []
+
+        /// The running part's span, so a recorder registered mid-part can open its span on it.
+        var currentPart: EmbraceSpan?
+    }
+
+    private let state = EmbraceMutex(State())
 
     /// Registers a recorder and, for eager states, activates it right away.
     ///
     /// There is no `unregister`: once registered, a recorder opens a span on every subsequent part
     /// for the lifetime of the SDK. Any config gate must therefore be evaluated *before* this call.
     ///
+    /// The recorder is added and the running part read in one locked section, so a part boundary
+    /// either sees the new recorder or has already been read here — never neither.
+    ///
     /// - Parameters:
-    ///   - recorder: Held strongly — the coordinator owns the state history independently of
+    ///   - recorder: Held strongly — the state controller owns the state history independently of
     ///     whichever capture service created it.
-    ///   - sessionSpan: The live part span, if one is running. An already-ended span is rejected by
-    ///     the recorder, so a boundary racing this call cannot bind it to a dead part.
     ///   - time: Registration time, used as the span start when the state is eager.
-    func register(_ recorder: StateRecording, sessionSpan: EmbraceSpan?, at time: Date = Date()) {
-        recorders.withLock { $0.append(recorder) }
+    func register(_ recorder: StateRecording, at time: Date = Date()) {
+        let currentPart = state.withLock {
+            $0.recorders.append(recorder)
+            return $0.currentPart
+        }
 
-        if let sessionSpan {
-            recorder.onSessionPartStart(sessionSpan: sessionSpan, at: time)
+        // An already-ended span is rejected by the recorder, so a part ending right after the read
+        // above cannot bind the recorder to a dead part.
+        if let currentPart {
+            recorder.onSessionPartStart(sessionSpan: currentPart, at: time)
         }
         if recorder.capturesOnCreation {
             recorder.activate(at: time)
@@ -50,14 +63,18 @@ final class StateCaptureCoordinator {
     /// Must run after the part is published and before any transition can be reported against it, or
     /// a change arriving in the gap is counted as having happened outside a part.
     func onSessionPartStart(sessionSpan: EmbraceSpan, at time: Date = Date()) {
-        for recorder in recorders.safeValue {
+        let recorders = state.withLock {
+            $0.currentPart = sessionSpan
+            return $0.recorders
+        }
+        for recorder in recorders {
             recorder.onSessionPartStart(sessionSpan: sessionSpan, at: time)
         }
     }
 
     /// Closes every state span. Must run before the session part span is ended.
     func onSessionPartWillEnd(at time: Date = Date()) {
-        for recorder in recorders.safeValue {
+        for recorder in endCurrentPart() {
             recorder.onSessionPartWillEnd(at: time)
         }
     }
@@ -65,7 +82,7 @@ final class StateCaptureCoordinator {
     /// Closes every state span for a part whose telemetry is being discarded, retaining the
     /// accumulated counters for the next part.
     func onSessionPartDiscarded(at time: Date = Date()) {
-        for recorder in recorders.safeValue {
+        for recorder in endCurrentPart() {
             recorder.onSessionPartDiscarded(at: time)
         }
     }
@@ -79,7 +96,7 @@ final class StateCaptureCoordinator {
     /// read, so a type is never attributed to the wrong value.
     var logAttributes: EmbraceAttributes {
         var attributes: EmbraceAttributes = [:]
-        for recorder in recorders.safeValue {
+        for recorder in state.withLock({ $0.recorders }) {
             guard let value = recorder.currentSerializedValue else {
                 continue
             }
@@ -91,5 +108,12 @@ final class StateCaptureCoordinator {
             ) { _, new in new }
         }
         return attributes
+    }
+
+    private func endCurrentPart() -> [StateRecording] {
+        state.withLock {
+            $0.currentPart = nil
+            return $0.recorders
+        }
     }
 }
