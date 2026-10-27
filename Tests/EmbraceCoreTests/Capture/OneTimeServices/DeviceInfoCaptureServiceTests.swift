@@ -26,7 +26,7 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         let processId = ProcessIdentifier.current.stringValue
 
         let resources = handler.fetchResourcesForProcessId(ProcessIdentifier.current)
-        XCTAssertEqual(resources.count, 11)
+        XCTAssertEqual(resources.count, 8)
 
         // jailbroken
         let jailbroken = handler.fetchMetadata(
@@ -88,25 +88,6 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         XCTAssertNotNil(osBuild)
         XCTAssertEqual(osBuild!.value, EMBDevice.operatingSystemBuild)
 
-        // os variant
-        let osVariant = handler.fetchMetadata(
-            key: DeviceResourceKey.osVariant.rawValue,
-            type: .requiredResource,
-            lifespan: .process,
-            lifespanId: processId
-        )
-        XCTAssertNotNil(osVariant)
-        XCTAssertEqual(osVariant!.value, EMBDevice.operatingSystemType)
-
-        let osName = handler.fetchMetadata(
-            key: DeviceResourceKey.osName.rawValue,
-            type: .requiredResource,
-            lifespan: .process,
-            lifespanId: processId
-        )
-        XCTAssertNotNil(osName)
-        XCTAssertEqual(osName!.value, EMBDevice.operatingSystemType)
-
         // model
         let model = handler.fetchMetadata(
             key: DeviceResourceKey.deviceModelIdentifier.rawValue,
@@ -118,15 +99,10 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         XCTAssertNotNil(model)
         XCTAssertEqual(model!.value, EMBDevice.model)
 
-        // osType
-        let osType = handler.fetchMetadata(
-            key: DeviceResourceKey.osType.rawValue,
-            type: .requiredResource,
-            lifespan: .process,
-            lifespanId: processId
-        )
-        XCTAssertNotNil(osType)
-        XCTAssertEqual(osType!.value, "darwin")
+        // critical resources are not captured by the service
+        for key in DeviceInfoCaptureService.criticalResources.keys {
+            XCTAssertNil(handler.fetchMetadata(key: key, type: .requiredResource, lifespan: .process, lifespanId: processId))
+        }
 
         // architecture
         let architecture = handler.fetchMetadata(
@@ -137,6 +113,14 @@ final class DeviceInfoCaptureServiceTests: XCTestCase {
         )
         XCTAssertNotNil(architecture)
         XCTAssertEqual(architecture!.value, EMBDevice.architecture)
+    }
+
+    func test_criticalResources() {
+        let resources = DeviceInfoCaptureService.criticalResources
+        XCTAssertEqual(resources.count, 3)
+        XCTAssertEqual(resources[DeviceResourceKey.osType.rawValue], "darwin")
+        XCTAssertEqual(resources[DeviceResourceKey.osVariant.rawValue], EMBDevice.operatingSystemType)
+        XCTAssertEqual(resources[DeviceResourceKey.osName.rawValue], EMBDevice.operatingSystemType)
     }
 
     func test_notStarted() throws {

@@ -19,6 +19,7 @@ extension EmbraceIO {
     ///    - endTime: The end time of the span, if already known. Defaults to `nil`.
     ///    - attributes: A dictionary of attributes to set on the span.
     /// - Returns: An `EmbraceSpan` or nil if the root span was not found.
+    @discardableResult
     public func createStartupChildSpan(
         name: String,
         startTime: Date = Date(),

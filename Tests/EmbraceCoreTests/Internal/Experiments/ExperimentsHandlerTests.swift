@@ -398,7 +398,7 @@ final class ExperimentsHandlerTests: XCTestCase {
         let handler = handler()
 
         handler.trackExperiments([.init(id: "exp", startedAt: Date(timeIntervalSince1970: .nan))])
-        wait(delay: .shortTimeout)
+        storage.waitForPendingCoreDataOperations()
 
         XCTAssertNil(handler.encodedExperiments)
         XCTAssertNil(storedValue())
@@ -582,7 +582,7 @@ final class ExperimentsHandlerTests: XCTestCase {
         handler.untrackExperiments(ids: [])
 
         XCTAssertNil(handler.encodedExperiments)
-        wait(delay: .shortTimeout)
+        storage.waitForPendingCoreDataOperations()
         XCTAssertNil(storedValue())
     }
 
@@ -592,7 +592,7 @@ final class ExperimentsHandlerTests: XCTestCase {
         let handler = handler()
         handler.trackExperiments([.init(id: "exp", variant: "A", startedAt: Date(timeIntervalSince1970: 1000))])
 
-        wait(delay: .shortTimeout)
+        storage.waitForPendingCoreDataOperations()
 
         let metadata = try XCTUnwrap(
             storage.fetchMetadata(
@@ -622,7 +622,7 @@ final class ExperimentsHandlerTests: XCTestCase {
         }
         handler.trackExperiments(entries)
 
-        wait(delay: .shortTimeout)
+        storage.waitForPendingCoreDataOperations()
 
         let stored = storedValue()
         XCTAssertNotNil(stored)
@@ -635,7 +635,7 @@ final class ExperimentsHandlerTests: XCTestCase {
         let handler = handler()
 
         handler.trackExperiments([.init(id: "  ")])
-        wait(delay: .shortTimeout)
+        storage.waitForPendingCoreDataOperations()
 
         XCTAssertNil(handler.encodedExperiments)
         XCTAssertNil(storedValue())
@@ -705,7 +705,9 @@ final class ExperimentsHandlerTests: XCTestCase {
         while Date() < deadline {
             handler.trackExperiments([.init(id: "exp-\(index)", startedAt: Date(timeIntervalSince1970: 1000))])
             index += 1
-            wait(delay: .veryShortTimeout / 2)
+            // The spacing is what the test is about, so it has to be real time: shorter than the
+            // debounce, repeated for longer than the max delay.
+            Thread.sleep(forTimeInterval: .veryShortTimeout / 2)
             reportedMidStream = reportedMidStream || reports() > 0
         }
 
@@ -724,7 +726,8 @@ final class ExperimentsHandlerTests: XCTestCase {
         handler.flushPendingPersist()
 
         XCTAssertEqual(reports(), 1)
-        wait(timeout: .defaultTimeout, until: { self.storedValue() == "e:exp:A:1000000" })
+        storage.waitForPendingCoreDataOperations()
+        XCTAssertEqual(storedValue(), "e:exp:A:1000000")
     }
 
     func test_flushPendingPersist_withNothingPending_reportsNothing() {

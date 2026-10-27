@@ -25,9 +25,6 @@ package protocol EmbraceSpanProcessorDelegate: AnyObject {
     /// Called when an external OTel span is ended.
     func onExternalSpanEnded(_ span: ReadableSpan)
 
-    /// The foreground/background state of the current session.
-    var currentSessionState: SessionState { get }
-
     /// The identifier for the current session part, or `nil` when no part is active.
     var currentSessionId: EmbraceIdentifier? { get }
 

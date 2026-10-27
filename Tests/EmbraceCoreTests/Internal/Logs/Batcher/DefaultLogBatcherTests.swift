@@ -2,6 +2,7 @@
 //  Copyright © 2023 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceStorageInternal
 import TestSupport
@@ -65,6 +66,23 @@ class DefaultLogBatcherTests: XCTestCase {
         delegate.didCallBatchFinished = false
         whenLatestDeadlineFires()
         thenDelegateShouldntInvokeBatchFinished()
+    }
+
+    func testForceEndCurrentBatch_passesEndingSessionToDelegate() {
+        givenDefaultLogBatcher()
+        whenInvokingAddLog(withLog: MockLog())
+        let endingSession = MockSession.with(id: .random, state: .foreground)
+        sut.forceEndCurrentBatch(endingSession: endingSession)
+        thenDelegateShouldInvokeBatchFinished()
+        XCTAssertEqual(delegate.batchFinishedReceivedSession?.id, endingSession.id)
+    }
+
+    func testBatchEndedByDeadline_passesNoSessionToDelegate() {
+        givenDefaultLogBatcher(limits: .init(maxBatchAge: 0.1, maxLogsPerBatch: 10))
+        whenInvokingAddLog(withLog: MockLog())
+        whenLatestDeadlineFires()
+        thenDelegateShouldInvokeBatchFinished()
+        XCTAssertNil(delegate.batchFinishedReceivedSession)
     }
 }
 

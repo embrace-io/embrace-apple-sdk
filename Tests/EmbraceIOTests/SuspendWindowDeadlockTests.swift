@@ -19,6 +19,7 @@
 
     private final class PThreadBox {
         var value: pthread_t?
+        var port: mach_port_t = mach_port_t(MACH_PORT_NULL)
     }
 
     /// Deadlock amplifier for the thread-suspend backtrace window.
@@ -28,11 +29,12 @@
     /// tests deliberately suspend a victim thread that is holding — or hammering — each lock class
     /// and assert the walk still completes within a timeout.
     ///
-    /// The **allocator** case is the load-bearing one: `malloc`'s lock is the only lock the walk
-    /// could plausibly contend on, so a victim caught mid-`malloc` is the real scenario. The explicit
-    /// app-lock cases prove the walk is robust when the victim is suspended mid-critical-section (how
-    /// a real hung main thread often looks) and guard against future changes that add runtime work to
-    /// the window.
+    /// The **allocator** and **libpthread thread-list** cases are the load-bearing ones: those are the
+    /// locks the walk itself could plausibly contend on (`malloc`, and pthread handle lookups such as
+    /// `pthread_mach_thread_np`), so a victim caught mid-`malloc` or mid-`pthread_create` is the real
+    /// scenario. The explicit app-lock cases prove the walk is robust when the victim is suspended
+    /// mid-critical-section (how a real hung main thread often looks) and guard against future changes
+    /// that add runtime work to the window.
     ///
     /// A genuine deadlock surfaces as the sampling thread never signaling `done` → the wait times out
     /// → the test fails, instead of hanging the whole suite.
@@ -149,6 +151,46 @@
             )
         }
 
+        /// The victim hammers the ObjC runtime, so suspending it repeatedly catches it holding the
+        /// runtime lock. A walk that does any ObjC dispatch in the suspend window (e.g. an
+        /// `objc_msgSend` on a cold method cache) needs that same lock, which wedges the whole process.
+        func test_noDeadlock_victimHammersObjCRuntime() throws {
+            try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
+
+            let running = EmbraceAtomic<Bool>(true)
+            let ready = DispatchSemaphore(value: 0)
+            let box = PThreadBox()
+
+            // Each of these runtime mutations takes the runtime lock, so a suspend lands inside it
+            // often. Disposing keeps the class count bounded.
+            let victim = Thread {
+                box.value = pthread_self()
+                ready.signal()
+                var counter = 0
+                while running.load(order: .relaxed) {
+                    counter += 1
+                    if let cls = objc_allocateClassPair(NSObject.self, "EMBRuntimeLockProbe\(counter)", 0) {
+                        objc_registerClassPair(cls)
+                        objc_disposeClassPair(cls)
+                    }
+                }
+            }
+            victim.name = "emb.deadlock.objcruntime"
+            victim.start()
+            ready.wait()
+            defer { running.store(false, order: .relaxed) }
+
+            let target = try XCTUnwrap(box.value, "victim did not publish its pthread_t")
+
+            for iteration in 0..<200 {
+                XCTAssertTrue(
+                    sampleCompletes(victim: target),
+                    "Sampling stalled on iteration \(iteration) while the victim hammered the ObjC "
+                        + "runtime — the suspend-window walk is taking the runtime lock (deadlock)."
+                )
+            }
+        }
+
         /// The load-bearing case: the victim continuously allocates/frees, so suspending it
         /// repeatedly catches it mid-`malloc` holding the allocator lock. If the alloc-free window
         /// regressed and started allocating, this would deadlock and time out.
@@ -183,6 +225,119 @@
                     "Sampling stalled on iteration \(iteration) while the victim hammered the allocator "
                         + "— the suspend-window walk is not allocation-free (deadlock)."
                 )
+            }
+        }
+
+        /// Runs `body` in a loop on a victim thread and samples it repeatedly, so some suspends are
+        /// likely to land while `body` holds its lock. `body` returns whether it did the lock-taking
+        /// work, so a victim that only ever fails fast can't make the test pass vacuously.
+        private func assertNoDeadlockWhileVictimHammers(
+            _ what: String,
+            body: @escaping () -> Bool,
+            file: StaticString = #filePath,
+            line: UInt = #line
+        ) throws {
+            let running = EmbraceAtomic<Bool>(true)
+            let successes = EmbraceAtomic<Int64>(0)
+            let ready = DispatchSemaphore(value: 0)
+            let finished = DispatchSemaphore(value: 0)
+            let box = PThreadBox()
+
+            let victim = Thread {
+                box.value = pthread_self()
+                box.port = pthread_mach_thread_np(pthread_self())  // own handle: no list lock
+                ready.signal()
+                while running.load(order: .relaxed) {
+                    if body() {
+                        successes.fetchAdd(1, order: .relaxed)
+                    }
+                }
+                finished.signal()
+            }
+            victim.name = "emb.deadlock.hammer"
+            victim.start()
+            ready.wait()
+            // Wait for the victim to stop running `body`, so callers can tear down what it uses.
+            // Bounded: after a deadlock the victim stays suspended and never gets here.
+            defer {
+                running.store(false, order: .relaxed)
+                _ = finished.wait(timeout: .now() + 5)
+            }
+
+            let target = try XCTUnwrap(box.value, "victim did not publish its pthread_t", file: file, line: line)
+
+            // The thread-list lock is held only briefly per call, so it takes many samples to land a
+            // suspend inside it: at 200, `pthread_create` + `pthread_join` missed the bug in ~2 of 5 runs.
+            // A sample costs well under a millisecond when the walk is healthy.
+            for iteration in 0..<2000 {
+                guard sampleCompletes(victim: target) else {
+                    // The sampler is wedged with the victim suspended while holding the lock. Resume
+                    // the victim so it releases the lock: otherwise every later thread creation in the
+                    // process (the next test, GCD workers) blocks and the run hangs instead of failing.
+                    // The sampler's own resume then just returns `KERN_FAILURE`.
+                    thread_resume(box.port)
+                    XCTFail(
+                        "Sampling stalled on iteration \(iteration) while the victim hammered \(what) — the "
+                            + "suspend-window walk is taking a lock the suspended victim holds (most likely "
+                            + "libpthread's thread-list lock via a pthread handle lookup): deadlock.",
+                        file: file,
+                        line: line
+                    )
+                    // Stop at the first stall; later iterations would only add timeouts.
+                    break
+                }
+            }
+
+            XCTAssertGreaterThan(
+                successes.load(),
+                0,
+                "the victim never completed \(what), so nothing was exercised",
+                file: file,
+                line: line
+            )
+        }
+
+        /// The victim holds libpthread's thread-list lock inside `pthread_create` and `pthread_join`
+        /// (EMBR-14337: app code creating/joining threads while the main thread hangs). Resolving the
+        /// target's mach port inside the window takes that same lock.
+        func test_noDeadlock_victimHammersPthreadCreateJoin() throws {
+            try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
+
+            try assertNoDeadlockWhileVictimHammers("pthread_create + pthread_join") {
+                var child: pthread_t?
+                guard pthread_create(&child, nil, { _ in nil }, nil) == 0, let child else { return false }
+                return pthread_join(child, nil) == 0
+            }
+        }
+
+        /// Querying *another* thread's handle also validates it under the thread-list lock.
+        func test_noDeadlock_victimHammersPthreadMachThreadNp() throws {
+            try XCTSkipIfSanitizing("thread suspension + KSCrash walk are unsafe under sanitizer instrumentation")
+
+            let ready = DispatchSemaphore(value: 0)
+            let mayExit = DispatchSemaphore(value: 0)
+            let finished = DispatchSemaphore(value: 0)
+            let box = PThreadBox()
+
+            // A parked thread whose handle the victim keeps querying.
+            let other = Thread {
+                box.value = pthread_self()
+                ready.signal()
+                mayExit.wait()
+                finished.signal()
+            }
+            other.name = "emb.deadlock.parked"
+            other.start()
+            ready.wait()
+            defer {
+                mayExit.signal()
+                finished.wait()
+            }
+
+            let otherThread = try XCTUnwrap(box.value, "parked thread did not publish its pthread_t")
+
+            try assertNoDeadlockWhileVictimHammers("pthread_mach_thread_np(otherThread)") {
+                pthread_mach_thread_np(otherThread) != MACH_PORT_NULL
             }
         }
     }

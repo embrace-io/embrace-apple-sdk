@@ -10,6 +10,7 @@ public enum EmbraceUploadErrorCode: Int {
     case invalidData = 1001
     case operationCancelled = 1002
     case cacheSaveFailed = 1003
+    case uploaderUnavailable = 1004
 }
 
 public enum EmbraceUploadError: Error, Equatable {

@@ -19,12 +19,30 @@ import OpenTelemetrySdk
 ///
 /// All logs (internal and external) are forwarded to the child processors and exporters
 /// supplied at init time, making this processor the single root of the log pipeline.
+///
+/// Attribute injection and delegate notifications happen synchronously on the calling thread;
+/// child processor/exporter forwarding is dispatched to a dedicated utility queue, matching
+/// `EmbraceSpanProcessor`. The calling thread is often an SDK queue, so a slow or re-entrant
+/// child exporter then only delays this queue instead of stalling (or trapping) that SDK queue.
+/// Once the bridge has set `criticalResourceGroup` (after `Embrace.setup` completes), child
+/// forwarding waits on it, so children don't receive logs before critical SDK resources are
+/// ready. Logs forwarded before it is set are not gated.
+///
+/// `forceFlush`, `shutdown` and `waitForAllWork` block the caller until the queue drains. If logs
+/// are queued while `criticalResourceGroup` is still entered, that includes waiting for the group
+/// to be left. They must not be called from a child's own callbacks: `forceFlush` and `shutdown`
+/// trap (`queue.sync` on the current queue) and `waitForAllWork` deadlocks.
 class EmbraceLogProcessor: LogRecordProcessor {
 
     weak var delegate: EmbraceLogProcessorDelegate?
 
+    /// Set by `EmbraceOTelBridge.setup(delegate:metadataProvider:criticalResourceGroup:)`
+    /// after `Embrace.setup()` completes. Child forwarding waits on this group before proceeding.
+    var criticalResourceGroup: DispatchGroup?
+
     private let childProcessors: [LogRecordProcessor]
     private let childExporters: [LogRecordExporter]
+    private let processorQueue = DispatchQueue(label: "io.embrace.otelbridge.logprocessor", qos: .utility)
 
     init(
         delegate: EmbraceLogProcessorDelegate? = nil,
@@ -52,34 +70,51 @@ class EmbraceLogProcessor: LogRecordProcessor {
             delegate.onExternalLogEmitted(log)
         }
 
-        let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "log-processor-onemit")
-        childProcessors.forEach { $0.onEmit(logRecord: log) }
-        mkProcessSpan.end()
+        processorQueue.async { [self, log] in
+            criticalResourceGroup?.wait()
 
-        let mkExportSpan = EmbraceMetricKitSpan.begin(name: "log-exporter-onemit")
-        childExporters.forEach { _ = $0.export(logRecords: [log]) }
-        mkExportSpan.end()
+            let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "log-processor-onemit")
+            childProcessors.forEach { $0.onEmit(logRecord: log) }
+            mkProcessSpan.end()
+
+            let mkExportSpan = EmbraceMetricKitSpan.begin(name: "log-exporter-onemit")
+            childExporters.forEach { _ = $0.export(logRecords: [log]) }
+            mkExportSpan.end()
+        }
     }
 
     func forceFlush(explicitTimeout: TimeInterval?) -> ExportResult {
-        let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "log-processor-forceflush")
-        let processorResults = childProcessors.map { $0.forceFlush(explicitTimeout: explicitTimeout) }
-        mkProcessSpan.end()
+        return processorQueue.sync {
+            let mkProcessSpan = EmbraceMetricKitSpan.begin(name: "log-processor-forceflush")
+            let processorResults = childProcessors.map { $0.forceFlush(explicitTimeout: explicitTimeout) }
+            mkProcessSpan.end()
 
-        let mkExportSpan = EmbraceMetricKitSpan.begin(name: "log-exporter-forceflush")
-        let exporterResults = childExporters.map { $0.forceFlush() }
-        mkExportSpan.end()
+            let mkExportSpan = EmbraceMetricKitSpan.begin(name: "log-exporter-forceflush")
+            let exporterResults = childExporters.map { $0.forceFlush() }
+            mkExportSpan.end()
 
-        let resultSet = Set(processorResults + exporterResults)
-        if let first = resultSet.first {
-            return resultSet.count > 1 ? .failure : first
+            let resultSet = Set(processorResults + exporterResults)
+            if let first = resultSet.first {
+                return resultSet.count > 1 ? .failure : first
+            }
+            return .success
         }
-        return .success
+    }
+
+    /// Drains the internal processor queue synchronously by enqueuing an empty block on the
+    /// serial queue and waiting for it. Used by benchmark/test harnesses to ensure all queued log work is processed
+    /// before measurements are taken.
+    func waitForAllWork() {
+        let group = DispatchGroup()
+        processorQueue.async(group: group, flags: .assignCurrentContext) {}
+        group.wait()
     }
 
     func shutdown(explicitTimeout: TimeInterval?) -> ExportResult {
-        childProcessors.forEach { _ = $0.shutdown(explicitTimeout: explicitTimeout) }
-        childExporters.forEach { $0.shutdown(explicitTimeout: explicitTimeout) }
+        processorQueue.sync {
+            childProcessors.forEach { _ = $0.shutdown(explicitTimeout: explicitTimeout) }
+            childExporters.forEach { $0.shutdown(explicitTimeout: explicitTimeout) }
+        }
         return .success
     }
 }

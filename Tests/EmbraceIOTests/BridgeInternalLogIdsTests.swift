@@ -14,8 +14,8 @@ import XCTest
 
 /// Covers the lifetime of the IDs the OTel bridge uses to recognize its own outbound logs.
 ///
-/// Those IDs are only needed while the log is being emitted: the OTel log processor chain runs
-/// synchronously inside `emit()`. This test drives the full public logging path to confirm that
+/// Those IDs are only needed while the log is being emitted: the root log processor checks them
+/// synchronously inside `emit()`, and only child forwarding is deferred to its queue. This test drives the full public logging path to confirm that
 /// nothing is retained afterwards, and that scoping the IDs to the emit window did not break the
 /// deduplication they exist for — each log must still reach the pipeline exactly once.
 final class BridgeInternalLogIdsTests: XCTestCase {
@@ -49,7 +49,8 @@ final class BridgeInternalLogIdsTests: XCTestCase {
             EmbraceIO.shared.log("bridge-log-\(i)", severity: .info)
         }
 
-        // Each log is built on the processing queue and emitted and exported synchronously from there.
+        // Each log is built and emitted on the processing queue, then exported from the bridge's log
+        // processor queue; `waitForAllWork` drains both.
         Embrace.client?.waitForAllWork()
 
         // Every log made it through the pipeline exactly once.

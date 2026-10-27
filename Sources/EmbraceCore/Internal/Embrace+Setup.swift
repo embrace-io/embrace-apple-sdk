@@ -111,7 +111,7 @@ extension Embrace {
 /// Extension to handle observability of SDK startup
 extension Embrace {
 
-    func createProcessStartSpans() -> [EmbraceSpan] {
+    func createProcessStartSpans(sdkStartProcessTime: Date) -> [EmbraceSpan] {
         var result: [EmbraceSpan] = []
 
         // emb-process-launch
@@ -136,7 +136,8 @@ extension Embrace {
         // emb-sdk-start-process
         let span = otel.createSpan(
             name: "emb-sdk-start-process",
-            parentSpan: parent
+            parentSpan: parent,
+            startTime: sdkStartProcessTime
         )
         if let span {
             result.append(span)

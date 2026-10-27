@@ -37,4 +37,10 @@ extension UnfairLock {
     public func unlock() {
         os_unfair_lock_unlock(_lock)
     }
+
+    /// Takes the lock if it's free, without blocking.
+    /// - Returns: `true` if the lock was taken, `false` if it was already locked.
+    public func tryLock() -> Bool {
+        os_unfair_lock_trylock(_lock)
+    }
 }

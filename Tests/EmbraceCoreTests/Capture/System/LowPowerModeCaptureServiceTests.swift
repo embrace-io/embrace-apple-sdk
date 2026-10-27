@@ -178,6 +178,91 @@ class LowPowerModeCollectorTests: XCTestCase {
         XCTAssertNil(service.currentSpan)
     }
 
+    func test_endSpan_endsSpanOutsideOfLock() {
+        // given a service with an active span
+        provider.isLowPowerModeEnabled = true
+
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
+        service.start()
+
+        let span = service.currentSpan
+        XCTAssertNotNil(span)
+
+        // and a span processor that checks if the service's lock is free when a span ends
+        var lockWasFree: Bool?
+        otel.onSpanEndedCallback = { _ in
+            lockWasFree = service._currentSpan.isLockFree
+        }
+        defer { otel.onSpanEndedCallback = nil }
+
+        // when the span is ended
+        service.endSpan()
+
+        // then it is ended without holding the lock
+        XCTAssertNotNil(span!.endTime)
+        XCTAssertEqual(lockWasFree, true)
+        XCTAssertNil(service.currentSpan)
+    }
+
+    func test_startSpan_startsSpanOutsideOfLock() {
+        // given an active service
+        provider.isLowPowerModeEnabled = false
+
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
+        service.start()
+
+        // and a span processor that checks if the service's lock is free when a span starts
+        var lockWasFree: Bool?
+        otel.onSpanStartedCallback = { _ in
+            lockWasFree = service._currentSpan.isLockFree
+        }
+        defer { otel.onSpanStartedCallback = nil }
+
+        // when a span is started
+        service.startSpan()
+
+        // then it is started without holding the lock
+        XCTAssertEqual(lockWasFree, true)
+        XCTAssertNotNil(service.currentSpan)
+    }
+
+    func test_startSpan_endsConcurrentlyStoredSpan() throws {
+        // given an active service
+        provider.isLowPowerModeEnabled = false
+
+        let service = LowPowerModeCaptureService(provider: provider)
+        service.install(otel: otel)
+        service.start()
+
+        // and a span that another thread stores while a new one is being started
+        let raced = try otel._createSpan(name: "raced", type: .lowPower, startTime: Date())
+        var racedSpanWasStored: Bool?
+        otel.onSpanStartedCallback = { _ in
+            racedSpanWasStored = service._currentSpan.withLockIfAvailable { $0 = raced } != nil
+        }
+        defer { otel.onSpanStartedCallback = nil }
+
+        // and a span processor that checks if the service's lock is free when a span ends
+        var lockWasFree: [Bool] = []
+        otel.onSpanEndedCallback = { _ in
+            lockWasFree.append(service._currentSpan.isLockFree)
+        }
+        defer { otel.onSpanEndedCallback = nil }
+
+        // when a span is started
+        service.startSpan()
+
+        // then the raced span is ended without holding the lock and replaced by the new one
+        XCTAssertEqual(racedSpanWasStored, true)
+        XCTAssertNotNil(raced.endTime)
+        XCTAssertEqual(lockWasFree, [true])
+        XCTAssertNotNil(service.currentSpan)
+        XCTAssertEqual(service.currentSpan?.name, "emb-device-low-power")
+        XCTAssertNil(service.currentSpan?.endTime)
+    }
+
     func test_shutdownService_endsSpan() {
         // given low power mode enabled
         provider.isLowPowerModeEnabled = true

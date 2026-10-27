@@ -38,6 +38,46 @@ class EmbraceStorageLoggingTests: XCTestCase {
         XCTAssertNotNil(logs.first(where: { $0.id == id.stringValue }))
     }
 
+    func test_saveLog_doesNotBlockCallerWhileContextIsBusy() throws {
+        // hold the context queue so the insert can't run yet
+        let gate = DispatchSemaphore(value: 0)
+        sut.coreData.context.perform {
+            gate.wait()
+        }
+
+        let returned = expectation(description: "saveLog returned")
+        DispatchQueue.global().async {
+            self.sut.saveLog(MockLog(body: "log message", sessionId: .random, processId: .random))
+            returned.fulfill()
+        }
+        let result = XCTWaiter.wait(for: [returned], timeout: 5)
+
+        gate.signal()
+
+        XCTAssertEqual(result, .completed)
+
+        // sync fetches run on the same serial context, so they wait for the async insert
+        let logs: [LogRecord] = sut.fetchAll()
+        XCTAssertEqual(logs.count, 1)
+    }
+
+    func test_saveLog_savesContext() throws {
+        sut.saveLog(MockLog(body: "log message", sessionId: .random, processId: .random))
+
+        let hasChanges = sut.coreData.performOperation { $0.hasChanges }
+        XCTAssertFalse(hasChanges)
+    }
+
+    func test_saveLog_thenRemove_removesTheLog() throws {
+        let log = MockLog(body: "log message", sessionId: .random, processId: .random)
+
+        sut.saveLog(log)
+        sut.remove(logs: [log])
+
+        let logs: [LogRecord] = sut.fetchAll()
+        XCTAssertTrue(logs.isEmpty)
+    }
+
     // MARK: - Fetch All Excluding Process Identifier
 
     func test_fetchAllExcludingProcessIdentifier_shouldFilterLogsProperly() throws {

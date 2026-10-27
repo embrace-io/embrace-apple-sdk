@@ -16,8 +16,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
     private var sessionDelegate: URLSessionDelegate!
     private var taskDelegate: URLSessionDelegate!
 
-    static let timeoutQuick = 0.2
-
     override func tearDownWithError() throws {
         if urlSessionCaptureService != nil { unswizzleDefaultCaptureService() }
         if otherSwizzler != nil { unswizzleOtherSwizzler() }
@@ -73,6 +71,17 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         XCTAssertTrue(delegate.didCallDidCompleteWithError)
     }
 
+    /// Both delegates are called on the session's serial delegate queue. Once the task delegate has
+    /// seen the task complete, draining that queue delivers any session delegate call that was
+    /// queued alongside it, so the flags can be checked without waiting out a window.
+    func thenSessionDelegateWasNotCalled() throws {
+        urlSession.delegateQueue.addOperations([BlockOperation {}], waitUntilFinished: true)
+
+        let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
+        XCTAssertFalse(sessionDelegate.didCallDidReceiveData)
+        XCTAssertFalse(sessionDelegate.didCallDidCompleteWithError)
+    }
+
     // MARK: - Tests
 
     func test_taskWithNoDelegate_callsSessionDelegate() throws {
@@ -89,7 +98,7 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
             for: [
                 sessionDelegate.didReceiveDataExpectation,
                 sessionDelegate.didCompleteWithErrorExpectation
-            ], timeout: Self.timeoutQuick)
+            ], timeout: .longTimeout)
 
         unswizzleDefaultCaptureService()
     }
@@ -99,7 +108,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         try otherSwizzler?.install()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func testWithPreviousSwizzledProxy_taskWithDelegate_callsTaskDelegateOnly() throws {
         /*
          This test checks what happens when there's a delegate assigned when creating a
@@ -119,16 +127,11 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         task.delegate = taskDelegate
         task.resume()
 
-        let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
-        sessionDelegate.didReceiveDataExpectation.isInverted = true
-        sessionDelegate.didCompleteWithErrorExpectation.isInverted = true
         wait(
-            for: [
-                sessionDelegate.didReceiveDataExpectation,
-                sessionDelegate.didCompleteWithErrorExpectation,
-                taskDelegate.didReceiveDataExpectation,
-                taskDelegate.didCompleteWithErrorExpectation
-            ], timeout: Self.timeoutQuick)
+            for: [taskDelegate.didReceiveDataExpectation, taskDelegate.didCompleteWithErrorExpectation],
+            timeout: .longTimeout
+        )
+        try thenSessionDelegateWasNotCalled()
 
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
@@ -138,7 +141,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         unswizzleOtherSwizzler()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func testWithProxySwizzledAfterEmbrace_taskWithDelegate_callsTaskDelegateOnly() throws {
         /*
          This test checks what happens when there's a delegate assigned when creating a
@@ -158,16 +160,11 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         task.delegate = taskDelegate
         task.resume()
 
-        let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
-        sessionDelegate.didReceiveDataExpectation.isInverted = true
-        sessionDelegate.didCompleteWithErrorExpectation.isInverted = true
         wait(
-            for: [
-                sessionDelegate.didReceiveDataExpectation,
-                sessionDelegate.didCompleteWithErrorExpectation,
-                taskDelegate.didReceiveDataExpectation,
-                taskDelegate.didCompleteWithErrorExpectation
-            ], timeout: Self.timeoutQuick)
+            for: [taskDelegate.didReceiveDataExpectation, taskDelegate.didCompleteWithErrorExpectation],
+            timeout: .longTimeout
+        )
+        try thenSessionDelegateWasNotCalled()
 
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeRespondsTo))
         XCTAssertTrue(try XCTUnwrap(otherSwizzler?.proxy?.didInvokeForwardingTarget))
@@ -177,7 +174,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         unswizzleDefaultCaptureService()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func test_taskWithDelegate_callsTaskDelegateOnly() throws {
         givenCaptureServiceInstalled()
         givenTaskDelegate()
@@ -190,20 +186,14 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         task.delegate = taskDelegate
         task.resume()
 
-        let sessionDelegate = try XCTUnwrap(sessionDelegate as? FullyImplementedURLSessionDelegate)
-        sessionDelegate.didReceiveDataExpectation.isInverted = true
-        sessionDelegate.didCompleteWithErrorExpectation.isInverted = true
         wait(
-            for: [
-                sessionDelegate.didReceiveDataExpectation,
-                sessionDelegate.didCompleteWithErrorExpectation,
-                taskDelegate.didReceiveDataExpectation,
-                taskDelegate.didCompleteWithErrorExpectation
-            ], timeout: Self.timeoutQuick)
+            for: [taskDelegate.didReceiveDataExpectation, taskDelegate.didCompleteWithErrorExpectation],
+            timeout: .longTimeout
+        )
+        try thenSessionDelegateWasNotCalled()
         unswizzleDefaultCaptureService()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func test_taskWithDelegate_thatDoesNotImplementMethods_callsSessionDelegateOnly() throws {
         givenCaptureServiceInstalled()
         givenTaskDelegate(NotImplementedURLSessionDelegate())
@@ -220,12 +210,11 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
             for: [
                 sessionDelegate.didReceiveDataExpectation,
                 sessionDelegate.didCompleteWithErrorExpectation
-            ], timeout: Self.timeoutQuick)
+            ], timeout: .longTimeout)
 
         unswizzleDefaultCaptureService()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func test_async_taskWithNoDelegate_callsNothing() async throws {
         givenCaptureServiceInstalled()
         givenSessionDelegate()
@@ -242,7 +231,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         unswizzleDefaultCaptureService()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func test_async_taskWithDelegate_callsSessionDelegate() async throws {
         givenCaptureServiceInstalled()
         givenSessionDelegate()
@@ -259,7 +247,6 @@ final class URLSessionDelegateProxyAsTaskDelegateTests: SwizzlerTestCase {
         unswizzleDefaultCaptureService()
     }
 
-    @available(iOS 15.0, watchOS 8.0, tvOS 15.0, *)
     func test_async_taskWithDelegate_doesNotCallSessionDelegate() async throws {
         givenCaptureServiceInstalled()
 

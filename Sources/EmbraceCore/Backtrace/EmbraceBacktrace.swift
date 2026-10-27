@@ -146,5 +146,12 @@ struct EmbraceBacktrace: Codable {
             threads: takeSnapshot(of: thread, threadIndex: threadIndex)
         )
     }
+
+    /// Whether any captured thread has at least one frame. A remote-thread capture can come back
+    /// empty when it could not be taken (e.g. another stack walk was in flight), so an empty
+    /// snapshot means "capture unavailable" rather than "empty stack".
+    var hasFrames: Bool {
+        threads.contains { $0.callstack.count > 0 }
+    }
 }
 extension EmbraceBacktrace: Sendable {}

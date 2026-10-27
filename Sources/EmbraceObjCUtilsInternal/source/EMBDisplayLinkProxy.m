@@ -15,7 +15,7 @@
 #import <UIKit/UIKit.h>
 #endif
 
-API_AVAILABLE(ios(3.1), tvos(9.0), macos(14.0))
+API_AVAILABLE(macos(14.0))
 API_UNAVAILABLE(watchos)
 @implementation EMBDisplayLinkProxy {
 #if !TARGET_OS_WATCH

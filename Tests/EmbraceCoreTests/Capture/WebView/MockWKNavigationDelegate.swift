@@ -92,7 +92,6 @@
             callCount += 1
         }
 
-        @available(iOS 14, *)
         func webView(
             _ webView: WKWebView,
             authenticationChallenge challenge: URLAuthenticationChallenge,
@@ -101,7 +100,6 @@
             callCount += 1
         }
 
-        @available(iOS 14.5, *)
         func webView(
             _ webView: WKWebView,
             navigationAction: WKNavigationAction,
@@ -110,7 +108,6 @@
             callCount += 1
         }
 
-        @available(iOS 14.5, *)
         func webView(
             _ webView: WKWebView,
             navigationResponse: WKNavigationResponse,

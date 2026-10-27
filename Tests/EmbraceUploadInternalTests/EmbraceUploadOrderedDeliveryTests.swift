@@ -13,7 +13,8 @@ import XCTest
 private func makeModule(
     testName: String,
     automaticRetryCount: Int = 0,
-    queueLimit: Int = 10
+    queueLimit: Int = 10,
+    exponentialBackoffBehavior: EmbraceUpload.ExponentialBackoff = .withNoDelay()
 ) throws -> (EmbraceUpload, DispatchQueue) {
 
     let urlSessionConfig = URLSessionConfiguration.ephemeral
@@ -27,7 +28,9 @@ private func makeModule(
     )
     let redundancy = EmbraceUpload.RedundancyOptions(
         automaticRetryCount: automaticRetryCount,
-        queueLimit: queueLimit
+        queueLimit: queueLimit,
+        retryOnInternetConnected: false,
+        exponentialBackoffBehavior: exponentialBackoffBehavior
     )
     let endpoints = EmbraceUpload.EndpointOptions(
         spansURL: URL(string: "https://embrace.\(testName).com/upload/sessions")!,
@@ -68,19 +71,17 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         EmbraceHTTPMock.mock(url: spansUrl)
 
         let count = 5
-        let completionExpectation = XCTestExpectation(description: "all completions")
-        completionExpectation.expectedFulfillmentCount = count
+        var completions = 0
 
         for i in 0..<count {
             let data = "span-\(i)".data(using: .utf8)!
             module.uploadSpans(id: "span-\(i)", data: data) { _ in
-                completionExpectation.fulfill()
+                completions += 1
             }
         }
 
-        wait(for: [completionExpectation], timeout: .defaultTimeout)
-        module.queue.sync {}
-        module.spansQueue.waitUntilAllOperationsAreFinished()
+        module.waitForAllWork()
+        XCTAssertEqual(completions, count)
 
         // Verify requests arrived in order
         let requests = EmbraceHTTPMock.requestsForUrl(spansUrl)
@@ -101,19 +102,17 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         EmbraceHTTPMock.mock(url: logsUrl)
 
         let count = 5
-        let completionExpectation = XCTestExpectation(description: "all completions")
-        completionExpectation.expectedFulfillmentCount = count
+        var completions = 0
 
         for i in 0..<count {
             let data = "log-\(i)".data(using: .utf8)!
             module.uploadLog(id: "log-\(i)", data: data) { _ in
-                completionExpectation.fulfill()
+                completions += 1
             }
         }
 
-        wait(for: [completionExpectation], timeout: .defaultTimeout)
-        module.queue.sync {}
-        module.logsQueue.waitUntilAllOperationsAreFinished()
+        module.waitForAllWork()
+        XCTAssertEqual(completions, count)
 
         let requests = EmbraceHTTPMock.requestsForUrl(logsUrl)
         XCTAssertEqual(requests.count, count)
@@ -137,24 +136,18 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
 
         // Upload more records than queueLimit
         let totalRecords = 5
-        let completionExpectation = XCTestExpectation(description: "all completions")
-        completionExpectation.expectedFulfillmentCount = totalRecords
+        var completions = 0
 
         for i in 0..<totalRecords {
             module.uploadSpans(id: "span-\(i)", data: TestConstants.data) { _ in
-                completionExpectation.fulfill()
+                completions += 1
             }
         }
 
-        wait(for: [completionExpectation], timeout: .longTimeout)
-
-        // fillQueue refills the capped queue after each completion, so the final
-        // request can land just after its completion callback fires. Poll the mock
-        // until every record has been uploaded rather than draining the queues,
-        // which races that refill cycle.
-        wait(timeout: .longTimeout, interval: .shortInterval) {
-            EmbraceHTTPMock.requestsForUrl(spansUrl).count == totalRecords
-        }
+        // waitForAllWork keeps draining until the refills that each finished upload triggers have
+        // also finished, so every record has been uploaded when it returns.
+        module.waitForAllWork()
+        XCTAssertEqual(completions, totalRecords)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(spansUrl).count, totalRecords)
     }
 
@@ -168,14 +161,13 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         EmbraceHTTPMock.mock(url: spansUrl)
 
         // Upload a single record
-        let expectation = XCTestExpectation()
+        var completed = false
         module.uploadSpans(id: "span-1", data: TestConstants.data) { _ in
-            expectation.fulfill()
+            completed = true
         }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
-        module.queue.sync {}
-        module.spansQueue.waitUntilAllOperationsAreFinished()
+        module.waitForAllWork()
+        XCTAssertTrue(completed)
 
         // Should have exactly 1 request — no duplicates
         let requests = EmbraceHTTPMock.requestsForUrl(spansUrl)
@@ -188,7 +180,7 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         // Don't mock the URL — upload will fail, but we don't care about the upload
         let (module, _) = try makeModule(testName: testName, automaticRetryCount: 0, queueLimit: 10)
 
-        let expectation = XCTestExpectation(description: "completion fires")
+        var completed = false
 
         module.uploadSpans(id: "span-1", data: TestConstants.data) { result in
             // Completion fires after cache write, before upload
@@ -197,13 +189,17 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
                 // Verify record exists in cache at completion time
                 let record = module.cache.fetchUploadData(id: "span-1", type: .spans)
                 XCTAssertNotNil(record, "Record should exist in cache when completion fires")
-                expectation.fulfill()
+                completed = true
             default:
                 XCTFail("Upload should've succeeded (cache-first)")
             }
         }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
+        // The completion runs on the coordination queue
+        module.queue.sync {}
+        XCTAssertTrue(completed)
+
+        module.waitForAllWork()
     }
 
     // MARK: - 5. Unlimited retries
@@ -211,19 +207,22 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     func test_unlimitedRetriesWithNegativeOne() throws {
         try XCTSkipIf(XCTestCase.isWatchOS())
 
-        // mock 500 error — retriable
-        EmbraceHTTPMock.mock(url: TestConstants.url, errorCode: 500)
+        // mock 500 error — retriable.
+        // The cancel below counts the requests to this URL, so no other test can share it. A
+        // request from another test's operation that is still retrying would throw the count off.
+        let url = URL(string: "https://embrace.\(testName).com/upload")!
+        EmbraceHTTPMock.mock(url: url, errorCode: 500)
 
         let expectation = XCTestExpectation()
 
-        // retryCount: -1 means unlimited. We verify it retries at least 3 times.
+        // retryCount: -1 means unlimited. We verify it keeps retrying until it is cancelled.
         var finalAttemptCount = 0
         let operation = EmbraceUploadOperation(
             urlSession: makeTestURLSession(),
             queue: .main,
             metadataOptions: EmbraceUpload.MetadataOptions(
                 apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678"),
-            endpoint: TestConstants.url,
+            endpoint: url,
             identifier: "id",
             data: Data(),
             retryCount: -1,
@@ -234,17 +233,19 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
             expectation.fulfill()
         }
 
-        // Cancel after a short delay to stop the unlimited retries
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            operation.cancel()
+        // Cancel during the 3rd attempt to stop the unlimited retries
+        EmbraceHTTPMock.onRequest(to: url) {
+            if EmbraceHTTPMock.requestsForUrl(url).count == 3 {
+                operation.cancel()
+            }
         }
 
         operation.start()
 
         wait(for: [expectation], timeout: .defaultTimeout)
 
-        // Should have retried multiple times before being cancelled
-        XCTAssertGreaterThan(finalAttemptCount, 1, "Operation should have retried multiple times")
+        // Should have retried twice before being cancelled
+        XCTAssertEqual(finalAttemptCount, 3, "Operation should have retried multiple times")
     }
 
     // MARK: - 6. Finite retries exhausted → delete
@@ -258,15 +259,13 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         // Mock 500 so every attempt fails
         EmbraceHTTPMock.mock(url: spansUrl, errorCode: 500)
 
-        let expectation = XCTestExpectation(description: "completion")
+        var completed = false
         module.uploadSpans(id: "span-1", data: TestConstants.data) { _ in
-            expectation.fulfill()
+            completed = true
         }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
-        module.queue.sync {}
-        module.spansQueue.waitUntilAllOperationsAreFinished()
-        module.queue.sync {}
+        module.waitForAllWork()
+        XCTAssertTrue(completed)
 
         // Record should be deleted from cache after retries exhausted
         let record = module.cache.fetchUploadData(id: "span-1", type: .spans)
@@ -352,17 +351,22 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
 
     func test_cancelKeepsRecordInCache() throws {
         // Use unlimited retries so the operation is still running when we cancel
-        let (module, _) = try makeModule(testName: testName, automaticRetryCount: -1, queueLimit: 10)
+        let (module, _) = try makeModule(
+            testName: testName,
+            automaticRetryCount: -1,
+            queueLimit: 10,
+            exponentialBackoffBehavior: .init()
+        )
 
         // Upload data to cache it — no mock URL so every attempt fails and retries
-        let expectation = XCTestExpectation(description: "completion")
+        var completed = false
         module.uploadSpans(id: "span-1", data: TestConstants.data) { _ in
-            expectation.fulfill()
+            completed = true
         }
-        wait(for: [expectation], timeout: .defaultTimeout)
 
-        // Ensure the operation has been enqueued
+        // Ensure the completion has fired and the operation has been enqueued
         module.queue.sync {}
+        XCTAssertTrue(completed)
 
         // Cancel all operations while they're still retrying
         module.spansQueue.cancelAllOperations()
@@ -373,6 +377,15 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         // Cancelled operations should keep the record in cache
         let record = module.cache.fetchUploadData(id: "span-1", type: .spans)
         XCTAssertNotNil(record, "Cancelled operation should preserve cache record")
+
+        // handleOperationFinished refilled the queue with a new unlimited-retry operation for the
+        // kept record. Delete the record before cancelling it, so the refill that follows finds
+        // nothing and no operation keeps retrying into later tests.
+        module.queue.sync {
+            module.cache.deleteUploadData(id: "span-1", type: .spans)
+        }
+        module.spansQueue.cancelAllOperations()
+        module.waitForAllWork()
     }
 
     // MARK: - 10. retryCachedData ordering
@@ -390,7 +403,7 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
             context: module.cache.coreData.context,
             id: "oldest",
             type: EmbraceUploadType.spans.rawValue,
-            data: TestConstants.data,
+            data: Data("oldest".utf8),
             payloadTypes: nil,
             date: Date(timeInterval: -300, since: now)
         )
@@ -398,7 +411,7 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
             context: module.cache.coreData.context,
             id: "middle",
             type: EmbraceUploadType.spans.rawValue,
-            data: TestConstants.data,
+            data: Data("middle".utf8),
             payloadTypes: nil,
             date: Date(timeInterval: -200, since: now)
         )
@@ -406,22 +419,18 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
             context: module.cache.coreData.context,
             id: "newest",
             type: EmbraceUploadType.spans.rawValue,
-            data: TestConstants.data,
+            data: Data("newest".utf8),
             payloadTypes: nil,
             date: Date(timeInterval: -100, since: now)
         )
         module.cache.coreData.save()
 
-        let retryExpectation = XCTestExpectation(description: "retryCachedData completes")
-        module.retryCachedData {
-            retryExpectation.fulfill()
-        }
-        wait(for: [retryExpectation], timeout: .defaultTimeout)
-        module.spansQueue.waitUntilAllOperationsAreFinished()
+        module.retryCachedData()
+        module.waitForAllWork()
 
-        // All 3 records should be uploaded
-        let requests = EmbraceHTTPMock.requestsForUrl(spansUrl)
-        XCTAssertEqual(requests.count, 3)
+        // All 3 records should be uploaded, oldest first
+        let bodies = EmbraceHTTPMock.requestBodiesForUrl(spansUrl)
+        XCTAssertEqual(bodies, ["oldest", "middle", "newest"].map { Data($0.utf8) })
     }
 
     // MARK: - 11. retryCachedData + live uploads
@@ -437,21 +446,16 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         _ = module.cache.saveUploadData(id: "cached-1", type: .spans, data: TestConstants.data)
 
         // Retry cached data
-        let retryExpectation = XCTestExpectation(description: "retryCachedData completes")
-        module.retryCachedData {
-            retryExpectation.fulfill()
-        }
-        wait(for: [retryExpectation], timeout: .defaultTimeout)
+        module.retryCachedData()
 
         // Immediately upload a new record
-        let expectation = XCTestExpectation(description: "live upload completion")
+        var completed = false
         module.uploadSpans(id: "live-1", data: TestConstants.data) { _ in
-            expectation.fulfill()
+            completed = true
         }
-        wait(for: [expectation], timeout: .defaultTimeout)
 
-        module.queue.sync {}
-        module.spansQueue.waitUntilAllOperationsAreFinished()
+        module.waitForAllWork()
+        XCTAssertTrue(completed)
 
         // Both should be uploaded
         let requests = EmbraceHTTPMock.requestsForUrl(spansUrl)
@@ -469,21 +473,18 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         EmbraceHTTPMock.mock(url: spansUrl)
         EmbraceHTTPMock.mock(url: logsUrl)
 
-        let expectation = XCTestExpectation(description: "all completions")
-        expectation.expectedFulfillmentCount = 2
+        var completions = 0
 
         // Upload a span and a log simultaneously
         module.uploadSpans(id: "span-1", data: TestConstants.data) { _ in
-            expectation.fulfill()
+            completions += 1
         }
         module.uploadLog(id: "log-1", data: TestConstants.data) { _ in
-            expectation.fulfill()
+            completions += 1
         }
 
-        wait(for: [expectation], timeout: .defaultTimeout)
-        module.queue.sync {}
-        module.spansQueue.waitUntilAllOperationsAreFinished()
-        module.logsQueue.waitUntilAllOperationsAreFinished()
+        module.waitForAllWork()
+        XCTAssertEqual(completions, 2)
 
         // Both types should have been uploaded independently
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(spansUrl).count, 1)

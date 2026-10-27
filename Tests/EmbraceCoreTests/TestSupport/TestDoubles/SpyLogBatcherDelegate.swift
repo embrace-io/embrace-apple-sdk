@@ -10,7 +10,9 @@ import EmbraceSemantics
 
 class SpyLogBatcherDelegate: LogBatcherDelegate {
     var didCallBatchFinished: Bool = false
-    func batchFinished(withLogs logs: [EmbraceLog]) {
+    var batchFinishedReceivedSession: EmbraceSession?
+    func batchFinished(withLogs logs: [EmbraceLog], session: EmbraceSession?) {
         didCallBatchFinished = true
+        batchFinishedReceivedSession = session
     }
 }

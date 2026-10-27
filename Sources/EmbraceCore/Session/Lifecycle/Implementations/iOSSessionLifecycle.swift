@@ -84,28 +84,26 @@
 
         private func listenForUIApplication() {
             #if os(watchOS)
-                if #available(watchOS 7.0, *) {
-                    NotificationCenter.default.addObserver(
-                        self,
-                        selector: #selector(appDidBecomeActive),
-                        name: WKExtension.applicationDidBecomeActiveNotification,
-                        object: nil
-                    )
+                NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(appDidBecomeActive),
+                    name: WKExtension.applicationDidBecomeActiveNotification,
+                    object: nil
+                )
 
-                    NotificationCenter.default.addObserver(
-                        self,
-                        selector: #selector(appDidEnterBackground),
-                        name: WKExtension.applicationDidEnterBackgroundNotification,
-                        object: nil
-                    )
+                NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(appDidEnterBackground),
+                    name: WKExtension.applicationDidEnterBackgroundNotification,
+                    object: nil
+                )
 
-                    NotificationCenter.default.addObserver(
-                        self,
-                        selector: #selector(appWillTerminate),
-                        name: WKExtension.applicationWillResignActiveNotification,
-                        object: nil
-                    )
-                }
+                NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(appWillTerminate),
+                    name: WKExtension.applicationWillResignActiveNotification,
+                    object: nil
+                )
             #else
                 NotificationCenter.default.addObserver(
                     self,

@@ -12,13 +12,19 @@ import Foundation
 #endif
 
 protocol LogBatcherDelegate: AnyObject {
-    func batchFinished(withLogs logs: [EmbraceLog])
+    /// Called on the batcher's processing queue when a batch is closed.
+    /// - Parameters:
+    ///   - logs: the logs contained in the batch.
+    ///   - session: the session the batch belongs to, when it's known at the time the batch is closed
+    ///     (e.g. a batch force-ended because a session part is ending). `nil` when the batch closed on its own
+    ///     (deadline or size limit), in which case the delegate should resolve the session itself.
+    func batchFinished(withLogs logs: [EmbraceLog], session: EmbraceSession?)
 }
 
 protocol LogBatcher: AnyObject {
     func addLog(_ log: EmbraceLog)
     func renewBatch(withLogs logRecords: [EmbraceLog])
-    func forceEndCurrentBatch(waitUntilFinished: Bool)
+    func forceEndCurrentBatch(endingSession: EmbraceSession?)
 
     var logBatchLimits: LogBatchLimits { get }
     var delegate: LogBatcherDelegate? { get set }
@@ -69,39 +75,31 @@ class DefaultLogBatcher: LogBatcher {
 }
 
 extension DefaultLogBatcher {
-    /// Forces the current batch to end and renews it, optionally waiting for completion.
+    /// Asynchronously ends the current batch and starts a new one.
     ///
-    /// This method ensures that any pending logs are flushed by rewewing the batch.
-    /// If `waitUntilFinished` is `true`, the method blocks the calling thread until the operation on the internal queue completes.
+    /// The ending session is captured at call time and handed to the delegate, so the batch is attributed
+    /// to it even if the session controller has already moved on to another session (or none) by the time
+    /// the batch is processed. This never blocks the calling thread.
     ///
     /// - Parameters:
-    ///   - waitUntilFinished: indicates whether the method should block until the batch operation finishes. Default is `true`.
-    func forceEndCurrentBatch(waitUntilFinished: Bool = true) {
-        let group = DispatchGroup()
-
-        if waitUntilFinished {
-            group.enter()
-        }
-
+    ///   - endingSession: the session the pending logs belong to.
+    func forceEndCurrentBatch(endingSession: EmbraceSession?) {
         processorQueue.async {
-            self.renewBatch()
-            if waitUntilFinished {
-                group.leave()
-            }
-        }
-
-        if waitUntilFinished {
-            group.wait()
+            self.renewBatch(session: endingSession)
         }
     }
 
     func renewBatch(withLogs logs: [EmbraceLog] = []) {
+        renewBatch(withLogs: logs, session: nil)
+    }
+
+    private func renewBatch(withLogs logs: [EmbraceLog] = [], session: EmbraceSession?) {
         guard let batch = self.batch else {
             return
         }
 
         cancelBatchDeadline()
-        delegate?.batchFinished(withLogs: batch.logs)
+        delegate?.batchFinished(withLogs: batch.logs, session: session)
 
         self.batch = .init(limits: logBatchLimits, logs: logs)
 

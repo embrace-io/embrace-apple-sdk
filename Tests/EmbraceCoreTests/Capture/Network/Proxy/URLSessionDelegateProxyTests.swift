@@ -49,7 +49,7 @@ class URLSessionDelegateProxyTests: XCTestCase {
         // This is a non-implemented method in the proxy
         try whenInvokingDidReceiveChallenge(withExpectation: expectation)
         thenOriginalDelegateShouldHaveInvokedDidReceiveChallenge()
-        wait(for: [expectation])
+        wait(for: [expectation], timeout: .defaultTimeout)
     }
 }
 

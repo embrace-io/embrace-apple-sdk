@@ -77,7 +77,7 @@ final class EmbraceOTelBridgeProvidersTests: XCTestCase {
 
         let attributes = try? XCTUnwrap(mockDelegate.startedSpans.first?.attributes)
         XCTAssertEqual(attributes?[SpanSemantics.keyEmbraceType] as? String, EmbraceType.performance.rawValue)
-        XCTAssertEqual(attributes?[SpanSemantics.Session.keyState] as? String, SessionState.foreground.rawValue)
+        XCTAssertNil(attributes?[SpanSemantics.Session.keyState])
         XCTAssertEqual(attributes?[SpanSemantics.keySessionId] as? String, "test-user-session-id")
         XCTAssertEqual(attributes?[SpanSemantics.Session.keyUserSessionId] as? String, "test-user-session-id")
         XCTAssertEqual(attributes?[SpanSemantics.Session.keyPartId] as? String, "test-session-id")

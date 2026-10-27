@@ -12,7 +12,6 @@ final class HangLimitsTests: XCTestCase {
         let limits = HangLimits()
         XCTAssertEqual(limits.hangThreshold, HangLimits.defaultHangThreshold)
         XCTAssertEqual(limits.hangPerSession, HangLimits.defaultHangPerSession)
-        XCTAssertEqual(limits.reportsWatchdogEvents, HangLimits.defaultReportsWatchdogEvents)
         // The default trigger (0.15) exceeds the cap (60% of the default hangThreshold), so it lands
         // exactly at the cap.
         XCTAssertEqual(

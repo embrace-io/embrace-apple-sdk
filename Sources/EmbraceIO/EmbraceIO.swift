@@ -108,7 +108,7 @@ public class EmbraceIO {
         }
 
         // Two-phase configuration: now that Embrace is initialized, wire the delegate, metadata
-        // provider, and the captureServicesGroup that gates child span forwarding.
+        // provider, and the captureServicesGroup that gates child span and log forwarding.
         if let bridge, let otel = Embrace.client?.otel {
             bridge.setup(
                 delegate: otel,

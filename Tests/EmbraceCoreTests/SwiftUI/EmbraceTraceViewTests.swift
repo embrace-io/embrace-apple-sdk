@@ -20,7 +20,6 @@
         }
     }
 
-    @available(iOS 13, macOS 10.15, tvOS 13, watchOS 6.0, *)
     final class EmbraceTraceViewTests: XCTestCase {
 
         var mockOTel: MockOTelSignalsHandler!

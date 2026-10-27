@@ -113,6 +113,46 @@
             XCTAssertEqual(otel.endedSpans.count, 7)
         }
 
+        func test_onViewDidDisappear_endsSpansOutsideOfLock() {
+            // given a handler with cached spans
+            let id = "test"
+            handler.data.safeValue.parentSpans[id] = createTTFRSpan()
+            handler.data.safeValue.viewDidLoadSpans[id] = createViewDidLoadSpan()
+            handler.data.safeValue.viewWillAppearSpans[id] = createViewWillAppearSpan()
+            handler.data.safeValue.viewIsAppearingSpans[id] = createViewIsAppearingSpan()
+            handler.data.safeValue.viewDidAppearSpans[id] = createViewDidAppearSpan()
+            handler.data.safeValue.uiReadySpans[id] = createUiReadySpan()
+            handler.data.safeValue.alreadyFinishedUiReadyIds.insert(id)
+
+            // and a span processor that checks if the handler's lock is free when a span ends
+            let lockWasFree = EmbraceMutex<[Bool]>([])
+            otel.onSpanEndedCallback = { [handler] _ in
+                let isFree = handler!.data.isLockFree
+                lockWasFree.withLock { $0.append(isFree) }
+            }
+            defer { otel.onSpanEndedCallback = nil }
+
+            // when the view controller disappears
+            let vc = MockViewController()
+            vc.emb_instrumentation_state = .init(identifier: id)
+            handler.onViewDidDisappear(vc)
+
+            // then all spans are ended without holding the lock
+            wait(timeout: .longTimeout) {
+                lockWasFree.safeValue.count == 6
+            }
+            XCTAssertEqual(lockWasFree.safeValue, Array(repeating: true, count: 6))
+            XCTAssertTrue(cacheIsEmpty())
+
+            // and all of them are ended as abandoned
+            let endedSpans = otel.endedSpans
+            XCTAssertEqual(endedSpans.count, 6)
+            for span in endedSpans {
+                XCTAssertEqual(span.status, .error, "\(span.name) should have an error status")
+                XCTAssertEqual(span.attributes[SpanSemantics.keyErrorCode] as? String, "user_abandon", span.name)
+            }
+        }
+
         func test_onViewDidLoad_deactivatedService() {
             // given a handler that is not active
             dataSource.serviceState = .paused

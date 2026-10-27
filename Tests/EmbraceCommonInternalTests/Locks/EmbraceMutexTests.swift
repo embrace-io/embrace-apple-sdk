@@ -39,6 +39,23 @@ class EmbraceMutexTests: XCTestCase {
         }
         XCTAssertEqual(sut.safeValue, 3)
     }
+
+    func test_withLockIfAvailable_lockFree_shouldModifyValue() {
+        let result = sut.withLockIfAvailable {
+            $0 += 1
+            return $0
+        }
+        XCTAssertEqual(result, 1)
+        XCTAssertEqual(sut.safeValue, 1)
+    }
+
+    func test_withLockIfAvailable_lockHeld_shouldNotRunBlock() {
+        sut.withLock { _ in
+            let result = sut.withLockIfAvailable { $0 += 1 }
+            XCTAssertNil(result)
+        }
+        XCTAssertEqual(sut.safeValue, 0)
+    }
 }
 
 // MARK: - Functional Tests

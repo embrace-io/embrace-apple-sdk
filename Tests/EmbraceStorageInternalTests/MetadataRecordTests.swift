@@ -196,6 +196,33 @@ class MetadataRecordTests: XCTestCase {
         XCTAssertNotNil(records.first(where: { $0.key == "test" }))
     }
 
+    func test_addCriticalResources() throws {
+        // when adding critical resources
+        storage.addCriticalResources(["key1": "value1", "key2": "value2"], processId: ProcessIdentifier.current)
+
+        // then they are visible to any read enqueued afterwards
+        let records: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(records.count, 2)
+        for record in records {
+            XCTAssertEqual(record.typeRaw, "requiredResource")
+            XCTAssertEqual(record.lifespanRaw, "process")
+            XCTAssertEqual(record.lifespanId, ProcessIdentifier.current.stringValue)
+        }
+    }
+
+    func test_addCriticalResources_updatesExistingValue() throws {
+        // given an existing critical resource
+        storage.addCriticalResources(["key": "old"], processId: ProcessIdentifier.current)
+
+        // when adding it again with a new value
+        storage.addCriticalResources(["key": "new"], processId: ProcessIdentifier.current)
+
+        // then the record is updated instead of duplicated
+        let records: [MetadataRecord] = storage.fetchAll()
+        XCTAssertEqual(records.count, 1)
+        XCTAssertEqual(records[0].value, "new")
+    }
+
     func test_updateMetadata() throws {
         // given inserted record
         storage.addMetadata(key: "test", value: "test", type: .resource, lifespan: .permanent)

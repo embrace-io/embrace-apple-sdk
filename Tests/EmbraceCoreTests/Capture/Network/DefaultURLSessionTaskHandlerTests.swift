@@ -17,6 +17,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
     private var dataSource: MockURLSessionTaskHandlerDataSource!
     private var networkPayloadCapture: SpyNetworkPayloadCaptureHandler!
     private var otel: MockOTelSignalsHandler!
+    private var processingQueue: DispatchableQueue!
 
     override func setUpWithError() throws {
         session = ProxiedURLSessionProvider.default()
@@ -227,6 +228,19 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         thenSpanHasTheCorrectPath("https://www.test.com")
     }
 
+    func test_requestsDataSource_spanName() {
+        givenTaskHandler()
+        givenRequestsDataSourceWithBlock { originalRequest in
+            var request = originalRequest
+            request.url = URL(string: "https://www.test.com/redacted")
+            return request
+        }
+        givenAnURLSessionTask(urlString: "https://embrace.io/sensitive/path", method: "GET")
+        whenInvokingCreate()
+        thenSpanName(is: "GET /redacted")
+        XCTAssertFalse(otel.startedSpans.contains { $0.name.contains("sensitive") })
+    }
+
     func test_requestsDataSource_method() {
         givenTaskHandler()
         givenRequestsDataSourceWithBlock { originalRequest in
@@ -277,6 +291,177 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         thenNoSpanShouldBeCreated()
     }
 
+    // MARK: - Re-entry and threading
+
+    func test_requestsDataSource_creatingAnotherTask_capturesBothTasks() {
+        givenTaskHandlerWithRealQueue()
+        givenAnURLSessionTask(urlString: "https://outer.embrace.io")
+        let outerURL = task.originalRequest?.url
+        let innerTask = anURLSessionTask(urlString: "https://inner.embrace.io")
+        let requestsDataSource = givenRequestsDataSourceWithBlock { request in
+            if request.url == outerURL {
+                self.sut.create(task: innerTask)
+            }
+            return request
+        }
+
+        XCTAssertTrue(sut.create(task: task))
+
+        XCTAssertEqual(requestsDataSource.callCount, 2)
+        XCTAssertEqual(otel.startedSpans.count, 2)
+        XCTAssertTrue(innerTask.embraceCaptured)
+    }
+
+    func test_requestsDataSource_reenteringWithSameTask_callsDataSourceOnce() {
+        givenTaskHandlerWithRealQueue()
+        givenAnURLSessionTask()
+        let requestsDataSource = givenRequestsDataSourceWithBlock { request in
+            XCTAssertFalse(self.sut.create(task: self.task))
+            return request
+        }
+
+        XCTAssertTrue(sut.create(task: task))
+
+        XCTAssertEqual(requestsDataSource.callCount, 1)
+        XCTAssertEqual(otel.startedSpans.count, 1)
+    }
+
+    func test_requestsDataSource_creatingTaskToIgnoredURLOnEveryCall_doesntRecurse() {
+        givenTaskHandlerWithRealQueue()
+        dataSource.ignoredURLs = ["ignored-logging.test"]
+        givenAnURLSessionTask()
+        var innerTasks: [URLSessionDataTask] = []
+        let requestsDataSource = givenRequestsDataSourceWithBlock { request in
+            let innerTask = self.session.dataTask(with: URL(string: "https://ignored-logging.test")!)
+            innerTasks.append(innerTask)
+            self.sut.create(task: innerTask)
+            return request
+        }
+
+        XCTAssertTrue(sut.create(task: task))
+
+        XCTAssertEqual(requestsDataSource.callCount, 1)
+        XCTAssertEqual(otel.startedSpans.count, 1)
+        XCTAssertEqual(innerTasks.count, 1)
+        XCTAssertFalse(innerTasks[0].embraceCaptured)
+    }
+
+    func test_createOnMainThread_whileBackgroundCreateIsInsideDataSource_doesntDeadlock() {
+        givenTaskHandlerWithRealQueue()
+        givenAnURLSessionTask(urlString: "https://background.embrace.io")
+        let backgroundTask = task!
+        let backgroundURL = backgroundTask.originalRequest?.url
+        let mainTask = anURLSessionTask(urlString: "https://main.embrace.io")
+
+        let insideDataSource = DispatchSemaphore(value: 0)
+        givenRequestsDataSourceWithBlock { request in
+            if request.url == backgroundURL {
+                insideDataSource.signal()
+                DispatchQueue.main.sync {}
+            }
+            return request
+        }
+
+        let backgroundCreated = expectation(description: "background task created")
+        DispatchQueue.global().async {
+            XCTAssertTrue(self.sut.create(task: backgroundTask))
+            backgroundCreated.fulfill()
+        }
+
+        // the background create is now inside the data source, waiting for the main thread
+        insideDataSource.wait()
+        XCTAssertTrue(sut.create(task: mainTask))
+
+        wait(for: [backgroundCreated], timeout: 5.0)
+        XCTAssertEqual(otel.startedSpans.count, 2)
+    }
+
+    func test_createCalledTwiceOnSameTask_callsDataSourceOnce() {
+        givenTaskHandlerWithRealQueue()
+        givenAnURLSessionTask()
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+
+        XCTAssertTrue(sut.create(task: task))
+        XCTAssertFalse(sut.create(task: task))
+
+        XCTAssertEqual(requestsDataSource.callCount, 1)
+        XCTAssertEqual(otel.startedSpans.count, 1)
+    }
+
+    func test_createWhilePaused_thenCreateWhileActive_capturesTask() {
+        givenTaskHandlerWithRealQueue()
+        givenAnURLSessionTask()
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+
+        givenStateChanged(toState: .paused)
+        XCTAssertFalse(sut.create(task: task))
+        XCTAssertFalse(task.embraceCaptured)
+
+        givenStateChanged(toState: .active)
+        XCTAssertTrue(sut.create(task: task))
+
+        XCTAssertEqual(requestsDataSource.callCount, 1)
+        XCTAssertEqual(otel.startedSpans.count, 1)
+    }
+
+    func test_createOnTaskThatAlreadyStarted_doesntCaptureTask() {
+        givenTaskHandlerWithRealQueue()
+        givenAnURLSessionTask()
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+        task.resume()
+
+        XCTAssertFalse(sut.create(task: task))
+
+        XCTAssertEqual(requestsDataSource.callCount, 0)
+        XCTAssertFalse(task.embraceCaptured)
+        thenNoSpanShouldBeCreated()
+    }
+
+    func test_ignoredURL_doesntCallDataSource() {
+        givenTaskHandlerWithRealQueue()
+        givenIgnoredURLs()
+        givenAnURLSessionTask()
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+
+        XCTAssertFalse(sut.create(task: task))
+
+        XCTAssertEqual(requestsDataSource.callCount, 0)
+        thenNoSpanShouldBeCreated()
+    }
+
+    func test_createAndFinishManyTasksConcurrently_capturesAllTasks() {
+        givenTaskHandlerWithRealQueue()
+        let tasks = (0..<50).map { anURLSessionTask(urlString: "https://task\($0).embrace.io") }
+
+        DispatchQueue.concurrentPerform(iterations: tasks.count) { index in
+            XCTAssertTrue(sut.create(task: tasks[index]))
+        }
+        DispatchQueue.concurrentPerform(iterations: tasks.count) { index in
+            sut.finish(task: tasks[index], data: nil, error: nil)
+        }
+        waitForProcessingQueue()
+
+        XCTAssertEqual(otel.startedSpans.count, tasks.count)
+        XCTAssertEqual(otel.endedSpans.count, tasks.count)
+    }
+
+    func test_createSameTaskConcurrently_capturesTaskOnce() {
+        givenTaskHandlerWithRealQueue()
+        givenAnURLSessionTask()
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+        let captures = EmbraceMutex(0)
+
+        DispatchQueue.concurrentPerform(iterations: 50) { _ in
+            if sut.create(task: task) {
+                captures.withLock { $0 += 1 }
+            }
+        }
+
+        XCTAssertEqual(captures.safeValue, 1)
+        XCTAssertEqual(requestsDataSource.callCount, 1)
+        XCTAssertEqual(otel.startedSpans.count, 1)
+    }
+
     // MARK: - AddData Tests
 
     func testOnPayloadCaptureDisabled_addData_doesntDoAnything() {
@@ -319,6 +504,20 @@ extension DefaultURLSessionTaskHandlerTests {
         )
     }
 
+    fileprivate func givenTaskHandlerWithRealQueue() {
+        dataSource.serviceState = .active
+        processingQueue = DefaultDispatchableQueue.with(label: "com.embrace.test.URLSessionTaskHandler")
+        sut = DefaultURLSessionTaskHandler(
+            processingQueue: processingQueue,
+            dataSource: dataSource,
+            payloadCaptureHandler: networkPayloadCapture
+        )
+    }
+
+    fileprivate func waitForProcessingQueue() {
+        processingQueue.sync {}
+    }
+
     fileprivate func givenStateChanged(toState: CaptureServiceState) {
         dataSource.serviceState = toState
     }
@@ -336,10 +535,14 @@ extension DefaultURLSessionTaskHandlerTests {
         dataSource.isNSFEligible = enabled
     }
 
-    fileprivate func givenRequestsDataSourceWithBlock(_ block: @escaping (URLRequest) -> URLRequest) {
+    @discardableResult
+    fileprivate func givenRequestsDataSourceWithBlock(
+        _ block: @escaping (URLRequest) -> URLRequest
+    ) -> MockURLSessionRequestsDataSource {
         let requestsDataSource = MockURLSessionRequestsDataSource()
         requestsDataSource.block = block
         dataSource.requestsDataSource = requestsDataSource
+        return requestsDataSource
     }
 
     fileprivate func givenIgnoredURLs() {
@@ -363,6 +566,12 @@ extension DefaultURLSessionTaskHandlerTests {
         sut.create(task: task)
         task.resume()
         wait(for: [requestCompleted], timeout: .defaultTimeout)
+    }
+
+    fileprivate func anURLSessionTask(urlString: String) -> URLSessionDataTask {
+        var url = URL(string: urlString.replacingOccurrences(of: "https://", with: "https://\(testName)."))!
+        url.mockResponse = .successful(withData: UUID().uuidString.data(using: .utf8)!, response: aValidResponse())
+        return session.dataTask(with: URLRequest(url: url))
     }
 
     fileprivate func givenAnURLSessionTask(

@@ -34,25 +34,26 @@ class LogControllerSeverityTests: XCTestCase {
         XCTAssertTrue(batcher.addedLogs.isEmpty)
     }
 
-    func test_onSessionPartWillEnd_forceEndsCurrentBatch() {
+    func test_onSessionPartWillEnd_forceEndsCurrentBatchWithEndingSession() {
         // given a log controller observing session-part-will-end
         let batcher = SpyLogBatcher()
         let controller = makeController(batcher: batcher)
         _ = controller  // keep alive for the duration of the notification dispatch
+        let endingSession = MockSession.with(id: .random, state: .foreground)
 
         // when a session part is about to end
-        NotificationCenter.default.post(name: .embraceSessionPartWillEnd, object: nil)
+        NotificationCenter.default.post(name: .embraceSessionPartWillEnd, object: endingSession)
 
-        // then the current batch is force-ended synchronously so the session's logs ship with it
+        // then the current batch is force-ended with the session carried by the notification
         XCTAssertEqual(batcher.forceEndCallCount, 1)
-        XCTAssertEqual(batcher.lastForceEndWaitUntilFinished, true)
+        XCTAssertEqual(batcher.lastForceEndSession?.id, endingSession.id)
     }
 }
 
 private final class SpyLogBatcher: LogBatcher {
     private(set) var addedLogs: [EmbraceLog] = []
     private(set) var forceEndCallCount = 0
-    private(set) var lastForceEndWaitUntilFinished: Bool?
+    private(set) var lastForceEndSession: EmbraceSession?
 
     let logBatchLimits = LogBatchLimits()
     weak var delegate: LogBatcherDelegate?
@@ -65,8 +66,8 @@ private final class SpyLogBatcher: LogBatcher {
 
     func renewBatch(withLogs logRecords: [EmbraceLog]) {}
 
-    func forceEndCurrentBatch(waitUntilFinished: Bool) {
+    func forceEndCurrentBatch(endingSession: EmbraceSession?) {
         forceEndCallCount += 1
-        lastForceEndWaitUntilFinished = waitUntilFinished
+        lastForceEndSession = endingSession
     }
 }

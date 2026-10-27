@@ -97,7 +97,6 @@ class FullyImplementedURLSessionDelegate: NSObject,
     }
 
     var didCallWillBeginDelayedRequest = false
-    @available(iOS 11.0, *)
     var willBeginDelayedRequestExpectation = XCTestExpectation(description: "called willBeginDelayedRequest")
     func urlSession(
         _ session: URLSession,
