@@ -16,19 +16,30 @@
         /// The options used to configure this service.
         public let options: TapCaptureService.Options
 
-        private var swizzler: UIWindowSendEventSwizzler?
         private let lock: NSLocking
+        private let windowEventObserver: WindowEventObserver
 
         /// Creates a new `TapCaptureService` with the given options.
         /// - Parameters:
         ///   - options: The options used to configure the service.
         ///   - lock: Lock used to synchronize swizzling. Exposed for testing.
-        public init(
+        public convenience init(
             options: TapCaptureService.Options = TapCaptureService.Options(),
             lock: NSLock = NSLock()
         ) {
+            self.init(options: options, lock: lock, windowEventObserver: .shared)
+        }
+
+        /// - Parameter windowEventObserver: Tests pass their own, so restoring swizzles between tests
+        ///   doesn't leave the shared one believing it is installed.
+        init(
+            options: TapCaptureService.Options,
+            lock: NSLock,
+            windowEventObserver: WindowEventObserver
+        ) {
             self.options = options
             self.lock = lock
+            self.windowEventObserver = windowEventObserver
         }
 
         override public func onInstall() {
@@ -38,12 +49,9 @@
             }
 
             do {
-                swizzler = UIWindowSendEventSwizzler()
-                swizzler?.onEvent = { [weak self] event in
+                try windowEventObserver.add { [weak self] event in
                     self?.handleCapturedEvent(event)
                 }
-
-                try swizzler?.install()
             } catch let exception {
                 Embrace.logger.error(
                     "An error occurred while swizzling UIWindow.sendEvent: \(exception.localizedDescription)")
@@ -125,27 +133,6 @@
             }
 
             return !(target.isKind(of: keyboardViewClass) || target.isKind(of: keyboardWindowClass))
-        }
-    }
-
-    class UIWindowSendEventSwizzler: Swizzlable {
-        typealias ImplementationType = @convention(c) (UIWindow, Selector, UIEvent) -> Void
-        typealias BlockImplementationType = @convention(block) (UIWindow, UIEvent) -> Void
-        static var selector: Selector = #selector(
-            UIWindow.sendEvent(_:)
-        )
-
-        var baseClass: AnyClass = UIWindow.self
-
-        var onEvent: ((UIEvent) -> Void)?
-
-        func install() throws {
-            try swizzleInstanceMethod { originalImplementation in
-                { [weak self] uiWindow, uiEvent in
-                    self?.onEvent?(uiEvent)
-                    originalImplementation(uiWindow, UIWindowSendEventSwizzler.selector, uiEvent)
-                }
-            }
         }
     }
 
