@@ -38,7 +38,7 @@
     /// App-wide running totals of dropped and expected frames. Session parts and screens snapshot the
     /// totals when they open and report the difference when they close.
     ///
-    /// Fed on main from `FrameTimingSource.onTick`; `totals` can be read from any thread.
+    /// Fed on main from the tick handler; `totals` can be read from any thread.
     final class FrameAccumulator {
 
         init(hangThreshold: TimeInterval) {
@@ -54,48 +54,14 @@
             lock.locked { state.totals }
         }
 
-        func record(_ tick: FrameTimingSource.Tick) {
-            let late = Self.lateness(of: tick)
-            let dropped = Self.droppedFrames(lateness: late, frameInterval: tick.frameInterval)
-
+        func record(_ tick: MeasuredTick) {
             lock.locked {
-                state.totals.droppedFrames += dropped
-                state.totals.expectedFrames += 1 + dropped
-                if late > state.hangThreshold {
+                state.totals.droppedFrames += tick.droppedFrames
+                state.totals.expectedFrames += 1 + tick.droppedFrames
+                if tick.lateness > state.hangThreshold {
                     state.totals.hangCount += 1
                 }
             }
-        }
-
-        // MARK: - Frame math
-
-        /// Lateness below this fraction of the tick's frame interval counts as on time.
-        static let noiseFloorFraction: Double = 0.5
-
-        /// The tick's lateness, never negative, after two corrections that keep time which isn't a
-        /// dropped frame from adding up over long parts:
-        /// - **Refresh rate step-down.** When the frame interval grows between ticks (ProMotion adaptive
-        ///   refresh, Low Power Mode, thermal caps), the tick lands up to that growth after the previous
-        ///   `targetTimestamp` even though no frame was missed. The growth is subtracted.
-        /// - **Noise floor.** Ticks land on vsync boundaries, so a real miss is late by at least about one
-        ///   frame interval. Lateness below `noiseFloorFraction` of the tick's frame interval is scheduling
-        ///   jitter and counts as `0`.
-        static func lateness(of tick: FrameTimingSource.Tick) -> TimeInterval {
-            let rateStepDown = max(0, tick.frameInterval - tick.previousFrameInterval)
-            let late = tick.delay - rateStepDown
-
-            return late < noiseFloorFraction * tick.frameInterval ? 0 : max(0, late)
-        }
-
-        /// Whole frame intervals in `lateness`, rounded to the nearest.
-        ///
-        /// Android uses `ceil`, which suits its real render durations. Tick lateness lands on vsync
-        /// multiples plus jitter, so `ceil` would count a tick 1.0001 intervals late as 2 dropped frames.
-        /// With the noise floor, any non-zero lateness rounds to at least 1.
-        static func droppedFrames(lateness: TimeInterval, frameInterval: TimeInterval) -> Int {
-            guard lateness > 0, frameInterval > 0 else { return 0 }
-
-            return Int((lateness / frameInterval).rounded())
         }
 
         // MARK: - Private

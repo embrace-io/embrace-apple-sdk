@@ -104,7 +104,7 @@
 
         private func record(delayInFrames: Double) throws {
             try XCTUnwrap(service.accumulator).record(
-                FrameTimingSource.Tick(delay: frameDuration * delayInFrames, frameInterval: frameDuration, previousFrameInterval: frameDuration)
+                MeasuredTick(FrameTimingSource.Tick(delay: frameDuration * delayInFrames, frameInterval: frameDuration, previousFrameInterval: frameDuration))
             )
         }
 
@@ -374,7 +374,7 @@
                 ended.fulfill()
             }
             for _ in 0..<10_000 {
-                accumulator.record(tick)
+                accumulator.record(MeasuredTick(tick))
             }
             wait(for: [ended], timeout: 5)
 
@@ -391,9 +391,9 @@
             let accumulator = try XCTUnwrap(service.accumulator)
 
             try record(delayInFrames: 0)
-            accumulator.record(FrameTimingSource.Tick(delay: service.hangThreshold + 0.001, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: service.hangThreshold + 0.001, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
             try record(delayInFrames: 0)
-            accumulator.record(FrameTimingSource.Tick(delay: 5, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: 5, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
             endPart()
 
             XCTAssertEqual(hangCount(of: session), 2)
@@ -514,8 +514,8 @@
         private func assertHangThreshold(_ threshold: TimeInterval, file: StaticString = #filePath, line: UInt = #line) throws {
             let session = startPart(.foreground)
             let accumulator = try XCTUnwrap(service.accumulator, file: file, line: line)
-            accumulator.record(FrameTimingSource.Tick(delay: threshold - 0.01, frameInterval: frameDuration, previousFrameInterval: frameDuration))
-            accumulator.record(FrameTimingSource.Tick(delay: threshold + 0.01, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: threshold - 0.01, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: threshold + 0.01, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
             endPart()
 
             XCTAssertEqual(hangCount(of: session), 1, file: file, line: line)
@@ -704,6 +704,31 @@
 
             endPart()
             XCTAssertEqual(expectedFrames(of: session), 0)
+        }
+
+        // MARK: - Tick fan-out
+
+        func test_tickHandler_feedsFocalMomentTracker() {
+            let tracker = RecordingFocalMomentTracker()
+            let handler = SmoothnessCaptureService.makeTickHandler(
+                accumulator: FrameAccumulator(hangThreshold: 0.249),
+                focalMomentTracker: tracker,
+                environment: [:]
+            )
+
+            handler(FrameTimingSource.Tick(delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            handler(FrameTimingSource.Tick(delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+
+            XCTAssertEqual(tracker.recordedCount, 2)
+        }
+    }
+
+    private final class RecordingFocalMomentTracker: FocalMomentTracker {
+
+        private(set) var recordedCount = 0
+
+        override func record(_ tick: MeasuredTick) {
+            recordedCount += 1
         }
     }
 
@@ -978,9 +1003,9 @@
             drainMain()
             let accumulator = try XCTUnwrap(service.accumulator)
             let frame = 1.0 / 60.0
-            accumulator.record(FrameTimingSource.Tick(delay: 0, frameInterval: frame, previousFrameInterval: frame))
-            accumulator.record(FrameTimingSource.Tick(delay: 0, frameInterval: frame, previousFrameInterval: frame))
-            accumulator.record(FrameTimingSource.Tick(delay: frame, frameInterval: frame, previousFrameInterval: frame))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: 0, frameInterval: frame, previousFrameInterval: frame)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: 0, frameInterval: frame, previousFrameInterval: frame)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(delay: frame, frameInterval: frame, previousFrameInterval: frame)))
 
             let next = try XCTUnwrap(controller.startSession(state: .foreground))
             drainMain()

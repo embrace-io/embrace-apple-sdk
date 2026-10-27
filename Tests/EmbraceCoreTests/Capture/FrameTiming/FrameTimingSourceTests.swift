@@ -162,7 +162,7 @@
             )
             var reported: [SmoothnessFrameCounts] = []
             tracker.onPartClosed = { _, counts in reported.append(counts) }
-            source.onTick = { [accumulator] tick in accumulator.record(tick) }
+            source.onTick = { [accumulator] tick in accumulator.record(MeasuredTick(tick)) }
 
             let foreground = MockSession.with(id: .random, state: .foreground)
             currentSession = foreground
