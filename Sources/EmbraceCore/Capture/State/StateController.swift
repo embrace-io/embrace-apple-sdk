@@ -30,7 +30,7 @@ final class StateController {
 
     private let state = EmbraceMutex(State())
 
-    /// Registers a recorder and, for eager states, activates it right away.
+    /// Registers a recorder, opening its span right away if a part is running and the state has a value.
     ///
     /// There is no `unregister`: once registered, a recorder opens a span on every subsequent part
     /// for the lifetime of the SDK. Any config gate must therefore be evaluated *before* this call.
@@ -41,7 +41,7 @@ final class StateController {
     /// - Parameters:
     ///   - recorder: Held strongly — the state controller owns the state history independently of
     ///     whichever capture service created it.
-    ///   - time: Registration time, used as the span start when the state is eager.
+    ///   - time: Registration time, used as the span start.
     func register(_ recorder: StateRecording, at time: Date = Date()) {
         let currentPart = state.withLock {
             $0.recorders.append(recorder)
@@ -52,9 +52,6 @@ final class StateController {
         // above cannot bind the recorder to a dead part.
         if let currentPart {
             recorder.onSessionPartStart(sessionSpan: currentPart, at: time)
-        }
-        if recorder.capturesOnCreation {
-            recorder.activate(at: time)
         }
     }
 
@@ -87,25 +84,16 @@ final class StateController {
         }
     }
 
-    /// `emb.state.<name>` stamps for every currently active state, plus
-    /// `emb.state.<name>.value_type` for those whose value has a type, for log metadata.
+    /// `emb.state.<name>` stamps for every state that has a value, plus `emb.state.<name>.value_type`
+    /// for system values, for log metadata.
     ///
     /// Gathered per recorder rather than atomically, so a log can see one state's new value beside
     /// another's old one. That is acceptable here, and must not be "fixed" by holding a lock across
-    /// the recorders — see the note on this type. A single state's value and type come from one
-    /// read, so a type is never attributed to the wrong value.
+    /// the recorders — see the note on this type.
     var logAttributes: EmbraceAttributes {
         var attributes: EmbraceAttributes = [:]
         for recorder in state.withLock({ $0.recorders }) {
-            guard let value = recorder.currentSerializedValue else {
-                continue
-            }
-            attributes.merge(
-                value.attributes(
-                    valueKey: SpanSemantics.State.logAttributeKey(for: recorder.stateName),
-                    typeKey: SpanSemantics.State.logValueTypeAttributeKey(for: recorder.stateName)
-                )
-            ) { _, new in new }
+            attributes.merge(recorder.logAttributes) { _, new in new }
         }
         return attributes
     }

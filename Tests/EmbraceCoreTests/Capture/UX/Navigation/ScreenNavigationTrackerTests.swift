@@ -58,7 +58,6 @@
             )
             reporter = ScreenStateReporter(otel: mockOTel)
             reporter.recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
-            reporter.recorder.activate(at: partStart)
         }
 
         override func tearDownWithError() throws {

@@ -41,7 +41,6 @@
                 name: SpanSemantics.Session.name, type: .session, startTime: origin)
             let reporter = ScreenStateReporter(otel: mockOTel)
             reporter.recorder.onSessionPartStart(sessionSpan: sessionSpan, at: origin)
-            reporter.recorder.activate(at: origin)
 
             service.navigationTracker = ScreenNavigationTracker(reporter: reporter) { [weak service] vc in
                 service?.isViewControllerBlocked(vc) ?? true

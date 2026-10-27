@@ -438,7 +438,7 @@ class LogControllerTests: XCTestCase {
         let stateController = StateController()
         let screen = StateRecorder<Screen>(
             stateName: "screen-automatic",
-            defaultValue: .backgrounded,
+            initialValue: .backgrounded,
             otel: otel
         )
         let now = Date()

@@ -50,9 +50,9 @@ final class NavigationEventBrokerTests: XCTestCase {
         loads.map(\.screen.name)
     }
 
-    /// The value type of each emission, `nil` for app screens and `.system` for the SDK's own.
-    private var valueTypes: [StateValueType?] {
-        loads.map(\.screen.stateValueType)
+    /// Whether each emission is one of the SDK's own values rather than an app screen.
+    private var systemValues: [Bool] {
+        loads.map(\.screen.isSystemValue)
     }
 
     /// Drives a full appear cycle for one container.
@@ -461,7 +461,7 @@ final class NavigationEventBrokerTests: XCTestCase {
         broker.handle(.backgrounded(at: time(2)))
 
         XCTAssertEqual(names, ["Backgrounded", "Backgrounded"])
-        XCTAssertEqual(valueTypes, [nil, .system])
+        XCTAssertEqual(systemValues, [false, true])
     }
 
     // MARK: - Recovery at the background boundary

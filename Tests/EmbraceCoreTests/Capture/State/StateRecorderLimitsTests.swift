@@ -153,12 +153,11 @@ final class StateRecorderLimitsTests: XCTestCase {
         let sessionSpan = try XCTUnwrap(sessionController.currentSessionSpan)
         let recorder = StateRecorder<String>(
             stateName: "limits-test",
-            defaultValue: "initial",
+            initialValue: "initial",
             otel: capturing,
             maxTransitions: maxTransitions
         )
         recorder.onSessionPartStart(sessionSpan: sessionSpan, at: Date())
-        recorder.activate(at: Date())
         return (recorder, sessionSpan)
     }
 
@@ -234,11 +233,10 @@ final class StateRecorderLimitsTests: XCTestCase {
 
         let recorder = StateRecorder<String>(
             stateName: "limits-test",
-            defaultValue: "initial",
+            initialValue: "initial",
             otel: capturing
         )
         recorder.onSessionPartStart(sessionSpan: sessionSpan, at: Date())
-        recorder.activate(at: Date())
 
         let stateSpan = try XCTUnwrap(
             capturing.createdSpans.first { $0.name == SpanSemantics.State.spanName(for: "limits-test") }

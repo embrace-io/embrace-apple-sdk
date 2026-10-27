@@ -24,11 +24,11 @@ final class ScreenStateReporter {
     init(otel: EmbraceOTelSignalsHandler?) {
         recorder = StateRecorder(
             stateName: Self.stateName,
-            defaultValue: .initializing,
+            // Starts with a value, so a session in which the user never navigates still reports
+            // their screen.
+            initialValue: .initializing,
             otel: otel,
-            maxTransitions: Self.maxTransitions,
-            // Eager, so a session in which the user never navigates still reports their screen.
-            capturesOnCreation: true
+            maxTransitions: Self.maxTransitions
         )
     }
 

@@ -66,11 +66,11 @@ private final class InterferingOTelHandler: MockOTelSignalsHandler {
 /// general form, without dragging the screen types into the primitive's tests.
 private struct TypedValue: StateValue {
     let stateDescription: String
-    let stateValueType: StateValueType?
+    let isSystemValue: Bool
 
-    init(_ description: String, type: StateValueType? = nil) {
+    init(_ description: String, system: Bool = false) {
         self.stateDescription = description
-        self.stateValueType = type
+        self.isSystemValue = system
     }
 }
 
@@ -101,27 +101,24 @@ final class StateRecorderTests: XCTestCase {
     // MARK: - Helpers
 
     private func makeRecorder(
-        defaultValue: String = "initial",
-        maxTransitions: Int = 100,
-        capturesOnCreation: Bool = true
+        initialValue: String? = "initial",
+        maxTransitions: Int = 100
     ) -> StateRecorder<String> {
         StateRecorder(
             stateName: stateName,
-            defaultValue: defaultValue,
+            initialValue: initialValue,
             otel: mockOTel,
-            maxTransitions: maxTransitions,
-            capturesOnCreation: capturesOnCreation
+            maxTransitions: maxTransitions
         )
     }
 
     /// Registers the recorder against a running part, the way the state controller does at startup.
     private func startedRecorder(
-        defaultValue: String = "initial",
+        initialValue: String = "initial",
         maxTransitions: Int = 100
     ) -> StateRecorder<String> {
-        let recorder = makeRecorder(defaultValue: defaultValue, maxTransitions: maxTransitions)
+        let recorder = makeRecorder(initialValue: initialValue, maxTransitions: maxTransitions)
         recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
-        recorder.activate(at: partStart)
         return recorder
     }
 
@@ -294,7 +291,6 @@ final class StateRecorderTests: XCTestCase {
 
     func testChangesOutsideASessionPartAreCountedAsNotInSession() throws {
         let recorder = makeRecorder()
-        recorder.activate(at: partStart)
 
         // No part is running, so nothing can be recorded.
         recorder.onStateChange(to: "a", at: time(1))
@@ -307,23 +303,6 @@ final class StateRecorderTests: XCTestCase {
 
         let event = try XCTUnwrap(stateSpans.first?.events.first)
         XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "2")
-    }
-
-    func testCoalescedChangesDeclaredByTheCallerAreCounted() throws {
-        let recorder = startedRecorder()
-
-        recorder.onStateChange(to: "second", at: time(1), coalescing: 4)
-
-        // The coalesced count is added before the flush, so it rides on the very event it
-        // accompanies rather than waiting for the next one.
-        let event = try XCTUnwrap(stateSpans.first?.events.first)
-        XCTAssertEqual(event.attributes[SpanSemantics.State.keyDroppedByInstrumentation]?.description, "4")
-
-        recorder.onSessionPartWillEnd(at: time(60))
-        let span = try XCTUnwrap(stateSpans.first)
-        XCTAssertNil(
-            span.attributes[SpanSemantics.State.keyDroppedByInstrumentation],
-            "The count was already flushed onto the event; it must not be double-counted at close")
     }
 
     func testResidualCountsLandOnTheSpanAtCloseWhenNoFurtherEventComes() throws {
@@ -373,9 +352,9 @@ final class StateRecorderTests: XCTestCase {
     /// The type crosses the boundary with the value it belongs to: the next part's span is seeded
     /// from the stored value, which is the one place the pair is rebuilt rather than handed in.
     func testTheCarriedOverValuesTypeSeedsTheNextPartsSpan() throws {
-        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+        let recorder = startedTypedRecorder(initialValue: TypedValue("Home"))
 
-        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
+        recorder.onStateChange(to: TypedValue("Backgrounded", system: true), at: time(1))
         recorder.onSessionPartWillEnd(at: time(60))
         recorder.onSessionPartStart(sessionSpan: try nextPartSpan(), at: time(70))
 
@@ -387,7 +366,7 @@ final class StateRecorderTests: XCTestCase {
 
     /// And an untyped one carries no type over, however the part before it started.
     func testAnUntypedCarriedOverValueSeedsNoTypeOnTheNextPartsSpan() throws {
-        let recorder = startedTypedRecorder(defaultValue: TypedValue("Initializing", type: .system))
+        let recorder = startedTypedRecorder(initialValue: TypedValue("Initializing", system: true))
 
         recorder.onStateChange(to: TypedValue("Home"), at: time(1))
         recorder.onSessionPartWillEnd(at: time(60))
@@ -436,39 +415,79 @@ final class StateRecorderTests: XCTestCase {
         XCTAssertEqual(stateSpans.last?.events.count, 1, "The cap is per part, not per process")
     }
 
-    // MARK: - Eager vs lazy
+    // MARK: - Starting value
 
-    func testLazyStateOpensNoSpanUntilItsFirstChange() throws {
-        let recorder = makeRecorder(capturesOnCreation: false)
+    func testAStateWithoutAValueOpensNoSpanUntilItsFirstValue() throws {
+        let recorder = makeRecorder(initialValue: nil)
         recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
 
-        XCTAssertTrue(stateSpans.isEmpty, "A lazy state must not leave a default-value span behind")
+        XCTAssertTrue(stateSpans.isEmpty, "a state with no value must not leave a placeholder span behind")
 
-        recorder.onStateChange(to: "second", at: time(1))
+        recorder.onStateChange(to: "first", at: time(1))
 
-        XCTAssertEqual(stateSpans.count, 1)
+        // The first value is the starting value, not a transition.
         let span = try XCTUnwrap(stateSpans.first)
-        // The span opens seeded with the value *before* the change, then records the transition.
-        XCTAssertEqual(span.attributes[SpanSemantics.State.keyInitialValue]?.description, "initial")
-        XCTAssertEqual(span.events.count, 1)
+        XCTAssertEqual(stateSpans.count, 1)
+        XCTAssertEqual(span.startTime, time(1))
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyInitialValue]?.description, "first")
+        XCTAssertTrue(span.events.isEmpty)
+
+        recorder.onSessionPartWillEnd(at: time(60))
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyTransitionCount]?.description, "0")
+        XCTAssertNil(span.attributes[SpanSemantics.State.keyNotInSession])
+        XCTAssertNil(span.attributes[SpanSemantics.State.keyDroppedByInstrumentation])
+    }
+
+    func testAFirstValueWithNoPartRunningIsNotCountedAndSeedsTheNextPart() throws {
+        let recorder = makeRecorder(initialValue: nil)
+
+        recorder.onStateChange(to: "first", at: time(1))
+        XCTAssertTrue(stateSpans.isEmpty)
+
+        recorder.onSessionPartStart(sessionSpan: sessionSpan, at: time(10))
+        recorder.onStateChange(to: "second", at: time(11))
+
+        let span = try XCTUnwrap(stateSpans.first)
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyInitialValue]?.description, "first")
+        let event = try XCTUnwrap(span.events.first)
+        XCTAssertNil(
+            event.attributes[SpanSemantics.State.keyNotInSession],
+            "a starting value is not a change that happened outside a part")
+    }
+
+    func testOnceAStateHasAValueEveryLaterPartOpensASpan() throws {
+        let recorder = makeRecorder(initialValue: nil)
+        recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
+        recorder.onStateChange(to: "first", at: time(1))
+        recorder.onSessionPartWillEnd(at: time(60))
+
+        let nextPart = try mockOTel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(70)
+        )
+        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
+
+        XCTAssertEqual(stateSpans.count, 2)
+        XCTAssertEqual(stateSpans.last?.startTime, time(70))
+        XCTAssertEqual(stateSpans.last?.attributes[SpanSemantics.State.keyInitialValue]?.description, "first")
     }
 
     // MARK: - Value types
 
     /// The primitive is generic over the value, so a typed recorder is built by hand here.
-    private func startedTypedRecorder(defaultValue: TypedValue) -> StateRecorder<TypedValue> {
+    private func startedTypedRecorder(initialValue: TypedValue) -> StateRecorder<TypedValue> {
         let recorder = StateRecorder(
             stateName: stateName,
-            defaultValue: defaultValue,
+            initialValue: initialValue,
             otel: mockOTel
         )
         recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
-        recorder.activate(at: partStart)
         return recorder
     }
 
     func testTheSpanRecordsTheTypeOfItsInitialValue() throws {
-        _ = startedTypedRecorder(defaultValue: TypedValue("Initializing", type: .system))
+        _ = startedTypedRecorder(initialValue: TypedValue("Initializing", system: true))
 
         let span = try XCTUnwrap(stateSpans.first)
         XCTAssertEqual(span.attributes[SpanSemantics.State.keyInitialValue]?.description, "Initializing")
@@ -476,7 +495,7 @@ final class StateRecorderTests: XCTestCase {
     }
 
     func testAnUntypedInitialValueWritesNoTypeAtAll() throws {
-        _ = startedTypedRecorder(defaultValue: TypedValue("Home"))
+        _ = startedTypedRecorder(initialValue: TypedValue("Home"))
 
         let span = try XCTUnwrap(stateSpans.first)
         XCTAssertEqual(span.attributes[SpanSemantics.State.keyInitialValue]?.description, "Home")
@@ -488,7 +507,7 @@ final class StateRecorderTests: XCTestCase {
     /// The span attribute describes the value the part *began* with, so a later transition to a
     /// differently-typed value must not rewrite it.
     func testTransitionsDoNotRewriteTheSpansInitialValueType() throws {
-        let recorder = startedTypedRecorder(defaultValue: TypedValue("Initializing", type: .system))
+        let recorder = startedTypedRecorder(initialValue: TypedValue("Initializing", system: true))
 
         recorder.onStateChange(to: TypedValue("Home"), at: time(1))
 
@@ -499,18 +518,18 @@ final class StateRecorderTests: XCTestCase {
     /// The direction the test above cannot catch: an untyped value writes no key, so a span that
     /// opened untyped would keep whatever a rewrite put there.
     func testTransitionsDoNotGiveAnUntypedSpanAType() throws {
-        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+        let recorder = startedTypedRecorder(initialValue: TypedValue("Home"))
 
-        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
+        recorder.onStateChange(to: TypedValue("Backgrounded", system: true), at: time(1))
 
         let span = try XCTUnwrap(stateSpans.first)
         XCTAssertNil(span.attributes[SpanSemantics.State.keyValueType])
     }
 
     func testTransitionEventsRecordTheTypeOfTheNewValue() throws {
-        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+        let recorder = startedTypedRecorder(initialValue: TypedValue("Home"))
 
-        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
+        recorder.onStateChange(to: TypedValue("Backgrounded", system: true), at: time(1))
         recorder.onStateChange(to: TypedValue("Home"), at: time(2))
 
         let span = try XCTUnwrap(stateSpans.first)
@@ -524,10 +543,10 @@ final class StateRecorderTests: XCTestCase {
     /// The reason value types exist: duplicate suppression is by value, so without the type the
     /// two "Backgrounded"s below would be one value and the second change would be dropped.
     func testSameStringDifferentTypeIsADifferentValue() throws {
-        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+        let recorder = startedTypedRecorder(initialValue: TypedValue("Home"))
 
         recorder.onStateChange(to: TypedValue("Backgrounded"), at: time(1))
-        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(2))
+        recorder.onStateChange(to: TypedValue("Backgrounded", system: true), at: time(2))
 
         let span = try XCTUnwrap(stateSpans.first)
         XCTAssertEqual(span.events.count, 2, "both were recorded")
@@ -537,17 +556,17 @@ final class StateRecorderTests: XCTestCase {
 
     /// Two equal typed values still dedupe — the type widens equality, it does not defeat it.
     func testSameStringSameTypeIsStillADuplicate() throws {
-        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+        let recorder = startedTypedRecorder(initialValue: TypedValue("Home"))
 
-        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
-        recorder.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(2))
+        recorder.onStateChange(to: TypedValue("Backgrounded", system: true), at: time(1))
+        recorder.onStateChange(to: TypedValue("Backgrounded", system: true), at: time(2))
 
         let span = try XCTUnwrap(stateSpans.first)
         XCTAssertEqual(span.events.count, 1)
     }
 
     func testAValueTypeIsNotSomethingACallerCanForge() throws {
-        let recorder = startedTypedRecorder(defaultValue: TypedValue("Home"))
+        let recorder = startedTypedRecorder(initialValue: TypedValue("Home"))
 
         recorder.onStateChange(
             to: TypedValue("Detail"),
@@ -564,30 +583,28 @@ final class StateRecorderTests: XCTestCase {
 
     // MARK: - Log stamping
 
-    func testLogAttributeIsAbsentUntilTheStateIsActive() {
-        let recorder = makeRecorder(capturesOnCreation: false)
-        XCTAssertNil(recorder.currentSerializedValue)
+    func testLogAttributeIsAbsentUntilTheStateHasAValue() {
+        let recorder = makeRecorder(initialValue: nil)
+        XCTAssertTrue(recorder.logAttributes.isEmpty)
 
         recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
-        recorder.onStateChange(to: "second", at: time(1))
+        recorder.onStateChange(to: "first", at: time(1))
 
-        XCTAssertEqual(recorder.currentSerializedValue?.stateDescription, "second")
+        XCTAssertEqual(recorder.logAttributes["emb.state.test-state"]?.description, "first")
     }
 
     func testLogAttributeTracksTheCurrentValueEvenWithoutAPart() {
         let recorder = makeRecorder()
-        recorder.activate(at: partStart)
 
         recorder.onStateChange(to: "offline-change", at: time(1))
 
-        XCTAssertEqual(recorder.currentSerializedValue?.stateDescription, "offline-change")
+        XCTAssertEqual(recorder.logAttributes["emb.state.test-state"]?.description, "offline-change")
     }
 
     // MARK: - Write failures (the paths the defensive code exists for)
 
     func testCountsSurviveAPartCloseWhoseSpanAlreadyEnded() throws {
-        // Regression: `close(token:linkingFrom:at:flushing:count:)` used to zero the counters
-        // before handing them to `end`, dropping them when the span had already been closed.
+        // The counters must survive a close whose span was already ended by something else.
         let recorder = startedRecorder()
         let span = try XCTUnwrap(stateSpans.first)
 
@@ -638,29 +655,33 @@ final class StateRecorderTests: XCTestCase {
         XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "1")
     }
 
-    func testAnEndedSpanIsReopenedWithinTheSamePart() throws {
+    func testAnEndedSpanIsNotReopenedWithinTheSamePart() throws {
         let recorder = startedRecorder()
         let first = try XCTUnwrap(stateSpans.first)
 
         // Something outside the recorder ends the span mid-part.
         first.end(endTime: time(10))
 
-        // This change can't be written and is recycled...
+        // Neither change can be written, and neither opens a second span for this part.
         recorder.onStateChange(to: "a", at: time(11))
-        // ...but the part is still live, so the next one must get a new span rather than being
-        // recycled too. Without the demotion the recorder stays on the dead token and every
-        // remaining change in this part is silently counted as happening outside a session.
         recorder.onStateChange(to: "b", at: time(12))
+        XCTAssertEqual(stateSpans.count, 1, "one part must never get two spans for the same state")
 
+        recorder.onSessionPartWillEnd(at: time(60))
+        let nextPart = try mockOTel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(70)
+        )
+        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
+        recorder.onStateChange(to: "c", at: time(71))
+
+        // Both changes are accounted for on the next part, which opens with the latest value.
+        let next = try XCTUnwrap(stateSpans.last)
         XCTAssertEqual(stateSpans.count, 2)
-        let reopened = try XCTUnwrap(stateSpans.last)
-        XCTAssertNotEqual(reopened.context.spanId, first.context.spanId)
-
-        let event = try XCTUnwrap(reopened.events.first)
-        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNewValue]?.description, "b")
-
-        // The recycled change is still accounted for, carried onto the reopened span's first event.
-        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "1")
+        XCTAssertEqual(next.attributes[SpanSemantics.State.keyInitialValue]?.description, "b")
+        let event = try XCTUnwrap(next.events.first)
+        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "2")
     }
 
     func testTheBudgetSlotIsReturnedWhenAWriteFails() throws {
@@ -722,7 +743,7 @@ final class StateRecorderTests: XCTestCase {
 
     func testANewPartAfterADiscardOpensItsOwnSpan() throws {
         // Passes with or without `onSessionPartDiscarded` — `onSessionPartStart` closes a stale
-        // token on its own. This pins that capture resumes; what the discard call actually buys
+        // span on its own. This pins that capture resumes; what the discard call actually buys
         // is covered by `testDiscardingAPartDoesNotLinkItFromThePartSpan`.
         let recorder = startedRecorder()
         recorder.onSessionPartDiscarded(at: time(60))
@@ -750,7 +771,6 @@ final class StateRecorderTests: XCTestCase {
         deadPart.end(endTime: time(5))
 
         recorder.onSessionPartStart(sessionSpan: deadPart, at: time(6))
-        recorder.activate(at: time(6))
 
         XCTAssertTrue(
             stateSpans.isEmpty,
@@ -786,7 +806,7 @@ final class StateRecorderTests: XCTestCase {
             }
         }
 
-        XCTAssertEqual(stateSpans.count, 1, "concurrent activation must not open two spans")
+        XCTAssertEqual(stateSpans.count, 1, "concurrent changes must not open two spans")
         let span = try XCTUnwrap(stateSpans.first)
         recorder.onSessionPartWillEnd(at: time(9_999))
 
@@ -822,12 +842,12 @@ final class StateRecorderTests: XCTestCase {
             type: .session,
             startTime: partStart
         )
+        // No starting value, so the part starts without a span and the first value is what opens it.
         let recorder = StateRecorder<String>(
             stateName: stateName,
-            defaultValue: "initial",
+            initialValue: nil,
             otel: handler,
-            maxTransitions: 100,
-            capturesOnCreation: true
+            maxTransitions: 100
         )
         recorder.onSessionPartStart(sessionSpan: part, at: partStart)
         return (recorder, part)
@@ -837,40 +857,43 @@ final class StateRecorderTests: XCTestCase {
         handler.startedSpans.filter { $0.name == SpanSemantics.State.spanName(for: stateName) }
     }
 
-    func testASecondOpenDuringSpanCreationDoesNotPublishAGhostSpan() throws {
+    func testAChangeDuringSpanCreationDoesNotPublishASecondSpan() throws {
         let handler = InterferingOTelHandler()
         let (recorder, _) = try interferingRecorder(handler)
 
-        // A change arrives while the first span is still being created — the window in which the
-        // recorder holds no lock. Both callers previously saw `.part` and both created a span;
-        // the loser was ended, but creation had already persisted it, so it still shipped.
+        // A change arrives while the span is still being created — the window in which the recorder
+        // holds no lock.
         handler.duringNextCreate = { [weak recorder] in
-            recorder?.onStateChange(to: "second", at: self.time(1))
+            recorder?.onStateChange(to: "second", at: self.time(2))
         }
-        recorder.activate(at: partStart)
+        recorder.onStateChange(to: "first", at: time(1))
 
-        XCTAssertEqual(stateSpans(in: handler).count, 1, "a losing racer must not create a span at all")
+        XCTAssertEqual(stateSpans(in: handler).count, 1, "a change mid-open must not create a span of its own")
     }
 
-    func testAFailedOpenLeavesTheRecorderAbleToRetry() throws {
+    func testAFailedOpenCountsThePartsChangesAndTheNextPartOpensNormally() throws {
         let handler = InterferingOTelHandler()
         let (recorder, _) = try interferingRecorder(handler)
 
         handler.failuresRemaining = 1
-        recorder.activate(at: partStart)
-        XCTAssertTrue(stateSpans(in: handler).isEmpty)
+        recorder.onStateChange(to: "first", at: time(1))
+        recorder.onStateChange(to: "second", at: time(2))
+        XCTAssertTrue(stateSpans(in: handler).isEmpty, "a failed open is not retried within the part")
 
-        // The failed attempt must hand the part back. If it left the recorder mid-open, this
-        // change — and every later one in this part — would silently never open a span.
-        recorder.onStateChange(to: "second", at: time(1))
+        recorder.onSessionPartWillEnd(at: time(60))
+        let nextPart = try handler.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(70)
+        )
+        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
+        recorder.onStateChange(to: "third", at: time(71))
 
-        // Fully recovered: the span opened (seeded with the value at open time, not the new one)
-        // and the change that triggered the retry was recorded on it.
         let span = try XCTUnwrap(stateSpans(in: handler).first)
-        XCTAssertEqual(span.attributes[SpanSemantics.State.keyInitialValue]?.description, "initial")
-
+        XCTAssertEqual(span.attributes[SpanSemantics.State.keyInitialValue]?.description, "second")
         let event = try XCTUnwrap(span.events.first)
-        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNewValue]?.description, "second")
+        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNewValue]?.description, "third")
+        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "1")
     }
 
     // MARK: - State controller
@@ -879,7 +902,7 @@ final class StateRecorderTests: XCTestCase {
         let stateController = StateController()
         let screen = StateRecorder<String>(
             stateName: "screen-automatic",
-            defaultValue: "Initializing",
+            initialValue: "Initializing",
             otel: mockOTel
         )
         stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
@@ -906,14 +929,14 @@ final class StateRecorderTests: XCTestCase {
         let stateController = StateController()
         let screen = StateRecorder<TypedValue>(
             stateName: "screen-automatic",
-            defaultValue: TypedValue("Initializing", type: .system),
+            initialValue: TypedValue("Initializing", system: true),
             otel: mockOTel
         )
         stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
         stateController.register(screen, at: partStart)
 
         // Backgrounded by the SDK: typed.
-        screen.onStateChange(to: TypedValue("Backgrounded", type: .system), at: time(1))
+        screen.onStateChange(to: TypedValue("Backgrounded", system: true), at: time(1))
         var attributes = stateController.logAttributes
         XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "Backgrounded")
         XCTAssertEqual(attributes["emb.state.screen-automatic.value_type"]?.description, "system")
@@ -929,7 +952,7 @@ final class StateRecorderTests: XCTestCase {
         let stateController = StateController()
         let screen = StateRecorder<String>(
             stateName: "screen-automatic",
-            defaultValue: "Initializing",
+            initialValue: "Initializing",
             otel: mockOTel
         )
         stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
@@ -950,7 +973,7 @@ final class StateRecorderTests: XCTestCase {
         let stateController = StateController()
         let screen = StateRecorder<TypedValue>(
             stateName: "screen-automatic",
-            defaultValue: TypedValue("Initializing", type: .system),
+            initialValue: TypedValue("Initializing", system: true),
             otel: mockOTel
         )
         stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
@@ -972,7 +995,7 @@ final class StateRecorderTests: XCTestCase {
         let stateController = StateController()
         let screen = StateRecorder<TypedValue>(
             stateName: "screen-automatic",
-            defaultValue: TypedValue("Home"),
+            initialValue: TypedValue("Home"),
             otel: mockOTel
         )
         stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
@@ -990,17 +1013,16 @@ final class StateRecorderTests: XCTestCase {
             "an app screen must never be readable as an SDK value")
     }
 
-    /// The same strip for a state that has not been activated yet, which stamps nothing at all.
-    func testAForgedStampIsStrippedForAStateThatIsNotActiveYet() throws {
+    /// The same strip for a state that has no value yet, which stamps nothing at all.
+    func testAForgedStampIsStrippedForAStateWithNoValueYet() throws {
         let stateController = StateController()
-        let lazyState = StateRecorder<TypedValue>(
+        let valuelessState = StateRecorder<TypedValue>(
             stateName: "screen-automatic",
-            defaultValue: TypedValue("Home"),
-            otel: mockOTel,
-            capturesOnCreation: false
+            initialValue: nil,
+            otel: mockOTel
         )
         stateController.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
-        stateController.register(lazyState, at: partStart)
+        stateController.register(valuelessState, at: partStart)
 
         let builder = EmbraceLogAttributesBuilder(
             session: nil,

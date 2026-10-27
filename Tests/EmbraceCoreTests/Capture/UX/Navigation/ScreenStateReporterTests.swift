@@ -27,7 +27,6 @@ final class ScreenStateReporterTests: XCTestCase {
         )
         reporter = ScreenStateReporter(otel: mockOTel)
         reporter.recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
-        reporter.recorder.activate(at: partStart)
     }
 
     override func tearDownWithError() throws {
@@ -67,10 +66,10 @@ final class ScreenStateReporterTests: XCTestCase {
     /// Only the SDK's own values are typed. A screen that came from the app is identified by its
     /// name alone, whatever that name happens to be.
     func testOnlyTheSentinelsAreSystemValues() {
-        XCTAssertEqual(Screen.initializing.stateValueType, .system)
-        XCTAssertEqual(Screen.backgrounded.stateValueType, .system)
-        XCTAssertNil(Screen("Home").stateValueType)
-        XCTAssertNil(Screen("Backgrounded").stateValueType)
+        XCTAssertTrue(Screen.initializing.isSystemValue)
+        XCTAssertTrue(Screen.backgrounded.isSystemValue)
+        XCTAssertFalse(Screen("Home").isSystemValue)
+        XCTAssertFalse(Screen("Backgrounded").isSystemValue)
     }
 
     func testTheSpanRecordsTheInitialValuesTypeAlongsideIt() throws {
@@ -93,7 +92,7 @@ final class ScreenStateReporterTests: XCTestCase {
     func testCurrentValueIsExposedForLogStamping() {
         reporter.onScreenLoad(at: time(1), screen: Screen("Home"))
 
-        XCTAssertEqual(reporter.recorder.currentSerializedValue?.stateDescription, "Home")
+        XCTAssertEqual(reporter.recorder.currentValue?.stateDescription, "Home")
     }
 
     func testEqualConsecutiveScreensAreDroppedAndCounted() throws {

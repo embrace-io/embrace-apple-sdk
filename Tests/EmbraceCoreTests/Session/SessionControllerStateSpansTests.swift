@@ -47,7 +47,7 @@ final class SessionControllerStateSpansTests: XCTestCase {
 
         recorder = StateRecorder(
             stateName: stateName,
-            defaultValue: "Initializing",
+            initialValue: "Initializing",
             otel: otel
         )
         stateController.register(recorder)
