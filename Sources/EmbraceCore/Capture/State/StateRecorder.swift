@@ -47,7 +47,10 @@ protocol StateRecording: AnyObject {
 ///   onto the span at close. A failed write puts its counts back.
 /// - **Duplicate suppression.** Two equal consecutive values never produce two events.
 /// - **One span per part.** A span opens at part start or on the first value, never again within
-///   the same part. Changes after the span ended count as `not_in_session` until the next part.
+///   the same part.
+///
+/// Only this type ends a state span. A write that finds its span ended therefore means the part
+/// ended between the decision and the write, and the change is counted as outside a part.
 ///
 /// ## Threading
 /// Every method decides under the lock, performs its span writes after releasing it, then
@@ -91,10 +94,6 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         /// overflow past the per-part cap.
         var droppedByInstrumentation: Int = 0
 
-        var isEmpty: Bool {
-            notInSession == 0 && droppedByInstrumentation == 0
-        }
-
         /// A zero counter is omitted rather than written as `"0"` — its absence is what the wire
         /// contract specifies.
         var attributes: EmbraceAttributes {
@@ -114,15 +113,6 @@ final class StateRecorder<Value: StateValue>: StateRecording {
                 droppedByInstrumentation: lhs.droppedByInstrumentation + rhs.droppedByInstrumentation
             )
         }
-    }
-
-    /// Why a transition was or was not written to the span. The two failures mean different things
-    /// on the wire: a closed span means the change happened outside a part, a dropped event means
-    /// we discarded it.
-    private enum TransitionOutcome {
-        case recorded
-        case spanEnded
-        case eventDropped
     }
 
     /// A transition decided under the lock, to be written to the span after it is released.
@@ -145,7 +135,6 @@ final class StateRecorder<Value: StateValue>: StateRecording {
     /// turns "a part started while one was already recording" into a case that can be reported
     /// rather than a silently-skipped guard.
     private enum PartRecording {
-        /// No part, or this part's span already ended: changes count as `not_in_session`.
         case noPart
         case part(EmbraceSpan)
         case opening(EmbraceSpan)
@@ -254,7 +243,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
     }
 
     private func record(_ pending: PendingTransition, value: Value, at time: Date, attributes: EmbraceAttributes) {
-        let outcome = recordTransition(
+        let recorded = recordTransition(
             on: pending.span,
             value: value,
             at: time,
@@ -263,46 +252,15 @@ final class StateRecorder<Value: StateValue>: StateRecording {
             flushing: pending.flushed
         )
 
-        guard outcome != .recorded else {
+        guard !recorded else {
             return
         }
 
-        // The write failed. Put the flushed counts back — adding rather than assigning, since other
-        // threads may have accumulated more while the lock was released.
-        let endedExternally: Bool = storage.withLock { storage in
-            // Only a span that is still this part's own gives its slot back: if the part moved on,
-            // the counter already belongs to another part.
-            var isCurrent = false
-            if case .recording(_, let span) = storage.recording, isSame(span, pending.span) {
-                isCurrent = true
-                storage.transitionsRecorded = max(0, storage.transitionsRecorded - 1)
-            }
-
-            switch outcome {
-            case .spanEnded:
-                if isCurrent {
-                    storage.recording = .noPart
-                }
-                storage.unrecorded = storage.unrecorded + pending.flushed + UnrecordedTransitions(notInSession: 1)
-            case .eventDropped, .recorded:
-                storage.unrecorded =
-                    storage.unrecorded + pending.flushed + UnrecordedTransitions(droppedByInstrumentation: 1)
-            }
-
-            return outcome == .spanEnded && isCurrent
-        }
-
-        if outcome == .eventDropped {
-            Embrace.logger.warning(
-                "State '\(stateName)': a transition event was dropped by the span; counted as dropped instead.")
-        }
-
-        // A part ending between the decision and the write is expected. A span that ended while it
-        // was still the part's own was closed by something other than this recorder.
-        if endedExternally {
-            Embrace.logger.error(
-                "State '\(stateName)': the state span was ended by something other than this recorder; "
-                    + "changes are counted as outside a session part until the next part.")
+        // The part ended between the decision and the write, so the change happened outside it. The
+        // counts it was carrying go back too — added rather than assigned, since other threads may
+        // have accumulated more while the lock was released.
+        storage.withLock { storage in
+            storage.unrecorded = storage.unrecorded + pending.flushed + UnrecordedTransitions(notInSession: 1)
         }
     }
 
@@ -447,6 +405,8 @@ final class StateRecorder<Value: StateValue>: StateRecording {
     }
 
     /// Writes a `transition` event and the running transition count. Must be called outside the lock.
+    ///
+    /// - Returns: `false` if the span had already ended, in which case nothing was written.
     private func recordTransition(
         on span: EmbraceSpan,
         value: Value,
@@ -454,9 +414,9 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         count: Int,
         attributes: EmbraceAttributes,
         flushing flushed: UnrecordedTransitions
-    ) -> TransitionOutcome {
+    ) -> Bool {
         guard span.endTime == nil else {
-            return .spanEnded
+            return false
         }
 
         var eventAttributes = bounded(attributes)
@@ -469,8 +429,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         ) { _, builtIn in builtIn }
 
         // Internal spans bypass the customer-facing per-span event limit (see
-        // `StateRecorderLimitsTests`). The nil check covers the `EmbraceSpan` contract, which
-        // permits a conformance to drop the event.
+        // `StateRecorderLimitsTests`), so this only fails if the span ended since the check above.
         guard
             span.addEvent(
                 name: SpanSemantics.State.transitionEventName,
@@ -479,11 +438,11 @@ final class StateRecorder<Value: StateValue>: StateRecording {
                 attributes: eventAttributes
             ) != nil
         else {
-            return .eventDropped
+            return false
         }
 
         span.setAttribute(key: SpanSemantics.State.keyTransitionCount, value: String(count))
-        return .recorded
+        return true
     }
 
     /// Filters and bounds attributes that came from outside the SDK.
@@ -503,21 +462,12 @@ final class StateRecorder<Value: StateValue>: StateRecording {
 
     /// Writes the transition count and any residual counts onto the span, then closes it. Must be
     /// called outside the lock.
-    ///
-    /// - Returns: `false` if the span had already ended, in which case nothing was written and the
-    ///   caller must retain those counts rather than discarding them.
-    @discardableResult
-    private func end(_ span: EmbraceSpan, at time: Date, flushing flushed: UnrecordedTransitions, count: Int) -> Bool {
-        guard span.endTime == nil else {
-            return false
-        }
-
+    private func end(_ span: EmbraceSpan, at time: Date, flushing flushed: UnrecordedTransitions, count: Int) {
         span.setAttribute(key: SpanSemantics.State.keyTransitionCount, value: String(count))
         for (key, value) in flushed.attributes {
             span.setAttribute(key: key, value: value)
         }
         span.end(endTime: time)
-        return true
     }
 
     /// Ends a state span and links it from its part span. Must be called outside the lock.
@@ -528,13 +478,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
         flushing flushed: UnrecordedTransitions,
         count: Int
     ) {
-        if !end(span, at: time, flushing: flushed, count: count) && !flushed.isEmpty {
-            // The span had already ended, so the residual counts were not written. Retain them for
-            // the next part instead of losing them.
-            storage.withLock { $0.unrecorded = $0.unrecorded + flushed }
-            Embrace.logger.warning(
-                "State '\(stateName)': span had already ended at close; residual counts carried to the next part.")
-        }
+        end(span, at: time, flushing: flushed, count: count)
 
         // The session part span links to the state span so the backend can find a part's states. It
         // counts against the span's link limit, but nothing else links from a part span: each state
@@ -550,9 +494,5 @@ final class StateRecorder<Value: StateValue>: StateRecording {
                 "State '\(stateName)': failed to link the state span from its session part span; "
                     + "the span will not be reachable from the part.")
         }
-    }
-
-    private func isSame(_ lhs: EmbraceSpan, _ rhs: EmbraceSpan) -> Bool {
-        lhs.context.spanId == rhs.context.spanId && lhs.context.traceId == rhs.context.traceId
     }
 }

@@ -62,6 +62,20 @@ private final class InterferingOTelHandler: MockOTelSignalsHandler {
     }
 }
 
+/// Runs a hook the next time event attributes are sanitized — inside the window between the recorder's
+/// decision and its write, where a part can end on another thread.
+private final class InterferingSanitizer: DefaultOtelSignalsSanitizer {
+
+    var duringNextEventSanitization: (() -> Void)?
+
+    override func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
+        let hook = duringNextEventSanitization
+        duringNextEventSanitization = nil
+        hook?()
+        return super.sanitizeSpanEventAttributes(attributes)
+    }
+}
+
 /// A state value whose string does not identify it on its own: the navigation state's problem in
 /// general form, without dragging the screen types into the primitive's tests.
 private struct TypedValue: StateValue {
@@ -601,107 +615,41 @@ final class StateRecorderTests: XCTestCase {
         XCTAssertEqual(recorder.logAttributes["emb.state.test-state"]?.description, "offline-change")
     }
 
-    // MARK: - Write failures (the paths the defensive code exists for)
+    // MARK: - Write failures
 
-    func testCountsSurviveAPartCloseWhoseSpanAlreadyEnded() throws {
-        // The counters must survive a close whose span was already ended by something else.
-        let recorder = startedRecorder()
-        let span = try XCTUnwrap(stateSpans.first)
-
-        recorder.onStateChange(to: "a", at: time(1))
-        recorder.onStateChange(to: "a", at: time(2))  // duplicate → dropped, counted
-
-        // Something else ends the span underneath the recorder.
-        span.end(endTime: time(30))
-
-        recorder.onSessionPartWillEnd(at: time(60))
-
-        // The residual count could not be written to the dead span, so it must have been retained
-        // and must land on the next part instead of vanishing.
-        let nextPart = try mockOTel.createInternalSpan(
-            name: SpanSemantics.Session.name,
-            type: .session,
-            startTime: time(70)
+    /// The one way a write can fail: the part ends on another thread between the recorder's
+    /// decision and its write. The sanitizer runs inside that window, so ending the part from it
+    /// reproduces the race deterministically.
+    func testAChangeWhosePartEndsMidWriteIsCountedOnTheNextPart() throws {
+        let sanitizer = InterferingSanitizer()
+        let recorder = StateRecorder<String>(
+            stateName: stateName,
+            initialValue: "initial",
+            otel: mockOTel,
+            sanitizer: sanitizer
         )
-        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
-        recorder.onStateChange(to: "b", at: time(71))
+        recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
 
-        let event = try XCTUnwrap(stateSpans.last?.events.first)
-        XCTAssertEqual(
-            event.attributes[SpanSemantics.State.keyDroppedByInstrumentation]?.description,
-            "1",
-            "counts must survive a close whose span had already ended")
-    }
+        sanitizer.duringNextEventSanitization = { [weak recorder] in
+            recorder?.onSessionPartWillEnd(at: self.time(10))
+        }
+        recorder.onStateChange(to: "a", at: time(9))
 
-    func testTransitionOntoAnEndedSpanIsRecycledAsNotInSession() throws {
-        let recorder = startedRecorder()
-        let span = try XCTUnwrap(stateSpans.first)
-
-        span.end(endTime: time(10))
-
-        // The write fails, so the change is recycled onto the next part rather than lost.
-        recorder.onStateChange(to: "a", at: time(11))
-
-        let nextPart = try mockOTel.createInternalSpan(
-            name: SpanSemantics.Session.name,
-            type: .session,
-            startTime: time(70)
-        )
-        recorder.onSessionPartWillEnd(at: time(60))
-        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
-        recorder.onStateChange(to: "b", at: time(71))
-
-        let event = try XCTUnwrap(stateSpans.last?.events.first)
-        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "1")
-    }
-
-    func testAnEndedSpanIsNotReopenedWithinTheSamePart() throws {
-        let recorder = startedRecorder()
         let first = try XCTUnwrap(stateSpans.first)
-
-        // Something outside the recorder ends the span mid-part.
-        first.end(endTime: time(10))
-
-        // Neither change can be written, and neither opens a second span for this part.
-        recorder.onStateChange(to: "a", at: time(11))
-        recorder.onStateChange(to: "b", at: time(12))
-        XCTAssertEqual(stateSpans.count, 1, "one part must never get two spans for the same state")
-
-        recorder.onSessionPartWillEnd(at: time(60))
-        let nextPart = try mockOTel.createInternalSpan(
-            name: SpanSemantics.Session.name,
-            type: .session,
-            startTime: time(70)
-        )
-        recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
-        recorder.onStateChange(to: "c", at: time(71))
-
-        // Both changes are accounted for on the next part, which opens with the latest value.
-        let next = try XCTUnwrap(stateSpans.last)
-        XCTAssertEqual(stateSpans.count, 2)
-        XCTAssertEqual(next.attributes[SpanSemantics.State.keyInitialValue]?.description, "b")
-        let event = try XCTUnwrap(next.events.first)
-        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "2")
-    }
-
-    func testTheBudgetSlotIsReturnedWhenAWriteFails() throws {
-        // A failed write must not consume the per-part transition budget.
-        let recorder = startedRecorder(maxTransitions: 1)
-        let span = try XCTUnwrap(stateSpans.first)
-        span.end(endTime: time(5))
-
-        recorder.onStateChange(to: "a", at: time(6))  // fails, must not spend the only slot
+        XCTAssertTrue(first.events.isEmpty, "the write lost the race, so nothing was recorded on the ended part")
 
         let nextPart = try mockOTel.createInternalSpan(
             name: SpanSemantics.Session.name,
             type: .session,
             startTime: time(70)
         )
-        recorder.onSessionPartWillEnd(at: time(60))
         recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
         recorder.onStateChange(to: "b", at: time(71))
 
-        XCTAssertEqual(stateSpans.last?.events.count, 1)
+        let next = try XCTUnwrap(stateSpans.last)
+        XCTAssertEqual(next.attributes[SpanSemantics.State.keyInitialValue]?.description, "a")
+        let event = try XCTUnwrap(next.events.first)
+        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "1")
     }
 
     // MARK: - Discarded parts
