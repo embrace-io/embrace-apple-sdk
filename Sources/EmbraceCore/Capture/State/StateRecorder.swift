@@ -536,10 +536,10 @@ final class StateRecorder<Value: StateValue>: StateRecording {
                 "State '\(stateName)': span had already ended at close; residual counts carried to the next part.")
         }
 
-        // The session part span links to the state span so the backend can find a part's states.
-        // This is a structural link the SDK owns, so it uses the internal path: a busy session's
-        // customer links and events must not be able to squeeze it out.
-        let link = part.addInternalLink(
+        // The session part span links to the state span so the backend can find a part's states. It
+        // counts against the span's link limit, but nothing else links from a part span: each state
+        // takes one slot.
+        let link = part.addLink(
             spanId: span.context.spanId,
             traceId: span.context.traceId,
             attributes: [SpanSemantics.keyLinkType: SpanSemantics.State.linkType]
