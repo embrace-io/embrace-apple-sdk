@@ -217,6 +217,24 @@ final class EmbraceStorage_SpanTests: XCTestCase {
         XCTAssertEqual(record.events.first?.name, "event")
     }
 
+    // MARK: - fetchSpans(ofType:sessionId:)
+
+    /// Matched on the stored session id alone: neither another session's span of the same type, nor
+    /// this session's spans of another type, nor a span recorded outside any session.
+    func test_fetchSpansOfType_returnsOnlyThatTypeRecordedInThatSession() throws {
+        let session = EmbraceIdentifier.random
+        let otherSession = EmbraceIdentifier.random
+
+        storage.upsertSpan(MockSpan(name: "match", type: .state, sessionId: session))
+        storage.upsertSpan(MockSpan(name: "other session", type: .state, sessionId: otherSession))
+        storage.upsertSpan(MockSpan(name: "other type", type: .performance, sessionId: session))
+        storage.upsertSpan(MockSpan(name: "no session", type: .state))
+
+        let spans = storage.fetchSpans(ofType: .state, sessionId: session)
+
+        XCTAssertEqual(spans.map(\.name), ["match"])
+    }
+
     // MARK: - Payload fetch budget
 
     /// `jsonSpansLimit` is the per-payload span fetch budget, summed from `limitByType` over every

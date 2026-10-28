@@ -355,15 +355,11 @@ extension EmbraceStorage {
     /// that occur within the same process. For cold start sessions, will include spans that occur before the session starts.
     /// - Parameters:
     ///   - session: The session record to fetch spans for
-    ///   - fetchOnly: When set, restricts the result to this one span type. Lets a caller fetch a
-    ///     low-volume type on its own so it can't be crowded out of the capped result.
-    ///     Defaults to `nil`, meaning all span types are considered.
     ///   - excludedTypes: Span types to leave out. Empty by default, so every span for the session
     ///     is returned; excluding is the caller's decision, not this method's.
     /// - Returns: Array containing the immutable copies of the spans.
     package func fetchSpans(
         for session: EmbraceSession,
-        fetchOnly onlyType: EmbraceType? = nil,
         excluding excludedTypes: [EmbraceType] = []
     ) -> [EmbraceSpan] {
 
@@ -414,10 +410,6 @@ extension EmbraceStorage {
         // filter by type?
         var subpredicates: [NSPredicate] = [predicate]
 
-        if let type = onlyType {
-            subpredicates.append(NSPredicate(format: "typeRaw == %@", type.rawValue))
-        }
-
         for type in excludedTypes {
             subpredicates.append(NSPredicate(format: "typeRaw != %@", type.rawValue))
         }
@@ -433,6 +425,29 @@ extension EmbraceStorage {
             }
         }
 
+        return result
+    }
+
+    /// Fetches the spans of a type that were recorded for one specific session.
+    ///
+    /// Matches on the stored session id only, with no time window and no row limit — for types
+    /// recorded once per session, which must not be crowded out by the capped fetch above.
+    /// - Parameters:
+    ///   - type: The span type to fetch.
+    ///   - sessionId: The session the spans were recorded in.
+    /// - Returns: Array containing the immutable copies of the spans.
+    package func fetchSpans(ofType type: EmbraceType, sessionId: EmbraceIdentifier) -> [EmbraceSpan] {
+        let request = SpanRecord.createFetchRequest()
+        request.predicate = NSPredicate(
+            format: "typeRaw == %@ AND sessionIdRaw == %@",
+            type.rawValue,
+            sessionId.stringValue
+        )
+
+        var result: [EmbraceSpan] = []
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
+            result = records.map { $0.toImmutable() }
+        }
         return result
     }
 }
