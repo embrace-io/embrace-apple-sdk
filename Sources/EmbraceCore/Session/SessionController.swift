@@ -402,8 +402,8 @@ class SessionController: SessionControllable {
             $0.sessionSpan = sessionInfo.span
         }
 
-        // open a state span per active state, seeded with the value carried over from the
-        // previous part. Synchronous so the spans exist for the whole part.
+        // open a state span for every state that has a value. Synchronous so the spans exist for
+        // the whole part.
         if let sessionSpan = sessionInfo.span {
             stateController?.onSessionPartStart(sessionSpan: sessionSpan, at: sessionSpan.startTime)
         }
@@ -683,11 +683,8 @@ extension SessionController {
             return
         }
 
-        // Close the state spans even though this part is being discarded. Without this, changes
-        // arriving between here and the next part start are written onto the dead part's span and
-        // lost with it, and the eventual close would write a STATE link onto a deleted part span.
-        // (The next part opens its own span either way — `onSessionPartStart` detects a live token
-        // and closes it — but it reports that as an error, which this avoids provoking.)
+        // Close the state spans even though this part is being discarded, so changes arriving before
+        // the next part start are not written onto the dead part's span and lost with it.
         // Discarding rather than ending: the accumulated counters must survive into the next part,
         // because a span that is about to be thrown away cannot carry them.
         stateController?.onSessionPartDiscarded(at: time)

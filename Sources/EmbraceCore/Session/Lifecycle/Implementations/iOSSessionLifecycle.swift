@@ -133,11 +133,8 @@
             let now = Date()
             currentState = .foreground
 
-            // Deferred so it lands *after* the session work below: when foregrounding starts a new
-            // part, what is recorded here belongs to that part rather than the one being closed.
-            // (Not every path starts one — see the early returns below.)
-            // `defer` rather than a trailing call because every early return below is also a
-            // foreground the observer needs to hear about.
+            // Deferred so it lands after the session work below, in the new part when one starts, and
+            // still runs on every early return: each of those is a foreground too.
             defer {
                 appStateObserver?.appDidForeground(at: now)
             }

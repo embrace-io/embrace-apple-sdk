@@ -93,11 +93,12 @@ import XCTest
 
         func test_appStateObserver_isHeldWeakly() {
             var spy: SpyAppStateObserver? = SpyAppStateObserver(controller: mockController)
+            weak var weakSpy = spy
             lifecycle.setAppStateObserver(spy)
             spy = nil
 
             // The registrant owns the observer's lifetime; the lifecycle must not keep it alive.
-            // Reaching here without a crash and with nothing recorded is the assertion.
+            XCTAssertNil(weakSpy)
             lifecycle.appDidEnterBackground()
         }
 

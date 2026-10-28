@@ -430,7 +430,8 @@ extension EmbraceStorage {
     /// Fetches the spans of a type that were recorded for one specific session.
     ///
     /// Matches on the stored session id only, with no time window and no row limit — for types
-    /// recorded once per session, which must not be crowded out by the capped fetch above.
+    /// whose per-session count is already bounded, which must not be crowded out by the capped
+    /// fetch above.
     /// - Parameters:
     ///   - type: The span type to fetch.
     ///   - sessionId: The session the spans were recorded in.
@@ -465,9 +466,8 @@ extension EmbraceStorage {
             .ux:
             return options.spanLimitDefault
         case .state:
-            // State spans are internal and the per-part transition cap already bounds how many a
-            // session produces, so pruning them by age would only ever discard a timeline the
-            // backend still needs.
+            // One span per registered state per part, so the count is already bounded; pruning by
+            // age would only ever discard a timeline the backend still needs.
             return nil
         }
     }

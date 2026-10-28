@@ -630,8 +630,13 @@ final class StateRecorderTests: XCTestCase {
         )
         recorder.onSessionPartStart(sessionSpan: sessionSpan, at: partStart)
 
+        // A duplicate first, so the racing change carries a dropped count with it.
+        recorder.onStateChange(to: "initial", at: time(8))
+
         sanitizer.duringNextEventSanitization = { [weak recorder] in
             recorder?.onSessionPartWillEnd(at: self.time(10))
+            // Arrives while the write is still in flight, so it is counted alongside the put-back.
+            recorder?.onStateChange(to: "x", at: self.time(10.5))
         }
         recorder.onStateChange(to: "a", at: time(9))
 
@@ -647,9 +652,12 @@ final class StateRecorderTests: XCTestCase {
         recorder.onStateChange(to: "b", at: time(71))
 
         let next = try XCTUnwrap(stateSpans.last)
-        XCTAssertEqual(next.attributes[SpanSemantics.State.keyInitialValue]?.description, "a")
+        XCTAssertEqual(next.attributes[SpanSemantics.State.keyInitialValue]?.description, "x")
         let event = try XCTUnwrap(next.events.first)
-        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "1")
+        XCTAssertEqual(event.attributes[SpanSemantics.State.keyNotInSession]?.description, "2")
+        XCTAssertEqual(
+            event.attributes[SpanSemantics.State.keyDroppedByInstrumentation]?.description, "1",
+            "the counts the failed write was carrying come back too")
     }
 
     // MARK: - Discarded parts
@@ -728,6 +736,7 @@ final class StateRecorderTests: XCTestCase {
     func testASecondPartStartClosesTheSpanLeftOpenByTheFirst() throws {
         let recorder = startedRecorder()
         let firstSpan = try XCTUnwrap(stateSpans.first)
+        recorder.onStateChange(to: "a", at: time(1))
 
         let nextPart = try mockOTel.createInternalSpan(
             name: SpanSemantics.Session.name,
@@ -737,6 +746,11 @@ final class StateRecorderTests: XCTestCase {
         recorder.onSessionPartStart(sessionSpan: nextPart, at: time(70))
 
         XCTAssertEqual(firstSpan.endTime, time(70), "the orphaned span must be closed, not left open")
+        XCTAssertEqual(firstSpan.attributes[SpanSemantics.State.keyTransitionCount]?.description, "1")
+        XCTAssertEqual(
+            sessionSpan.links.first?.context.spanId, firstSpan.context.spanId,
+            "linked from the part it belonged to, not the new one")
+        XCTAssertTrue(nextPart.links.isEmpty)
         XCTAssertEqual(stateSpans.count, 2)
         XCTAssertNil(stateSpans.last?.endTime)
     }
@@ -805,7 +819,63 @@ final class StateRecorderTests: XCTestCase {
         handler.startedSpans.filter { $0.name == SpanSemantics.State.spanName(for: stateName) }
     }
 
-    func testAChangeDuringSpanCreationDoesNotPublishASecondSpan() throws {
+    /// The part ends while its span is being created: the span is closed rather than left open, and
+    /// the ended part is not linked to it.
+    func testASpanWhosePartEndsDuringCreationIsClosed() throws {
+        let handler = InterferingOTelHandler()
+        let (recorder, part) = try interferingRecorder(handler)
+
+        handler.duringNextCreate = { [weak recorder] in
+            recorder?.onSessionPartWillEnd(at: self.time(2))
+        }
+        recorder.onStateChange(to: "first", at: time(1))
+
+        let span = try XCTUnwrap(stateSpans(in: handler).first)
+        XCTAssertNotNil(span.endTime, "an orphaned span must not be left open")
+        XCTAssertTrue(part.links.isEmpty)
+    }
+
+    func testASpanWhosePartIsDiscardedDuringCreationIsClosed() throws {
+        let handler = InterferingOTelHandler()
+        let (recorder, part) = try interferingRecorder(handler)
+
+        handler.duringNextCreate = { [weak recorder] in
+            recorder?.onSessionPartDiscarded(at: self.time(2))
+        }
+        recorder.onStateChange(to: "first", at: time(1))
+
+        let span = try XCTUnwrap(stateSpans(in: handler).first)
+        XCTAssertNotNil(span.endTime)
+        XCTAssertTrue(part.links.isEmpty)
+    }
+
+    /// A span created for one part must never be installed on the next, even when the next part's
+    /// own open still holds its claim. Its failed create keeps the claim in place, which is what
+    /// makes the window deterministic here.
+    func testASpanCreatedForAnEndedPartIsNotInstalledOnTheNextPart() throws {
+        let handler = InterferingOTelHandler()
+        let (recorder, _) = try interferingRecorder(handler)
+        let nextPart = try handler.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: time(11)
+        )
+
+        handler.duringNextCreate = { [weak recorder, weak handler] in
+            recorder?.onSessionPartWillEnd(at: self.time(10))
+            handler?.failuresRemaining = 1
+            recorder?.onSessionPartStart(sessionSpan: nextPart, at: self.time(11))
+        }
+        recorder.onStateChange(to: "first", at: time(1))
+
+        let stale = try XCTUnwrap(stateSpans(in: handler).first)
+        XCTAssertNotNil(stale.endTime, "the previous part's span must be closed, not adopted")
+
+        recorder.onSessionPartWillEnd(at: time(60))
+        XCTAssertTrue(nextPart.links.isEmpty, "the next part must not link a span from the part before")
+    }
+
+    func testAChangeDuringSpanCreationOpensNoSpanOfItsOwn() throws {
         let handler = InterferingOTelHandler()
         let (recorder, _) = try interferingRecorder(handler)
 

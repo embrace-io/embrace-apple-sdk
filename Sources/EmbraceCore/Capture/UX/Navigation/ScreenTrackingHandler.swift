@@ -27,10 +27,6 @@ import Foundation
 /// Checked rather than asserted: `dispatchPrecondition` survives release builds, and this type is
 /// fed by a swizzle on every `UIViewController` in the host app. Losing a transition beats
 /// terminating a customer's process.
-///
-/// Observing SwiftUI `NavigationStack` destinations would let a container's visible screen change
-/// with no appearance callback, needing two further rules on a resume. The maps and the emission
-/// funnel are shaped to take them.
 final class ScreenTrackingHandler {
 
     /// The `<name>` in `emb-state-<name>` and `emb.state.<name>`. Wire contract.
@@ -105,15 +101,14 @@ final class ScreenTrackingHandler {
     private var visibleScreens: [ObjectIdentifier: Emission] = [:]
 
     /// What was last handed to the recorder, for the dedup gate below.
-    ///
-    /// Storing what was *emitted* is only equivalent to storing the callback that triggered it for
-    /// as long as every emission's value is its own callback's name. That stops holding once the
-    /// destination rules above arrive — a background restore emits a destination name while its
-    /// triggering callback carries the container's name — so revisit this alongside them.
     private var lastEmission: Emission?
 
     /// What was on screen when the app backgrounded, so foregrounding can restore it.
     private var screenBeforeBackground: Emission?
+
+    /// What was visible when the app backgrounded, put back on foreground: a screen left under a sheet
+    /// is still there afterwards, and dismissing the sheet has to find it.
+    private var visibleScreensBeforeBackground: [ObjectIdentifier: Emission] = [:]
 
     init(otel: EmbraceOTelSignalsHandler?, sanitizer: OTelSignalsSanitizer = DefaultOtelSignalsSanitizer()) {
         self.recorder = StateRecorder(
@@ -215,11 +210,12 @@ final class ScreenTrackingHandler {
         // entry left behind can be inherited by an unrelated object allocated there later.
         startTimes.removeValue(forKey: id)
 
+        visibleScreensBeforeBackground.removeValue(forKey: id)
         if screenBeforeBackground?.identity.componentId == id {
             screenBeforeBackground = nil
         }
 
-        revealScreenUncovered(by: id, at: time)
+        revealScreenUncovered(at: time)
     }
 
     /// Backdate a load to when the container started appearing, **unless** more than one screen is
@@ -236,10 +232,14 @@ final class ScreenTrackingHandler {
     /// A sheet, popover or alert leaves the screen beneath it appeared, so nothing re-declares it on
     /// dismissal and the timeline would sit on the dismissed screen until the user navigated.
     ///
-    /// Requires that the paused screen is the one currently shown and exactly one remains; anything
-    /// else is a transition in flight, where the resume that follows will say what is frontmost.
-    private func revealScreenUncovered(by pausedId: ObjectIdentifier, at time: Date) {
-        guard lastEmission?.identity.componentId == pausedId,
+    /// Requires that the screen currently shown is gone and exactly one remains; anything else is a
+    /// transition in flight, where the resume that follows will say what is frontmost. "Gone" rather
+    /// than "the one that just paused", so a stack that unwinds over several pauses is handled in
+    /// whatever order they arrive. While backgrounded the screen shown is the sentinel, which belongs
+    /// to no container, so nothing is revealed.
+    private func revealScreenUncovered(at time: Date) {
+        guard let shownId = lastEmission?.identity.componentId,
+            visibleScreens[shownId] == nil,
             visibleScreens.count == 1,
             let revealed = visibleScreens.values.first
         else {
@@ -278,11 +278,10 @@ final class ScreenTrackingHandler {
     /// for a blank one.
     ///
     /// A screen name is the one caller-supplied string that nothing downstream bounds. It is
-    /// written as an attribute *value* — `emb.state.new_value` on the transition,
-    /// `emb.state.initial_value` on the span, and `emb.state.<name>` stamped on every log — and all
-    /// of those live on internal spans, which skip sanitization entirely. So an unbounded name is
-    /// not one oversized field: it is one per log for the rest of the session. That applies to view
-    /// controllers too: their name prefers `nameForViewControllerInEmbrace`, which is public API.
+    /// written as an attribute *value* on internal spans, which skip sanitization, and stamped on
+    /// every log as `emb.state.<name>` — so an unbounded name is not one oversized field but one per
+    /// log for the rest of the session. That applies to view controllers too: their name prefers
+    /// `nameForViewControllerInEmbrace`, which is public API.
     ///
     /// Trimming matters as much as the length cap, and for a different reason. Equality downstream
     /// is by name, so `"Home"` and `"Home\n"` are two screens: the timeline shows a navigation the
@@ -322,9 +321,9 @@ extension ScreenTrackingHandler: AppStateObserver {
             screenBeforeBackground = lastEmission
         }
 
-        // Nothing is visible or mid-appearance while backgrounded, so both maps can be emptied
-        // rather than waiting for a pause that may never come — one that never arrives would
-        // otherwise disable backdating for every later screen.
+        // Nothing is visible or mid-appearance while backgrounded. The visible set comes back on
+        // foreground; a start that never finished does not.
+        visibleScreensBeforeBackground = visibleScreens
         visibleScreens.removeAll()
         startTimes.removeAll()
 
@@ -336,13 +335,17 @@ extension ScreenTrackingHandler: AppStateObserver {
             return
         }
 
+        // Visible again, though nothing re-reports them: without this, dismissing a sheet would find
+        // no screen underneath to hand the timeline back to.
+        visibleScreens.merge(visibleScreensBeforeBackground) { current, _ in current }
+        visibleScreensBeforeBackground.removeAll()
+
         // UIKit does not re-fire appearance callbacks for the controller that stayed visible, so
         // without this the state sits on the sentinel until the user happens to navigate. Load time
-        // is the foreground time; no start time exists to backdate to.
+        // is the foreground time; no start time exists to backdate to. With nothing to restore (the
+        // screen on display was never tracked) the state stays on the sentinel until one appears.
         guard let restored = screenBeforeBackground else { return }
         screenBeforeBackground = nil
-        // Visible again, though nothing re-reports it: without this, a sheet dismissed over it would
-        // find no screen underneath to hand the timeline back to.
         if let componentId = restored.identity.componentId {
             visibleScreens[componentId] = restored
         }

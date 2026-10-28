@@ -10,7 +10,7 @@ import Foundation
 #endif
 
 /// Fans session-part boundaries out to the registered state recorders, and exposes the current
-/// value of every active state for log stamping.
+/// value of every state that has one for log stamping.
 ///
 /// Driven by direct calls from ``SessionController`` rather than by the part-lifecycle
 /// notification, which is posted with `DispatchQueue.main.async` and so carries no ordering

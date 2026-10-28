@@ -379,6 +379,57 @@ final class ScreenTrackingHandlerTests: XCTestCase {
         XCTAssertTrue(loads.isEmpty)
     }
 
+    /// Runs `call` on a background queue and checks it recorded nothing. Each caller first sets up a
+    /// state in which the call *would* record a transition if it were processed.
+    private func assertDroppedOffMain(_ call: @escaping () -> Void, line: UInt = #line) {
+        let before = names
+        let done = expectation(description: "off-main call returns")
+        DispatchQueue.global().async {
+            call()
+            done.fulfill()
+        }
+        wait(for: [done], timeout: 5)
+        XCTAssertEqual(names, before, line: line)
+    }
+
+    func testAnOffMainResumeIsDropped() {
+        let vc = Container()
+        handler.screenWillAppear(id(vc), name: "Home", at: time(0))
+
+        assertDroppedOffMain { [self] in handler.screenDidAppear(id(vc), name: "Home", at: time(1)) }
+    }
+
+    func testAnOffMainPauseIsDropped() {
+        let home = Container()
+        let sheet = Container()
+        appear(home, named: "Home", startedAt: 0, resumedAt: 1)
+        appear(sheet, named: "Sheet", startedAt: 2, resumedAt: 3)
+
+        // Processed, this would reveal Home.
+        assertDroppedOffMain { [self] in handler.screenDidDisappear(id(sheet), at: time(4)) }
+    }
+
+    func testAnOffMainDeclaredScreenIsDropped() {
+        let token = Container()
+        assertDroppedOffMain { [self] in
+            handler.manualScreenAppeared(id: id(token), name: "Settings", attributes: [:], at: time(0))
+        }
+    }
+
+    func testAnOffMainBackgroundingIsDropped() {
+        appear(Container(), named: "Home", startedAt: 0, resumedAt: 1)
+
+        assertDroppedOffMain { [self] in handler.appWillBackground(at: time(2)) }
+    }
+
+    func testAnOffMainForegroundingIsDropped() {
+        appear(Container(), named: "Home", startedAt: 0, resumedAt: 1)
+        handler.appWillBackground(at: time(2))
+
+        // Processed, this would restore Home.
+        assertDroppedOffMain { [self] in handler.appDidForeground(at: time(3)) }
+    }
+
     // MARK: - Interleaving
 
     func testInterleavedStartsAndResumesAttributeToTheRightContainer() {
@@ -491,36 +542,9 @@ final class ScreenTrackingHandlerTests: XCTestCase {
         XCTAssertEqual(systemValues, [false, true])
     }
 
-    // MARK: - Recovery at the background boundary
+    // MARK: - The background boundary
 
-    /// A screen that never pauses would otherwise hold `visibleScreens` above one forever, silently
-    /// disabling backdating for every later screen. Backgrounding is a point where we know nothing
-    /// is visible, so it recovers. Only the screen the user was on comes back with the foreground.
-    func testBackgroundingClearsAStrandedVisibleScreen() throws {
-        let leaked = Container()
-        handler.screenWillAppear(id(leaked), name: "Leaked", at: time(0))
-        handler.screenDidAppear(id(leaked), name: "Leaked", at: time(1))
-
-        // covered by another screen, but never pauses — it is stranded underneath
-        let top = Container()
-        handler.screenWillAppear(id(top), name: "Top", at: time(2))
-        handler.screenDidAppear(id(top), name: "Top", at: time(3))
-
-        handler.appWillBackground(at: time(5))
-        handler.appDidForeground(at: time(6))
-        handler.screenDidDisappear(id(top), at: time(8))
-
-        // A later screen must get its load backdated to when it started appearing.
-        let next = Container()
-        handler.screenWillAppear(id(next), name: "Home", at: time(10))
-        handler.screenDidAppear(id(next), name: "Home", at: time(20))
-
-        let home = try XCTUnwrap(loads.last)
-        XCTAssertEqual(home.name, "Home")
-        XCTAssertEqual(home.time, time(10), "backdating must recover after a background")
-    }
-
-    /// The same boundary clears pending start times, so an address reused by a later object cannot
+    /// Backgrounding clears pending start times, so an address reused by a later object cannot
     /// inherit a dead screen's timestamp.
     func testBackgroundingClearsAPendingStartTime() throws {
         let vc = Container()
@@ -571,6 +595,71 @@ final class ScreenTrackingHandlerTests: XCTestCase {
         XCTAssertEqual(names, ["Home", "Backgrounded", "Home", "Sheet", "Home"])
         XCTAssertEqual(loads.last?.time, time(30), "the reveal is timed at the dismissal")
         XCTAssertEqual(loads.last?.attributes["tier"]?.description, "gold")
+    }
+
+    /// Two screens stacked over a third go away together. Whichever disappearance arrives last, the
+    /// timeline ends on the screen left underneath.
+    private func assertUnwindingRevealsTheBase(topFirst: Bool, line: UInt = #line) {
+        let base = Container()
+        let middle = Container()
+        let top = Container()
+
+        appear(base, named: "Base", startedAt: 0, resumedAt: 1)
+        appear(middle, named: "Middle", startedAt: 2, resumedAt: 3)
+        appear(top, named: "Top", startedAt: 4, resumedAt: 5)
+
+        let order = topFirst ? [top, middle] : [middle, top]
+        handler.screenDidDisappear(id(order[0]), at: time(10))
+        handler.screenDidDisappear(id(order[1]), at: time(11))
+
+        XCTAssertEqual(names, ["Base", "Middle", "Top", "Base"], line: line)
+        XCTAssertEqual(loads.last?.time, time(11), line: line)
+    }
+
+    func testUnwindingAStackTopFirstRevealsTheScreenLeft() {
+        assertUnwindingRevealsTheBase(topFirst: true)
+    }
+
+    func testUnwindingAStackBottomFirstRevealsTheScreenLeft() {
+        assertUnwindingRevealsTheBase(topFirst: false)
+    }
+
+    /// A sheet still open when the app backgrounds: after the foreground, dismissing it must hand the
+    /// timeline back to the screen that was underneath it the whole time.
+    func testDismissingASheetOpenAcrossABackgroundReturnsToTheScreenUnderIt() throws {
+        let home = Container()
+        let sheet = Container()
+
+        handler.screenWillAppear(id(home), name: "Home", at: time(0))
+        handler.screenDidAppear(id(home), name: "Home", attributes: ["tier": "gold"], at: time(1))
+        handler.screenWillAppear(id(sheet), name: "Sheet", at: time(2))
+        handler.screenDidAppear(id(sheet), name: "Sheet", at: time(3))
+        handler.appWillBackground(at: time(10))
+        handler.appDidForeground(at: time(20))
+        handler.screenDidDisappear(id(sheet), at: time(30))
+
+        XCTAssertEqual(names, ["Home", "Sheet", "Backgrounded", "Sheet", "Home"])
+        XCTAssertEqual(loads.last?.time, time(30))
+        XCTAssertEqual(loads.last?.attributes["tier"]?.description, "gold")
+    }
+
+    /// A screen that goes away while the app is backgrounded is not brought back with the rest.
+    func testAScreenGoneWhileBackgroundedIsNotRestored() throws {
+        let home = Container()
+        let sheet = Container()
+
+        handler.screenWillAppear(id(home), name: "Home", at: time(0))
+        handler.screenDidAppear(id(home), name: "Home", at: time(1))
+        handler.screenWillAppear(id(sheet), name: "Sheet", at: time(2))
+        handler.screenDidAppear(id(sheet), name: "Sheet", at: time(3))
+        handler.appWillBackground(at: time(10))
+        handler.screenDidDisappear(id(home), at: time(11))
+        handler.appDidForeground(at: time(20))
+
+        // Only the sheet came back, so its dismissal has nothing to reveal.
+        handler.screenDidDisappear(id(sheet), at: time(30))
+
+        XCTAssertEqual(names, ["Home", "Sheet", "Backgrounded", "Sheet"])
     }
 
     /// The revealed screen keeps the metadata it was declared with.

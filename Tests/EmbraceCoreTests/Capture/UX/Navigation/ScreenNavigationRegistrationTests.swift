@@ -14,9 +14,8 @@
     /// Covers the step between "the gates say yes" and "a timeline exists": that `onStart` actually
     /// builds the handler, registers the recorder, hooks app state and publishes the handler.
     ///
-    /// Every other test in this feature injects `screenTracker` by hand, which means the whole of
-    /// `startScreenTrackingIfEnabled` could be deleted without a single failure. These stand up a
-    /// real SDK instance so that path runs for real.
+    /// Stands up a real SDK instance, so `startScreenTrackingIfEnabled` runs for real rather than
+    /// having its handler injected.
     final class ScreenNavigationRegistrationTests: IntegrationTestCase {
 
         private final class Screen: UIViewController {}
@@ -140,6 +139,23 @@
             // `StateController` has no `unregister`, so a second handler would mean a second
             // recorder and two `emb-state-screen-automatic` spans in every subsequent part.
             XCTAssertTrue(first === service.screenTracker)
+        }
+
+        /// A restart reconnects app state too: `onStop` disconnects it, and the handler is not rebuilt.
+        func testRestartingTheServiceReconnectsAppState() throws {
+            let service = try startSDK(with: config(state: true, screen: true))
+            service.stop()
+            service.start()
+
+            let vc = Screen()
+            vc.emb_instrumentation_state = .init(identifier: UUID().uuidString)
+            vc.viewWillAppear(false)
+            vc.viewDidAppear(false)
+            NotificationCenter.default.post(
+                name: UIApplication.didEnterBackgroundNotification, object: nil)
+
+            let stamps = try XCTUnwrap(Embrace.client?.stateController.logAttributes)
+            XCTAssertEqual(stamps["emb.state.screen-automatic"]?.description, "Backgrounded")
         }
 
         /// A restart must re-publish. `onStop` withdraws, and the handler is deliberately *not*

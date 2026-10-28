@@ -43,8 +43,3 @@ extension StateValue {
         return attributes
     }
 }
-
-extension String: StateValue {
-    var stateDescription: String { self }
-    var isSystemValue: Bool { false }
-}

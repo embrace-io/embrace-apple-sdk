@@ -15,10 +15,9 @@
 
     /// Drives a whole session through the real SDK and asserts on the payload it would upload.
     ///
-    /// Every other suite in this feature tests one layer against doubles. This one exists because the
-    /// layers can each be right and still disagree: the state primitive, the config gates, the UIKit
-    /// producer and the SwiftUI producer were built as separate tickets, and nothing until now has
-    /// checked that a realistic sequence through all four lands correctly on the wire.
+    /// The state primitive, the config gates, the UIKit producer and the SwiftUI producer can each be
+    /// right and still disagree. This drives a realistic sequence through all four and checks that it
+    /// lands correctly on the wire.
     ///
     /// Assertions here are deliberately on the *payload* — what the backend receives — rather than on
     /// spans in memory, because the payload is the contract.
@@ -233,7 +232,7 @@
                 "the app's screen first, then the SDK's backgrounding")
         }
 
-        /// Caller metadata has to survive four hops — modifier, broker, recorder, payload builder.
+        /// Caller metadata has to survive four hops — modifier, handler, recorder, payload builder.
         func testDeclaredAttributesReachThePayload() throws {
             declare(Token(), "ProductDetail", attributes: ["product_id": "42"])
 
@@ -248,9 +247,9 @@
         // MARK: - The gates really do gate
 
         func testWithScreenTrackingOffNoStateSpanIsProducedAtAll() throws {
-            // The setUp service must be stopped, not just abandoned. It is still `.active` and still
-            // the published reporter, so `declare` below would reach *its* tracker and write into
-            // the previous SDK's storage — and this test would then pass by inspecting the new
+            // The setUp service must be stopped, not just abandoned. It is still `.active` and its
+            // handler is still `ScreenTrackingHandler.current`, so `declare` below would reach that
+            // handler and write into the previous SDK's storage — and this test would then pass by inspecting the new
             // client's payload for a screen that never went near it.
             service.stop()
 

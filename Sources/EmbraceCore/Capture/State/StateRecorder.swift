@@ -53,18 +53,13 @@ protocol StateRecording: AnyObject {
 /// ended between the decision and the write, and the change is counted as outside a part.
 ///
 /// ## Threading
-/// Every method decides under the lock, performs its span writes after releasing it, then
-/// re-acquires to install a span or reconcile a failure. Nothing that can re-enter this type runs
-/// while the lock is held.
+/// Every method decides under the lock, performs its span writes and logging after releasing it,
+/// then re-acquires to install a span or reconcile a failure. The SDK's own logging reaches
+/// `StateController.logAttributes` and back into this lock, which is non-reentrant and so **traps**
+/// rather than deadlocking.
 ///
-/// What forces that is the SDK's own logging, not the exporter chain: a log call reaches
-/// `StateController.logAttributes` and back into this lock, which is non-reentrant and so
-/// **traps** rather than deadlocking. This type logs from several failure branches, which is why
-/// each sits outside the `withLock` that detected it.
-///
-/// The one exception is the `part.endTime` read in the install step — a plain property read taking
-/// only the span's own mutex. It is the line to be careful around: a span call or a log added beside
-/// it reintroduces the hazard.
+/// The one exception is the install step, which reads the part's `context` and `endTime` under the
+/// lock — plain property reads. A span call or a log added beside them reintroduces the hazard.
 ///
 /// Because writes happen outside the lock, concurrent transitions can write the same span, so
 /// `EmbraceSpan` conformances must be thread-safe — test doubles included.
@@ -346,17 +341,17 @@ final class StateRecorder<Value: StateValue>: StateRecording {
     private func openSpanIfNeeded(at time: Date) {
         // No live session part means no span. Changes in that window accumulate as
         // `not_in_session` and land on the next part's first recorded transition.
-        let initialValue: Value? = storage.withLock { storage in
+        let claim: (value: Value, part: EmbraceSpan)? = storage.withLock { storage in
             // Claiming the part is what makes this exclusive: a caller arriving at `.opening` or
             // `.recording` creates nothing, because someone else already owns the open.
             guard let value = storage.currentValue, case .part(let part) = storage.recording else {
                 return nil
             }
             storage.recording = .opening(part)
-            return value
+            return (value, part)
         }
 
-        guard let initialValue else {
+        guard let (initialValue, claimedPart) = claim else {
             return
         }
 
@@ -389,12 +384,15 @@ final class StateRecorder<Value: StateValue>: StateRecording {
 
         let orphaned: Bool = storage.withLock { storage in
             // Anything other than the claim we made means the part moved on underneath us — it
-            // ended, was discarded, or a new part started. Either way this span is not wanted.
-            guard case .opening(let part) = storage.recording, part.endTime == nil else {
+            // ended, was discarded, or a new part started and another open claimed it. Either way
+            // this span is not wanted.
+            guard case .opening(let part) = storage.recording,
+                part.context.spanId == claimedPart.context.spanId,
+                part.endTime == nil
+            else {
                 return true
             }
             storage.recording = .recording(part: part, span: span)
-            storage.transitionsRecorded = 0
             return false
         }
 
@@ -447,10 +445,9 @@ final class StateRecorder<Value: StateValue>: StateRecording {
 
     /// Filters and bounds attributes that came from outside the SDK.
     ///
-    /// State spans are internal, and `isInternal` skips sanitization — an exemption written when
-    /// every attribute here was the SDK's own. A public API taking caller attributes changes that,
-    /// so the sanitizer is applied by hand. It bounds keys and values but preserves the
-    /// non-`String` cases of `EmbraceAttributeValue`.
+    /// State spans are internal, and `isInternal` skips sanitization. Caller attributes reach them
+    /// through the public API, so the sanitizer is applied by hand. It bounds keys and values but
+    /// preserves the non-`String` cases of `EmbraceAttributeValue`.
     ///
     /// The reserved filter runs first rather than relying on the later merge to overwrite: the
     /// counter keys are omitted when zero, so a forged `emb.state.not_in_session` would survive on

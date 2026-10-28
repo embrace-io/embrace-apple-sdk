@@ -149,12 +149,16 @@ final class SessionControllerStateSpansTests: XCTestCase {
     func test_sdkDisabled_discardsThePartAndStillClosesTheStateSpan() throws {
         controller.startSession(state: .foreground)
         let stateSpan = try XCTUnwrap(stateSpans.first)
+        let partSpan = try XCTUnwrap(controller.currentSessionSpan)
 
         // The SDK being disabled makes `endSessionNoLock` delete the part instead of ending it.
         sdkStateProvider.isEnabled = false
         controller.endSession()
 
         XCTAssertNotNil(stateSpan.endTime, "a discarded part must not leave its state span open")
+        XCTAssertFalse(
+            partSpan.links.contains { $0.context.spanId == stateSpan.context.spanId },
+            "discarded, not ended: the deleted part must not be linked to it")
     }
 
     func test_afterADiscardedPart_theNextPartStillOpensItsOwnStateSpan() throws {
@@ -163,8 +167,8 @@ final class SessionControllerStateSpansTests: XCTestCase {
         sdkStateProvider.isEnabled = false
         controller.endSession()
 
-        // Note this passes with or without the discard call — `onSessionPartStart` closes a stale
-        // token on its own. What the discard call actually buys is covered by
+        // Note this passes with or without the discard call — `onSessionPartStart` closes a span
+        // left open by the previous part on its own. What the discard call actually buys is covered by
         // `testDiscardingAPartDoesNotLinkItFromThePartSpan`; this only pins that capture resumes.
         sdkStateProvider.isEnabled = true
         controller.startSession(state: .foreground)

@@ -90,12 +90,12 @@
             return blockList.safeValue.isBlocked(viewController: vc)
         }
 
-        /// Owns the screen-navigation timeline when enabled, `nil` when not.
+        /// Owns the screen-navigation timeline. Built on the first start that passes the gate and kept
+        /// for the service's lifetime, so a restart reuses the registered recorder.
         ///
         /// Hosted here because this service already owns the appearance instrumentation the timeline
-        /// is built from, so there is no second swizzler or block list. `nil` means callbacks are
-        /// never forwarded at all.
-        internal var screenTracker: ScreenTrackingHandler?
+        /// is built from, so there is no second swizzler or block list.
+        var screenTracker: ScreenTrackingHandler?
 
         func onViewBecameInteractive(_ vc: UIViewController) {
             handler.onViewBecameInteractive(vc)
@@ -195,6 +195,9 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
+                        // Above the span-creation latch on purpose: `…SpanCreated` is set on first
+                        // appearance and never reset, and `emb_instrumentation_state` is absent when
+                        // render instrumentation is off. The timeline needs every appearance.
                         self.onViewControllerAppearance(viewController, phase: .willAppear, at: Date())
 
                         // If by this time (`viewWillAppear` being called) there's no `emb_instrumentation_state` associated

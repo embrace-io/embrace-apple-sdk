@@ -51,6 +51,10 @@ import SwiftUI
 /// - Note: This is the only way a SwiftUI screen is recorded. Hosting controllers, and view
 ///   controllers inside them, are not recorded as screens by default.
 ///
+/// - Note: When the app returns to the foreground, the timeline goes back to the screen the user was
+///   on. If that screen was never recorded — a SwiftUI view without this modifier, for instance — the
+///   timeline stays on its backgrounded value until a recorded screen appears.
+///
 /// - Parameters:
 ///   - name: The screen's name. Surrounding whitespace is trimmed and long names are truncated; a
 ///     name that is blank once trimmed is ignored.

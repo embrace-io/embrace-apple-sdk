@@ -188,13 +188,16 @@
         /// as a repeat of the same value, which is what the count below records. Keyed by name, the
         /// gate would have swallowed it and nothing would be counted.
         func testTwoViewsWithTheSameNameGetDistinctIdentities() throws {
+            // Each view's own `onAppear` runs in the same appearance pass as its modifier's, so once
+            // both have fired both screens have been reported.
+            let appeared = expectation(description: "both views appeared")
+            appeared.expectedFulfillmentCount = 2
             present(
                 VStack {
-                    Text("a").embraceScreen("Duplicate")
-                    Text("b").embraceScreen("Duplicate")
+                    Text("a").embraceScreen("Duplicate").onAppear { appeared.fulfill() }
+                    Text("b").embraceScreen("Duplicate").onAppear { appeared.fulfill() }
                 })
-            waitForTransitions(1)
-            pumpRenderCycle()
+            wait(for: [appeared], timeout: 10)
 
             handler.recorder.onSessionPartWillEnd(at: Date())
 
@@ -210,11 +213,11 @@
         func testWithNoHandlerTheModifierIsInert() {
             ScreenTrackingHandler.resignCurrent(handler)
 
-            present()
-            // Nothing to wait for; pump the run loop so any reporting would have happened.
-            let settled = expectation(description: "run loop settled")
-            DispatchQueue.main.async { settled.fulfill() }
-            wait(for: [settled], timeout: 5)
+            // Proves the modifier's `onAppear` really ran, rather than the test passing because
+            // nothing had been displayed yet.
+            let appeared = expectation(description: "view appeared")
+            present(Text("screen").embraceScreen("Home").onAppear { appeared.fulfill() })
+            wait(for: [appeared], timeout: 10)
 
             XCTAssertTrue(transitions.isEmpty)
         }
