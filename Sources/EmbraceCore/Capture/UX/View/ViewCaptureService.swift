@@ -90,6 +90,13 @@
             return blockList.safeValue.isBlocked(viewController: vc)
         }
 
+        /// Owns the screen-navigation timeline. Built on the first start that passes the gate and kept
+        /// for the service's lifetime, so a restart reuses the registered recorder.
+        ///
+        /// Hosted here because this service already owns the appearance instrumentation the timeline
+        /// is built from, so there is no second swizzler or block list.
+        var screenTracker: ScreenTrackingHandler?
+
         func onViewBecameInteractive(_ vc: UIViewController) {
             handler.onViewBecameInteractive(vc)
         }
@@ -122,6 +129,24 @@
             if instrumentVisibility {
                 instrumentViewDidDisappear(of: UIViewController.self)
             }
+        }
+
+        override public func onStart() {
+            lock.lock()
+            defer {
+                lock.unlock()
+            }
+
+            startScreenTrackingIfEnabled()
+        }
+
+        override public func onStop() {
+            lock.lock()
+            defer {
+                lock.unlock()
+            }
+
+            stopScreenTracking()
         }
     }
 
@@ -170,6 +195,11 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
+                        // Above the span-creation latch on purpose: `…SpanCreated` is set on first
+                        // appearance and never reset, and `emb_instrumentation_state` is absent when
+                        // render instrumentation is off. The timeline needs every appearance.
+                        self.onViewControllerAppearance(viewController, phase: .willAppear, at: Date())
+
                         // If by this time (`viewWillAppear` being called) there's no `emb_instrumentation_state` associated
                         // to the viewController, then we don't swizzle as the "instrument render" feature might be disabled.
                         if let state = viewController.emb_instrumentation_state {
@@ -210,6 +240,9 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
+                        // See `instrumentViewWillAppear`: above the span-creation latch on purpose.
+                        self.onViewControllerAppearance(viewController, phase: .didAppear, at: Date())
+
                         // If the state was already fulfilled, then call the original implementation.
                         if let state = viewController.emb_instrumentation_state, state.viewDidAppearSpanCreated {
                             originalImplementation(viewController, selector, animated)
@@ -243,6 +276,7 @@
                     blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
                 ) { originalImplementation in
                     { viewController, animated in
+                        self.onViewControllerAppearance(viewController, phase: .didDisappear, at: Date())
                         self.handler.onViewDidDisappear(viewController)
                         originalImplementation(viewController, selector, animated)
                     }

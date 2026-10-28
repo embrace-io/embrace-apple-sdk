@@ -426,33 +426,68 @@ extension EmbraceStorage {
 
         return result
     }
+
+    /// Fetches the spans of a type that were recorded for one specific session.
+    ///
+    /// Matches on the stored session id only, with no time window and no row limit — for types
+    /// whose per-session count is already bounded, which must not be crowded out by the capped
+    /// fetch above.
+    /// - Parameters:
+    ///   - type: The span type to fetch.
+    ///   - sessionId: The session the spans were recorded in.
+    /// - Returns: Array containing the immutable copies of the spans.
+    package func fetchSpans(ofType type: EmbraceType, sessionId: EmbraceIdentifier) -> [EmbraceSpan] {
+        let request = SpanRecord.createFetchRequest()
+        request.predicate = NSPredicate(
+            format: "typeRaw == %@ AND sessionIdRaw == %@",
+            type.rawValue,
+            sessionId.stringValue
+        )
+
+        var result: [EmbraceSpan] = []
+        coreData.fetchAndPerform(withRequest: request) { records, _ in
+            result = records.map { $0.toImmutable() }
+        }
+        return result
+    }
 }
 
 // MARK: - Database operations
 extension EmbraceStorage {
-    func limitByType(_ type: EmbraceType) -> Int {
+    /// Per-type storage cap, or `nil` for types that are never pruned by age.
+    ///
+    /// Deliberately optional rather than using a sentinel number: `spanLimits` is caller-supplied,
+    /// so any in-band value for "no limit" would also be a value a caller could configure, and the
+    /// same number would mean opposite things depending on where it came from.
+    func limitByType(_ type: EmbraceType) -> Int? {
         switch type.primary {
         case .performance,
             .system,
             .ux:
             return options.spanLimitDefault
+        case .state:
+            // One span per registered state per part, so the count is already bounded; pruning by
+            // age would only ever discard a timeline the backend still needs.
+            return nil
         }
     }
 
     var jsonSpansLimit: Int {
-        var total = 0
-        PrimaryType.allCases.forEach {
-            total += limitByType(EmbraceType(primary: $0))
-        }
-        return total
+        // `compactMap` rather than treating unlimited as zero: types with no cap are outside this
+        // budget, they do not contribute nothing to it.
+        PrimaryType.allCases
+            .compactMap { limitByType(EmbraceType(primary: $0)) }
+            .reduce(0, +)
     }
 
     /// Deletes the oldest spans of the given type if the stored amount reached the limit, using the given context.
     /// Must be called from within the context's queue.
     fileprivate func removeOldSpanIfNeeded(forType type: EmbraceType, context: NSManagedObjectContext) {
-        // check limit and delete if necessary
-        // default to 1500 if limit is not set
-        let limit = options.spanLimits[type, default: limitByType(type)]
+        // A caller-configured limit wins; otherwise the per-type default applies. Types with no
+        // limit are skipped entirely.
+        guard let limit = options.spanLimits[type] ?? limitByType(type) else {
+            return
+        }
 
         let request = SpanRecord.createFetchRequest()
         request.predicate = NSPredicate(format: "typeRaw == %@", type.rawValue)
