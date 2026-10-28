@@ -355,12 +355,12 @@ extension EmbraceStorage {
     /// that occur within the same process. For cold start sessions, will include spans that occur before the session starts.
     /// - Parameters:
     ///   - session: The session record to fetch spans for
-    ///   - excludedTypes: Span types to leave out. Empty by default, so every span for the session
-    ///     is returned; excluding is the caller's decision, not this method's.
+    ///   - ignoreSessionSpans: Whether to ignore the session's (or any other session's) own span
+    ///   - limit: Limit of the amount of spans to be retrieved
     /// - Returns: Array containing the immutable copies of the spans.
     package func fetchSpans(
         for session: EmbraceSession,
-        excluding excludedTypes: [EmbraceType] = []
+        ignoreSessionSpans: Bool = true
     ) -> [EmbraceSpan] {
 
         let request = SpanRecord.createFetchRequest()
@@ -407,14 +407,13 @@ extension EmbraceStorage {
             predicate = NSCompoundPredicate(type: .or, subpredicates: [sessionPredicate, predicate1, predicate2])
         }
 
-        // filter by type?
-        var subpredicates: [NSPredicate] = [predicate]
-
-        for type in excludedTypes {
-            subpredicates.append(NSPredicate(format: "typeRaw != %@", type.rawValue))
+        // ignore session spans?
+        if ignoreSessionSpans {
+            let sessionTypePredicate = NSPredicate(format: "typeRaw != %@", EmbraceType.session.rawValue)
+            request.predicate = NSCompoundPredicate(type: .and, subpredicates: [sessionTypePredicate, predicate])
+        } else {
+            request.predicate = predicate
         }
-
-        request.predicate = NSCompoundPredicate(type: .and, subpredicates: subpredicates)
 
         // fetch
         var result: [EmbraceSpan] = []

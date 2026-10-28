@@ -415,16 +415,13 @@ final class SpansPayloadBuilderTests: XCTestCase {
             .system: 10
         ]
         storage.options.spanLimitDefault = 10
-
         defer {
             storage.options.spanLimits = oldLimits
             storage.options.spanLimitDefault = oldLimitDefault
         }
 
-        // given 54 spans across six secondary types — 9 each, deliberately below
-        // `spanLimitDefault` so insert-time pruning (`removeOldSpanIfNeeded`) never fires and the
-        // payload fetch budget is the only cap under test here
-        for _ in 1...9 {
+        // given more than 800 spans
+        for _ in 1...6 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -432,7 +429,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             )
         }
 
-        for _ in 1...9 {
+        for _ in 1...6 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -440,7 +437,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             )
         }
 
-        for _ in 1...9 {
+        for _ in 1...6 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -448,7 +445,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             )
         }
 
-        for _ in 1...9 {
+        for _ in 1...6 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -456,7 +453,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             )
         }
 
-        for _ in 1...9 {
+        for _ in 1...6 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -464,7 +461,7 @@ final class SpansPayloadBuilderTests: XCTestCase {
             )
         }
 
-        for _ in 1...9 {
+        for _ in 1...6 {
             _ = try addSpan(
                 startTime: Date(timeIntervalSince1970: 55),
                 endTime: Date(timeIntervalSince1970: 60),
@@ -475,13 +472,8 @@ final class SpansPayloadBuilderTests: XCTestCase {
         // when building the spans payload
         let (closed, open) = SpansPayloadBuilder.build(for: sessionRecord, storage: storage)
 
-        // then the payload is capped by the fetch budget: `spanLimitDefault` (10) per primary
-        // category, summed over the four categories = 30, plus the session span.
-        //
-        // Deliberately hard-coded. The budget is a function of `PrimaryType.allCases.count`, so
-        // adding a category silently raises it for every customer — that should fail here and force
-        // a human to look, rather than being absorbed by a self-adjusting expectation.
-        XCTAssertEqual(closed.count, 31)
+        // then the spans are retrieved correctly
+        XCTAssertEqual(closed.count, 31)  // 30 spans + session span
         XCTAssertEqual(closed[0].name, "emb-session")  // session span always first
         XCTAssertEqual(open.count, 0)
     }

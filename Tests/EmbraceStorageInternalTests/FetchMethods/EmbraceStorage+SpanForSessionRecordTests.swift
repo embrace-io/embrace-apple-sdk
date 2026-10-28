@@ -362,7 +362,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
         XCTAssertEqual(results[0].context.spanId, "test")
     }
 
-    func test_excludingTheSessionType_omitsTheSessionSpan() throws {
+    func test_ignoreSessionSpanFlag_whenTrue_doesNotReturnSessionSpan() throws {
         // session  :      ---------------
         // span     :      ---------------
         let session = sessionRecord(
@@ -376,11 +376,11 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: session.endTime
         )
 
-        let results = storage.fetchSpans(for: session, excluding: [.session])
+        let results = storage.fetchSpans(for: session, ignoreSessionSpans: true)
         XCTAssertTrue(results.isEmpty)
     }
 
-    func test_excludingNothing_returnsTheSessionSpanToo() throws {
+    func test_ignoreSessionSpanFlag_whenFalse_doesReturnSessionSpan() throws {
         // session  :      ---------------
         // span     :      ---------------
         let session = sessionRecord(
@@ -394,7 +394,7 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: session.endTime
         )
 
-        let results = storage.fetchSpans(for: session, excluding: [])
+        let results = storage.fetchSpans(for: session, ignoreSessionSpans: false)
         XCTAssertEqual(results[0].context.spanId, "test")
     }
 

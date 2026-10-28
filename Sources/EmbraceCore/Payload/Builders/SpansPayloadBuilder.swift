@@ -23,9 +23,9 @@ class SpansPayloadBuilder {
 
         let endTime = session.endTime ?? session.lastHeartbeatTime
 
-        // fetch spans that started during the session, minus the two types this builder fetches
-        // for itself: the session span (added below) and state spans (fetched separately, next).
-        let cappedRecords = storage.fetchSpans(for: session, excluding: [.session, .state])
+        // fetch spans that started during the session
+        // ignore spans where emb.type == session, and state spans, which are fetched separately next
+        let cappedRecords = storage.fetchSpans(for: session, ignoreSessionSpans: true).filter { $0.type != .state }
 
         // State spans get their own fetch so a session busy enough to exhaust the capped one above
         // can't crowd them out: losing one loses that part's whole state timeline plus the session

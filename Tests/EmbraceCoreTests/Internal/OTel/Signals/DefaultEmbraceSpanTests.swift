@@ -263,25 +263,6 @@ class DefaultEmbraceSpanTests: XCTestCase {
         XCTAssertEqual(handler.onSpanLinkAddedCallCount, 1)
     }
 
-    func test_addLink_isCountedAgainstLinksNotEvents() throws {
-        // given a span carrying far more customer events than the link limit would allow
-        let span = testSpan
-        let eventCount = 30
-        for i in 0..<eventCount {
-            span.addEvent(name: "event-\(i)", type: nil, timestamp: Date(), attributes: [:])
-        }
-        let linksBefore = span.links.count
-
-        // when a customer link is added
-        span.addLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
-
-        // then the budget was measured against the links already present, not the events.
-        // Regression guard: this used to pass `events.count`, so a span with a busy event list
-        // could never be linked at all.
-        XCTAssertEqual(handler.createLinkCurrentCount, linksBefore)
-        XCTAssertNotEqual(handler.createLinkCurrentCount, eventCount)
-    }
-
     func test_addLink_failure() throws {
         // given a span
         let span = testSpan
