@@ -6,6 +6,10 @@
 
     import Foundation
 
+    #if !EMBRACE_COCOAPOD_BUILDING_SDK
+        import EmbraceCommonInternal
+    #endif
+
     /// A finished focal moment. Times are display-link timestamps (`CACurrentMediaTime` seconds).
     struct FocalMoment: Equatable {
 
@@ -38,13 +42,14 @@
     /// A moment with no main-thread work or scroll tracking, such as a tap on a dead area, is dropped: touch
     /// phases alone draw nothing, matching Android dropping moments with no rendered frame.
     ///
-    /// Moments aren't emitted yet. Everything runs on main.
+    /// Ticks arrive on main; `interrupt()` can come from any thread, so one lock guards the state.
     class FocalMomentTracker {
 
         static let defaultIdleThreshold: TimeInterval = 0.1
         static let defaultHeldIdleThreshold: TimeInterval = 0.5
 
-        /// Called with each moment that settles or is interrupted.
+        /// Called with each moment that settles or is interrupted, on the thread that ended it, with the
+        /// tracker's lock held. Must not call back into the tracker.
         var onMoment: ((FocalMoment) -> Void)?
 
         let idleThreshold: TimeInterval
@@ -59,6 +64,17 @@
         }
 
         func record(_ tick: MeasuredTick, activity: ActivityMonitor.Snapshot) {
+            lock.locked { recordLocked(tick, activity: activity) }
+        }
+
+        /// Ends the open moment at its last activity tick.
+        func interrupt() {
+            lock.locked { finishLocked(.interrupted) }
+        }
+
+        // MARK: - Private
+
+        private func recordLocked(_ tick: MeasuredTick, activity: ActivityMonitor.Snapshot) {
             let arrival = tick.tick.timestamp
 
             guard var moment = open else {
@@ -78,7 +94,7 @@
 
             let threshold = activity.activeTouchCount > 0 ? heldIdleThreshold : idleThreshold
             if arrival - moment.lastActivity >= threshold {
-                finish(.settled)
+                finishLocked(.settled)
                 return
             }
 
@@ -86,13 +102,6 @@
             moment.pendingLateness += tick.lateness
             open = moment
         }
-
-        /// Ends the open moment at its last activity tick.
-        func interrupt() {
-            finish(.interrupted)
-        }
-
-        // MARK: - Private
 
         private struct OpenMoment {
             let start: TimeInterval
@@ -118,9 +127,10 @@
 
         private static let referenceFrameRate: Double = 60
 
+        private let lock = UnfairLock()
         private var open: OpenMoment?
 
-        private func finish(_ outcome: FocalMoment.Outcome) {
+        private func finishLocked(_ outcome: FocalMoment.Outcome) {
             guard let moment = open else { return }
             open = nil
 

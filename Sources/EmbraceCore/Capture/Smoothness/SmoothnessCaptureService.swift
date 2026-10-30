@@ -23,6 +23,7 @@
     /// Service that measures rendering smoothness. It writes each foreground part's dropped and expected
     /// frames, hang count and peak thermal state onto the part's session span just before the part's
     /// payload is built, and serves running totals that `emb-screen-view` spans are measured against.
+    /// Each focal moment is emitted as a private `smoothness` span.
     ///
     /// A part that ends without the part-will-end hook (terminate, crash, watchdog, jetsam) carries no
     /// smoothness attributes.
@@ -63,6 +64,7 @@
         ///     pass `false` and drive frames through the accumulator.
         ///   - makeActivityMonitor: Builds the activity monitor for each capture. Tests pass one that
         ///     doesn't observe the main run loop.
+        ///   - focalMomentQueue: Where focal moment spans are created.
         init(
             currentSession: @escaping () -> EmbraceSession?,
             sessionSpan: @escaping (EmbraceIdentifier) -> EmbraceSpan?,
@@ -73,7 +75,8 @@
             environment: [String: String] = ProcessInfo.processInfo.environment,
             ignoresRemoteConfig: Bool = false,
             attachesDisplayLink: Bool = true,
-            makeActivityMonitor: @escaping () -> ActivityMonitor = { ActivityMonitor() }
+            makeActivityMonitor: @escaping () -> ActivityMonitor = { ActivityMonitor() },
+            focalMomentQueue: DispatchQueue = DispatchQueue(label: "io.embrace.smoothness.focal-moments")
         ) {
             self.currentSession = currentSession
             self.sessionSpan = sessionSpan
@@ -85,6 +88,7 @@
             self.ignoresRemoteConfig = ignoresRemoteConfig
             self.attachesDisplayLink = attachesDisplayLink
             self.makeActivityMonitor = makeActivityMonitor
+            self.focalMomentQueue = focalMomentQueue
             super.init()
 
             notificationCenter.addObserver(
@@ -268,13 +272,28 @@
             }
 
             let focalMoments = makeFocalMoments()
+            let focalMomentEmitter = focalMoments.map { focalMoments in
+                FocalMomentEmitter(
+                    tracker: focalMoments.tracker,
+                    currentPartId: { [currentSession = self.currentSession] in currentSession()?.id },
+                    otel: { [weak self] in self?.otel },
+                    embraceNotificationCenter: embraceNotificationCenter,
+                    queue: focalMomentQueue
+                )
+            }
 
             let source = FrameTimingSource(notificationCenter: notificationCenter, attachesDisplayLink: attachesDisplayLink)
             source.onTick = Self.makeTickHandler(accumulator: accumulator, focalMoments: focalMoments)
 
             let stored = data.withLock { data -> Bool in
                 guard state.load(order: .acquire) == .active, data.capture == nil, isRunnable(data) else { return false }
-                data.capture = ActiveCapture(source: source, accumulator: accumulator, tracker: tracker, focalMoments: focalMoments)
+                data.capture = ActiveCapture(
+                    source: source,
+                    accumulator: accumulator,
+                    tracker: tracker,
+                    focalMoments: focalMoments,
+                    focalMomentEmitter: focalMomentEmitter
+                )
                 return true
             }
 
@@ -282,6 +301,7 @@
             if stored {
                 tracker.open()
             } else {
+                focalMomentEmitter?.invalidate()
                 focalMoments?.activityMonitor.stop()
             }
         }
@@ -299,7 +319,7 @@
         }
 
         /// Closes the open part and releases the capture on main, where its `CADisplayLink` must be
-        /// invalidated.
+        /// invalidated. An open focal moment is dropped.
         private func tearDown() {
             let capture = data.withLock { data -> ActiveCapture? in
                 let previous = data.capture
@@ -308,6 +328,7 @@
             }
             guard let capture else { return }
 
+            capture.focalMomentEmitter?.invalidate()
             capture.tracker.invalidate()
 
             if Thread.isMainThread {
@@ -322,6 +343,7 @@
             let accumulator: FrameAccumulator
             let tracker: SmoothnessPartTracker
             let focalMoments: (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)?
+            let focalMomentEmitter: FocalMomentEmitter?
         }
 
         private struct OpenPart {
@@ -346,6 +368,7 @@
         private let ignoresRemoteConfig: Bool
         private let attachesDisplayLink: Bool
         private let makeActivityMonitor: () -> ActivityMonitor
+        private let focalMomentQueue: DispatchQueue
 
         /// Raw notification name to avoid a direct UIKit dependency.
         private static let willResignActiveNotification = Notification.Name("UIApplicationWillResignActiveNotification")

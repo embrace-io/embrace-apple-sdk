@@ -752,6 +752,32 @@
             XCTAssertNil(tracker)
         }
 
+        // MARK: - Focal moment spans
+
+        private func recordTouchDown() throws {
+            try XCTUnwrap(service.focalMomentTracker).record(
+                MeasuredTick(FrameTimingSource.Tick(timestamp: 1, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration)),
+                activity: ActivityMonitor.Snapshot(touchBegan: true, touchChanged: true, activeTouchCount: 1, didWork: true)
+            )
+        }
+
+        private var focalMomentSpans: [EmbraceSpan] {
+            otel.startedSpans.filter { $0.name == SpanSemantics.Smoothness.focalMomentName }
+        }
+
+        func test_partEnd_emitsOpenFocalMomentAsInterruptedSpan() throws {
+            startPart(.foreground)
+            startService()
+            try recordTouchDown()
+
+            endPart()
+
+            let span = try XCTUnwrap(focalMomentSpans.first)
+            XCTAssertEqual(focalMomentSpans.count, 1)
+            XCTAssertEqual(span.type, .smoothness)
+            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyOutcome] as? String, SpanSemantics.Smoothness.Outcome.interrupted)
+        }
+
         // MARK: - Tick fan-out
 
         func test_tickHandler_feedsFocalMomentTracker() {

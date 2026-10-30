@@ -7,8 +7,8 @@ extension EmbraceType {
 }
 
 extension SpanSemantics {
-    /// Smoothness attribute keys, written onto the foreground session part and onto each
-    /// `emb-screen-view`. Matches Android's `emb.smoothness` semconv.
+    /// Smoothness attribute keys, written onto the foreground session part, onto each
+    /// `emb-screen-view`, and onto each focal moment span. Matches Android's `emb.smoothness` semconv.
     public struct Smoothness {
 
         /// Prefix shared by every smoothness attribute key.
@@ -30,6 +30,30 @@ extension SpanSemantics {
         /// Most severe device thermal state observed in the session part. iOS-only; one of the
         /// `ThermalState` values.
         public static let keyPeakThermalState = "smoothness.peak_thermal_state"
+
+        /// Name of the span emitted for each focal moment.
+        public static let focalMomentName = "smoothness"
+
+        /// How the focal moment ended; one of the `Outcome` values.
+        public static let keyOutcome = "smoothness.outcome"
+
+        /// Display link ticks inside the focal moment. Android counts rendered frames instead.
+        public static let keyFrameCount = "smoothness.frame_count"
+
+        /// Total main-thread lateness inside the focal moment, in 60fps reference frames. Uncapped.
+        public static let keyNormalizedDroppedFrames = "smoothness.normalized_dropped_frames"
+
+        /// Idle time after the last touch lifts that settles the focal moment, in milliseconds.
+        public static let keyIdleThresholdMs = "smoothness.idle_threshold_ms"
+
+        /// Idle time while a touch is held that settles the focal moment, in milliseconds.
+        public static let keyHeldIdleThresholdMs = "smoothness.held_idle_threshold_ms"
+
+        /// Values for `keyOutcome`.
+        public struct Outcome {
+            public static let settled = "settled"
+            public static let interrupted = "interrupted"
+        }
 
         /// Values for `keyPeakThermalState`, mirroring `ProcessInfo.ThermalState`.
         public struct ThermalState {
