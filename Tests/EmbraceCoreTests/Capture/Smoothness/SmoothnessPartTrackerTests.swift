@@ -105,7 +105,7 @@
 
         /// Delivers a tick at a steady 60Hz refresh rate.
         private func handle(delay: TimeInterval) {
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: delay, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: delay, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
         }
 
         // MARK: - Lifecycle

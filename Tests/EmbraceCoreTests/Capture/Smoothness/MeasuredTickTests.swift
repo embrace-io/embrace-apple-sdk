@@ -19,6 +19,7 @@
             MeasuredTick.lateness(
                 of: FrameTimingSource.Tick(
                     timestamp: 0,
+                    previousTimestamp: 0,
                     delay: delay,
                     frameInterval: frameInterval,
                     previousFrameInterval: previousFrameInterval ?? frameInterval

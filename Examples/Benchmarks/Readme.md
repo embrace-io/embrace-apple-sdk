@@ -73,13 +73,14 @@ The hitch gate is only sensitive while the Off arm hitches a little. With too li
 
 For each scenario, it suggests the load that best detects the 25µs cost, among loads that ran at the expected rate, weren't throttled and caught the 250µs control. It also suggests an `OFF_HITCH_BAND_<SCENARIO>_<rate>` (e.g. `OFF_HITCH_BAND_TOUCH_120`): half to twice that load's Off hitch ratio. After reviewing them, commit each load as its screen's default (both screens read `EMBFrameLoadFraction` today, so loads that differ need a per-screen default), and each band as an `env` entry in `run-smoothness-overhead.yml`. With a band set, the overhead gate marks a scenario incomplete if its Off hitch ratio falls outside it, which catches the baseline drifting out of the sensitive range (e.g. after an iOS update). Unset, the Off hitch ratio is shown as context only.
 
-For the per-tick cost, launch a debug build with `EMBSmoothnessSignposts=1` and record with the Instruments **os_signpost** instrument (subsystem `io.embrace.sdk`, category `Smoothness`, interval `Tick`). `SmoothnessOverheadTests` in `EmbraceCoreTests` covers the same path as a simulator microbenchmark, with and without focal moments, under touch and fling input.
+For the per-tick cost, launch a debug build with `EMBSmoothnessSignposts=1` and record with the Instruments **os_signpost** instrument (subsystem `io.embrace.sdk`, category `Smoothness`, interval `Tick`). `SmoothnessOverheadTests` in `EmbraceCoreTests` covers the same path as a simulator microbenchmark, with and without focal moments, under touch and fling input, and with frame traces.
 
 ### Environment Variables
 
 - `noop`: When set to any value, disables Embrace SDK initialization for baseline performance measurement
 - `EMBHang=1`: Adds `HangCaptureService`
 - `EMBSmoothness=1`: Adds `SmoothnessCaptureService`, running whether or not remote config enables it. Without it, the app removes the service from the defaults, so no other benchmark includes it
+- `EMBSmoothnessFrameTrace=1`: With `EMBSmoothness=1`, records a frame trace for every focal moment, whether or not remote config samples the device
 - `EMBAllowWatchdogInDebugger=1`: Keeps `HangCaptureService` and `SmoothnessCaptureService` running when a debugger is attached
 - `EMBInjectedTickCostMicros`: Extra main-thread work, in microseconds, the smoothness screens add to every frame. Used by the positive control
 - `EMBFrameLoadFraction`: Fraction of each frame the scroll and touch screens spend busy on the main thread (default 0.9)

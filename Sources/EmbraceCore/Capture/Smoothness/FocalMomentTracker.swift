@@ -36,6 +36,9 @@
         let idleThreshold: TimeInterval
 
         let heldIdleThreshold: TimeInterval
+
+        /// The moment's frame trace, or `nil` if this device doesn't record one.
+        let frameTrace: Data?
     }
 
     /// Tracks focal moments from the ticks it is fed, settling them on the tick handler rather than a timer.
@@ -53,12 +56,15 @@
         let idleThreshold: TimeInterval
         let heldIdleThreshold: TimeInterval
 
+        /// - Parameter frameTrace: Records each moment's frame trace, on devices sampled to send one.
         init(
             idleThreshold: TimeInterval = SmoothnessLimits.defaultIdleThreshold,
-            heldIdleThreshold: TimeInterval = SmoothnessLimits.defaultHeldIdleThreshold
+            heldIdleThreshold: TimeInterval = SmoothnessLimits.defaultHeldIdleThreshold,
+            frameTrace: FrameTraceRecorder? = nil
         ) {
             self.idleThreshold = idleThreshold
             self.heldIdleThreshold = heldIdleThreshold
+            self.frameTrace = frameTrace
         }
 
         func record(_ tick: MeasuredTick, activity: ActivityMonitor.Snapshot) {
@@ -80,6 +86,9 @@
                     var moment = OpenMoment(start: arrival - tick.lateness, lastActivity: arrival)
                     moment.include(tick, activity: activity)
                     open = moment
+                    frameTrace?.reset()
+                    frameTrace?.record(tick.tick)
+                    frameTrace?.commit()
                 }
                 return
             }
@@ -87,6 +96,8 @@
             if activity.hasActivity {
                 moment.include(tick, activity: activity)
                 open = moment
+                frameTrace?.record(tick.tick)
+                frameTrace?.commit()
                 return
             }
 
@@ -99,6 +110,7 @@
             moment.pendingFrameCount += 1
             moment.pendingLateness += tick.lateness
             open = moment
+            frameTrace?.record(tick.tick)
         }
 
         private struct OpenMoment {
@@ -127,6 +139,7 @@
 
         private let lock = UnfairLock()
         private var open: OpenMoment?
+        private let frameTrace: FrameTraceRecorder?
 
         private func finishLocked(_ outcome: FocalMoment.Outcome) {
             guard let moment = open else { return }
@@ -142,7 +155,8 @@
                     frameCount: moment.frameCount,
                     normalizedDroppedFrames: moment.lateness * Self.referenceFrameRate,
                     idleThreshold: idleThreshold,
-                    heldIdleThreshold: heldIdleThreshold
+                    heldIdleThreshold: heldIdleThreshold,
+                    frameTrace: frameTrace?.trace
                 ))
         }
     }

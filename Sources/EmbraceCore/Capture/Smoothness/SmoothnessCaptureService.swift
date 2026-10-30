@@ -37,10 +37,13 @@
             self.init(ignoresRemoteConfig: false)
         }
 
-        /// - Parameter ignoresRemoteConfig: Runs whether or not remote config enables smoothness. For
-        ///   benchmarks, which must measure the service on devices outside the rollout.
+        /// - Parameters:
+        ///   - ignoresRemoteConfig: Runs whether or not remote config enables smoothness. For benchmarks,
+        ///     which must measure the service on devices outside the rollout.
+        ///   - forcesFrameTrace: Records frame traces whether or not remote config samples this device.
+        ///     For benchmarks, which measure the trace's cost.
         @_spi(Private)
-        public convenience init(ignoresRemoteConfig: Bool) {
+        public convenience init(ignoresRemoteConfig: Bool, forcesFrameTrace: Bool = false) {
             self.init(
                 currentSession: { Embrace.client?.sessionController.currentSession },
                 sessionSpan: { partId in
@@ -51,7 +54,8 @@
                 },
                 notificationCenter: .default,
                 embraceNotificationCenter: Embrace.notificationCenter,
-                ignoresRemoteConfig: ignoresRemoteConfig
+                ignoresRemoteConfig: ignoresRemoteConfig,
+                forcesFrameTrace: forcesFrameTrace
             )
         }
 
@@ -74,6 +78,7 @@
             debuggerAttached: @escaping () -> Bool = { EMBDevice.isDebuggerAttached },
             environment: [String: String] = ProcessInfo.processInfo.environment,
             ignoresRemoteConfig: Bool = false,
+            forcesFrameTrace: Bool = false,
             attachesDisplayLink: Bool = true,
             makeActivityMonitor: @escaping () -> ActivityMonitor = { ActivityMonitor() },
             focalMomentQueue: DispatchQueue = DispatchQueue(label: "io.embrace.smoothness.focal-moments")
@@ -86,6 +91,7 @@
             self.debuggerAttached = debuggerAttached
             self.environment = environment
             self.ignoresRemoteConfig = ignoresRemoteConfig
+            self.forcesFrameTrace = forcesFrameTrace
             self.attachesDisplayLink = attachesDisplayLink
             self.makeActivityMonitor = makeActivityMonitor
             self.focalMomentQueue = focalMomentQueue
@@ -128,11 +134,13 @@
         public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
             let hangThreshold = config.hangLimits.hangThreshold
             let limits = config.smoothnessLimits
+            let isFrameTraceEnabled = config.isSmoothnessFrameTraceEnabled
             let isEnabled = config.isSmoothnessEnabled
             let (accumulator, wasEnabled) = data.withLock { data -> (FrameAccumulator?, Bool) in
                 let wasEnabled = data.isRemotelyEnabled
                 data.hangThreshold = hangThreshold
                 data.limits = limits
+                data.isFrameTraceEnabled = isFrameTraceEnabled
                 data.isRemotelyEnabled = isEnabled
                 return (data.capture?.accumulator, wasEnabled)
             }
@@ -280,8 +288,8 @@
                 self?.partClosed(partId: partId, counts: counts)
             }
 
-            let limits = data.withLock { $0.limits }
-            let focalMoments = makeFocalMoments(limits: limits)
+            let (limits, isFrameTraceEnabled) = data.withLock { ($0.limits, $0.isFrameTraceEnabled) }
+            let focalMoments = makeFocalMoments(limits: limits, recordsFrameTrace: forcesFrameTrace || isFrameTraceEnabled)
             let focalMomentEmitter = focalMoments.map { focalMoments in
                 FocalMomentEmitter(
                     tracker: focalMoments.tracker,
@@ -318,7 +326,10 @@
         }
 
         /// Must be called on main. `nil` if the activity monitor can't start; frames are still counted.
-        private func makeFocalMoments(limits: SmoothnessLimits) -> (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)? {
+        private func makeFocalMoments(
+            limits: SmoothnessLimits,
+            recordsFrameTrace: Bool
+        ) -> (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)? {
             let activityMonitor = makeActivityMonitor()
             do {
                 try activityMonitor.start()
@@ -326,7 +337,11 @@
                 logger?.warning("[Smoothness] Focal moments disabled: \(error.localizedDescription)")
                 return nil
             }
-            let tracker = FocalMomentTracker(idleThreshold: limits.idleThreshold, heldIdleThreshold: limits.heldIdleThreshold)
+            let tracker = FocalMomentTracker(
+                idleThreshold: limits.idleThreshold,
+                heldIdleThreshold: limits.heldIdleThreshold,
+                frameTrace: recordsFrameTrace ? FrameTraceRecorder() : nil
+            )
             return (tracker, activityMonitor)
         }
 
@@ -366,6 +381,7 @@
         private struct MutableData {
             var hangThreshold: TimeInterval = HangLimits.defaultHangThreshold
             var limits = SmoothnessLimits()
+            var isFrameTraceEnabled = false
             var isRemotelyEnabled = false
             var capture: ActiveCapture?
             var openPart: OpenPart?
@@ -379,6 +395,7 @@
         private let debuggerAttached: () -> Bool
         private let environment: [String: String]
         private let ignoresRemoteConfig: Bool
+        private let forcesFrameTrace: Bool
         private let attachesDisplayLink: Bool
         private let makeActivityMonitor: () -> ActivityMonitor
         private let focalMomentQueue: DispatchQueue

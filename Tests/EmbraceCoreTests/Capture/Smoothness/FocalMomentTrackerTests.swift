@@ -46,11 +46,13 @@
 
         /// Delivers a tick one frame after the previous one, or `lateFrames` frames late.
         private func tick(_ activity: Snapshot, lateFrames: Double = 0) {
+            let previous = now
             now += interval * (1 + lateFrames)
             tracker.record(
                 MeasuredTick(
                     FrameTimingSource.Tick(
                         timestamp: now,
+                        previousTimestamp: previous,
                         delay: interval * lateFrames,
                         frameInterval: interval,
                         previousFrameInterval: interval
@@ -238,7 +240,7 @@
             let fast = 1.0 / 120.0
             now += fast
             tracker.record(
-                MeasuredTick(FrameTimingSource.Tick(timestamp: now, delay: 2 * fast, frameInterval: fast, previousFrameInterval: fast)),
+                MeasuredTick(FrameTimingSource.Tick(timestamp: now, previousTimestamp: now, delay: 2 * fast, frameInterval: fast, previousFrameInterval: fast)),
                 activity: Self.touchDownWithWork
             )
             tracker.interrupt()
@@ -328,6 +330,83 @@
             tracker.interrupt()
 
             XCTAssertEqual(emitted.map(\.outcome), [.interrupted])
+        }
+
+        // MARK: - Frame trace
+
+        private func traceFrames(capacity: Int = FrameTraceRecorder.defaultCapacity) {
+            tracker = FocalMomentTracker(frameTrace: FrameTraceRecorder(capacity: capacity))
+            tracker.onMoment = { [unowned self] in self.emitted.append($0) }
+        }
+
+        func testFrameTraceHasOneEntryPerCountedTick() {
+            traceFrames()
+
+            tick(Self.touchDownWithWork)
+            idle(for: 0.2, Self.held)
+            tick(Self.lift)
+            idle(for: 0.2)
+
+            let moment = emitted.single
+            XCTAssertEqual(moment?.frameTrace?.decodedVarints.count, moment?.frameCount)
+            XCTAssertEqual(moment?.frameTrace?.decodedVarints, Array(repeating: 16, count: 14))
+        }
+
+        func testFrameTraceRecordsStalls() {
+            traceFrames()
+
+            tick(Self.touchDownWithWork, lateFrames: 1)
+            tick(Self.lift)
+            tick(Self.work, lateFrames: 30)
+            idle(for: 0.2)
+
+            XCTAssertEqual(emitted.single?.frameTrace?.decodedVarints, [33, 16, 516])
+        }
+
+        func testFrameTraceDropsTrailingIdleTicksOnInterrupt() {
+            traceFrames()
+
+            tick(Self.touchDownWithWork)
+            idle(for: 0.05, Self.held)
+            tracker.interrupt()
+
+            XCTAssertEqual(emitted.single?.frameTrace?.decodedVarints, [16])
+        }
+
+        func testFrameTraceStartsFreshForEachMoment() {
+            traceFrames()
+
+            tick(Self.touchDownWithWork)
+            tick(Self.heldWork, lateFrames: 4)
+            tracker.interrupt()
+            tick(Self.touchDownWithWork)
+            tracker.interrupt()
+
+            XCTAssertEqual(emitted.map { $0.frameTrace?.decodedVarints }, [[16, 83], [16]])
+        }
+
+        func testFrameTraceOfDroppedMomentDoesNotLeakIntoNext() {
+            traceFrames()
+
+            tick(Self.touchDown)
+            tick(Self.lift)
+            idle(for: 0.2)
+            tick(Self.touchDownWithWork)
+            tracker.interrupt()
+
+            XCTAssertEqual(emitted.single?.frameTrace?.decodedVarints, [16])
+        }
+
+        func testCappedFrameTraceIsAPrefix() {
+            traceFrames(capacity: 4)
+
+            tick(Self.touchDownWithWork)
+            idle(for: 0.2, Self.heldWork)
+            tracker.interrupt()
+
+            let moment = emitted.single
+            XCTAssertEqual(moment?.frameCount, 13)
+            XCTAssertEqual(moment?.frameTrace?.decodedVarints, [16, 16, 16, 16])
         }
 
         // MARK: - Thresholds

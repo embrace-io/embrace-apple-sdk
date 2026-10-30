@@ -19,6 +19,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var smoothnessIdleThreshold: TimeInterval
     var smoothnessHeldIdleThreshold: TimeInterval
     var smoothnessSpanLimit: Int
+    var smoothnessFrameTraceThreshold: Float
     var walModeThreshold: Float
 
     var uiLoadInstrumentationEnabled: Bool
@@ -78,6 +79,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case smoothnessIdleThresholdMs = "smoothness_idle_threshold_ms"
             case smoothnessHeldIdleThresholdMs = "smoothness_held_idle_threshold_ms"
             case spanLimit = "span_limit"
+            case smoothnessFrameTraceThreshold = "smoothness_frame_trace_pct_enabled"
         }
 
         case walModeThreshold = "core_data_wal_mode_pct_enabled"
@@ -179,6 +181,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         smoothnessSpanLimit =
             (try? vitalsContainer?.decodeIfPresent(Int.self, forKey: .spanLimit))
             ?? defaultPayload.smoothnessSpanLimit
+        smoothnessFrameTraceThreshold =
+            (try? vitalsContainer?.decodeIfPresent(Float.self, forKey: .smoothnessFrameTraceThreshold))
+            ?? defaultPayload.smoothnessFrameTraceThreshold
 
         // is wal mode enabled config
         walModeThreshold =
@@ -485,6 +490,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         smoothnessIdleThreshold = SmoothnessLimits.defaultIdleThreshold
         smoothnessHeldIdleThreshold = SmoothnessLimits.defaultHeldIdleThreshold
         smoothnessSpanLimit = SmoothnessLimits.defaultSpanLimit
+        smoothnessFrameTraceThreshold = 0
         walModeThreshold = 100.0
 
         uiLoadInstrumentationEnabled = true

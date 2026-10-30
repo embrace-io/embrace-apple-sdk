@@ -66,6 +66,17 @@
             XCTAssertEqual(ticks.map(\.timestamp), [second])
         }
 
+        func testTickCarriesPreviousTimestamp() {
+            let first = now
+            tick()
+            let second = now
+            tick()
+            skip(frameDuration)
+            tick()
+
+            XCTAssertEqual(ticks.map(\.previousTimestamp), [first, second])
+        }
+
         func testWillEnterForegroundOnOtherCenterIsIgnored() {
             tick()
             skip(backgroundGap)

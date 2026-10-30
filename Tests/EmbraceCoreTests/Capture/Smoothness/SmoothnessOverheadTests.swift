@@ -13,7 +13,7 @@
 
     /// Measures the per-tick cost of the Smoothness hot path: `FrameTimingSource.handleTick` →
     /// the production tick handler → `FrameAccumulator`, and with focal moments, `ActivityMonitor` →
-    /// `FocalMomentTracker` under touch and fling input.
+    /// `FocalMomentTracker` under touch and fling input, with and without a frame trace.
     ///
     /// Ticks are driven synchronously on main, as in `FrameTimingSourceTests`, through a source with no
     /// display link. The activity monitor doesn't observe the run loop; each tick is wrapped in the wake
@@ -51,6 +51,7 @@
         private var activityMonitor: ActivityMonitor?
         private var focalMomentTracker: FocalMomentTracker?
         private var momentCount = 0
+        private var tracedMomentCount = 0
         private var mode: RunLoop.Mode? = .default
         private var clockNanos: UInt64 = 1_000_000_000
 
@@ -98,7 +99,7 @@
         }
 
         /// Routes ticks through the focal moment path, as `SmoothnessCaptureService` does.
-        private func trackFocalMoments() {
+        private func trackFocalMoments(recordsFrameTrace: Bool = false) {
             let activityMonitor = ActivityMonitor(
                 windowEventObserver: WindowEventObserver(),
                 runLoop: nil,
@@ -106,8 +107,11 @@
                 clock: { [unowned self] in self.clockNanos },
                 environment: [:]
             )
-            let focalMomentTracker = FocalMomentTracker()
-            focalMomentTracker.onMoment = { [unowned self] _ in self.momentCount += 1 }
+            let focalMomentTracker = FocalMomentTracker(frameTrace: recordsFrameTrace ? FrameTraceRecorder() : nil)
+            focalMomentTracker.onMoment = { [unowned self] moment in
+                self.momentCount += 1
+                if moment.frameTrace != nil { self.tracedMomentCount += 1 }
+            }
             source.onTick = SmoothnessCaptureService.makeTickHandler(
                 accumulator: accumulator,
                 focalMoments: (focalMomentTracker, activityMonitor),
@@ -211,9 +215,29 @@
             XCTAssertGreaterThan(momentCount, 0)
         }
 
+        func test_tickCost_withFocalMoments_touch_frameTrace() {
+            trackFocalMoments(recordsFrameTrace: true)
+            openPart()
+
+            measure(metrics: [XCTClockMetric(), XCTCPUMetric()]) {
+                deliverTicks(measuredTickCount, input: .touch)
+            }
+
+            XCTAssertGreaterThan(tracedMomentCount, 0)
+        }
+
         /// Fling is the busiest input: a touch event and a tracking moment open on most ticks.
         func test_tickCost_withFocalMoments_staysWithinBudget() {
-            trackFocalMoments()
+            assertFlingWithinBudget(recordsFrameTrace: false, label: "focal moments")
+        }
+
+        func test_tickCost_withFocalMoments_frameTrace_staysWithinBudget() {
+            assertFlingWithinBudget(recordsFrameTrace: true, label: "focal moments with frame trace")
+            XCTAssertGreaterThan(tracedMomentCount, 0)
+        }
+
+        private func assertFlingWithinBudget(recordsFrameTrace: Bool, label: String, file: StaticString = #filePath, line: UInt = #line) {
+            trackFocalMoments(recordsFrameTrace: recordsFrameTrace)
             openPart()
             deliverTicks(10_000, input: .fling)
 
@@ -222,10 +246,10 @@
             let elapsed = clock_gettime_nsec_np(CLOCK_UPTIME_RAW) - start
 
             let nanosecondsPerTick = Double(elapsed) / Double(budgetTickCount)
-            print("[SmoothnessOverhead] focal moments: \(String(format: "%.1f", nanosecondsPerTick)) ns/tick over \(budgetTickCount) ticks")
+            print("[SmoothnessOverhead] \(label): \(String(format: "%.1f", nanosecondsPerTick)) ns/tick over \(budgetTickCount) ticks")
 
-            XCTAssertGreaterThan(momentCount, 0)
-            XCTAssertLessThan(nanosecondsPerTick, ciBudgetNanosecondsPerTick)
+            XCTAssertGreaterThan(momentCount, 0, file: file, line: line)
+            XCTAssertLessThan(nanosecondsPerTick, ciBudgetNanosecondsPerTick, file: file, line: line)
         }
 
         func test_signpostedTickHandler_stillForwardsTicks() {
@@ -237,8 +261,8 @@
             )
             openPart()
 
-            handler(FrameTimingSource.Tick(timestamp: 0, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
-            handler(FrameTimingSource.Tick(timestamp: 0, delay: frameDuration, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            handler(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            handler(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: frameDuration, frameInterval: frameDuration, previousFrameInterval: frameDuration))
             tracker.invalidate()
 
             XCTAssertEqual(reported?.expectedFrames, 3)

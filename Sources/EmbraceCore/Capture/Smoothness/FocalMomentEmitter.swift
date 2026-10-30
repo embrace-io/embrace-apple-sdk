@@ -162,24 +162,38 @@
             case .interrupted: outcome = SpanSemantics.Smoothness.Outcome.interrupted
             }
 
+            var attributes: EmbraceAttributes = [
+                SpanSemantics.keyPrivate: "true",
+                SpanSemantics.Smoothness.keyOutcome: outcome,
+                SpanSemantics.Smoothness.keyFrameCount: moment.frameCount,
+                SpanSemantics.Smoothness.keyNormalizedDroppedFrames: moment.normalizedDroppedFrames,
+                SpanSemantics.Smoothness.keyIdleThresholdMs: Self.milliseconds(moment.idleThreshold),
+                SpanSemantics.Smoothness.keyHeldIdleThresholdMs: Self.milliseconds(moment.heldIdleThreshold)
+            ]
+            if let frameTrace = moment.frameTrace {
+                attributes[SpanSemantics.Smoothness.keyFrameTrace] = Self.unpaddedBase64(frameTrace)
+            }
+
             _ = try? otel()?.createInternalSpan(
                 name: SpanSemantics.Smoothness.focalMomentName,
                 type: .smoothness,
                 startTime: Date(timeIntervalSince1970: pending.clockOffset + moment.start),
                 endTime: Date(timeIntervalSince1970: pending.clockOffset + moment.end),
-                attributes: [
-                    SpanSemantics.keyPrivate: "true",
-                    SpanSemantics.Smoothness.keyOutcome: outcome,
-                    SpanSemantics.Smoothness.keyFrameCount: moment.frameCount,
-                    SpanSemantics.Smoothness.keyNormalizedDroppedFrames: moment.normalizedDroppedFrames,
-                    SpanSemantics.Smoothness.keyIdleThresholdMs: Self.milliseconds(moment.idleThreshold),
-                    SpanSemantics.Smoothness.keyHeldIdleThresholdMs: Self.milliseconds(moment.heldIdleThreshold)
-                ]
+                attributes: attributes
             )
         }
 
         private static func milliseconds(_ interval: TimeInterval) -> Int {
             Int((interval * 1000).rounded())
+        }
+
+        /// Base64 without padding, matching Android's `NO_PADDING`.
+        static func unpaddedBase64(_ data: Data) -> String {
+            var encoded = data.base64EncodedString()
+            while encoded.hasSuffix("=") {
+                encoded.removeLast()
+            }
+            return encoded
         }
 
         /// Posted synchronously with `SessionController`'s lock held, while the part is still current.

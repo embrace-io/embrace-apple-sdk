@@ -66,10 +66,11 @@
         }
 
         private func tick(_ activity: Snapshot, lateFrames: Double = 0) {
+            let previous = now
             now += interval * (1 + lateFrames)
             tracker.record(
                 MeasuredTick(
-                    FrameTimingSource.Tick(timestamp: now, delay: interval * lateFrames, frameInterval: interval, previousFrameInterval: interval)),
+                    FrameTimingSource.Tick(timestamp: now, previousTimestamp: previous, delay: interval * lateFrames, frameInterval: interval, previousFrameInterval: interval)),
                 activity: activity
             )
         }
@@ -128,6 +129,28 @@
             XCTAssertEqual(try XCTUnwrap(span.attributes[SpanSemantics.Smoothness.keyNormalizedDroppedFrames] as? Double), 3, accuracy: 0.001)
             XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyIdleThresholdMs] as? Int, 100)
             XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyHeldIdleThresholdMs] as? Int, 500)
+            XCTAssertNil(span.attributes[SpanSemantics.Smoothness.keyFrameTrace])
+        }
+
+        func test_frameTrace_isUnpaddedBase64OfTheTrace() throws {
+            tracker = FocalMomentTracker(frameTrace: FrameTraceRecorder())
+            emitter = makeEmitter()
+
+            openMoment()
+            tick(Snapshot(didWork: true), lateFrames: 30)
+            tick(Snapshot(didWork: true))
+            tracker.interrupt()
+            drainQueue()
+
+            // 16ms, 516ms as the varint 0x84 0x04, then 16ms: four bytes, which pad to "EIQEEA==".
+            let span = try XCTUnwrap(spans.first)
+            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyFrameTrace] as? String, "EIQEEA")
+        }
+
+        func test_unpaddedBase64_stripsPadding() {
+            XCTAssertEqual(FocalMomentEmitter.unpaddedBase64(Data([1])), "AQ")
+            XCTAssertEqual(FocalMomentEmitter.unpaddedBase64(Data([1, 2])), "AQI")
+            XCTAssertEqual(FocalMomentEmitter.unpaddedBase64(Data([1, 2, 3])), "AQID")
         }
 
         func test_spanIsNotCreatedOnTheEndingThread() {

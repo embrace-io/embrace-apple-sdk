@@ -49,6 +49,11 @@ extension SpanSemantics {
         /// Idle time while a touch is held that settles the focal moment, in milliseconds.
         public static let keyHeldIdleThresholdMs = "smoothness.held_idle_threshold_ms"
 
+        /// The focal moment's tick-to-tick intervals in whole milliseconds, as unsigned LEB128 varints,
+        /// base64-encoded without padding. At most 1024 bytes before encoding; a longer trace is cut short.
+        /// Only sent from a sampled fraction of devices.
+        public static let keyFrameTrace = "smoothness.frame_trace"
+
         /// Values for `keyOutcome`.
         public struct Outcome {
             public static let settled = "settled"

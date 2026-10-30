@@ -50,6 +50,7 @@
             debuggerAttached: @escaping () -> Bool = { false },
             environment: [String: String] = [:],
             ignoresRemoteConfig: Bool = true,
+            forcesFrameTrace: Bool = false,
             attachesDisplayLink: Bool = false
         ) -> SmoothnessCaptureService {
             SmoothnessCaptureService(
@@ -63,6 +64,7 @@
                 debuggerAttached: debuggerAttached,
                 environment: environment,
                 ignoresRemoteConfig: ignoresRemoteConfig,
+                forcesFrameTrace: forcesFrameTrace,
                 attachesDisplayLink: attachesDisplayLink,
                 makeActivityMonitor: { ActivityMonitor(windowEventObserver: Self.windowEventObserver, runLoop: nil) }
             )
@@ -108,7 +110,7 @@
 
         private func record(delayInFrames: Double) throws {
             try XCTUnwrap(service.accumulator).record(
-                MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: frameDuration * delayInFrames, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+                MeasuredTick(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: frameDuration * delayInFrames, frameInterval: frameDuration, previousFrameInterval: frameDuration))
             )
         }
 
@@ -370,7 +372,7 @@
             startService()
             let session = startPart(.foreground)
             let accumulator = try XCTUnwrap(service.accumulator)
-            let tick = FrameTimingSource.Tick(timestamp: 0, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration)
+            let tick = FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration)
 
             let ended = expectation(description: "ended off main")
             DispatchQueue.global().async {
@@ -395,9 +397,10 @@
             let accumulator = try XCTUnwrap(service.accumulator)
 
             try record(delayInFrames: 0)
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: service.hangThreshold + 0.001, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
+            accumulator.record(
+                MeasuredTick(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: service.hangThreshold + 0.001, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
             try record(delayInFrames: 0)
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: 5, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: 5, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
             endPart()
 
             XCTAssertEqual(hangCount(of: session), 2)
@@ -523,6 +526,28 @@
             XCTAssertEqual(tracker.heldIdleThreshold, 0.8)
         }
 
+        func test_onConfigUpdated_beforeStart_appliesFrameTraceSamplingOnStart() throws {
+            service.onConfigUpdated(MockEmbraceConfigurable(isSmoothnessFrameTraceEnabled: true))
+
+            startService()
+
+            XCTAssertNotNil(try interruptedFocalMoment()?.frameTrace)
+        }
+
+        func test_forcesFrameTrace_recordsWithoutRemoteConfig() throws {
+            service = makeService(forcesFrameTrace: true)
+
+            startService()
+
+            XCTAssertNotNil(try interruptedFocalMoment()?.frameTrace)
+        }
+
+        private func interruptedFocalMoment() throws -> FocalMoment? {
+            let moments = try openFocalMoment()
+            try XCTUnwrap(service.focalMomentTracker).interrupt()
+            return moments().first
+        }
+
         func test_onConfigUpdated_beforeStart_appliesSpanLimitOnStart() throws {
             service.onConfigUpdated(MockEmbraceConfigurable(smoothnessLimits: SmoothnessLimits(spanLimit: 0)))
             startPart(.foreground)
@@ -539,8 +564,8 @@
         private func assertHangThreshold(_ threshold: TimeInterval, file: StaticString = #filePath, line: UInt = #line) throws {
             let session = startPart(.foreground)
             let accumulator = try XCTUnwrap(service.accumulator, file: file, line: line)
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: threshold - 0.01, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: threshold + 0.01, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: threshold - 0.01, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: threshold + 0.01, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
             endPart()
 
             XCTAssertEqual(hangCount(of: session), 1, file: file, line: line)
@@ -739,7 +764,7 @@
             var moments: [FocalMoment] = []
             tracker.onMoment = { moments.append($0) }
             tracker.record(
-                MeasuredTick(FrameTimingSource.Tick(timestamp: 1, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration)),
+                MeasuredTick(FrameTimingSource.Tick(timestamp: 1, previousTimestamp: 1, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration)),
                 activity: ActivityMonitor.Snapshot(touchBegan: true, touchChanged: true, activeTouchCount: 1, didWork: true)
             )
             return { moments }
@@ -777,7 +802,7 @@
 
         private func recordTouchDown() throws {
             try XCTUnwrap(service.focalMomentTracker).record(
-                MeasuredTick(FrameTimingSource.Tick(timestamp: 1, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration)),
+                MeasuredTick(FrameTimingSource.Tick(timestamp: 1, previousTimestamp: 1, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration)),
                 activity: ActivityMonitor.Snapshot(touchBegan: true, touchChanged: true, activeTouchCount: 1, didWork: true)
             )
         }
@@ -810,8 +835,8 @@
                 environment: [:]
             )
 
-            handler(FrameTimingSource.Tick(timestamp: 0, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
-            handler(FrameTimingSource.Tick(timestamp: 0, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            handler(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
+            handler(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: 0, frameInterval: frameDuration, previousFrameInterval: frameDuration))
 
             XCTAssertEqual(tracker.activities.count, 2)
             XCTAssertTrue(tracker.activities.allSatisfy(\.isTracking))
@@ -1099,9 +1124,9 @@
             drainMain()
             let accumulator = try XCTUnwrap(service.accumulator)
             let frame = 1.0 / 60.0
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: 0, frameInterval: frame, previousFrameInterval: frame)))
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: 0, frameInterval: frame, previousFrameInterval: frame)))
-            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, delay: frame, frameInterval: frame, previousFrameInterval: frame)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: 0, frameInterval: frame, previousFrameInterval: frame)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: 0, frameInterval: frame, previousFrameInterval: frame)))
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: frame, frameInterval: frame, previousFrameInterval: frame)))
 
             let next = try XCTUnwrap(controller.startSession(state: .foreground))
             drainMain()

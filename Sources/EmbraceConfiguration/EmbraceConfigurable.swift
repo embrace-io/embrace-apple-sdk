@@ -91,6 +91,10 @@ public protocol EmbraceConfigurable: AnyObject {
     /// starts measuring.
     var smoothnessLimits: SmoothnessLimits { get }
 
+    /// Whether focal moment spans carry a frame trace on this device. Changes take effect the next time
+    /// smoothness starts measuring.
+    var isSmoothnessFrameTraceEnabled: Bool { get }
+
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:
     ///     - completion: A completion block that receives a `Result`. On success it carries `true`
@@ -104,4 +108,6 @@ extension EmbraceConfigurable {
     public var isSmoothnessEnabled: Bool { false }
 
     public var smoothnessLimits: SmoothnessLimits { SmoothnessLimits() }
+
+    public var isSmoothnessFrameTraceEnabled: Bool { false }
 }
