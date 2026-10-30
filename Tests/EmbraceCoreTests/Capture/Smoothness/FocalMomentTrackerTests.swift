@@ -78,6 +78,20 @@
             XCTAssertTrue(emitted.isEmpty)
         }
 
+        func testTicksBeforeTouchAreIgnored() {
+            tick(Self.work, lateFrames: 5)
+            tick(Snapshot(isTracking: true), lateFrames: 3)
+            tick(Self.touchDownWithWork)
+            let arrival = now
+            tick(Self.lift)
+            idle(for: 0.2)
+
+            let moment = emitted.single
+            XCTAssertEqual(moment?.start ?? 0, arrival, accuracy: 1e-9)
+            XCTAssertEqual(moment?.frameCount, 2)
+            XCTAssertEqual(moment?.normalizedDroppedFrames ?? -1, 0, accuracy: 1e-9)
+        }
+
         func testTouchDownOpensMoment() {
             tick(Self.touchDownWithWork)
 
@@ -173,6 +187,21 @@
             tracker.interrupt()
 
             XCTAssertEqual(emitted.count, 1)
+        }
+
+        func testLateWorkAfterSettleIsNotAttachedAndOpensNothing() {
+            tick(Self.touchDownWithWork)
+            tick(Self.lift)
+            idle(for: 0.2)
+            XCTAssertEqual(emitted.count, 1)
+
+            tick(Self.work, lateFrames: 10)
+            idle(for: 0.2)
+            tracker.interrupt()
+
+            let moment = emitted.single
+            XCTAssertEqual(moment?.frameCount, 2)
+            XCTAssertEqual(moment?.normalizedDroppedFrames ?? -1, 0, accuracy: 1e-9)
         }
 
         func testContinuousWorkHasNoMaximumDuration() {
@@ -278,6 +307,27 @@
             XCTAssertEqual(moment?.outcome, .interrupted)
             XCTAssertEqual(moment?.end, lastActivity)
             XCTAssertEqual(moment?.frameCount, 1)
+        }
+
+        func testInterruptWithNoOpenMomentOpensNothing() {
+            tracker.interrupt()
+            tick(Self.work)
+            tick(Snapshot(isTracking: true))
+            tracker.interrupt()
+
+            XCTAssertTrue(emitted.isEmpty)
+        }
+
+        func testActivityAfterInterruptWithoutNewTouchOpensNothing() {
+            tick(Self.touchDownWithWork)
+            tracker.interrupt()
+
+            tick(Self.heldWork)
+            tick(Snapshot(activeTouchCount: 1, isTracking: true))
+            tick(Self.work)
+            tracker.interrupt()
+
+            XCTAssertEqual(emitted.map(\.outcome), [.interrupted])
         }
 
         // MARK: - Thresholds
