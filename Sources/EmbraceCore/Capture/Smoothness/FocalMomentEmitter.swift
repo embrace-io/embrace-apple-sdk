@@ -9,6 +9,7 @@
 
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
+        import EmbraceConfiguration
         import EmbraceSemantics
     #endif
 
@@ -22,8 +23,6 @@
     ///
     /// Lock order: the tracker's lock, then this one. Spans are created with neither held.
     final class FocalMomentEmitter {
-
-        static let defaultSpanLimit = 250
 
         /// - Parameters:
         ///   - tracker: Its `onMoment` is set to feed this emitter.
@@ -40,7 +39,7 @@
             otel: @escaping () -> EmbraceOTelSignalsHandler?,
             embraceNotificationCenter: NotificationCenter,
             queue: DispatchQueue,
-            spanLimit: Int = FocalMomentEmitter.defaultSpanLimit,
+            spanLimit: Int = SmoothnessLimits.defaultSpanLimit,
             clockOffset: @escaping () -> TimeInterval = { Date().timeIntervalSince1970 - CACurrentMediaTime() }
         ) {
             self.tracker = tracker

@@ -87,6 +87,10 @@ public protocol EmbraceConfigurable: AnyObject {
     /// `true`. Changes take effect while the app runs.
     var isSmoothnessEnabled: Bool { get }
 
+    /// Thresholds and limits applied to focal moments. Changes take effect the next time smoothness
+    /// starts measuring.
+    var smoothnessLimits: SmoothnessLimits { get }
+
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:
     ///     - completion: A completion block that receives a `Result`. On success it carries `true`
@@ -98,4 +102,6 @@ public protocol EmbraceConfigurable: AnyObject {
 extension EmbraceConfigurable {
     /// Off unless a configuration opts the device in, so existing conformers keep smoothness dormant.
     public var isSmoothnessEnabled: Bool { false }
+
+    public var smoothnessLimits: SmoothnessLimits { SmoothnessLimits() }
 }

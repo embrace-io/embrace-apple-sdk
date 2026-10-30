@@ -127,10 +127,12 @@
 
         public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
             let hangThreshold = config.hangLimits.hangThreshold
+            let limits = config.smoothnessLimits
             let isEnabled = config.isSmoothnessEnabled
             let (accumulator, wasEnabled) = data.withLock { data -> (FrameAccumulator?, Bool) in
                 let wasEnabled = data.isRemotelyEnabled
                 data.hangThreshold = hangThreshold
+                data.limits = limits
                 data.isRemotelyEnabled = isEnabled
                 return (data.capture?.accumulator, wasEnabled)
             }
@@ -271,14 +273,16 @@
                 self?.partClosed(partId: partId, counts: counts)
             }
 
-            let focalMoments = makeFocalMoments()
+            let limits = data.withLock { $0.limits }
+            let focalMoments = makeFocalMoments(limits: limits)
             let focalMomentEmitter = focalMoments.map { focalMoments in
                 FocalMomentEmitter(
                     tracker: focalMoments.tracker,
                     currentPartId: { [currentSession = self.currentSession] in currentSession()?.id },
                     otel: { [weak self] in self?.otel },
                     embraceNotificationCenter: embraceNotificationCenter,
-                    queue: focalMomentQueue
+                    queue: focalMomentQueue,
+                    spanLimit: limits.spanLimit
                 )
             }
 
@@ -307,7 +311,7 @@
         }
 
         /// Must be called on main. `nil` if the activity monitor can't start; frames are still counted.
-        private func makeFocalMoments() -> (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)? {
+        private func makeFocalMoments(limits: SmoothnessLimits) -> (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)? {
             let activityMonitor = makeActivityMonitor()
             do {
                 try activityMonitor.start()
@@ -315,7 +319,8 @@
                 logger?.warning("[Smoothness] Focal moments disabled: \(error.localizedDescription)")
                 return nil
             }
-            return (FocalMomentTracker(), activityMonitor)
+            let tracker = FocalMomentTracker(idleThreshold: limits.idleThreshold, heldIdleThreshold: limits.heldIdleThreshold)
+            return (tracker, activityMonitor)
         }
 
         /// Closes the open part and releases the capture on main, where its `CADisplayLink` must be
@@ -353,6 +358,7 @@
 
         private struct MutableData {
             var hangThreshold: TimeInterval = HangLimits.defaultHangThreshold
+            var limits = SmoothnessLimits()
             var isRemotelyEnabled = false
             var capture: ActiveCapture?
             var openPart: OpenPart?

@@ -5,6 +5,7 @@
 #if !os(watchOS) && !os(macOS)
 
     import EmbraceCommonInternal
+    import EmbraceConfiguration
     import EmbraceSemantics
     import TestSupport
     import XCTest
@@ -52,7 +53,7 @@
 
         // MARK: - Helpers
 
-        private func makeEmitter(spanLimit: Int = FocalMomentEmitter.defaultSpanLimit) -> FocalMomentEmitter {
+        private func makeEmitter(spanLimit: Int = SmoothnessLimits.defaultSpanLimit) -> FocalMomentEmitter {
             FocalMomentEmitter(
                 tracker: tracker,
                 currentPartId: { [unowned self] in self.currentSession?.id },

@@ -8,6 +8,7 @@
 
     #if !EMBRACE_COCOAPOD_BUILDING_SDK
         import EmbraceCommonInternal
+        import EmbraceConfiguration
     #endif
 
     /// A finished focal moment. Times are display-link timestamps (`CACurrentMediaTime` seconds).
@@ -45,9 +46,6 @@
     /// Ticks arrive on main; `interrupt()` can come from any thread, so one lock guards the state.
     class FocalMomentTracker {
 
-        static let defaultIdleThreshold: TimeInterval = 0.1
-        static let defaultHeldIdleThreshold: TimeInterval = 0.5
-
         /// Called with each moment that settles or is interrupted, on the thread that ended it, with the
         /// tracker's lock held. Must not call back into the tracker.
         var onMoment: ((FocalMoment) -> Void)?
@@ -56,8 +54,8 @@
         let heldIdleThreshold: TimeInterval
 
         init(
-            idleThreshold: TimeInterval = FocalMomentTracker.defaultIdleThreshold,
-            heldIdleThreshold: TimeInterval = FocalMomentTracker.defaultHeldIdleThreshold
+            idleThreshold: TimeInterval = SmoothnessLimits.defaultIdleThreshold,
+            heldIdleThreshold: TimeInterval = SmoothnessLimits.defaultHeldIdleThreshold
         ) {
             self.idleThreshold = idleThreshold
             self.heldIdleThreshold = heldIdleThreshold

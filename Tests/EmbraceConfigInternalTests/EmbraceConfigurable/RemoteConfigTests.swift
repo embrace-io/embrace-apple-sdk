@@ -130,6 +130,17 @@ final class RemoteConfigTests: XCTestCase {
         XCTAssertFalse(config.isSmoothnessEnabled)
     }
 
+    func test_smoothnessLimits() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        config.payload.smoothnessIdleThreshold = 0.2
+        config.payload.smoothnessHeldIdleThreshold = 0.6
+        config.payload.smoothnessSpanLimit = 0
+
+        XCTAssertEqual(config.smoothnessLimits, SmoothnessLimits(idleThreshold: 0.2, heldIdleThreshold: 0.6, spanLimit: 0))
+    }
+
     func test_SpanEventsLimits() {
         // given a config
         let config = RemoteConfig(options: options, logger: logger)

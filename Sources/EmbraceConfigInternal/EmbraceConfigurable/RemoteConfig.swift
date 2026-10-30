@@ -121,6 +121,14 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isSmoothnessEnabled: Bool { isEnabled(threshold: payload.smoothnessThreshold ?? 0) }
 
+    public var smoothnessLimits: SmoothnessLimits {
+        SmoothnessLimits(
+            idleThreshold: payload.smoothnessIdleThreshold,
+            heldIdleThreshold: payload.smoothnessHeldIdleThreshold,
+            spanLimit: payload.smoothnessSpanLimit
+        )
+    }
+
     public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 
     public var isWalModeEnabled: Bool { isEnabled(threshold: payload.walModeThreshold) }

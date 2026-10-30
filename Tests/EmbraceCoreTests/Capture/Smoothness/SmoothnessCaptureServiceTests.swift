@@ -513,6 +513,27 @@
             try assertHangThreshold(0.5)
         }
 
+        func test_onConfigUpdated_beforeStart_appliesSmoothnessLimitsOnStart() throws {
+            service.onConfigUpdated(MockEmbraceConfigurable(smoothnessLimits: SmoothnessLimits(idleThreshold: 0.2, heldIdleThreshold: 0.8)))
+
+            startService()
+
+            let tracker = try XCTUnwrap(service.focalMomentTracker)
+            XCTAssertEqual(tracker.idleThreshold, 0.2)
+            XCTAssertEqual(tracker.heldIdleThreshold, 0.8)
+        }
+
+        func test_onConfigUpdated_beforeStart_appliesSpanLimitOnStart() throws {
+            service.onConfigUpdated(MockEmbraceConfigurable(smoothnessLimits: SmoothnessLimits(spanLimit: 0)))
+            startPart(.foreground)
+            startService()
+            try recordTouchDown()
+
+            endPart()
+
+            XCTAssertTrue(focalMomentSpans.isEmpty)
+        }
+
         /// Records one tick just under and one just over `threshold` in a new part and checks only the
         /// second counts as a hang.
         private func assertHangThreshold(_ threshold: TimeInterval, file: StaticString = #filePath, line: UInt = #line) throws {
