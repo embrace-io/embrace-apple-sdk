@@ -157,6 +157,13 @@
             tracker?.openPartCounts?.expectedFrames ?? 0
         }
 
+        /// Whether focal moments are being tracked, i.e. the activity monitor started. SPI for
+        /// benchmarks, to prove the touch and run-loop observers are on the measured path.
+        @_spi(Private)
+        public var isTrackingFocalMoments: Bool {
+            focalMomentTracker != nil
+        }
+
         // MARK: - Internal
 
         /// App-wide running totals, or `nil` while the service isn't running. Screens snapshot these on

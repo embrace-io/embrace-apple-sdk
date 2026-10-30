@@ -58,6 +58,10 @@ struct BenchmarksApp: App {
                 SmoothnessScrollView()
             case "smoothness-animation":
                 SmoothnessAnimationView()
+            case "smoothness-touch":
+                SmoothnessTouchView()
+            case "smoothness-idle":
+                SmoothnessIdleView()
             default:
                 ContentView()
             }

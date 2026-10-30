@@ -82,6 +82,70 @@ final class SmoothnessOverheadUITests: XCTestCase {
         measureAnimation(.off)
     }
 
+    // MARK: - Touch: host app hitches while dragging
+
+    @MainActor
+    func testTouch_1_smoothnessOff() throws {
+        measureTouch(.off)
+    }
+
+    @MainActor
+    func testTouch_2_smoothnessOn() throws {
+        measureTouch(.on)
+    }
+
+    @MainActor
+    func testTouch_3_smoothnessOnPlusCost() throws {
+        measureTouch(.onPlusCost)
+    }
+
+    @MainActor
+    func testTouch_4_smoothnessOnPlusCost() throws {
+        measureTouch(.onPlusCost)
+    }
+
+    @MainActor
+    func testTouch_5_smoothnessOn() throws {
+        measureTouch(.on)
+    }
+
+    @MainActor
+    func testTouch_6_smoothnessOff() throws {
+        measureTouch(.off)
+    }
+
+    // MARK: - Idle: steady-state CPU with nothing to draw
+
+    @MainActor
+    func testIdle_1_smoothnessOff() throws {
+        measureIdle(.off)
+    }
+
+    @MainActor
+    func testIdle_2_smoothnessOn() throws {
+        measureIdle(.on)
+    }
+
+    @MainActor
+    func testIdle_3_smoothnessOnPlusCost() throws {
+        measureIdle(.onPlusCost)
+    }
+
+    @MainActor
+    func testIdle_4_smoothnessOnPlusCost() throws {
+        measureIdle(.onPlusCost)
+    }
+
+    @MainActor
+    func testIdle_5_smoothnessOn() throws {
+        measureIdle(.on)
+    }
+
+    @MainActor
+    func testIdle_6_smoothnessOff() throws {
+        measureIdle(.off)
+    }
+
     // MARK: - Private
 
     private enum Arm {
@@ -97,13 +161,14 @@ final class SmoothnessOverheadUITests: XCTestCase {
 
     /// Each arm runs two blocks.
     private let scrollingIterationsPerBlock = 10
+    private let touchIterationsPerBlock = 10
     private let animationIterationsPerBlock = 6
 
-    /// About 250× the SDK's ~1µs per-tick budget. Much more would break every frame of the loaded screen.
-    private let scrollingControlCostMicros = 250
+    /// About 250× the SDK's ~1µs per-tick budget. Much more would break every frame of the loaded screens.
+    private let loadedControlCostMicros = 250
 
     /// 6 points of CPU at 120Hz and 3 at 60Hz, so it's over the 1 point budget at either rate.
-    private let animationControlCostMicros = 500
+    private let unloadedControlCostMicros = 500
 
     @MainActor
     private func launch(screen: String, arm: Arm, controlCostMicros: Int) -> XCUIApplication {
@@ -126,7 +191,7 @@ final class SmoothnessOverheadUITests: XCTestCase {
     /// is informational only here, since the frame load confounds it.
     @MainActor
     private func measureScrolling(_ arm: Arm) {
-        let app = launch(screen: "smoothness-scroll", arm: arm, controlCostMicros: scrollingControlCostMicros)
+        let app = launch(screen: "smoothness-scroll", arm: arm, controlCostMicros: loadedControlCostMicros)
         let list = app.collectionViews.firstMatch
         XCTAssertTrue(list.waitForExistence(timeout: 10))
         app.settleBenchmarkScreen(smoothness: arm.smoothness) {
@@ -158,7 +223,7 @@ final class SmoothnessOverheadUITests: XCTestCase {
     /// `XCTClockMetric` lets the script turn CPU time into utilization.
     @MainActor
     private func measureAnimation(_ arm: Arm) {
-        let app = launch(screen: "smoothness-animation", arm: arm, controlCostMicros: animationControlCostMicros)
+        let app = launch(screen: "smoothness-animation", arm: arm, controlCostMicros: unloadedControlCostMicros)
         XCTAssertTrue(app.otherElements["smoothness-animation"].waitForExistence(timeout: 10))
         app.settleBenchmarkScreen(smoothness: arm.smoothness)
 
@@ -179,13 +244,74 @@ final class SmoothnessOverheadUITests: XCTestCase {
         assertSmoothness(active: arm.smoothness, in: app)
     }
 
+    /// Like scrolling, but the run loop never tracks, so touches and redraws drive focal moments.
+    @MainActor
+    private func measureTouch(_ arm: Arm) {
+        let app = launch(screen: "smoothness-touch", arm: arm, controlCostMicros: loadedControlCostMicros)
+        let surface = app.descendants(matching: .any)["smoothness-touch"]
+        XCTAssertTrue(surface.waitForExistence(timeout: 10))
+        app.settleBenchmarkScreen(smoothness: arm.smoothness) {
+            surface.benchmarkDrag()
+            surface.benchmarkDrag(reversed: true)
+        }
+
+        let options = XCTMeasureOptions()
+        options.invocationOptions = [.manuallyStop]
+        options.iterationCount = touchIterationsPerBlock
+
+        measure(
+            metrics: [
+                XCTOSSignpostMetric.benchmarkDragMetric,
+                XCTCPUMetric(application: app),
+                XCTClockMetric(),
+                LabelMetric(app: app, labels: [.displayRefreshRate, .maxDisplayRate, .smoothnessFrames, .thermalState])
+            ],
+            options: options
+        ) {
+            surface.benchmarkDrag()
+            stopMeasuring()
+            surface.benchmarkDrag(reversed: true)
+        }
+
+        assertSmoothness(active: arm.smoothness, in: app)
+    }
+
+    /// Like animation, but nothing draws, so the On arm's extra CPU includes the SDK's display link
+    /// waking a sleeping main thread.
+    @MainActor
+    private func measureIdle(_ arm: Arm) {
+        let app = launch(screen: "smoothness-idle", arm: arm, controlCostMicros: unloadedControlCostMicros)
+        XCTAssertTrue(app.descendants(matching: .any)["smoothness-idle"].waitForExistence(timeout: 10))
+        app.settleBenchmarkScreen(smoothness: arm.smoothness)
+
+        let options = XCTMeasureOptions()
+        options.iterationCount = animationIterationsPerBlock
+
+        measure(
+            metrics: [
+                XCTCPUMetric(application: app),
+                XCTClockMetric(),
+                LabelMetric(app: app, labels: [.displayRefreshRate, .maxDisplayRate, .smoothnessFrames, .thermalState])
+            ],
+            options: options
+        ) {
+            Thread.sleep(forTimeInterval: animationWindow)
+        }
+
+        assertSmoothness(active: arm.smoothness, in: app)
+    }
+
+    /// Focal moments must be tracked too, or touch and fling wouldn't measure their observers.
     @MainActor
     private func assertSmoothness(active: Bool, in app: XCUIApplication) {
         let frames = Int(app.staticTexts["smoothness-frames"].label) ?? 0
+        let focalMoments = app.staticTexts["focal-moments"].label
         if active {
             XCTAssertGreaterThan(frames, 0, "SmoothnessCaptureService counted no frames, so it wasn't running")
+            XCTAssertEqual(focalMoments, "1", "SmoothnessCaptureService isn't tracking focal moments")
         } else {
             XCTAssertEqual(frames, 0, "SmoothnessCaptureService counted frames in the Off arm")
+            XCTAssertEqual(focalMoments, "0", "SmoothnessCaptureService tracked focal moments in the Off arm")
         }
     }
 }
