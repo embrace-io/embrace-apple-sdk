@@ -22,6 +22,10 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertNil(payload.nsfThreshold)
         XCTAssertNil(payload.traceparentInjectionThreshold)
         XCTAssertNil(payload.smoothnessThreshold)
+        XCTAssertEqual(payload.smoothnessIdleThreshold, 0.1)
+        XCTAssertEqual(payload.smoothnessHeldIdleThreshold, 0.5)
+        XCTAssertEqual(payload.smoothnessSpanLimit, 250)
+        XCTAssertEqual(payload.smoothnessFrameTraceThreshold, 0)
         XCTAssertEqual(payload.uiLoadInstrumentationEnabled, true)
         XCTAssert(payload.viewControllerClassNameBlocklist.isEmpty)
         XCTAssertEqual(payload.uiInstrumentationCaptureHostingControllers, false)
@@ -64,6 +68,10 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.nsfThreshold, 25)
         XCTAssertEqual(payload.traceparentInjectionThreshold, 10)
         XCTAssertEqual(payload.smoothnessThreshold, 5)
+        XCTAssertEqual(payload.smoothnessIdleThreshold, 0.15)
+        XCTAssertEqual(payload.smoothnessHeldIdleThreshold, 0.75)
+        XCTAssertEqual(payload.smoothnessSpanLimit, 100)
+        XCTAssertEqual(payload.smoothnessFrameTraceThreshold, 2.5)
         XCTAssertEqual(payload.uiLoadInstrumentationEnabled, false)
         XCTAssertEqual(payload.viewControllerClassNameBlocklist, ["MYVIEWCONTROLLER", "TESTVIEWCONTROLLER"])
         XCTAssertEqual(payload.uiInstrumentationCaptureHostingControllers, true)
@@ -288,6 +296,34 @@ class RemoteConfigPayloadTests: XCTestCase {
             """#)
         XCTAssertEqual(payload.userSessionMaxDurationSeconds, 21600)
         XCTAssertEqual(payload.userSessionInactivityTimeoutSeconds, 30 * 60)
+    }
+
+    // MARK: - Vitals config
+
+    func test_vitals_onlySomeKeysPresent_usesDefaultsForMissingOnes() throws {
+        let payload = try decodePayload(#"{ "vitals": { "smoothness_held_idle_threshold_ms": 800 } }"#)
+        XCTAssertEqual(payload.smoothnessIdleThreshold, 0.1)
+        XCTAssertEqual(payload.smoothnessHeldIdleThreshold, 0.8)
+        XCTAssertEqual(payload.smoothnessSpanLimit, 250)
+    }
+
+    func test_vitals_malformedTypes_fallBackToDefaultsPerKey() throws {
+        let payload = try decodePayload(
+            #"""
+            { "vitals": { "smoothness_idle_threshold_ms": "fast", "smoothness_held_idle_threshold_ms": 600, "span_limit": null, "smoothness_frame_trace_pct_enabled": "all" } }
+            """#)
+        XCTAssertEqual(payload.smoothnessIdleThreshold, 0.1)
+        XCTAssertEqual(payload.smoothnessHeldIdleThreshold, 0.6)
+        XCTAssertEqual(payload.smoothnessSpanLimit, 250)
+        XCTAssertEqual(payload.smoothnessFrameTraceThreshold, 0)
+    }
+
+    func test_vitals_notAnObject_usesDefaults() throws {
+        let payload = try decodePayload(#"{ "vitals": 1, "pct_smoothness_enabled": 5 }"#)
+        XCTAssertEqual(payload.smoothnessThreshold, 5)
+        XCTAssertEqual(payload.smoothnessIdleThreshold, 0.1)
+        XCTAssertEqual(payload.smoothnessHeldIdleThreshold, 0.5)
+        XCTAssertEqual(payload.smoothnessSpanLimit, 250)
     }
 
     func getRemoteConfigData(forResource resource: String) throws -> Data {

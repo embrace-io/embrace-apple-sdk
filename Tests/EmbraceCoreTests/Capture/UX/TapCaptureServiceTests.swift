@@ -11,21 +11,24 @@
     final class TapCaptureServiceTests: SwizzlerTestCase {
 
         private var otel: MockOTelSignalsHandler!
+        private var windowEventObserver: WindowEventObserver!
 
         override func setUpWithError() throws {
             try super.setUpWithError()
             otel = MockOTelSignalsHandler()
+            windowEventObserver = WindowEventObserver()
         }
 
         override func tearDownWithError() throws {
             otel = nil
+            windowEventObserver = nil
             restoreSwizzleCacheAdditions()
             try super.tearDownWithError()
         }
 
         func test_tap() throws {
             // given an installed and started tap capture service
-            let service = TapCaptureService()
+            let service = makeService()
             service.install(otel: otel)
             service.start()
 
@@ -52,7 +55,7 @@
 
         func test_tap_stopped() throws {
             // given an installed but stopped tap capture service
-            let service = TapCaptureService()
+            let service = makeService()
             service.install(otel: otel)
             service.start()
             service.stop()
@@ -87,7 +90,7 @@
         func test_ignoredViewTypes() throws {
             // given a capture service with an ignore list
             let options = TapCaptureService.Options(ignoredViewTypes: [MockView.self])
-            let service = TapCaptureService(options: options)
+            let service = makeService(options: options)
             service.install(otel: otel)
             service.start()
 
@@ -102,7 +105,7 @@
         func test_captureCoordinatesDsiabled() throws {
             // given a capture service with coordinates capture disabled
             let options = TapCaptureService.Options(captureTapCoordinates: false)
-            let service = TapCaptureService(options: options)
+            let service = makeService(options: options)
             service.install(otel: otel)
             service.start()
 
@@ -119,7 +122,7 @@
             // given a capture service with a delegate
             let delegate = MockTapCaptureserviceDelegate()
             let options = TapCaptureService.Options(delegate: delegate)
-            let service = TapCaptureService(options: options)
+            let service = makeService(options: options)
             service.install(otel: otel)
             service.start()
 
@@ -144,9 +147,13 @@
             XCTAssertNotNil(otel.events[1].attributes["tap.coords"])
         }
 
+        private func makeService(options: TapCaptureService.Options = TapCaptureService.Options()) -> TapCaptureService {
+            TapCaptureService(options: options, lock: NSLock(), windowEventObserver: windowEventObserver)
+        }
+
         func assertViewName(view: UIView, viewName: String) throws {
             // given an installed and started tap capture service
-            let service = TapCaptureService()
+            let service = makeService()
             service.install(otel: otel)
             service.start()
 
@@ -164,7 +171,7 @@
 
         func assertNoCoordinate(viewName: String) throws {
             // given an installed and started tap capture service
-            let service = TapCaptureService()
+            let service = makeService()
             service.install(otel: otel)
             service.start()
 

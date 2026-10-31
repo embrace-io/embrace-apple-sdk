@@ -17,76 +17,96 @@
         import EmbraceCommonInternal
         import EmbraceSemantics
         import EmbraceConfiguration
-        import EmbraceStorageInternal
         import EmbraceObjCUtilsInternal
     #endif
 
-    /// Service that measures rendering smoothness and emits one `smoothness` span per foreground
-    /// part. The span opens when the part starts and ends just before the part's payload is built.
+    /// Service that measures rendering smoothness. It writes each foreground part's dropped and expected
+    /// frames, hang count and peak thermal state onto the part's session span just before the part's
+    /// payload is built, and serves running totals that `emb-screen-view` spans are measured against.
+    /// Each focal moment is emitted as a private `smoothness` span.
     ///
-    /// On terminate, the span is ended and flushed to storage. A part killed any other way (crash,
-    /// watchdog, jetsam) leaves the span open; the next launch closes it without metrics.
+    /// A part that ends without the part-will-end hook (terminate, crash, watchdog, jetsam) carries no
+    /// smoothness attributes.
     ///
-    /// Installed by default but dormant (no `CADisplayLink`, no spans) until remote config enables it
-    /// (`EmbraceConfigurable.isSmoothnessEnabled`). Enabled while running, it opens a span for the
-    /// current foreground part from that point. Disabled while running, it ends the open span with the
-    /// frames counted so far.
+    /// Installed by default but dormant (no `CADisplayLink`) until remote config enables it
+    /// (`EmbraceConfigurable.isSmoothnessEnabled`). Enabled while running, it counts the current
+    /// foreground part from that point. Disabled while running, it writes the frames counted so far.
     public final class SmoothnessCaptureService: CaptureService {
 
         public convenience override init() {
             self.init(ignoresRemoteConfig: false)
         }
 
-        /// - Parameter ignoresRemoteConfig: Runs whether or not remote config enables smoothness. For
-        ///   benchmarks, which must measure the service on devices outside the rollout.
+        /// - Parameters:
+        ///   - ignoresRemoteConfig: Runs whether or not remote config enables smoothness. For benchmarks,
+        ///     which must measure the service on devices outside the rollout.
+        ///   - forcesFrameTrace: Records frame traces whether or not remote config samples this device.
+        ///     For benchmarks, which measure the trace's cost.
         @_spi(Private)
-        public convenience init(ignoresRemoteConfig: Bool) {
+        public convenience init(ignoresRemoteConfig: Bool, forcesFrameTrace: Bool = false) {
             self.init(
                 currentSession: { Embrace.client?.sessionController.currentSession },
+                sessionSpan: { partId in
+                    guard let controller = Embrace.client?.sessionController, controller.currentSession?.id == partId else {
+                        return nil
+                    }
+                    return controller.currentSessionSpan
+                },
                 notificationCenter: .default,
                 embraceNotificationCenter: Embrace.notificationCenter,
-                flushStorage: { Embrace.client?.storage.coreData.save(allowMainQueue: true) },
-                ignoresRemoteConfig: ignoresRemoteConfig
+                ignoresRemoteConfig: ignoresRemoteConfig,
+                forcesFrameTrace: forcesFrameTrace
             )
         }
 
         /// - Parameters:
-        ///   - flushStorage: Blocks until pending storage writes, including the span's end, are on disk.
+        ///   - sessionSpan: Returns the session span of the given part, if it is still current. Called
+        ///     with the tracker's lock held, and usually `SessionController`'s, so it must only take the
+        ///     controller's session mutex.
         ///   - environment: Checked for `EMBAllowWatchdogInDebugger=1`, which keeps it enabled anyway.
         ///   - attachesDisplayLink: Whether the frame timing source runs a real `CADisplayLink`. Tests
-        ///     pass `false` and drive frames through the tracker.
+        ///     pass `false` and drive frames through the accumulator.
+        ///   - makeActivityMonitor: Builds the activity monitor for each capture. Tests pass one that
+        ///     doesn't observe the main run loop.
+        ///   - focalMomentQueue: Where focal moment spans are created.
         init(
             currentSession: @escaping () -> EmbraceSession?,
+            sessionSpan: @escaping (EmbraceIdentifier) -> EmbraceSpan?,
             notificationCenter: NotificationCenter,
             embraceNotificationCenter: NotificationCenter,
-            flushStorage: @escaping () -> Void,
             thermalState: @escaping () -> ProcessInfo.ThermalState = { ProcessInfo.processInfo.thermalState },
             debuggerAttached: @escaping () -> Bool = { EMBDevice.isDebuggerAttached },
             environment: [String: String] = ProcessInfo.processInfo.environment,
             ignoresRemoteConfig: Bool = false,
-            attachesDisplayLink: Bool = true
+            forcesFrameTrace: Bool = false,
+            attachesDisplayLink: Bool = true,
+            makeActivityMonitor: @escaping () -> ActivityMonitor = { ActivityMonitor() },
+            focalMomentQueue: DispatchQueue = DispatchQueue(label: "io.embrace.smoothness.focal-moments")
         ) {
             self.currentSession = currentSession
+            self.sessionSpan = sessionSpan
             self.notificationCenter = notificationCenter
             self.embraceNotificationCenter = embraceNotificationCenter
-            self.flushStorage = flushStorage
             self.thermalState = thermalState
             self.debuggerAttached = debuggerAttached
             self.environment = environment
             self.ignoresRemoteConfig = ignoresRemoteConfig
+            self.forcesFrameTrace = forcesFrameTrace
             self.attachesDisplayLink = attachesDisplayLink
+            self.makeActivityMonitor = makeActivityMonitor
+            self.focalMomentQueue = focalMomentQueue
             super.init()
 
             notificationCenter.addObserver(
                 self,
-                selector: #selector(appWillTerminate),
-                name: SmoothnessCaptureService.willTerminateNotification,
+                selector: #selector(thermalStateDidChange),
+                name: ProcessInfo.thermalStateDidChangeNotification,
                 object: nil
             )
             notificationCenter.addObserver(
                 self,
-                selector: #selector(thermalStateDidChange),
-                name: ProcessInfo.thermalStateDidChangeNotification,
+                selector: #selector(appWillResignActive),
+                name: SmoothnessCaptureService.willResignActiveNotification,
                 object: nil
             )
         }
@@ -113,15 +133,18 @@
 
         public override func onConfigUpdated(_ config: any EmbraceConfigurable) {
             let hangThreshold = config.hangLimits.hangThreshold
+            let limits = config.smoothnessLimits
+            let isFrameTraceEnabled = config.isSmoothnessFrameTraceEnabled
             let isEnabled = config.isSmoothnessEnabled
-            let (tracker, wasEnabled) = data.withLock { data -> (SmoothnessPartTracker?, Bool) in
+            let (accumulator, wasEnabled) = data.withLock { data -> (FrameAccumulator?, Bool) in
                 let wasEnabled = data.isRemotelyEnabled
                 data.hangThreshold = hangThreshold
+                data.limits = limits
+                data.isFrameTraceEnabled = isFrameTraceEnabled
                 data.isRemotelyEnabled = isEnabled
-                return (data.capture?.tracker, wasEnabled)
+                return (data.capture?.accumulator, wasEnabled)
             }
-            // Set outside `data`'s lock: the tracker calls back into it with its own lock held.
-            tracker?.setHangThreshold(hangThreshold)
+            accumulator?.setHangThreshold(hangThreshold)
 
             // Before start, the value is only stored; `onStart()` applies it.
             guard !ignoresRemoteConfig, isEnabled != wasEnabled, state.load(order: .acquire) == .active else { return }
@@ -135,17 +158,35 @@
             }
         }
 
-        /// Frames counted so far in the open foreground part, or `0` if none is open or the service isn't
-        /// running. SPI for benchmarks, to prove the service is active.
+        /// Expected frames counted so far in the open foreground part, or `0` if none is open or the
+        /// service isn't running. SPI for benchmarks, to prove the service is active.
         @_spi(Private)
         public var openPartFrameCount: Int {
-            tracker?.openFrameCount ?? 0
+            tracker?.openPartCounts?.expectedFrames ?? 0
+        }
+
+        /// Whether focal moments are being tracked, i.e. the activity monitor started. SPI for
+        /// benchmarks, to prove the touch and run-loop observers are on the measured path.
+        @_spi(Private)
+        public var isTrackingFocalMoments: Bool {
+            focalMomentTracker != nil
         }
 
         // MARK: - Internal
 
+        /// App-wide running totals, or `nil` while the service isn't running. Screens snapshot these on
+        /// appear and report the difference when they end.
+        var frameCountTotals: SmoothnessFrameCounts? {
+            data.withLock { $0.capture?.accumulator }?.totals
+        }
+
         var hangThreshold: TimeInterval {
             data.withLock { $0.hangThreshold }
+        }
+
+        /// `nil` while the service isn't running.
+        var accumulator: FrameAccumulator? {
+            data.withLock { $0.capture?.accumulator }
         }
 
         /// `nil` while the service isn't running.
@@ -158,15 +199,37 @@
             data.withLock { $0.capture?.source }
         }
 
+        /// `nil` while the service isn't running, or if the activity monitor couldn't start.
+        var focalMomentTracker: FocalMomentTracker? {
+            data.withLock { $0.capture?.focalMoments?.tracker }
+        }
+
+        /// Called on main.
+        func screenDidNavigate() {
+            focalMomentTracker?.interrupt()
+        }
+
         /// In debug builds, `EMBSmoothnessSignposts=1` wraps each tick in an `os_signpost` interval
         /// (subsystem `io.embrace.sdk`, category `Smoothness`, name `Tick`) so its cost can be profiled
         /// in Instruments. The choice is made once here, so the per-tick path never branches on it.
         static func makeTickHandler(
-            tracker: SmoothnessPartTracker,
+            accumulator: FrameAccumulator,
+            focalMoments: (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)? = nil,
             environment: [String: String] = ProcessInfo.processInfo.environment
         ) -> (FrameTimingSource.Tick) -> Void {
-            let handler: (FrameTimingSource.Tick) -> Void = { [weak tracker] tick in
-                tracker?.record(tick)
+            let handler: (FrameTimingSource.Tick) -> Void = {
+                [weak accumulator, weak focalMomentTracker = focalMoments?.tracker, weak activityMonitor = focalMoments?.activityMonitor] tick in
+                guard let focalMomentTracker, let activityMonitor else {
+                    accumulator?.record(MeasuredTick(tick))
+                    return
+                }
+
+                // The whole tick runs inside the monitor, so none of its handling counts as work.
+                activityMonitor.tick { activity in
+                    let measured = MeasuredTick(tick)
+                    accumulator?.record(measured)
+                    focalMomentTracker.record(measured, activity: activity)
+                }
             }
 
             #if DEBUG
@@ -211,36 +274,79 @@
                 return
             }
 
+            let accumulator = FrameAccumulator(hangThreshold: hangThreshold)
             let tracker = SmoothnessPartTracker(
-                hangThreshold: hangThreshold,
+                accumulator: accumulator,
                 currentSession: currentSession,
                 notificationCenter: notificationCenter,
                 embraceNotificationCenter: embraceNotificationCenter
             )
-            tracker.onPartOpened = { [weak self] partId, startTime in
-                self?.openSpan(partId: partId, startTime: startTime)
+            tracker.onPartOpened = { [weak self] partId in
+                self?.partOpened(partId: partId)
             }
-            tracker.onPartClosed = { [weak self] partId, stats in
-                self?.endSpan(partId: partId, stats: stats)
+            tracker.onPartClosed = { [weak self] partId, counts in
+                self?.partClosed(partId: partId, counts: counts)
+            }
+
+            let (limits, isFrameTraceEnabled) = data.withLock { ($0.limits, $0.isFrameTraceEnabled) }
+            let focalMoments = makeFocalMoments(limits: limits, recordsFrameTrace: forcesFrameTrace || isFrameTraceEnabled)
+            let focalMomentEmitter = focalMoments.map { focalMoments in
+                FocalMomentEmitter(
+                    tracker: focalMoments.tracker,
+                    currentPartId: { [currentSession = self.currentSession] in currentSession()?.id },
+                    otel: { [weak self] in self?.otel },
+                    embraceNotificationCenter: embraceNotificationCenter,
+                    queue: focalMomentQueue,
+                    spanLimit: limits.spanLimit
+                )
             }
 
             let source = FrameTimingSource(notificationCenter: notificationCenter, attachesDisplayLink: attachesDisplayLink)
-            source.onTick = Self.makeTickHandler(tracker: tracker)
+            source.onTick = Self.makeTickHandler(accumulator: accumulator, focalMoments: focalMoments)
 
             let stored = data.withLock { data -> Bool in
                 guard state.load(order: .acquire) == .active, data.capture == nil, isRunnable(data) else { return false }
-                data.capture = ActiveCapture(source: source, tracker: tracker)
+                data.capture = ActiveCapture(
+                    source: source,
+                    accumulator: accumulator,
+                    tracker: tracker,
+                    focalMoments: focalMoments,
+                    focalMomentEmitter: focalMomentEmitter
+                )
                 return true
             }
 
             // The current foreground part may have started before the tracker existed.
             if stored {
                 tracker.open()
+            } else {
+                focalMomentEmitter?.invalidate()
+                focalMoments?.activityMonitor.stop()
             }
         }
 
+        /// Must be called on main. `nil` if the activity monitor can't start; frames are still counted.
+        private func makeFocalMoments(
+            limits: SmoothnessLimits,
+            recordsFrameTrace: Bool
+        ) -> (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)? {
+            let activityMonitor = makeActivityMonitor()
+            do {
+                try activityMonitor.start()
+            } catch {
+                logger?.warning("[Smoothness] Focal moments disabled: \(error.localizedDescription)")
+                return nil
+            }
+            let tracker = FocalMomentTracker(
+                idleThreshold: limits.idleThreshold,
+                heldIdleThreshold: limits.heldIdleThreshold,
+                frameTrace: recordsFrameTrace ? FrameTraceRecorder() : nil
+            )
+            return (tracker, activityMonitor)
+        }
+
         /// Closes the open part and releases the capture on main, where its `CADisplayLink` must be
-        /// invalidated.
+        /// invalidated. An open focal moment is dropped.
         private func tearDown() {
             let capture = data.withLock { data -> ActiveCapture? in
                 let previous = data.capture
@@ -249,110 +355,99 @@
             }
             guard let capture else { return }
 
-            capture.tracker.invalidate(at: Date())
+            capture.focalMomentEmitter?.invalidate()
+            capture.tracker.invalidate()
 
-            if !Thread.isMainThread {
-                DispatchQueue.main.async { withExtendedLifetime(capture) {} }
+            if Thread.isMainThread {
+                capture.focalMoments?.activityMonitor.stop()
+            } else {
+                DispatchQueue.main.async { capture.focalMoments?.activityMonitor.stop() }
             }
         }
 
         private struct ActiveCapture {
             let source: FrameTimingSource
+            let accumulator: FrameAccumulator
             let tracker: SmoothnessPartTracker
+            let focalMoments: (tracker: FocalMomentTracker, activityMonitor: ActivityMonitor)?
+            let focalMomentEmitter: FocalMomentEmitter?
         }
 
-        private struct OpenSpan {
+        private struct OpenPart {
             let partId: EmbraceIdentifier
-            let span: EmbraceSpan
             var peakThermalState: ProcessInfo.ThermalState
         }
 
         private struct MutableData {
             var hangThreshold: TimeInterval = HangLimits.defaultHangThreshold
+            var limits = SmoothnessLimits()
+            var isFrameTraceEnabled = false
             var isRemotelyEnabled = false
             var capture: ActiveCapture?
-            var openSpan: OpenSpan?
+            var openPart: OpenPart?
         }
 
         private let currentSession: () -> EmbraceSession?
+        private let sessionSpan: (EmbraceIdentifier) -> EmbraceSpan?
         private let notificationCenter: NotificationCenter
         private let embraceNotificationCenter: NotificationCenter
-        private let flushStorage: () -> Void
         private let thermalState: () -> ProcessInfo.ThermalState
         private let debuggerAttached: () -> Bool
         private let environment: [String: String]
         private let ignoresRemoteConfig: Bool
+        private let forcesFrameTrace: Bool
         private let attachesDisplayLink: Bool
+        private let makeActivityMonitor: () -> ActivityMonitor
+        private let focalMomentQueue: DispatchQueue
 
         /// Raw notification name to avoid a direct UIKit dependency.
-        private static let willTerminateNotification =
-            Notification.Name("UIApplicationWillTerminateNotification")
+        private static let willResignActiveNotification = Notification.Name("UIApplicationWillResignActiveNotification")
 
         /// Lock order: the tracker's lock, then this one. Never call into the tracker while holding it.
         private let data = EmbraceMutex(MutableData())
 
-        /// `SessionController` doesn't end the session on terminate, so neither the part-will-end hook
-        /// nor the payload build runs. End the span here with the frames counted so far.
-        ///
-        /// Span storage writes are queued asynchronously, and the process can be killed as soon as
-        /// this returns, so they are flushed synchronously. A later will-end for the same part no-ops.
-        @objc private func appWillTerminate() {
-            guard let tracker, tracker.invalidate(at: Date()) else { return }
-
-            flushStorage()
-        }
-
-        /// Posted on an arbitrary thread. Only raises the open span's peak; never touches the tracker.
+        /// Posted on an arbitrary thread. Only raises the open part's peak; never touches the tracker.
         @objc private func thermalStateDidChange() {
             let state = thermalState()
             data.withLock { data in
-                data.openSpan?.peakThermalState.raise(to: state)
+                data.openPart?.peakThermalState.raise(to: state)
             }
         }
 
-        /// Called on main with the tracker's lock held, so a concurrent close waits for the span.
-        ///
-        /// No auto-termination code: `autoTerminateSpans()` runs just before the part-will-end hook and
-        /// would end the span as an error first.
-        private func openSpan(partId: EmbraceIdentifier, startTime: Date) {
-            guard
-                let span = try? otel?.createInternalSpan(
-                    name: SpanSemantics.Smoothness.name,
-                    type: .smoothness,
-                    startTime: startTime,
-                    attributes: [SpanSemantics.keyPrivate: "true"]
-                )
-            else {
-                return
-            }
+        /// Posted on main.
+        @objc private func appWillResignActive() {
+            focalMomentTracker?.interrupt()
+        }
 
+        /// Called on main with the tracker's lock held.
+        private func partOpened(partId: EmbraceIdentifier) {
             // Seeded here since the change notification only fires on transitions.
             let initialThermalState = thermalState()
             data.withLock { data in
-                data.openSpan = OpenSpan(partId: partId, span: span, peakThermalState: initialThermalState)
+                data.openPart = OpenPart(partId: partId, peakThermalState: initialThermalState)
             }
         }
 
         /// Called with the tracker's lock held, and usually the `SessionController` lock too. Keep it
         /// minimal.
-        private func endSpan(partId: EmbraceIdentifier, stats: SmoothnessPartStats) {
+        ///
+        /// Written as internal attributes, like the session span's other SDK attributes, so they don't
+        /// count against its attribute limit. Always written, including zeros: the part was measured.
+        private func partClosed(partId: EmbraceIdentifier, counts: SmoothnessFrameCounts) {
             let currentThermalState = thermalState()
-            let closed = data.withLock { data -> OpenSpan? in
-                guard var open = data.openSpan, open.partId == partId else { return nil }
-                data.openSpan = nil
+            let closed = data.withLock { data -> OpenPart? in
+                guard var open = data.openPart, open.partId == partId else { return nil }
+                data.openPart = nil
                 // Covers a change whose notification hasn't been delivered yet.
                 open.peakThermalState.raise(to: currentThermalState)
                 return open
             }
-            guard let closed else { return }
-            let span = closed.span
+            guard let closed, let span = sessionSpan(partId) else { return }
 
-            // Always ended, including with zero frames: the span is already persisted and zero is valid.
-            span.setAttribute(key: SpanSemantics.Smoothness.keyFrameCount, value: stats.frameCount)
-            span.setAttribute(key: SpanSemantics.Smoothness.keyNormalizedDroppedFrames, value: stats.normalizedDroppedFrames)
-            span.setAttribute(key: SpanSemantics.Smoothness.keyHangCount, value: stats.hangCount)
-            span.setAttribute(key: SpanSemantics.Smoothness.keyPeakThermalState, value: closed.peakThermalState.semanticValue)
-            span.end(endTime: stats.endTime)
+            span.setInternalAttribute(key: SpanSemantics.Smoothness.keyDroppedFrames, value: counts.droppedFrames)
+            span.setInternalAttribute(key: SpanSemantics.Smoothness.keyExpectedFrames, value: counts.expectedFrames)
+            span.setInternalAttribute(key: SpanSemantics.Smoothness.keyHangCount, value: counts.hangCount)
+            span.setInternalAttribute(key: SpanSemantics.Smoothness.keyPeakThermalState, value: closed.peakThermalState.semanticValue)
         }
     }
 

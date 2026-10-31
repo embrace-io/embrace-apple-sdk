@@ -6,6 +6,12 @@
     "nsf_pct_enabled": 25,
     "traceparent_injection_pct_enabled": 10,
     "pct_smoothness_enabled": 5,
+    "vitals": {
+        "smoothness_idle_threshold_ms": 150,
+        "smoothness_held_idle_threshold_ms": 750,
+        "span_limit": 100,
+        "smoothness_frame_trace_pct_enabled": 2.5
+    },
     "ui_load_instrumentation_enabled_v2": false,
     "ui_load_instrumentation_blocklist": "MyViewController,TestViewController",
     "ui_load_instrumentation_hosting_controller_capture": true,

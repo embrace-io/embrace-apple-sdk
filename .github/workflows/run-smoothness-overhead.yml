@@ -30,6 +30,8 @@ jobs:
     with:
       device: ${{ inputs.device }}
       only_testing: 'BenchmarksUITests/SmoothnessOverheadUITests'
+      # 24 tests across four scenarios, each launching the app and settling before measuring.
+      test_timeout_minutes: 60
 
   report:
     name: Compare Smoothness Overhead

@@ -7,6 +7,7 @@ import Combine
 import QuartzCore
 import SwiftUI
 import UIKit
+import os
 
 /// The `SmoothnessCaptureService` the app started with, or `nil` if `EMBSmoothness` wasn't set.
 enum SmoothnessProbe {
@@ -16,6 +17,11 @@ enum SmoothnessProbe {
     /// running, e.g. because it disabled itself under a debugger.
     static var frameCount: Int {
         service?.openPartFrameCount ?? 0
+    }
+
+    /// Whether the SDK is tracking focal moments, so its touch and run-loop observers are running.
+    static var isTrackingFocalMoments: Bool {
+        service?.isTrackingFocalMoments ?? false
     }
 }
 
@@ -35,6 +41,7 @@ final class FrameDriver: NSObject {
     private var link: CADisplayLink?
     private var probe: CADisplayLink?
     private var probeFrameDurations: [CFTimeInterval] = []
+    private var lastRefreshRate: Double = 0
 
     init(
         loadFraction: Double,
@@ -44,7 +51,7 @@ final class FrameDriver: NSObject {
         self.injectedCost = max(injectedCost, 0)
     }
 
-    /// The scroll screen's load: `EMBFrameLoadFraction` (default 0.9).
+    /// The scroll and touch screens' load: `EMBFrameLoadFraction` (default 0.9).
     static func scrollLoadFromEnvironment() -> FrameDriver {
         FrameDriver(loadFraction: Double(ProcessInfo.processInfo.environment["EMBFrameLoadFraction"] ?? "") ?? 0.9)
     }
@@ -74,13 +81,26 @@ final class FrameDriver: NSObject {
         probe = nil
     }
 
+    /// Stops the probe, and the load link unless it adds load or cost, so the main thread only wakes
+    /// for the SDK's ticks. `sampleRefreshRate()` keeps returning the last rate the probe measured.
+    func stopForIdle() {
+        probe?.invalidate()
+        probe = nil
+        if loadFraction == 0 && injectedCost == 0 {
+            link?.invalidate()
+            link = nil
+        }
+    }
+
     /// The display's refresh rate since the previous call, from the median frame duration, or `0`
-    /// if no tick arrived.
+    /// if no tick arrived. Once the probe is stopped, the last rate it measured.
     func sampleRefreshRate() -> Double {
+        guard probe != nil else { return lastRefreshRate }
         defer { probeFrameDurations.removeAll(keepingCapacity: true) }
         let durations = probeFrameDurations.filter { $0 > 0 }.sorted()
         guard !durations.isEmpty else { return 0 }
-        return 1 / durations[durations.count / 2]
+        lastRefreshRate = 1 / durations[durations.count / 2]
+        return lastRefreshRate
     }
 
     @objc private func tick(_ link: CADisplayLink) {
@@ -99,6 +119,7 @@ final class FrameDriver: NSObject {
 /// - `display-refresh-rate`: the display's refresh rate over the last second.
 /// - `max-display-rate`: the screen's `maximumFramesPerSecond` (120 on ProMotion, 60 otherwise).
 /// - `smoothness-frames`: `SmoothnessProbe.frameCount`, which proves whether the SDK is active.
+/// - `focal-moments`: `1` if `SmoothnessProbe.isTrackingFocalMoments`, else `0`.
 /// - `thermal-state`: `ProcessInfo.thermalState` as its raw value (0 nominal ... 3 critical).
 private struct ProbeLabels: ViewModifier {
 
@@ -106,6 +127,7 @@ private struct ProbeLabels: ViewModifier {
     @State private var refreshRate = "0"
     @State private var maxRate = "0"
     @State private var smoothnessFrames = "0"
+    @State private var focalMoments = "0"
     @State private var thermalState = String(ProcessInfo.processInfo.thermalState.rawValue)
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -119,6 +141,8 @@ private struct ProbeLabels: ViewModifier {
                         .accessibilityIdentifier("max-display-rate")
                     Text(smoothnessFrames)
                         .accessibilityIdentifier("smoothness-frames")
+                    Text(focalMoments)
+                        .accessibilityIdentifier("focal-moments")
                     Text(thermalState)
                         .accessibilityIdentifier("thermal-state")
                 }
@@ -129,6 +153,7 @@ private struct ProbeLabels: ViewModifier {
                 refreshRate = String(format: "%.1f", driver.sampleRefreshRate())
                 maxRate = String(Self.maximumFramesPerSecond)
                 smoothnessFrames = String(SmoothnessProbe.frameCount)
+                focalMoments = SmoothnessProbe.isTrackingFocalMoments ? "1" : "0"
                 thermalState = String(ProcessInfo.processInfo.thermalState.rawValue)
             }
     }
@@ -199,5 +224,71 @@ struct SmoothnessAnimationView: View {
         .modifier(ProbeLabels(driver: driver))
         .onAppear { driver.start() }
         .onDisappear { driver.stop() }
+    }
+}
+
+/// A surface with a dot that follows the finger. Each drag is a `Drag` animation signpost interval,
+/// for `XCTOSSignpostMetric`.
+struct SmoothnessTouchView: View {
+
+    @State private var driver = FrameDriver.scrollLoadFromEnvironment()
+    @State private var location: CGPoint?
+    @State private var drag: OSSignpostIntervalState?
+
+    private static let signposter = OSSignposter(subsystem: "io.embrace.benchmarks", category: "smoothness")
+
+    var body: some View {
+        Canvas { canvas, _ in
+            guard let location else { return }
+            let rect = CGRect(x: location.x - 30, y: location.y - 30, width: 60, height: 60)
+            canvas.fill(Path(ellipseIn: rect), with: .color(.accentColor))
+        }
+        .ignoresSafeArea()
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    if drag == nil {
+                        drag = Self.signposter.beginAnimationInterval("Drag")
+                    }
+                    location = value.location
+                }
+                .onEnded { _ in
+                    if let drag {
+                        Self.signposter.endInterval("Drag", drag)
+                    }
+                    drag = nil
+                    location = nil
+                }
+        )
+        .accessibilityIdentifier("smoothness-touch")
+        .modifier(ProbeLabels(driver: driver))
+        .onAppear { driver.start() }
+        .onDisappear { driver.stop() }
+    }
+}
+
+/// Draws nothing. Its `FrameDriver` runs only for the first `probeWindow`, to report the refresh rate,
+/// unless it injects a cost.
+struct SmoothnessIdleView: View {
+
+    @State private var driver = FrameDriver(loadFraction: 0)
+
+    /// Shorter than `XCUIApplication.benchmarkSettleTime`, so measuring starts after it.
+    private let probeWindow: TimeInterval = 2
+
+    var body: some View {
+        Text("Idle")
+            .font(.largeTitle)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityIdentifier("smoothness-idle")
+            .modifier(ProbeLabels(driver: driver))
+            .onAppear {
+                driver.start()
+                DispatchQueue.main.asyncAfter(deadline: .now() + probeWindow) { [driver] in
+                    driver.stopForIdle()
+                }
+            }
+            .onDisappear { driver.stop() }
     }
 }

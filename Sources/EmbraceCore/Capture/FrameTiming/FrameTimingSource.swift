@@ -24,6 +24,12 @@
     final class FrameTimingSource {
 
         struct Tick {
+            /// The display link's `timestamp`, in `CACurrentMediaTime` seconds.
+            let timestamp: CFTimeInterval
+
+            /// The previous tick's `timestamp`.
+            let previousTimestamp: CFTimeInterval
+
             /// Seconds between the tick's actual timestamp and the previous tick's
             /// `targetTimestamp`. A positive value means the frame arrived later than promised.
             let delay: TimeInterval
@@ -83,6 +89,8 @@
 
         private var previousFrameInterval: CFTimeInterval = 0
 
+        private var previousTimestamp: CFTimeInterval = 0
+
         /// Raw notification name to avoid a direct UIKit dependency.
         private static let willEnterForegroundNotification =
             Notification.Name("UIApplicationWillEnterForegroundNotification")
@@ -108,6 +116,7 @@
             defer {
                 previousTickExpectedTimestamp = targetTimestamp
                 previousFrameInterval = frameInterval
+                previousTimestamp = timestamp
             }
 
             guard let expectedTimestamp = previousTickExpectedTimestamp else {
@@ -117,6 +126,8 @@
 
             onTick?(
                 Tick(
+                    timestamp: timestamp,
+                    previousTimestamp: previousTimestamp,
                     delay: timestamp - expectedTimestamp,
                     frameInterval: frameInterval,
                     previousFrameInterval: previousFrameInterval

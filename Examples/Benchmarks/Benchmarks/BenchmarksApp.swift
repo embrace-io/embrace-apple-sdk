@@ -37,6 +37,8 @@ struct BenchmarksApp: App {
     /// environment:
     /// - `EMBHang=1`: `HangCaptureService`
     /// - `EMBSmoothness=1`: `SmoothnessCaptureService`, running whether or not remote config enables it
+    /// - `EMBSmoothnessFrameTrace=1`: with `EMBSmoothness=1`, records frame traces whether or not remote
+    ///   config samples the device
     private func captureServices() -> EmbraceIO.CaptureServicesOptions {
         let builder = CaptureServicesOptionsBuilder().addDefaults().remove(ofType: SmoothnessCaptureService.self)
         if environment["EMBHang"] == "1" {
@@ -44,7 +46,10 @@ struct BenchmarksApp: App {
         }
         if environment["EMBSmoothness"] == "1" {
             // An instance, so the benchmark screens can read its frame count.
-            let service = SmoothnessCaptureService(ignoresRemoteConfig: true)
+            let service = SmoothnessCaptureService(
+                ignoresRemoteConfig: true,
+                forcesFrameTrace: environment["EMBSmoothnessFrameTrace"] == "1"
+            )
             SmoothnessProbe.service = service
             builder.add(service)
         }
@@ -58,6 +63,10 @@ struct BenchmarksApp: App {
                 SmoothnessScrollView()
             case "smoothness-animation":
                 SmoothnessAnimationView()
+            case "smoothness-touch":
+                SmoothnessTouchView()
+            case "smoothness-idle":
+                SmoothnessIdleView()
             default:
                 ContentView()
             }
