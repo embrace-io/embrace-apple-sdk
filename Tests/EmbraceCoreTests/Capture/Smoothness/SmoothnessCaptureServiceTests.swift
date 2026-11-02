@@ -975,6 +975,98 @@
         }
     }
 
+    // MARK: - Lock ordering
+
+    /// The real `SessionController` and `DefaultOTelSignalsHandler`, so a lock taken by span creation or
+    /// `currentSession` shows up as a deadlock between the tracker's lock and `SessionController`'s lock.
+    final class SmoothnessCaptureServiceLockOrderingTests: XCTestCase {
+
+        private var storage: EmbraceStorage!
+        private var controller: SessionController!
+        private var userSessionController: UserSessionController!
+        private var logController: LogController!
+        private var handler: DefaultOTelSignalsHandler!
+        private var service: SmoothnessCaptureService!
+        private let sdkStateProvider = MockEmbraceSDKStateProvider()
+
+        override func setUpWithError() throws {
+            try super.setUpWithError()
+            storage = try EmbraceStorage.createInMemoryDb()
+            sdkStateProvider.isEnabled = true
+
+            controller = SessionController(storage: storage, upload: nil, config: nil)
+            controller.sdkStateProvider = sdkStateProvider
+            userSessionController = UserSessionController(storage: storage, config: MockEmbraceConfigurable())
+            userSessionController.sessionController = controller
+            controller.userSessionController = userSessionController
+
+            logController = LogController(
+                storage: storage,
+                upload: SpyEmbraceLogUploader(),
+                sessionController: controller,
+                queue: DispatchQueue(label: "io.embrace.tests.smoothnessLockOrdering.logs")
+            )
+            handler = DefaultOTelSignalsHandler(
+                storage: storage,
+                sessionController: controller,
+                logController: logController,
+                limiter: MockOTelSignalsLimiter(),
+                sanitizer: MockOTelSignalsSanitizer(),
+                bridge: MockOTelSignalBridge()
+            )
+            controller.otel = handler
+
+            service = SmoothnessCaptureService(
+                currentSession: { [unowned self] in self.controller.currentSession },
+                notificationCenter: .default,
+                embraceNotificationCenter: Embrace.notificationCenter,
+                flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
+                thermalState: { .nominal },
+                debuggerAttached: { false },
+                ignoresRemoteConfig: true,
+                attachesDisplayLink: false
+            )
+            service.install(otel: handler)
+            service.start()
+        }
+
+        override func tearDownWithError() throws {
+            service?.stop()
+            service = nil
+            controller = nil
+            userSessionController = nil
+            handler = nil
+            logController = nil
+            storage?.coreData.destroy()
+            storage = nil
+            try super.tearDownWithError()
+        }
+
+        func test_openOnMain_whilePartEndsOnControllerQueue_bothFinish() throws {
+            controller.startSession(state: .foreground)
+            drainMain()
+            let tracker = try XCTUnwrap(service.tracker)
+
+            for _ in 0..<100 {
+                let ended = expectation(description: "part ended on controller queue")
+                controller.queue.async {
+                    self.controller.startSession(state: .foreground)
+                    ended.fulfill()
+                }
+
+                // Races the will-end hook, which takes the tracker's lock with `SessionController`'s held.
+                tracker.open()
+
+                wait(for: [ended], timeout: 5)
+                drainMain()
+            }
+
+            // The last part opened from its did-start post.
+            tracker.record(lateBy: 0)
+            XCTAssertEqual(tracker.openFrameCount, 1)
+        }
+    }
+
     // MARK: - End to end
 
     /// The real `SessionController`, `DefaultOTelSignalsHandler`, storage and upload, with only the
