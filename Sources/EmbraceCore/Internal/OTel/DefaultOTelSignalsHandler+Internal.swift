@@ -13,7 +13,7 @@ import Foundation
 extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
     package func _createSpan(
         name: String,
-        parentSpan: EmbraceSpan? = nil,
+        parentContext: EmbraceSpanContext? = nil,
         type: EmbraceType,
         status: EmbraceSpanStatus = .unset,
         startTime: Date = Date(),
@@ -109,10 +109,10 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         // rejects it and starts a brand new trace for this span. Dropping it here as well keeps
         // both sides in agreement, otherwise the span would be recorded with a `parentSpanId`
         // that doesn't belong to the trace it ended up in.
-        var finalParent = parentSpan
-        if let parentSpan, !parentSpan.context.isValid {
+        var finalParent = parentContext
+        if let parentContext, !parentContext.isValid {
             Embrace.logger.warning(
-                "Ignoring invalid parent for span '\(finalName)': span id '\(parentSpan.context.spanId)', trace id '\(parentSpan.context.traceId)'. The span will start a new trace."
+                "Ignoring invalid parent for span '\(finalName)': span id '\(parentContext.spanId)', trace id '\(parentContext.traceId)'. The span will start a new trace."
             )
             finalParent = nil
         }
@@ -120,7 +120,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         // create span context
         let context = bridge.startSpan(
             name: finalName,
-            parentSpan: finalParent,
+            parentContext: finalParent,
             status: status,
             startTime: startTime,
             endTime: endTime,
@@ -132,13 +132,13 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         // get auto termination code from parent if needed
         var code = autoTerminationCode
         if let finalParent, code == nil {
-            code = cache.safeValue.autoTerminationCodes[finalParent.context.spanId]
+            code = cache.safeValue.autoTerminationCodes[finalParent.spanId]
         }
 
         // create span
         let span = newSpan(
             context: context,
-            parentSpanId: finalParent?.context.spanId,
+            parentSpanId: finalParent?.spanId,
             name: finalName,
             type: type,
             status: status,
@@ -352,6 +352,8 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDelegate {
 
         bridge.endSpan(span, endTime: endTime)
         storage?.endSpan(id: span.context.spanId, traceId: span.context.traceId, endTime: endTime)
+
+        networkSpanParentController?.spanDidEnd(spanId: span.context.spanId)
     }
 }
 
@@ -486,6 +488,8 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
     public func onEndSpan(_ span: EmbraceSpan) {
         // sanitize and update db
         storage?.upsertSpanAsync(sanitizeExternalSpan(span), onlyUpdate: true)
+
+        networkSpanParentController?.spanDidEnd(spanId: span.context.spanId)
     }
 
     public func onEmitLog(_ log: EmbraceLog) {

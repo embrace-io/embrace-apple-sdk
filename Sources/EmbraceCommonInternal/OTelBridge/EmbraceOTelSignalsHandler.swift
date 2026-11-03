@@ -14,7 +14,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
     @discardableResult
     func _createSpan(
         name: String,
-        parentSpan: EmbraceSpan?,
+        parentContext: EmbraceSpanContext?,
         type: EmbraceType,
         status: EmbraceSpanStatus,
         startTime: Date,
@@ -60,9 +60,37 @@ extension EmbraceOTelSignalsHandler {
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil
     ) throws -> EmbraceSpan {
+        return try createInternalSpan(
+            name: name,
+            parentContext: parentSpan?.context,
+            type: type,
+            status: status,
+            startTime: startTime,
+            endTime: endTime,
+            events: events,
+            links: links,
+            attributes: attributes,
+            autoTerminationCode: autoTerminationCode
+        )
+    }
+
+    /// Creates an internal span whose parent is only known by its context.
+    /// The parent doesn't need to be a span created through the SDK.
+    package func createInternalSpan(
+        name: String,
+        parentContext: EmbraceSpanContext?,
+        type: EmbraceType,
+        status: EmbraceSpanStatus = .unset,
+        startTime: Date = Date(),
+        endTime: Date? = nil,
+        events: [EmbraceSpanEvent] = [],
+        links: [EmbraceSpanLink] = [],
+        attributes: EmbraceAttributes = [:],
+        autoTerminationCode: EmbraceSpanErrorCode? = nil
+    ) throws -> EmbraceSpan {
         return try _createSpan(
             name: name,
-            parentSpan: parentSpan,
+            parentContext: parentContext,
             type: type,
             status: status,
             startTime: startTime,

@@ -13,7 +13,7 @@ class DefaultOTelSignalBridge: EmbraceOTelSignalBridge {
 
     func startSpan(
         name: String,
-        parentSpan: EmbraceSpan?,
+        parentContext: EmbraceSpanContext?,
         status: EmbraceSpanStatus,
         startTime: Date,
         endTime: Date?,
@@ -23,7 +23,7 @@ class DefaultOTelSignalBridge: EmbraceOTelSignalBridge {
     ) -> EmbraceSpanContext {
 
         // get trace id from parent if possible
-        let traceId = parentSpan?.context.traceId ?? randomTraceId()
+        let traceId = parentContext?.traceId ?? randomTraceId()
 
         return EmbraceSpanContext(
             spanId: randomSpanId(),

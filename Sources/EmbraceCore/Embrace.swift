@@ -58,6 +58,9 @@ package class Embrace {
     /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
     package let startupInstrumentation: StartupInstrumentation
 
+    /// Holds the span that new network spans are parented to.
+    package let networkSpanParentController: NetworkSpanParentController
+
     /// Holds the experiments and feature flags tracked during this process.
     package let experiments: ExperimentsHandler
 
@@ -254,6 +257,13 @@ package class Embrace {
 
         // initialize startup instrumentation
         self.startupInstrumentation = StartupInstrumentation()
+
+        // initialize network span parent
+        self.networkSpanParentController = NetworkSpanParentController(logger: Embrace.logger) { [weak sessionController] in
+            sessionController?.currentSession?.userSessionId
+        }
+        self.networkSpanParentController.otel = self.otel
+        self.otel.networkSpanParentController = self.networkSpanParentController
 
         // metrick kit
         captureServices.addMetricKitServices(

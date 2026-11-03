@@ -44,7 +44,7 @@ extension CaptureService {
     ) -> EmbraceSpan? {
         return try? otel?._createSpan(
             name: name,
-            parentSpan: parentSpan,
+            parentContext: parentSpan?.context,
             type: type,
             status: status,
             startTime: startTime,
