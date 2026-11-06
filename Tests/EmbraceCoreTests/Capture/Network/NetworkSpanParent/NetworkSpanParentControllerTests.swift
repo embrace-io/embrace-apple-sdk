@@ -347,29 +347,48 @@ final class NetworkSpanParentControllerTests: XCTestCase {
         }
         XCTAssertEqual(sut.currentContext()?.spanId, survivor.spanId)
     }
+
+    func test_concurrentSetsSpanEndsAndUserSessionEnds_leaveNoEndedSpanAsParent() {
+        let sut = self.sut!
+        // The conflict count is reported through `otel`, which isn't under test here.
+        sut.otel = nil
+        let spans = (0..<500).map { index in
+            ThreadSafeSpan(name: "span-\(index)") { spanId in sut.spanDidEnd(spanId: spanId) }
+        }
+
+        // Each span is set on one thread and ended on another, in no particular order, while
+        // contexts are set and cleared and other user sessions end.
+        DispatchQueue.concurrentPerform(iterations: spans.count * 2) { index in
+            let span = spans[index / 2]
+            if index.isMultiple(of: 2) {
+                _ = sut.set(span: span)
+            } else {
+                span.end()
+            }
+
+            if index.isMultiple(of: 5) {
+                sut.clear(token: sut.set(context: randomContext()))
+            }
+            if index.isMultiple(of: 7) {
+                sut.userSessionDidEnd(id: .random)
+            }
+            _ = sut.currentContext()
+        }
+
+        // Every span ended, and a span is either rejected when set after its end or cleared when it ends.
+        XCTAssertNil(sut.currentContext())
+    }
 }
 
-/// Span that hasn't ended the first time its end time is read, and ends right after, as if it
-/// ended on another thread between two reads.
-private final class SpanEndingAfterFirstCheck: EmbraceSpan {
-    private let span: MockSpan
-    private var didCheckEndTime = false
-    var onEnd: (() -> Void)?
+/// Span that forwards everything to a `MockSpan`. Subclasses change how it ends.
+private class ForwardingSpan: EmbraceSpan {
+    let span: MockSpan
 
     init(name: String) {
         span = MockSpan(name: name)
     }
 
-    var endTime: Date? {
-        guard didCheckEndTime else {
-            didCheckEndTime = true
-            span.endTime = Date()
-            onEnd?()
-            return nil
-        }
-        return span.endTime
-    }
-
+    var endTime: Date? { span.endTime }
     var name: String { span.name }
     var context: EmbraceSpanContext { span.context }
     var parentSpanId: String? { span.parentSpanId }
@@ -395,6 +414,44 @@ private final class SpanEndingAfterFirstCheck: EmbraceSpan {
     func setAttribute(key: String, value: EmbraceAttributeValue?) { span.setAttribute(key: key, value: value) }
     func end(endTime: Date) { span.end(endTime: endTime) }
     func end() { span.end() }
+}
+
+/// Span that hasn't ended the first time its end time is read, and ends right after, as if it
+/// ended on another thread between two reads.
+private final class SpanEndingAfterFirstCheck: ForwardingSpan {
+    private var didCheckEndTime = false
+    var onEnd: (() -> Void)?
+
+    override var endTime: Date? {
+        guard didCheckEndTime else {
+            didCheckEndTime = true
+            span.endTime = Date()
+            onEnd?()
+            return nil
+        }
+        return span.endTime
+    }
+}
+
+/// Span that can be ended from any thread. Like the SDK's spans, it records its end time and then
+/// reports the end, outside its lock.
+private final class ThreadSafeSpan: ForwardingSpan {
+    private let _endTime = EmbraceMutex<Date?>(nil)
+    private let onEnd: (String) -> Void
+
+    init(name: String, onEnd: @escaping (String) -> Void) {
+        self.onEnd = onEnd
+        super.init(name: name)
+    }
+
+    override var endTime: Date? { _endTime.safeValue }
+
+    override func end(endTime: Date) {
+        _endTime.withLock { $0 = endTime }
+        onEnd(context.spanId)
+    }
+
+    override func end() { end(endTime: Date()) }
 }
 
 extension NetworkSpanParentControllerTests {

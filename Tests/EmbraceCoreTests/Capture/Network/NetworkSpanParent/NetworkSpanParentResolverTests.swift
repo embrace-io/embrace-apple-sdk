@@ -30,37 +30,45 @@ final class NetworkSpanParentResolverTests: XCTestCase {
         )
     }
 
-    func test_nothingSet_isRoot() {
-        let resolution = resolve(.default, header: nil, networkSpanParent: nil)
-        XCTAssertNil(resolution.context)
-        XCTAssertEqual(resolution.source, .none)
-    }
+    /// Every combination of decision, header and network span parent, with the parent and source each one resolves to.
+    func test_allCombinations() {
+        let invalid = EmbraceSpanContext(spanId: "0000000000000000", traceId: chosen.traceId)
+        let decisions: [(name: String, decision: EmbraceNetworkSpanParent)] = [
+            ("default", .default),
+            ("noParent", .noParent),
+            ("valid parent", .parent(chosen)),
+            ("invalid parent", .parent(invalid))
+        ]
 
-    func test_networkSpanParentOnly_isNetworkSpanParent() {
-        let resolution = resolve(.default, header: nil, networkSpanParent: networkSpanParent)
-        XCTAssertEqual(resolution.context?.spanId, networkSpanParent.spanId)
-        XCTAssertEqual(resolution.source, .networkSpanParent)
-    }
+        for (name, decision) in decisions {
+            for header in [nil, self.header] {
+                for networkSpanParent in [nil, self.networkSpanParent] {
+                    let expected: (context: EmbraceSpanContext?, source: NetworkSpanParentResolver.Source)
+                    switch decision {
+                    case .noParent:
+                        expected = (nil, .dataSource)
+                    case .parent(let context) where context.isValid:
+                        expected = (chosen, .dataSource)
+                    default:
+                        if let header {
+                            expected = (header.context, .header)
+                        } else if let networkSpanParent {
+                            expected = (networkSpanParent, .networkSpanParent)
+                        } else {
+                            expected = (nil, .none)
+                        }
+                    }
 
-    func test_headerAndNetworkSpanParent_headerWins() {
-        let resolution = resolve(.default, header: header, networkSpanParent: networkSpanParent)
-        XCTAssertEqual(resolution.context?.spanId, header.spanId)
-        XCTAssertEqual(resolution.context?.traceId, header.traceId)
-        XCTAssertEqual(resolution.source, .header)
-    }
+                    let resolution = resolve(decision, header: header, networkSpanParent: networkSpanParent)
 
-    func test_parent_winsOverHeaderAndNetworkSpanParent() {
-        let resolution = resolve(.parent(chosen), header: header, networkSpanParent: networkSpanParent)
-        XCTAssertEqual(resolution.context?.spanId, chosen.spanId)
-        XCTAssertEqual(resolution.context?.traceId, chosen.traceId)
-        XCTAssertEqual(resolution.source, .dataSource)
-        XCTAssertNil(resolution.ignoredInvalidParent)
-    }
-
-    func test_noParent_winsOverHeaderAndNetworkSpanParent() {
-        let resolution = resolve(.noParent, header: header, networkSpanParent: networkSpanParent)
-        XCTAssertNil(resolution.context)
-        XCTAssertEqual(resolution.source, .dataSource)
+                    let message = "decision: \(name), header: \(header != nil), network span parent: \(networkSpanParent != nil)"
+                    XCTAssertEqual(resolution.context?.spanId, expected.context?.spanId, message)
+                    XCTAssertEqual(resolution.context?.traceId, expected.context?.traceId, message)
+                    XCTAssertEqual(resolution.source, expected.source, message)
+                    XCTAssertEqual(resolution.ignoredInvalidParent?.spanId, name == "invalid parent" ? invalid.spanId : nil, message)
+                }
+            }
+        }
     }
 
     func test_parent_isNormalized() {
@@ -68,19 +76,5 @@ final class NetworkSpanParentResolverTests: XCTestCase {
         let resolution = resolve(.parent(uppercase), header: nil, networkSpanParent: nil)
         XCTAssertEqual(resolution.context?.spanId, chosen.spanId)
         XCTAssertEqual(resolution.context?.traceId, chosen.traceId)
-    }
-
-    func test_invalidParent_isTreatedAsDefault_andReported() {
-        let invalid = EmbraceSpanContext(spanId: "0000000000000000", traceId: chosen.traceId)
-
-        let withHeader = resolve(.parent(invalid), header: header, networkSpanParent: networkSpanParent)
-        XCTAssertEqual(withHeader.context?.spanId, header.spanId)
-        XCTAssertEqual(withHeader.source, .header)
-        XCTAssertEqual(withHeader.ignoredInvalidParent?.spanId, invalid.spanId)
-
-        let withNetworkSpanParent = resolve(.parent(invalid), header: nil, networkSpanParent: networkSpanParent)
-        XCTAssertEqual(withNetworkSpanParent.context?.spanId, networkSpanParent.spanId)
-        XCTAssertEqual(withNetworkSpanParent.source, .networkSpanParent)
-        XCTAssertEqual(withNetworkSpanParent.ignoredInvalidParent?.spanId, invalid.spanId)
     }
 }

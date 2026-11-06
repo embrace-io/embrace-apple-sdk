@@ -38,6 +38,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     private let capturedDataQueue: DispatchableQueue
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
     private let logger: InternalLogger
+    private let uptimeNanoseconds: () -> UInt64
     private let didWarnMalformedTraceparent = EmbraceAtomic(false)
     private let didWarnSlowSpanParentCall = EmbraceAtomic(false)
     private let didWarnInvalidSpanParent = EmbraceAtomic(false)
@@ -48,11 +49,13 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         capturedDataQueue: DispatchableQueue = DefaultURLSessionTaskHandler.capturedDataQueue(),
         dataSource: URLSessionTaskHandlerDataSource?,
         payloadCaptureHandler: NetworkPayloadCaptureHandler? = nil,
-        logger: InternalLogger = Embrace.logger
+        logger: InternalLogger = Embrace.logger,
+        uptimeNanoseconds: @escaping () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }
     ) {
         self.queue = processingQueue
         self.capturedDataQueue = capturedDataQueue
         self.logger = logger
+        self.uptimeNanoseconds = uptimeNanoseconds
         self.dataSource = dataSource
         self.payloadCaptureHandler =
             payloadCaptureHandler ?? DefaultNetworkPayloadCaptureHandler(otel: dataSource?.otel)
@@ -349,9 +352,9 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
             return .default
         }
 
-        let start = DispatchTime.now().uptimeNanoseconds
+        let start = uptimeNanoseconds()
         let decision = requestsDataSource.spanParent(for: request, currentParentContext: networkSpanParent)
-        let duration = TimeInterval(DispatchTime.now().uptimeNanoseconds - start) / TimeInterval(NSEC_PER_SEC)
+        let duration = TimeInterval(uptimeNanoseconds() - start) / TimeInterval(NSEC_PER_SEC)
 
         if duration > Self.slowSpanParentCallThreshold, didWarnSlowSpanParentCall.exchange(true) == false {
             logger.warning(

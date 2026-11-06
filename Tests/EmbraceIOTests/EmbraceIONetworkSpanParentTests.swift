@@ -5,6 +5,7 @@
 import EmbraceCommonInternal
 import EmbraceSemantics
 import OpenTelemetryApi
+import OpenTelemetrySdk
 import TestSupport
 import XCTest
 
@@ -12,15 +13,18 @@ import XCTest
 @testable import EmbraceIO
 
 /// The controller's behavior is covered by `NetworkSpanParentControllerTests`. What matters here is that
-/// the public API reaches it, that it is a no-op before setup, and that the SDK tells it when spans end.
+/// the public API reaches it, that it is a no-op before setup, that the SDK tells it when spans and user
+/// sessions end, and that captured requests are parented to it.
 final class EmbraceIONetworkSpanParentTests: XCTestCase {
 
     private var originalTracerProvider: TracerProvider!
+    private var spanProcessor: MockSpanProcessor!
 
     override func setUpWithError() throws {
         Embrace.client = nil
         EmbraceIO.shared.otelBridge.safeValue = nil
         originalTracerProvider = OpenTelemetry.instance.tracerProvider
+        spanProcessor = MockSpanProcessor()
     }
 
     override func tearDownWithError() throws {
@@ -95,6 +99,83 @@ final class EmbraceIONetworkSpanParentTests: XCTestCase {
         XCTAssertNil(client.networkSpanParentController.currentContext())
     }
 
+    // MARK: - Captured requests
+
+    func test_capturedRequest_isChildOfTheNetworkSpanParent_untilItEnds() throws {
+        try start(capturingRequests: true)
+        let parent = try XCTUnwrap(EmbraceIO.shared.createSpan(name: "checkout"))
+        _ = EmbraceIO.shared.setNetworkSpanParent(parent)
+
+        _ = URLSession.shared.dataTask(with: url(path: "/during"))
+        let during = try XCTUnwrap(startedSpan(named: "GET /during"))
+        XCTAssertEqual(during.parentSpanId?.hexString, parent.context.spanId)
+        XCTAssertEqual(during.traceId.hexString, parent.context.traceId)
+
+        parent.end()
+        _ = URLSession.shared.dataTask(with: url(path: "/after"))
+        let after = try XCTUnwrap(startedSpan(named: "GET /after"))
+        XCTAssertNil(after.parentSpanId)
+    }
+
+    func test_spanParentCallback_canUseTheNetworkSpanParentAPI() throws {
+        let requestsDataSource = NetworkSpanParentAPICallingDataSource()
+        try start(capturingRequests: true, requestsDataSource: requestsDataSource)
+        let parent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        _ = EmbraceIO.shared.setNetworkSpanParent(parent)
+
+        _ = URLSession.shared.dataTask(with: url(path: "/callback"))
+
+        // The callback replaced the parent and cleared its replacement, without deadlocking.
+        let span = try XCTUnwrap(startedSpan(named: "GET /callback"))
+        XCTAssertEqual(requestsDataSource.receivedContext?.spanId, parent.spanId)
+        XCTAssertEqual(requestsDataSource.didClearReplacement, true)
+        XCTAssertEqual(span.parentSpanId?.hexString, parent.spanId)
+        XCTAssertNil(Embrace.client?.networkSpanParentController.currentContext())
+    }
+
+    // MARK: - Sessions
+
+    func test_sessionPartEnding_keepsTheParent_userSessionEnding_clearsIt() throws {
+        try start()
+        let client = try XCTUnwrap(Embrace.client)
+        let context = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        _ = EmbraceIO.shared.setNetworkSpanParent(context)
+
+        _ = client.sessionController.endSession()
+        XCTAssertEqual(client.networkSpanParentController.currentContext()?.spanId, context.spanId)
+
+        let userSessionEnded = expectation(forNotification: .embraceUserSessionDidEnd, object: nil)
+        client.userSessionController.endActiveUserSession(reason: .manual, at: Date())
+        wait(for: [userSessionEnded], timeout: 5)
+        XCTAssertNil(client.networkSpanParentController.currentContext())
+    }
+
+    // MARK: - Other spans
+
+    func test_spansOtherThanNetworkSpans_ignoreTheNetworkSpanParent() throws {
+        try start()
+        _ = EmbraceIO.shared.setNetworkSpanParent(EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId()))
+
+        let embraceSpan = try XCTUnwrap(EmbraceIO.shared.createSpan(name: "embrace-span"))
+        XCTAssertNil(embraceSpan.parentSpanId)
+
+        let tracer = try XCTUnwrap(EmbraceIO.shared.tracer(instrumentationName: "test"))
+        _ = tracer.spanBuilder(spanName: "otel-span").startSpan()
+        let otelSpan = try XCTUnwrap(startedSpan(named: "otel-span"))
+        XCTAssertNil(otelSpan.parentSpanId)
+    }
+
+    // MARK: - Helpers
+
+    private func url(path: String) -> URL {
+        return URL(string: "https://network-span-parent.embrace-tests.io\(path)")!
+    }
+
+    private func startedSpan(named name: String) -> SpanData? {
+        Embrace.client?.waitForAllWork()
+        return spanProcessor.startedSpans.first { $0.name == name }
+    }
+
     private func userSession(id: EmbraceIdentifier) -> EmbraceUserSession {
         return ImmutableUserSession(
             id: id,
@@ -107,12 +188,34 @@ final class EmbraceIONetworkSpanParentTests: XCTestCase {
         )
     }
 
-    private func start() throws {
+    private func start(capturingRequests: Bool = false, requestsDataSource: URLSessionRequestsDataSource? = nil) throws {
+        let builder = CaptureServicesOptionsBuilder()
+        if capturingRequests {
+            _ = builder.addUrlSessionCaptureService(withOptions: .init(requestsDataSource: requestsDataSource))
+        }
         let options = EmbraceIO.Options.withLocalConfiguration(
-            captureServices: CaptureServicesOptionsBuilder().build(),
+            captureServices: builder.build(),
             crashReporter: .none,
-            otel: EmbraceIO.OTelOptions()
+            otel: EmbraceIO.OTelOptions(spanProcessors: [spanProcessor])
         )
         try EmbraceIO.start(options: options)
+    }
+}
+
+/// Requests data source whose callback replaces the network span parent and then clears its replacement.
+private final class NetworkSpanParentAPICallingDataSource: URLSessionRequestsDataSource {
+    private(set) var receivedContext: EmbraceSpanContext?
+    private(set) var didClearReplacement: Bool?
+
+    func modifiedRequest(for request: URLRequest) -> URLRequest {
+        return request
+    }
+
+    func spanParent(for request: URLRequest, currentParentContext: EmbraceSpanContext?) -> EmbraceNetworkSpanParent {
+        receivedContext = currentParentContext
+        let replacement = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        let token = EmbraceIO.shared.setNetworkSpanParent(replacement)
+        didClearReplacement = EmbraceIO.shared.clearNetworkSpanParent(token)
+        return .default
     }
 }
