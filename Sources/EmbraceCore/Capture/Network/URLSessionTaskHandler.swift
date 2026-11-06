@@ -31,7 +31,7 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
 final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
     /// Calls to `URLSessionRequestsDataSource.spanParent(for:currentParentContext:)` taking longer than this are logged.
-    static let slowSpanParentCallThreshold: TimeInterval = 0.01
+    static let slowSpanParentCallThreshold: TimeInterval = 0.005
 
     private let spans = EmbraceMutex<[URLSessionTask: EmbraceSpan]>([:])
     private let queue: DispatchableQueue
