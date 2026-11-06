@@ -95,6 +95,10 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
         return options.requestsDataSource
     }
 
+    var networkSpanParent: NetworkSpanParentProvider? {
+        return Embrace.client?.networkSpanParentController
+    }
+
     var ignoredURLs: [String] {
         return options.ignoredURLs
     }

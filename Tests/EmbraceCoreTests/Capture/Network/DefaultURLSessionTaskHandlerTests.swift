@@ -18,6 +18,12 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
     private var networkPayloadCapture: SpyNetworkPayloadCaptureHandler!
     private var otel: MockOTelSignalsHandler!
     private var processingQueue: DispatchableQueue!
+    private var logger: MockLogger!
+    /// Clock used by the handler to time calls into the requests data source.
+    private var uptimeNanoseconds: UInt64 = 1_000_000_000
+
+    private let headerTraceId = "aaaabbbbccccdddd0000111122223333"
+    private let headerSpanId = "aabbccdd11223344"
 
     override func setUpWithError() throws {
         session = ProxiedURLSessionProvider.default()
@@ -29,6 +35,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         dataSource.ignoredURLs = []
 
         networkPayloadCapture = SpyNetworkPayloadCaptureHandler()
+        logger = MockLogger()
     }
 
     // MARK: - Create Tests
@@ -170,47 +177,416 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         thenSpanShouldHaveTheTracingHeaderAttribute()
     }
 
-    func test_existingTraceparentOnRequest_PreservedNotInjected() {
+    func test_existingTraceparentOnRequest_ReplacedWithNetworkSpanHeader() throws {
         givenTaskHandler()
         dataSource.stubbedShouldInjectHeader = true
         dataSource.isNSFEligible = false
-        let upstream = "00-aaaabbbbccccdddd0000111122223333-aabbccdd11223344-01"
-        givenAnURLSessionTaskWithTraceparent(upstream)
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"))
         whenInvokingCreate()
-        thenOriginalRequestShouldHaveTraceparentValue(upstream)
+
+        let span = try XCTUnwrap(otel.startedSpans.first)
+        thenOriginalRequestShouldHaveTraceparentValue("00-\(headerTraceId)-\(span.context.spanId)-01")
     }
 
-    func test_existingTraceparentOnRequest_AttributeWrittenWithUpstreamValue_WhenNSFOn() {
+    func test_existingTraceparentOnRequest_AttributeIsNetworkSpanHeader_WhenNSFOn() throws {
         givenTaskHandler()
         dataSource.stubbedShouldInjectHeader = true
         dataSource.isNSFEligible = true
-        let upstream = "00-aaaabbbbccccdddd0000111122223333-aabbccdd11223344-01"
-        givenAnURLSessionTaskWithTraceparent(upstream)
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"))
         whenInvokingCreate()
         whenInvokingFinish()
-        thenSpanShouldHaveTraceparentAttributeValue(upstream)
+
+        let span = try XCTUnwrap(otel.startedSpans.first)
+        let sent = "00-\(headerTraceId)-\(span.context.spanId)-01"
+        thenOriginalRequestShouldHaveTraceparentValue(sent)
+        thenSpanShouldHaveTraceparentAttributeValue(sent)
     }
 
     func test_existingTraceparentOnRequest_AttributeNotWritten_WhenNSFOff() {
         givenTaskHandler()
         dataSource.stubbedShouldInjectHeader = true
         dataSource.isNSFEligible = false
-        let upstream = "00-aaaabbbbccccdddd0000111122223333-aabbccdd11223344-01"
-        givenAnURLSessionTaskWithTraceparent(upstream)
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"))
         whenInvokingCreate()
         whenInvokingFinish()
         thenSpanShouldNotHaveTheTracingHeaderAttribute()
+        thenNetworkSpanParent(spanId: headerSpanId, traceId: headerTraceId)
     }
 
     func test_existingTraceparentOnRequest_LocalGateFails_NoAttribute() {
         givenTaskHandler()
         dataSource.stubbedShouldInjectHeader = false
         dataSource.isNSFEligible = true
-        let upstream = "00-aaaabbbbccccdddd0000111122223333-aabbccdd11223344-01"
+        let upstream = headerValue(flags: "01")
         givenAnURLSessionTaskWithTraceparent(upstream)
         whenInvokingCreate()
         whenInvokingFinish()
         thenSpanShouldNotHaveTheTracingHeaderAttribute()
+        thenOriginalRequestShouldHaveTraceparentValue(upstream)
+        thenNetworkSpanParent(spanId: headerSpanId, traceId: headerTraceId)
+    }
+
+    func test_existingTraceparentWithUnsampledFlags_ReplacedHeaderKeepsFlags() throws {
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "00"))
+        whenInvokingCreate()
+
+        let span = try XCTUnwrap(otel.startedSpans.first)
+        thenOriginalRequestShouldHaveTraceparentValue("00-\(headerTraceId)-\(span.context.spanId)-00")
+    }
+
+    func test_malformedTraceparent_InjectionApplies_ReplacedWithNetworkSpanHeader() throws {
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        givenAnURLSessionTaskWithTraceparent("00-AAAABBBBCCCCDDDD0000111122223333-aabbccdd11223344-00")
+        whenInvokingCreate()
+
+        let span = try XCTUnwrap(otel.startedSpans.first)
+        XCTAssertNil(span.parentSpanId)
+        XCTAssertNotEqual(span.context.traceId, headerTraceId)
+        thenOriginalRequestShouldHaveTraceparentValue("00-\(span.context.traceId)-\(span.context.spanId)-01")
+    }
+
+    // MARK: - Network span parent
+
+    func test_validTraceparent_NetworkSpanIsChildOfHeaderSpan() {
+        givenTaskHandler()
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"))
+        whenInvokingCreate()
+        thenNetworkSpanParent(spanId: headerSpanId, traceId: headerTraceId)
+    }
+
+    func test_malformedTraceparent_NetworkSpanIsRoot_HeaderUntouched() throws {
+        givenTaskHandler()
+        let malformed = "00-\(headerTraceId)-0000000000000000-01"
+        givenAnURLSessionTaskWithTraceparent(malformed)
+        whenInvokingCreate()
+
+        let span = try XCTUnwrap(otel.startedSpans.first)
+        XCTAssertNil(span.parentSpanId)
+        thenOriginalRequestShouldHaveTraceparentValue(malformed)
+    }
+
+    func test_malformedTraceparent_IsLoggedOnce() {
+        givenTaskHandler()
+        givenAnURLSessionTaskWithTraceparent("not-a-traceparent")
+        whenInvokingCreate()
+        givenAnURLSessionTaskWithTraceparent("still-not-a-traceparent")
+        whenInvokingCreate()
+
+        XCTAssertEqual(otel.startedSpans.count, 2)
+        XCTAssertEqual(warnings(containing: "malformed traceparent").count, 1)
+    }
+
+    func test_traceparentFromModifiedRequest_DecidesParent() {
+        givenTaskHandler()
+        givenRequestsDataSourceWithBlock { originalRequest in
+            var request = originalRequest
+            request.setValue(self.headerValue(flags: "01"), forHTTPHeaderField: "traceparent")
+            return request
+        }
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+        thenNetworkSpanParent(spanId: headerSpanId, traceId: headerTraceId)
+    }
+
+    func test_networkSpanParent_WithoutHeader_IsParent() {
+        let parent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        givenTaskHandler()
+        dataSource.networkSpanParent = MockNetworkSpanParentProvider(context: parent)
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+        thenNetworkSpanParent(spanId: parent.spanId, traceId: parent.traceId)
+    }
+
+    func test_networkSpanParent_WithValidHeader_HeaderWins() {
+        let parent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        givenTaskHandler()
+        dataSource.networkSpanParent = MockNetworkSpanParentProvider(context: parent)
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"))
+        whenInvokingCreate()
+        thenNetworkSpanParent(spanId: headerSpanId, traceId: headerTraceId)
+    }
+
+    func test_networkSpanParent_ChangingAfterCreate_DoesntAffectStartedSpan() {
+        let parent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        let provider = MockNetworkSpanParentProvider(context: parent)
+        givenTaskHandler()
+        dataSource.networkSpanParent = provider
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+
+        provider.context = nil
+        whenInvokingFinish()
+
+        XCTAssertEqual(otel.endedSpans.first?.parentSpanId, parent.spanId)
+    }
+
+    func test_networkSpanParent_InjectionOn_NoHeader_SentHeaderNamesNetworkSpanInParentTrace() throws {
+        let parent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        dataSource.networkSpanParent = MockNetworkSpanParentProvider(context: parent)
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+
+        let span = try XCTUnwrap(otel.startedSpans.first)
+        XCTAssertEqual(span.parentSpanId, parent.spanId)
+        thenOriginalRequestShouldHaveTraceparentValue("00-\(parent.traceId)-\(span.context.spanId)-01")
+    }
+
+    func test_tracestate_InjectionApplies_IsPassedThroughUnchanged() throws {
+        let tracestate = "congo=t61rcWkgMzE,rojo=00f067aa0ba902b7"
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"), tracestate: tracestate)
+        whenInvokingCreate()
+
+        let span = try XCTUnwrap(otel.startedSpans.first)
+        thenOriginalRequestShouldHaveTraceparentValue("00-\(headerTraceId)-\(span.context.spanId)-01")
+        XCTAssertEqual(task.originalRequest?.value(forHTTPHeaderField: "tracestate"), tracestate)
+    }
+
+    func test_tracestate_InjectionDoesntApply_IsPassedThroughUnchanged() {
+        let tracestate = "congo=t61rcWkgMzE,rojo=00f067aa0ba902b7"
+        let upstream = headerValue(flags: "01")
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = false
+        givenAnURLSessionTaskWithTraceparent(upstream, tracestate: tracestate)
+        whenInvokingCreate()
+
+        thenOriginalRequestShouldHaveTraceparentValue(upstream)
+        XCTAssertEqual(task.originalRequest?.value(forHTTPHeaderField: "tracestate"), tracestate)
+    }
+
+    /// Every combination of the requests data source's decision, the request's `traceparent` header
+    /// and the network span parent set by the app.
+    func test_parentPrecedence_AllCombinations() throws {
+        enum Decision: CaseIterable {
+            case noDataSource, useDefault, noParent, validParent, invalidParent
+        }
+        enum Header: CaseIterable {
+            case absent, valid, malformed
+        }
+
+        let chosen = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        let invalid = EmbraceSpanContext(spanId: "0000000000000000", traceId: chosen.traceId)
+        let networkSpanParent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        let headerContext = EmbraceSpanContext(spanId: headerSpanId, traceId: headerTraceId)
+
+        for decision in Decision.allCases {
+            for header in Header.allCases {
+                for hasNetworkSpanParent in [false, true] {
+                    otel = MockOTelSignalsHandler()
+                    dataSource.otel = otel
+                    dataSource.requestsDataSource = nil
+                    dataSource.networkSpanParent = MockNetworkSpanParentProvider(context: hasNetworkSpanParent ? networkSpanParent : nil)
+                    givenTaskHandler()
+
+                    switch decision {
+                    case .noDataSource: break
+                    case .useDefault: givenRequestsDataSource(spanParent: .default)
+                    case .noParent: givenRequestsDataSource(spanParent: .noParent)
+                    case .validParent: givenRequestsDataSource(spanParent: .parent(chosen))
+                    case .invalidParent: givenRequestsDataSource(spanParent: .parent(invalid))
+                    }
+
+                    switch header {
+                    case .absent: givenAnURLSessionTask()
+                    case .valid: givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"))
+                    case .malformed: givenAnURLSessionTaskWithTraceparent("00-\(headerTraceId)-0000000000000000-01")
+                    }
+
+                    let expected: EmbraceSpanContext?
+                    switch decision {
+                    case .noParent: expected = nil
+                    case .validParent: expected = chosen
+                    case .noDataSource, .useDefault, .invalidParent:
+                        if header == .valid {
+                            expected = headerContext
+                        } else if hasNetworkSpanParent {
+                            expected = networkSpanParent
+                        } else {
+                            expected = nil
+                        }
+                    }
+
+                    whenInvokingCreate()
+
+                    let message = "decision: \(decision), header: \(header), network span parent: \(hasNetworkSpanParent)"
+                    let span = try XCTUnwrap(otel.startedSpans.first, message)
+                    XCTAssertEqual(span.parentSpanId, expected?.spanId, message)
+                    if let expected {
+                        XCTAssertEqual(span.context.traceId, expected.traceId, message)
+                    }
+                }
+            }
+        }
+    }
+
+    func test_spanParent_ReceivesModifiedRequestAndNetworkSpanParent() throws {
+        let parent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        givenTaskHandler()
+        dataSource.networkSpanParent = MockNetworkSpanParentProvider(context: parent)
+        let requestsDataSource = givenRequestsDataSourceWithBlock { originalRequest in
+            var request = originalRequest
+            request.url = URL(string: "https://www.test.com")
+            return request
+        }
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+
+        let call = try XCTUnwrap(requestsDataSource.spanParentCalls.first)
+        XCTAssertEqual(requestsDataSource.spanParentCalls.count, 1)
+        XCTAssertEqual(call.request.url?.absoluteString, "https://www.test.com")
+        XCTAssertEqual(call.currentParentContext?.spanId, parent.spanId)
+    }
+
+    func test_spanParent_WithoutNetworkSpanParent_ReceivesNil() throws {
+        givenTaskHandler()
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+
+        let call = try XCTUnwrap(requestsDataSource.spanParentCalls.first)
+        XCTAssertNil(call.currentParentContext)
+    }
+
+    func test_spanParent_NoParent_OverridesHeaderAndNetworkSpanParent() throws {
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        dataSource.networkSpanParent = MockNetworkSpanParentProvider(
+            context: EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        )
+        givenRequestsDataSource(spanParent: .noParent)
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "00"))
+        whenInvokingCreate()
+
+        let span = try XCTUnwrap(otel.startedSpans.first)
+        XCTAssertNil(span.parentSpanId)
+        XCTAssertNotEqual(span.context.traceId, headerTraceId)
+        thenOriginalRequestShouldHaveTraceparentValue("00-\(span.context.traceId)-\(span.context.spanId)-01")
+    }
+
+    func test_spanParent_ParentInAnotherTrace_HeaderUsesItsTrace() throws {
+        let parent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        givenRequestsDataSource(spanParent: .parent(parent))
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "00"))
+        whenInvokingCreate()
+
+        let span = try XCTUnwrap(otel.startedSpans.first)
+        thenNetworkSpanParent(spanId: parent.spanId, traceId: parent.traceId)
+        thenOriginalRequestShouldHaveTraceparentValue("00-\(parent.traceId)-\(span.context.spanId)-01")
+    }
+
+    func test_spanParent_ParentInHeaderTrace_KeepsHeaderFlags() throws {
+        let parent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: headerTraceId)
+        givenTaskHandler()
+        dataSource.stubbedShouldInjectHeader = true
+        givenRequestsDataSource(spanParent: .parent(parent))
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "00"))
+        whenInvokingCreate()
+
+        let span = try XCTUnwrap(otel.startedSpans.first)
+        thenNetworkSpanParent(spanId: parent.spanId, traceId: headerTraceId)
+        thenOriginalRequestShouldHaveTraceparentValue("00-\(headerTraceId)-\(span.context.spanId)-00")
+    }
+
+    func test_spanParent_Default_UsesHeader() {
+        givenTaskHandler()
+        givenRequestsDataSource(spanParent: .default)
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"))
+        whenInvokingCreate()
+        thenNetworkSpanParent(spanId: headerSpanId, traceId: headerTraceId)
+    }
+
+    func test_spanParent_DefaultImplementation_UsesHeader() {
+        givenTaskHandler()
+        dataSource.requestsDataSource = MinimalURLSessionRequestsDataSource()
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"))
+        whenInvokingCreate()
+        thenNetworkSpanParent(spanId: headerSpanId, traceId: headerTraceId)
+    }
+
+    func test_spanParent_InvalidParent_FallsBackToDefault_AndIsLoggedOnce() {
+        givenTaskHandler()
+        givenRequestsDataSource(spanParent: .parent(EmbraceSpanContext(spanId: "nope", traceId: "nope")))
+        givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"))
+        whenInvokingCreate()
+        thenNetworkSpanParent(spanId: headerSpanId, traceId: headerTraceId)
+
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+
+        XCTAssertEqual(warnings(containing: "Ignoring invalid network span parent").count, 1)
+    }
+
+    func test_spanParent_CalledOncePerTask() {
+        givenTaskHandler()
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+        whenInvokingCreate()
+
+        XCTAssertEqual(requestsDataSource.spanParentCalls.count, 1)
+    }
+
+    func test_spanParent_NotCalledForIgnoredURLs() {
+        givenTaskHandler()
+        givenIgnoredURLs()
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+
+        XCTAssertTrue(requestsDataSource.spanParentCalls.isEmpty)
+    }
+
+    func test_spanParent_CreatingAnotherTask_CapturesBothTasks() {
+        givenTaskHandlerWithRealQueue()
+        givenAnURLSessionTask(urlString: "https://outer.embrace.io")
+        let outerURL = task.originalRequest?.url
+        let innerTask = anURLSessionTask(urlString: "https://inner.embrace.io")
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+        requestsDataSource.spanParentBlock = { request, _ in
+            if request.url == outerURL {
+                self.sut.create(task: innerTask)
+            }
+            return .default
+        }
+
+        XCTAssertTrue(sut.create(task: task))
+
+        XCTAssertEqual(requestsDataSource.spanParentCalls.count, 2)
+        XCTAssertEqual(otel.startedSpans.count, 2)
+    }
+
+    func test_spanParent_SlowCall_IsLoggedOnce() {
+        givenTaskHandler()
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+        requestsDataSource.spanParentBlock = { [unowned self] _, _ in
+            self.uptimeNanoseconds += UInt64(DefaultURLSessionTaskHandler.slowSpanParentCallThreshold * 2 * Double(NSEC_PER_SEC))
+            return .default
+        }
+        givenAnURLSessionTask(urlString: "https://first.embrace.io/checkout/pay?id=1")
+        whenInvokingCreate()
+        givenAnURLSessionTask(urlString: "https://second.embrace.io")
+        whenInvokingCreate()
+
+        let slowCallWarnings = warnings(containing: "spanParent(for:currentParentContext:) took")
+        XCTAssertEqual(slowCallWarnings.count, 1)
+        XCTAssertTrue(slowCallWarnings.first?.contains("first.embrace.io/checkout/pay'") == true)
+    }
+
+    func test_spanParent_FastCall_IsNotLogged() {
+        givenTaskHandler()
+        givenRequestsDataSource(spanParent: .default)
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+
+        XCTAssertTrue(warnings(containing: "spanParent(for:currentParentContext:) took").isEmpty)
     }
 
     // MARK: - Requests Data Source
@@ -500,7 +876,9 @@ extension DefaultURLSessionTaskHandlerTests {
         sut = DefaultURLSessionTaskHandler(
             processingQueue: MockQueue(),
             dataSource: dataSource,
-            payloadCaptureHandler: networkPayloadCapture
+            payloadCaptureHandler: networkPayloadCapture,
+            logger: logger,
+            uptimeNanoseconds: { [unowned self] in self.uptimeNanoseconds }
         )
     }
 
@@ -510,7 +888,9 @@ extension DefaultURLSessionTaskHandlerTests {
         sut = DefaultURLSessionTaskHandler(
             processingQueue: processingQueue,
             dataSource: dataSource,
-            payloadCaptureHandler: networkPayloadCapture
+            payloadCaptureHandler: networkPayloadCapture,
+            logger: logger,
+            uptimeNanoseconds: { [unowned self] in self.uptimeNanoseconds }
         )
     }
 
@@ -543,6 +923,28 @@ extension DefaultURLSessionTaskHandlerTests {
         requestsDataSource.block = block
         dataSource.requestsDataSource = requestsDataSource
         return requestsDataSource
+    }
+
+    fileprivate func givenRequestsDataSource(spanParent: EmbraceNetworkSpanParent) {
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+        requestsDataSource.spanParentBlock = { _, _ in spanParent }
+    }
+
+    fileprivate func headerValue(flags: String) -> String {
+        return "00-\(headerTraceId)-\(headerSpanId)-\(flags)"
+    }
+
+    fileprivate func warnings(containing text: String) -> [String] {
+        return logger.loggedMessages.filter { $0.level == .warning && $0.message.contains(text) }.map(\.message)
+    }
+
+    fileprivate func thenNetworkSpanParent(spanId: String, traceId: String, file: StaticString = #filePath, line: UInt = #line) {
+        guard let span = otel.startedSpans.first else {
+            XCTFail("No network span was created", file: file, line: line)
+            return
+        }
+        XCTAssertEqual(span.parentSpanId, spanId, file: file, line: line)
+        XCTAssertEqual(span.context.traceId, traceId, file: file, line: line)
     }
 
     fileprivate func givenIgnoredURLs() {
@@ -749,13 +1151,14 @@ extension DefaultURLSessionTaskHandlerTests {
         XCTAssertEqual(components[3], "01")
     }
 
-    fileprivate func givenAnURLSessionTaskWithTraceparent(_ value: String) {
+    fileprivate func givenAnURLSessionTaskWithTraceparent(_ value: String, tracestate: String? = nil) {
         // Build the task with the traceparent already present in the original request.
         let urlString = "https://embrace.io"
         var url = URL(string: urlString.replacingOccurrences(of: "https://", with: "https://\(testName)."))!
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue(value, forHTTPHeaderField: "traceparent")
+        request.setValue(tracestate, forHTTPHeaderField: "tracestate")
         url.mockResponse = .successful(withData: UUID().uuidString.data(using: .utf8)!, response: aValidResponse())
         task = session.dataTask(with: request)
     }

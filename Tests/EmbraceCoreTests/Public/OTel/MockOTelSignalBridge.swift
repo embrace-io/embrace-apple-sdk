@@ -15,7 +15,7 @@ class MockOTelSignalBridge: EmbraceOTelSignalBridge {
     var startSpanReturnValue: EmbraceSpanContext?
     func startSpan(
         name: String,
-        parentSpan: EmbraceSpan?,
+        parentContext: EmbraceSpanContext?,
         status: EmbraceSpanStatus,
         startTime: Date,
         endTime: Date?,
@@ -28,7 +28,7 @@ class MockOTelSignalBridge: EmbraceOTelSignalBridge {
         return startSpanReturnValue
             ?? EmbraceSpanContext(
                 spanId: String.randomSpanId(),
-                traceId: parentSpan?.context.traceId ?? String.randomTraceId()
+                traceId: parentContext?.traceId ?? String.randomTraceId()
             )
     }
 

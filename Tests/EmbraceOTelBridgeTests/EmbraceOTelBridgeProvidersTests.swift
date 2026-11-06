@@ -99,7 +99,7 @@ final class EmbraceOTelBridgeProvidersTests: XCTestCase {
     func test_spanFromBridge_isNotClassifiedExternal() {
         _ = bridge.startSpan(
             name: "internal-span",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: Date(),

@@ -17,6 +17,7 @@ class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
     var stubbedShouldInjectHeader = false
     var isNSFEligible = false
     var requestsDataSource: URLSessionRequestsDataSource?
+    var networkSpanParent: NetworkSpanParentProvider?
     var ignoredURLs: [String] = []
 
     var ignoredTaskTypes: [AnyClass] = []

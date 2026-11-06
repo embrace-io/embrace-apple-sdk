@@ -22,26 +22,40 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
     func shouldInjectHeader(for request: URLRequest) -> Bool
     var isNSFEligible: Bool { get }
     var requestsDataSource: URLSessionRequestsDataSource? { get }
+    var networkSpanParent: NetworkSpanParentProvider? { get }
     var ignoredURLs: [String] { get }
 
     var ignoredTaskTypes: [AnyClass] { get }
 }
 
 final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
+
+    /// Calls to `URLSessionRequestsDataSource.spanParent(for:currentParentContext:)` taking longer than this are logged.
+    static let slowSpanParentCallThreshold: TimeInterval = 0.005
+
     private let spans = EmbraceMutex<[URLSessionTask: EmbraceSpan]>([:])
     private let queue: DispatchableQueue
     private let capturedDataQueue: DispatchableQueue
     private let payloadCaptureHandler: NetworkPayloadCaptureHandler
+    private let logger: InternalLogger
+    private let uptimeNanoseconds: () -> UInt64
+    private let didWarnMalformedTraceparent = EmbraceAtomic(false)
+    private let didWarnSlowSpanParentCall = EmbraceAtomic(false)
+    private let didWarnInvalidSpanParent = EmbraceAtomic(false)
     weak var dataSource: URLSessionTaskHandlerDataSource?
 
     init(
         processingQueue: DispatchableQueue = DefaultURLSessionTaskHandler.queue(),
         capturedDataQueue: DispatchableQueue = DefaultURLSessionTaskHandler.capturedDataQueue(),
         dataSource: URLSessionTaskHandlerDataSource?,
-        payloadCaptureHandler: NetworkPayloadCaptureHandler? = nil
+        payloadCaptureHandler: NetworkPayloadCaptureHandler? = nil,
+        logger: InternalLogger = Embrace.logger,
+        uptimeNanoseconds: @escaping () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }
     ) {
         self.queue = processingQueue
         self.capturedDataQueue = capturedDataQueue
+        self.logger = logger
+        self.uptimeNanoseconds = uptimeNanoseconds
         self.dataSource = dataSource
         self.payloadCaptureHandler =
             payloadCaptureHandler ?? DefaultNetworkPayloadCaptureHandler(otel: dataSource?.otel)
@@ -61,6 +75,9 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     /// thread the app uses, so it never blocks on an internal queue. Calls into the requests data source,
     /// OpenTelemetry and header injection are made without holding any lock, which allows them to
     /// safely create or resume other tasks (re-entering this method).
+    ///
+    /// The network span's parent is, in order of precedence: the one chosen by the requests data source,
+    /// the span named in the request's `traceparent` header, the network span parent set by the app, or none.
     ///
     /// - Returns: `true` if the task was captured by this call.
     @discardableResult
@@ -152,15 +169,32 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
          */
         let path = request.url?.path ?? url.path
         let name = httpMethod.isEmpty ? path : "\(httpMethod) \(path)"
+
+        // resolve the parent
+        let networkSpanParent = dataSource?.networkSpanParent?.currentContext()
+        let traceparent = parseTraceparent(of: request)
+        let decision = spanParentDecision(for: request, networkSpanParent: networkSpanParent)
+        let parent = NetworkSpanParentResolver.resolve(
+            decision: decision,
+            header: traceparent,
+            networkSpanParent: networkSpanParent
+        )
+        if let invalid = parent.ignoredInvalidParent, didWarnInvalidSpanParent.exchange(true) == false {
+            logger.warning(
+                "Ignoring invalid network span parent returned by the requests data source: span id '\(invalid.spanId)', trace id '\(invalid.traceId)'. The default parent is used instead. Further invalid parents won't be logged."
+            )
+        }
+
         let span = try? otel.createInternalSpan(
             name: name,
+            parentContext: parent.context,
             type: .networkRequest,
             attributes: attributes
         )
 
         if let span {
             // tracing header
-            if let tracingHeader = addTracingHeader(task: task, span: span),
+            if let tracingHeader = addTracingHeader(task: task, span: span, traceparent: traceparent),
                 dataSource?.isNSFEligible == true
             {
                 span.setInternalAttribute(
@@ -288,17 +322,65 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         }
     }
 
-    func addTracingHeader(task: URLSessionTask, span: EmbraceSpan) -> String? {
+    /// Parses the `traceparent` header of the given request.
+    /// A header that isn't well formed is treated as no header, and the first one is logged.
+    private func parseTraceparent(of request: URLRequest) -> W3C.ParsedTraceparent? {
+        guard let value = request.value(forHTTPHeaderField: W3C.traceparentHeaderName) else {
+            return nil
+        }
+
+        if let parsed = W3C.parseTraceparent(value) {
+            return parsed
+        }
+
+        // A broken header usually repeats on every request to the same host, so only the first one is logged.
+        if didWarnMalformedTraceparent.exchange(true) == false {
+            logger.warning(
+                "Ignoring malformed traceparent header on a request to '\(request.url?.host ?? "unknown host")'. Further malformed headers won't be logged."
+            )
+        }
+
+        return nil
+    }
+
+    /// Asks the requests data source for the network span's parent, logging the first call that is slow.
+    private func spanParentDecision(
+        for request: URLRequest,
+        networkSpanParent: EmbraceSpanContext?
+    ) -> EmbraceNetworkSpanParent {
+        guard let requestsDataSource = dataSource?.requestsDataSource else {
+            return .default
+        }
+
+        let start = uptimeNanoseconds()
+        let decision = requestsDataSource.spanParent(for: request, currentParentContext: networkSpanParent)
+        let duration = TimeInterval(uptimeNanoseconds() - start) / TimeInterval(NSEC_PER_SEC)
+
+        if duration > Self.slowSpanParentCallThreshold, didWarnSlowSpanParentCall.exchange(true) == false {
+            logger.warning(
+                "URLSessionRequestsDataSource.spanParent(for:currentParentContext:) took \(Int(duration * 1000)) ms for a request to '\(request.url?.host ?? "unknown host")\(request.url?.path ?? "")'. It is called before every captured request starts, so it should return quickly. Further slow calls won't be logged."
+            )
+        }
+
+        return decision
+    }
+
+    /// Writes the network span's `traceparent` header to the task, when injection applies to the request.
+    ///
+    /// An existing header is replaced. When the network span is in the trace the existing header names,
+    /// that header's trace-flags are kept, so the sampling decision made upstream is respected.
+    ///
+    /// - Returns: The header value written, or `nil` if the header wasn't written.
+    func addTracingHeader(task: URLSessionTask, span: EmbraceSpan, traceparent: W3C.ParsedTraceparent?) -> String? {
         guard let request = task.originalRequest else { return nil }
         guard dataSource?.shouldInjectHeader(for: request) == true else { return nil }
 
-        // Preserve upstream traceparent — leave the wire header untouched and return its value
-        // so NSF can forward the span linked to upstream's trace context.
-        if let upstream = request.value(forHTTPHeaderField: W3C.traceparentHeaderName) {
-            return upstream
+        var flags = "01"
+        if let traceparent, traceparent.traceId == span.context.traceId {
+            flags = traceparent.flags
         }
 
-        let value = W3C.traceparent(from: span.context)
+        let value = W3C.traceparent(traceId: span.context.traceId, spanId: span.context.spanId, flags: flags)
         guard
             EMBRURLSessionTaskHeaderInjector.injectHeader(
                 withKey: W3C.traceparentHeaderName,
