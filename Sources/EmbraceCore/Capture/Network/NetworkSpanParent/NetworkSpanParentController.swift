@@ -134,9 +134,7 @@ package final class NetworkSpanParentController: NetworkSpanParentProvider {
     /// A span that has already ended is rejected and the previous parent stays.
     package func set(span: EmbraceSpan) -> EmbraceNetworkSpanParentToken {
         guard span.endTime == nil else {
-            logger.warning(
-                "Ignoring network span parent '\(span.name)': the span has already ended. The previous network span parent, if any, stays."
-            )
+            warnEndedSpan(span)
             return .inert
         }
 
@@ -170,7 +168,14 @@ package final class NetworkSpanParentController: NetworkSpanParentProvider {
         )
         let userSessionId = currentUserSessionId()
 
-        let (token, conflict) = state.withLock { state -> (EmbraceNetworkSpanParentToken, Conflict?) in
+        let result = state.withLock { state -> (token: EmbraceNetworkSpanParentToken, conflict: Conflict?)? in
+            // The span may have ended since it was last checked. A span's end time is recorded
+            // before the SDK clears the parent under this lock, so a span that hasn't ended here
+            // is cleared when it does, and one that has is never stored.
+            if let span, span.endTime != nil {
+                return nil
+            }
+
             let token = EmbraceNetworkSpanParentToken(id: state.nextTokenId)
             state.nextTokenId += 1
 
@@ -186,11 +191,24 @@ package final class NetworkSpanParentController: NetworkSpanParentProvider {
             return (token, conflict)
         }
 
-        if let conflict {
+        guard let result else {
+            if let span {
+                warnEndedSpan(span)
+            }
+            return .inert
+        }
+
+        if let conflict = result.conflict {
             report(conflict)
         }
 
-        return token
+        return result.token
+    }
+
+    private func warnEndedSpan(_ span: EmbraceSpan) {
+        logger.warning(
+            "Ignoring network span parent '\(span.name)': the span has already ended. The previous network span parent, if any, stays."
+        )
     }
 
     /// Clears the network span parent, if it is still the one set with the given token.

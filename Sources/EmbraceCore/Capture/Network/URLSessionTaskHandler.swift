@@ -350,7 +350,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
 
         if duration > Self.slowSpanParentCallThreshold, didWarnSlowSpanParentCall.exchange(true) == false {
             logger.warning(
-                "URLSessionRequestsDataSource.spanParent(for:currentParentContext:) took \(Int(duration * 1000)) ms for a request to '\(request.url?.host ?? "unknown host")'. It is called before every captured request starts, so it should return quickly. Further slow calls won't be logged."
+                "URLSessionRequestsDataSource.spanParent(for:currentParentContext:) took \(Int(duration * 1000)) ms for a request to '\(request.url?.host ?? "unknown host")\(request.url?.path ?? "")'. It is called before every captured request starts, so it should return quickly. Further slow calls won't be logged."
             )
         }
 

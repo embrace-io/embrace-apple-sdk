@@ -260,7 +260,7 @@ package class Embrace {
 
         // initialize network span parent
         self.networkSpanParentController = NetworkSpanParentController(logger: Embrace.logger) { [weak sessionController] in
-            sessionController?.currentSession?.userSessionId
+            sessionController?.currentUserSession?.id
         }
         self.networkSpanParentController.otel = self.otel
         self.otel.networkSpanParentController = self.networkSpanParentController

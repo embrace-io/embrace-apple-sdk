@@ -466,12 +466,14 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
             Thread.sleep(forTimeInterval: DefaultURLSessionTaskHandler.slowSpanParentCallThreshold * 2)
             return .default
         }
-        givenAnURLSessionTask(urlString: "https://first.embrace.io")
+        givenAnURLSessionTask(urlString: "https://first.embrace.io/checkout/pay?id=1")
         whenInvokingCreate()
         givenAnURLSessionTask(urlString: "https://second.embrace.io")
         whenInvokingCreate()
 
-        XCTAssertEqual(warnings(containing: "spanParent(for:currentParentContext:) took").count, 1)
+        let slowCallWarnings = warnings(containing: "spanParent(for:currentParentContext:) took")
+        XCTAssertEqual(slowCallWarnings.count, 1)
+        XCTAssertTrue(slowCallWarnings.first?.contains("first.embrace.io/checkout/pay'") == true)
     }
 
     func test_spanParent_FastCall_IsNotLogged() {

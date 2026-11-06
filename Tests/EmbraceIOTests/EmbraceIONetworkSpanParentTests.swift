@@ -2,6 +2,7 @@
 //  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import OpenTelemetryApi
 import TestSupport
@@ -75,6 +76,34 @@ final class EmbraceIONetworkSpanParentTests: XCTestCase {
 
         otelSpan.end()
         XCTAssertNil(controller.currentContext())
+    }
+
+    func test_parentSetWithoutSessionPart_isOnlyClearedByItsUserSession() throws {
+        try start()
+        let client = try XCTUnwrap(Embrace.client)
+        _ = client.sessionController.endSession()
+        XCTAssertNil(client.sessionController.currentSession)
+        let userSessionId = try XCTUnwrap(client.sessionController.currentUserSession?.id)
+
+        _ = EmbraceIO.shared.setNetworkSpanParent(EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId()))
+
+        NotificationCenter.default.post(name: .embraceUserSessionDidEnd, object: userSession(id: .random))
+        XCTAssertNotNil(client.networkSpanParentController.currentContext())
+
+        NotificationCenter.default.post(name: .embraceUserSessionDidEnd, object: userSession(id: userSessionId))
+        XCTAssertNil(client.networkSpanParentController.currentContext())
+    }
+
+    private func userSession(id: EmbraceIdentifier) -> EmbraceUserSession {
+        return ImmutableUserSession(
+            id: id,
+            startTime: Date(),
+            maxDuration: 3600,
+            inactivityTimeout: 600,
+            partIndex: 1,
+            endTime: Date(),
+            isBackgroundOnly: false
+        )
     }
 
     private func start() throws {

@@ -107,6 +107,18 @@ final class NetworkSpanParentControllerTests: XCTestCase {
         XCTAssertEqual(warnings(containing: "the span has already ended").count, 2)
     }
 
+    func test_set_spanEndingWhileBeingSet_isRejected() {
+        let current = randomContext()
+        _ = sut.set(context: current)
+        let span = SpanEndingAfterFirstCheck(name: "checkout")
+        span.onEnd = { [unowned self] in self.sut.spanDidEnd(spanId: span.context.spanId) }
+
+        XCTAssertEqual(sut.set(span: span), .inert)
+
+        XCTAssertEqual(sut.currentContext()?.spanId, current.spanId)
+        XCTAssertEqual(warnings(containing: "the span has already ended").count, 1)
+    }
+
     // MARK: - Automatic clearing
 
     func test_spanDidEnd_matchingSpan_clears() {
@@ -329,6 +341,54 @@ final class NetworkSpanParentControllerTests: XCTestCase {
         }
         XCTAssertEqual(sut.currentContext()?.spanId, survivor.spanId)
     }
+}
+
+/// Span that hasn't ended the first time its end time is read, and ends right after, as if it
+/// ended on another thread between two reads.
+private final class SpanEndingAfterFirstCheck: EmbraceSpan {
+    private let span: MockSpan
+    private var didCheckEndTime = false
+    var onEnd: (() -> Void)?
+
+    init(name: String) {
+        span = MockSpan(name: name)
+    }
+
+    var endTime: Date? {
+        guard didCheckEndTime else {
+            didCheckEndTime = true
+            span.endTime = Date()
+            onEnd?()
+            return nil
+        }
+        return span.endTime
+    }
+
+    var name: String { span.name }
+    var context: EmbraceSpanContext { span.context }
+    var parentSpanId: String? { span.parentSpanId }
+    var type: EmbraceType { span.type }
+    var status: EmbraceSpanStatus { span.status }
+    var startTime: Date { span.startTime }
+    var events: [EmbraceSpanEvent] { span.events }
+    var links: [EmbraceSpanLink] { span.links }
+    var attributes: EmbraceAttributes { span.attributes }
+    var sessionId: EmbraceIdentifier? { span.sessionId }
+    var processId: EmbraceIdentifier { span.processId }
+
+    func setStatus(_ status: EmbraceSpanStatus) { span.setStatus(status) }
+
+    func addEvent(name: String, type: EmbraceType?, timestamp: Date, attributes: EmbraceAttributes) -> EmbraceSpanEvent? {
+        span.addEvent(name: name, type: type, timestamp: timestamp, attributes: attributes)
+    }
+
+    func addLink(spanId: String, traceId: String, attributes: EmbraceAttributes) -> EmbraceSpanLink? {
+        span.addLink(spanId: spanId, traceId: traceId, attributes: attributes)
+    }
+
+    func setAttribute(key: String, value: EmbraceAttributeValue?) { span.setAttribute(key: key, value: value) }
+    func end(endTime: Date) { span.end(endTime: endTime) }
+    func end() { span.end() }
 }
 
 extension NetworkSpanParentControllerTests {
