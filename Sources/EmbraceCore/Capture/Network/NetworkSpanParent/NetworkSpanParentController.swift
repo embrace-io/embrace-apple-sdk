@@ -212,11 +212,16 @@ package final class NetworkSpanParentController: NetworkSpanParentProvider {
     }
 
     /// Clears the network span parent, if it is still the one set with the given token.
-    package func clear(token: EmbraceNetworkSpanParentToken) {
-        state.withLock { state in
-            if let parent = state.parent, parent.token == token {
-                state.parent = nil
+    ///
+    /// - Returns: `true` if the parent was cleared, `false` if it had already been replaced or cleared.
+    @discardableResult
+    package func clear(token: EmbraceNetworkSpanParentToken) -> Bool {
+        return state.withLock { state in
+            guard let parent = state.parent, parent.token == token else {
+                return false
             }
+            state.parent = nil
+            return true
         }
     }
 

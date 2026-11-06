@@ -34,7 +34,7 @@ final class EmbraceIONetworkSpanParentTests: XCTestCase {
         let span = MockSpan(name: "checkout")
         XCTAssertEqual(EmbraceIO.shared.setNetworkSpanParent(span), .inert)
         XCTAssertEqual(EmbraceIO.shared.setNetworkSpanParent(span.context), .inert)
-        EmbraceIO.shared.clearNetworkSpanParent(.inert)
+        XCTAssertFalse(EmbraceIO.shared.clearNetworkSpanParent(.inert))
     }
 
     func test_setAndClear_reachTheController() throws {
@@ -45,8 +45,9 @@ final class EmbraceIONetworkSpanParentTests: XCTestCase {
         let token = EmbraceIO.shared.setNetworkSpanParent(context)
         XCTAssertEqual(controller.currentContext()?.spanId, context.spanId)
 
-        EmbraceIO.shared.clearNetworkSpanParent(token)
+        XCTAssertTrue(EmbraceIO.shared.clearNetworkSpanParent(token))
         XCTAssertNil(controller.currentContext())
+        XCTAssertFalse(EmbraceIO.shared.clearNetworkSpanParent(token))
     }
 
     func test_embraceSpanEnding_clearsTheNetworkSpanParent() throws {

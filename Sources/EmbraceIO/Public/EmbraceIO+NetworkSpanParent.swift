@@ -69,7 +69,10 @@ extension EmbraceIO {
     /// This method is thread safe.
     ///
     /// - Parameter token: The token returned when the parent was set.
-    public func clearNetworkSpanParent(_ token: EmbraceNetworkSpanParentToken) {
-        Embrace.client?.networkSpanParentController.clear(token: token)
+    /// - Returns: `true` if the parent was cleared, `false` if it had already been replaced or cleared,
+    ///   or if the SDK isn't set up.
+    @discardableResult
+    public func clearNetworkSpanParent(_ token: EmbraceNetworkSpanParentToken) -> Bool {
+        return Embrace.client?.networkSpanParentController.clear(token: token) ?? false
     }
 }

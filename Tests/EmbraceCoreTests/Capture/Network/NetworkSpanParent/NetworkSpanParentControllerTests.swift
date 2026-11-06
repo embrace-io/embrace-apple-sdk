@@ -43,8 +43,14 @@ final class NetworkSpanParentControllerTests: XCTestCase {
 
     func test_clear_withCurrentToken_clears() {
         let token = sut.set(context: randomContext())
-        sut.clear(token: token)
+        XCTAssertTrue(sut.clear(token: token))
         XCTAssertNil(sut.currentContext())
+    }
+
+    func test_clear_twice_returnsFalseTheSecondTime() {
+        let token = sut.set(context: randomContext())
+        XCTAssertTrue(sut.clear(token: token))
+        XCTAssertFalse(sut.clear(token: token))
     }
 
     func test_clear_withStaleToken_doesNothing() {
@@ -52,7 +58,7 @@ final class NetworkSpanParentControllerTests: XCTestCase {
         let current = randomContext()
         _ = sut.set(context: current)
 
-        sut.clear(token: staleToken)
+        XCTAssertFalse(sut.clear(token: staleToken))
 
         XCTAssertEqual(sut.currentContext()?.spanId, current.spanId)
     }
@@ -61,7 +67,7 @@ final class NetworkSpanParentControllerTests: XCTestCase {
         let current = randomContext()
         _ = sut.set(context: current)
 
-        sut.clear(token: .inert)
+        XCTAssertFalse(sut.clear(token: .inert))
 
         XCTAssertEqual(sut.currentContext()?.spanId, current.spanId)
     }
