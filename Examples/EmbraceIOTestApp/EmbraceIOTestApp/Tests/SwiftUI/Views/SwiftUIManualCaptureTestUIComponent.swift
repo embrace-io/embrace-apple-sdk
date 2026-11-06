@@ -53,6 +53,7 @@ struct SwiftUIManualCaptureTestUIComponent: View {
                             .embraceTrace(
                                 "TestDummyView",
                                 attributes: viewModel.attributes,
+                                trackBodyEvaluations: true,
                                 contentComplete: onLoaded
                             )
                             .onAppear {
