@@ -17,11 +17,6 @@ final class NetworkSpanParentResolverTests: XCTestCase {
     )
     private let networkSpanParent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
     private let chosen = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
-    private var logger: MockLogger!
-
-    override func setUp() {
-        logger = MockLogger()
-    }
 
     private func resolve(
         _ decision: EmbraceNetworkSpanParent,
@@ -31,8 +26,7 @@ final class NetworkSpanParentResolverTests: XCTestCase {
         return NetworkSpanParentResolver.resolve(
             decision: decision,
             header: header,
-            networkSpanParent: networkSpanParent,
-            logger: logger
+            networkSpanParent: networkSpanParent
         )
     }
 
@@ -60,6 +54,7 @@ final class NetworkSpanParentResolverTests: XCTestCase {
         XCTAssertEqual(resolution.context?.spanId, chosen.spanId)
         XCTAssertEqual(resolution.context?.traceId, chosen.traceId)
         XCTAssertEqual(resolution.source, .dataSource)
+        XCTAssertNil(resolution.ignoredInvalidParent)
     }
 
     func test_noParent_winsOverHeaderAndNetworkSpanParent() {
@@ -75,18 +70,17 @@ final class NetworkSpanParentResolverTests: XCTestCase {
         XCTAssertEqual(resolution.context?.traceId, chosen.traceId)
     }
 
-    func test_invalidParent_isTreatedAsDefault_andLogged() {
+    func test_invalidParent_isTreatedAsDefault_andReported() {
         let invalid = EmbraceSpanContext(spanId: "0000000000000000", traceId: chosen.traceId)
 
         let withHeader = resolve(.parent(invalid), header: header, networkSpanParent: networkSpanParent)
         XCTAssertEqual(withHeader.context?.spanId, header.spanId)
         XCTAssertEqual(withHeader.source, .header)
+        XCTAssertEqual(withHeader.ignoredInvalidParent?.spanId, invalid.spanId)
 
         let withNetworkSpanParent = resolve(.parent(invalid), header: nil, networkSpanParent: networkSpanParent)
         XCTAssertEqual(withNetworkSpanParent.context?.spanId, networkSpanParent.spanId)
         XCTAssertEqual(withNetworkSpanParent.source, .networkSpanParent)
-
-        let warnings = logger.loggedMessages.filter { $0.level == .warning }
-        XCTAssertEqual(warnings.count, 2)
+        XCTAssertEqual(withNetworkSpanParent.ignoredInvalidParent?.spanId, invalid.spanId)
     }
 }

@@ -26,6 +26,8 @@ enum NetworkSpanParentResolver {
     struct Resolution {
         let context: EmbraceSpanContext?
         let source: Source
+        /// The `.parent` context returned by the data source, when it was ignored for being invalid.
+        var ignoredInvalidParent: EmbraceSpanContext?
     }
 
     /// Resolves the parent of a network span. The first rule that applies wins:
@@ -40,13 +42,13 @@ enum NetworkSpanParentResolver {
     ///   - decision: The data source's decision, or `.default` if there's no data source.
     ///   - header: The request's parsed `traceparent` header, if it has a well-formed one.
     ///   - networkSpanParent: The context of the network span parent set by the app, if any.
-    ///   - logger: Used to warn about invalid `.parent` contexts.
     static func resolve(
         decision: EmbraceNetworkSpanParent,
         header: W3C.ParsedTraceparent?,
-        networkSpanParent: EmbraceSpanContext?,
-        logger: InternalLogger? = Embrace.logger
+        networkSpanParent: EmbraceSpanContext?
     ) -> Resolution {
+        var ignoredInvalidParent: EmbraceSpanContext?
+
         switch decision {
         case .noParent:
             return Resolution(context: nil, source: .dataSource)
@@ -60,22 +62,20 @@ enum NetworkSpanParentResolver {
                 return Resolution(context: normalized, source: .dataSource)
             }
 
-            logger?.warning(
-                "Ignoring invalid network span parent returned by the requests data source: span id '\(context.spanId)', trace id '\(context.traceId)'. The default parent is used instead."
-            )
+            ignoredInvalidParent = context
 
         case .default:
             break
         }
 
         if let header {
-            return Resolution(context: header.context, source: .header)
+            return Resolution(context: header.context, source: .header, ignoredInvalidParent: ignoredInvalidParent)
         }
 
         if let networkSpanParent {
-            return Resolution(context: networkSpanParent, source: .networkSpanParent)
+            return Resolution(context: networkSpanParent, source: .networkSpanParent, ignoredInvalidParent: ignoredInvalidParent)
         }
 
-        return Resolution(context: nil, source: .none)
+        return Resolution(context: nil, source: .none, ignoredInvalidParent: ignoredInvalidParent)
     }
 }

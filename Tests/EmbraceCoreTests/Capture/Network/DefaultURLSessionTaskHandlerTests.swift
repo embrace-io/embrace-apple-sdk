@@ -407,7 +407,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         thenNetworkSpanParent(spanId: headerSpanId, traceId: headerTraceId)
     }
 
-    func test_spanParent_InvalidParent_FallsBackToDefault_AndWarnsEveryTime() {
+    func test_spanParent_InvalidParent_FallsBackToDefault_AndIsLoggedOnce() {
         givenTaskHandler()
         givenRequestsDataSource(spanParent: .parent(EmbraceSpanContext(spanId: "nope", traceId: "nope")))
         givenAnURLSessionTaskWithTraceparent(headerValue(flags: "01"))
@@ -417,7 +417,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         givenAnURLSessionTask()
         whenInvokingCreate()
 
-        XCTAssertEqual(warnings(containing: "Ignoring invalid network span parent").count, 2)
+        XCTAssertEqual(warnings(containing: "Ignoring invalid network span parent").count, 1)
     }
 
     func test_spanParent_CalledOncePerTask() {

@@ -40,6 +40,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
     private let logger: InternalLogger
     private let didWarnMalformedTraceparent = EmbraceAtomic(false)
     private let didWarnSlowSpanParentCall = EmbraceAtomic(false)
+    private let didWarnInvalidSpanParent = EmbraceAtomic(false)
     weak var dataSource: URLSessionTaskHandlerDataSource?
 
     init(
@@ -173,9 +174,13 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         let parent = NetworkSpanParentResolver.resolve(
             decision: decision,
             header: traceparent,
-            networkSpanParent: networkSpanParent,
-            logger: logger
+            networkSpanParent: networkSpanParent
         )
+        if let invalid = parent.ignoredInvalidParent, didWarnInvalidSpanParent.exchange(true) == false {
+            logger.warning(
+                "Ignoring invalid network span parent returned by the requests data source: span id '\(invalid.spanId)', trace id '\(invalid.traceId)'. The default parent is used instead. Further invalid parents won't be logged."
+            )
+        }
 
         let span = try? otel.createInternalSpan(
             name: name,
