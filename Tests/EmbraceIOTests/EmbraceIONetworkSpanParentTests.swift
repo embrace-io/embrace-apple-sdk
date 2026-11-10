@@ -176,19 +176,21 @@ final class EmbraceIONetworkSpanParentTests: XCTestCase {
 
         XCTAssertEqual(captureService.spanParentSlowCallThreshold, 0.005)
 
+        // The calls are still pending, and ending the session part writes them.
         captureService.recordSlowSpanParentCall(duration: 0.012)
         captureService.recordSlowSpanParentCall(duration: 0.0079)
         let firstPart = try XCTUnwrap(client.sessionController.currentSessionSpan)
+        _ = client.sessionController.endSession()
         XCTAssertEqual(firstPart.attributes[countKey]?.description, "2")
         XCTAssertEqual(firstPart.attributes[maxMsKey]?.description, "12")
 
-        _ = client.sessionController.endSession()
         _ = client.sessionController.startSession(state: .foreground)
         let secondPart = try XCTUnwrap(client.sessionController.currentSessionSpan)
         XCTAssertNil(secondPart.attributes[countKey])
         XCTAssertNil(secondPart.attributes[maxMsKey])
 
         captureService.recordSlowSpanParentCall(duration: 0.006)
+        client.slowCallbacks.flush()
         XCTAssertEqual(secondPart.attributes[countKey]?.description, "1")
         XCTAssertEqual(secondPart.attributes[maxMsKey]?.description, "6")
     }

@@ -178,7 +178,7 @@ extension SpanPayload {
                 ))
         }
 
-        // Read from the stored span, which is updated on every slow call while the session part is open.
+        // Read from the stored span, which is updated while the session part is open.
         if let spanAttributes = span?.attributes {
             attributeArray.append(
                 contentsOf:

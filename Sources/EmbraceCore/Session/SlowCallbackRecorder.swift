@@ -22,9 +22,13 @@ struct SlowCallback: Hashable {
 
 /// Counts slow calls to app callbacks during the current session part, along with the longest one.
 ///
-/// Both values are written to the session part's span on every slow call, not only when the part ends,
-/// so a part that ends in a crash or a kill keeps them. They start over when a new session part starts.
+/// Every attribute write is persisted, so the values aren't written to the session part's span on every call.
+/// They're written once `flushCallCount` calls are pending, `flushInterval` seconds after the first pending call,
+/// and when `flush()` is called as the session part ends. They start over when a new session part starts.
 final class SlowCallbackRecorder {
+
+    static let flushCallCount = 5
+    static let flushInterval: TimeInterval = 5
 
     private struct Stats {
         var count = 0
@@ -32,15 +36,28 @@ final class SlowCallbackRecorder {
     }
 
     private struct State {
-        var sessionSpanId: String?
+        var sessionSpan: EmbraceSpan?
         var stats: [SlowCallback: Stats] = [:]
+        var pending: Set<SlowCallback> = []
+        var pendingCallCount = 0
+        var isFlushScheduled = false
     }
 
     private let currentSessionSpan: () -> EmbraceSpan?
+    private let schedule: (TimeInterval, @escaping () -> Void) -> Void
     private let state = EmbraceMutex(State())
 
-    init(currentSessionSpan: @escaping () -> EmbraceSpan?) {
+    /// - Parameters:
+    ///   - currentSessionSpan: Returns the span of the current session part, if there is one.
+    ///   - schedule: Runs the block after the given number of seconds.
+    init(
+        currentSessionSpan: @escaping () -> EmbraceSpan?,
+        schedule: @escaping (TimeInterval, @escaping () -> Void) -> Void = { delay, block in
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + delay, execute: block)
+        }
+    ) {
         self.currentSessionSpan = currentSessionSpan
+        self.schedule = schedule
     }
 
     /// Records a slow call to `callback` that took `duration` seconds.
@@ -52,18 +69,60 @@ final class SlowCallbackRecorder {
 
         let ms = Int(max(duration, 0) * 1000)
 
-        // The span is updated under the lock, so concurrent calls can't write their values out of order.
-        state.withLock { state in
-            if state.sessionSpanId != span.context.spanId {
-                state = State(sessionSpanId: span.context.spanId)
+        let shouldSchedule = state.withLock { state -> Bool in
+            // Calls still pending for an earlier session part are dropped: its span has already been uploaded.
+            if state.sessionSpan?.context.spanId != span.context.spanId {
+                state = State(sessionSpan: span, isFlushScheduled: state.isFlushScheduled)
             }
 
             var stats = state.stats[callback] ?? Stats()
             stats.count += 1
             stats.maxMs = max(stats.maxMs, ms)
             state.stats[callback] = stats
+            state.pending.insert(callback)
+            state.pendingCallCount += 1
 
+            if state.pendingCallCount >= Self.flushCallCount {
+                Self.write(&state)
+                return false
+            }
+
+            guard state.isFlushScheduled == false else {
+                return false
+            }
+            state.isFlushScheduled = true
+            return true
+        }
+
+        if shouldSchedule {
+            schedule(Self.flushInterval) { [weak self] in
+                self?.state.withLock { state in
+                    state.isFlushScheduled = false
+                    Self.write(&state)
+                }
+            }
+        }
+    }
+
+    /// Writes the pending values to the session part's span.
+    func flush() {
+        state.withLock { Self.write(&$0) }
+    }
+
+    /// Runs under the lock, so concurrent writes can't land out of order.
+    private static func write(_ state: inout State) {
+        guard let span = state.sessionSpan else {
+            return
+        }
+
+        for callback in state.pending {
+            guard let stats = state.stats[callback] else {
+                continue
+            }
             SessionSpanUtils.setSlowCallback(span: span, callback: callback, count: stats.count, maxMs: stats.maxMs)
         }
+
+        state.pending = []
+        state.pendingCallCount = 0
     }
 }

@@ -271,6 +271,7 @@ package class Embrace {
         self.slowCallbacks = SlowCallbackRecorder { [weak sessionController] in
             sessionController?.currentSessionSpan
         }
+        self.sessionController.slowCallbacks = self.slowCallbacks
 
         // metrick kit
         captureServices.addMetricKitServices(
