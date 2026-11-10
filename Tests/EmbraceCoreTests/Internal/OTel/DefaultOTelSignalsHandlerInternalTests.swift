@@ -375,6 +375,49 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(record!.endTime, endTime)
     }
 
+    func test_onSpanEnded_clearsMatchingNetworkSpanParent() throws {
+        // given a network span parent set to a span
+        let controller = NetworkSpanParentController(logger: MockLogger(), notificationCenter: NotificationCenter()) { nil }
+        handler.networkSpanParentController = controller
+        let span = MockSpan(name: "checkout")
+        _ = controller.set(span: span)
+
+        // when another span ends
+        handler.onSpanEnded(MockSpan(name: "other"), endTime: Date())
+
+        // then the parent stays
+        XCTAssertEqual(controller.currentContext()?.spanId, span.context.spanId)
+
+        // when the parent span ends
+        handler.onSpanEnded(span, endTime: Date())
+
+        // then the parent is cleared
+        XCTAssertNil(controller.currentContext())
+    }
+
+    func test_createInternalSpan_withParentContext_unknownToTheSDK() throws {
+        // when creating an internal span whose parent is only known by its context
+        let parent = EmbraceSpanContext(spanId: .randomSpanId(), traceId: .randomTraceId())
+        let span = try handler.createInternalSpan(name: "test", parentContext: parent, type: .networkRequest)
+
+        // then the span is a child of that context
+        XCTAssertEqual(span.parentSpanId, parent.spanId)
+
+        let record = try XCTUnwrap(storage.fetchSpan(id: span.context.spanId, traceId: span.context.traceId))
+        XCTAssertEqual(record.parentSpanId, parent.spanId)
+        XCTAssertEqual(record.context.traceId, parent.traceId)
+    }
+
+    func test_createInternalSpan_withInvalidParentContext_startsNewTrace() throws {
+        // when creating an internal span with an invalid parent context
+        let parent = EmbraceSpanContext(spanId: "nope", traceId: "nope")
+        let span = try handler.createInternalSpan(name: "test", parentContext: parent, type: .networkRequest)
+
+        // then the parent is ignored
+        XCTAssertNil(span.parentSpanId)
+        XCTAssertNotEqual(span.context.traceId, "nope")
+    }
+
     // MARK: EmbraceSpanDataSource
     func test_createEvent_success() throws {
         // given a handler with limits
@@ -952,6 +995,21 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(record!.processId, TestConstants.processId)
         XCTAssertEqual(record!.attributes.count, 1)
         XCTAssertEqual(record!.attributes["key"] as! String, "value")
+    }
+
+    func test_onEndSpan_clearsMatchingNetworkSpanParent() throws {
+        // given a network span parent set by context to a span the SDK didn't create
+        let controller = NetworkSpanParentController(logger: MockLogger(), notificationCenter: NotificationCenter()) { nil }
+        handler.networkSpanParentController = controller
+        let span = MockSpan(name: "external")
+        _ = controller.set(context: span.context)
+
+        // when the external span ends
+        span.endTime = Date()
+        handler.onEndSpan(span)
+
+        // then the parent is cleared
+        XCTAssertNil(controller.currentContext())
     }
 
     func test_onEndSpan_notFound() throws {

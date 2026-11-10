@@ -14,7 +14,7 @@ public protocol EmbraceOTelSignalBridge {
     /// Called when a span is created and started
     func startSpan(
         name: String,
-        parentSpan: EmbraceSpan?,
+        parentContext: EmbraceSpanContext?,
         status: EmbraceSpanStatus,
         startTime: Date,
         endTime: Date?,
