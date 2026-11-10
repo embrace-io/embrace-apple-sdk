@@ -15,6 +15,7 @@ struct SwiftUITestViewEmbraceViewCapture: View {
         EmbraceTraceView(
             "MyEmbraceTraceView",
             attributes: attributes,
+            trackBodyEvaluations: true,
             contentComplete: onLoaded
         ) {
             Text("👀 Don't mind me!")

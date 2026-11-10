@@ -85,6 +85,8 @@ package class Embrace {
     let userSessionController: UserSessionController
     let sessionLifecycle: SessionLifecycle
 
+    let stateController = StateController()
+
     let otelResources: EmbraceAttributes?
 
     let processingQueue = DispatchQueue(
@@ -275,7 +277,9 @@ package class Embrace {
         // set providers
         sessionController.sdkStateProvider = self
         sessionController.otel = self.otel
+        sessionController.stateController = stateController
         logController.sdkStateProvider = self
+        logController.stateController = stateController
         logController.privateLogger = self
         Embrace.logger.otel = self.otel
 
