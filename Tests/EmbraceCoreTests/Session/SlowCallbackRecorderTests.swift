@@ -2,6 +2,7 @@
 //  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import TestSupport
 import XCTest
@@ -181,6 +182,56 @@ final class SlowCallbackRecorderTests: XCTestCase {
         XCTAssertEqual(attribute(maxMsKey), "10")
         XCTAssertEqual(attribute("emb.private.slow_callback.other_callback.count"), "1")
         XCTAssertEqual(attribute("emb.private.slow_callback.other_callback.max_ms"), "30")
+    }
+
+    func test_callThatReadThePreviousPart_doesNotResetTheNewPart() {
+        let firstPart = MockSpan(name: "emb-session")
+        let secondPart = MockSpan(name: "emb-session")
+        let currentSpan = EmbraceMutex<EmbraceSpan?>(firstPart)
+        let blockNextRead = EmbraceAtomic(true)
+        let staleCallReadTheSpan = DispatchSemaphore(value: 0)
+        let resumeStaleCall = DispatchSemaphore(value: 0)
+        sut = SlowCallbackRecorder(
+            currentSessionSpan: {
+                let span = currentSpan.safeValue
+                // The first call pauses right after reading the span, while the session part changes.
+                if blockNextRead.exchange(false) {
+                    staleCallReadTheSpan.signal()
+                    resumeStaleCall.wait()
+                }
+                return span
+            },
+            schedule: { _, _ in }
+        )
+
+        let staleCallDone = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            self.sut.recordSlowCall(.networkSpanParentProvider, duration: 0.010)
+            staleCallDone.signal()
+        }
+        staleCallReadTheSpan.wait()
+
+        // The session part changes, and another call records for the new part.
+        currentSpan.withLock { $0 = secondPart }
+        let newCallDone = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            self.sut.recordSlowCall(.networkSpanParentProvider, duration: 0.010)
+            newCallDone.signal()
+        }
+        // The new call waits for the paused one, so this wait times out. If the span were read outside the
+        // lock, the new call would finish first, and the paused one would then reset the new part's values.
+        let newCallFinishedFirst = newCallDone.wait(timeout: .now() + 0.2) == .success
+
+        resumeStaleCall.signal()
+        staleCallDone.wait()
+        if !newCallFinishedFirst {
+            newCallDone.wait()
+        }
+
+        record(0.010)
+        sut.flush()
+
+        XCTAssertEqual(attribute(countKey, on: secondPart), "2")
     }
 
     func test_concurrentCalls_areAllCounted() {

@@ -49,6 +49,7 @@ final class SlowCallbackRecorder {
 
     /// - Parameters:
     ///   - currentSessionSpan: Returns the span of the current session part, if there is one.
+    ///     It's called under the recorder's lock, so it must not call back into the recorder.
     ///   - schedule: Runs the block after the given number of seconds.
     init(
         currentSessionSpan: @escaping () -> EmbraceSpan?,
@@ -63,13 +64,16 @@ final class SlowCallbackRecorder {
     /// Records a slow call to `callback` that took `duration` seconds.
     /// The call counts toward the current session part, and is dropped if there's none.
     func recordSlowCall(_ callback: SlowCallback, duration: TimeInterval) {
-        guard let span = currentSessionSpan() else {
-            return
-        }
-
         let ms = Int(max(duration, 0) * 1000)
 
         let shouldSchedule = state.withLock { state -> Bool in
+            // Read under the lock, so calls see the session parts in the order they apply their changes.
+            // Otherwise a call that read the previous part's span could take the lock after one that read
+            // the new part's, and reset the new part's values.
+            guard let span = currentSessionSpan() else {
+                return false
+            }
+
             // Calls still pending for an earlier session part are dropped: its span has already been uploaded.
             if state.sessionSpan?.context.spanId != span.context.spanId {
                 state = State(sessionSpan: span, isFlushScheduled: state.isFlushScheduled)
