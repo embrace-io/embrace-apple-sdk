@@ -53,6 +53,8 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var traceparentInjectionEnabled: Bool = false
 
+    public var networkSpanParentProviderSlowThreshold: TimeInterval = 0.005
+
     public func update(completion: (Result<Bool, Error>) -> Void) {
         completion(.success(false))
     }

@@ -51,5 +51,15 @@ extension SpanSemantics {
 
         public static let keyHeartbeat = "emb.heartbeat_time_unix_nano"
         public static let keyCrashId = "emb.crash_id"
+
+        /// Prefix of the attributes reporting slow calls to app callbacks during the session part.
+        public static let keySlowCallbackPrefix = "emb.private.slow_callback."
+
+        /// Number of slow calls to `URLSessionRequestsDataSource.spanParent(for:currentParentContext:)` during the session part.
+        public static let keySlowNetworkSpanParentProviderCount = "emb.private.slow_callback.network_span_parent_provider.count"
+
+        /// Longest slow call to `URLSessionRequestsDataSource.spanParent(for:currentParentContext:)` during the session part,
+        /// in whole ms, rounded down.
+        public static let keySlowNetworkSpanParentProviderMaxMs = "emb.private.slow_callback.network_span_parent_provider.max_ms"
     }
 }

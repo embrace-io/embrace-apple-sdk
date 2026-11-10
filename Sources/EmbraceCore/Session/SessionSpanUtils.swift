@@ -64,6 +64,12 @@ struct SessionSpanUtils {
         span?.setInternalAttribute(key: SpanSemantics.keyExperiments, value: value)
     }
 
+    /// Sets the number of slow calls to `callback` during the session part, and the longest one.
+    static func setSlowCallback(span: EmbraceSpan?, callback: SlowCallback, count: Int, maxMs: Int) {
+        span?.setInternalAttribute(key: callback.countKey, value: String(count))
+        span?.setInternalAttribute(key: callback.maxMsKey, value: String(maxMs))
+    }
+
     static func payload(
         from session: EmbraceSession,
         span: EmbraceSpan? = nil,
@@ -170,6 +176,17 @@ extension SpanPayload {
                     key: SpanSemantics.keyExperiments,
                     value: experiments
                 ))
+        }
+
+        // Read from the stored span, which is updated on every slow call while the session part is open.
+        if let spanAttributes = span?.attributes {
+            attributeArray.append(
+                contentsOf:
+                    spanAttributes
+                    .filter { $0.key.hasPrefix(SpanSemantics.Session.keySlowCallbackPrefix) }
+                    .sorted { $0.key < $1.key }
+                    .map { Attribute(key: $0.key, value: $0.value.description) }
+            )
         }
 
         attributeArray.append(

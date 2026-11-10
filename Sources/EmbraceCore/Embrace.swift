@@ -61,6 +61,9 @@ package class Embrace {
     /// Holds the span that new network spans are parented to.
     package let networkSpanParentController: NetworkSpanParentController
 
+    /// Counts slow calls to app callbacks on the session part's span.
+    let slowCallbacks: SlowCallbackRecorder
+
     /// Holds the experiments and feature flags tracked during this process.
     package let experiments: ExperimentsHandler
 
@@ -264,6 +267,10 @@ package class Embrace {
         }
         self.networkSpanParentController.otel = self.otel
         self.otel.networkSpanParentController = self.networkSpanParentController
+
+        self.slowCallbacks = SlowCallbackRecorder { [weak sessionController] in
+            sessionController?.currentSessionSpan
+        }
 
         // metrick kit
         captureServices.addMetricKitServices(

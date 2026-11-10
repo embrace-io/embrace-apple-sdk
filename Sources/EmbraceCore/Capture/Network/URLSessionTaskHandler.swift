@@ -23,15 +23,14 @@ protocol URLSessionTaskHandlerDataSource: AnyObject {
     var isNSFEligible: Bool { get }
     var requestsDataSource: URLSessionRequestsDataSource? { get }
     var networkSpanParent: NetworkSpanParentProvider? { get }
+    var spanParentSlowCallThreshold: TimeInterval { get }
+    func recordSlowSpanParentCall(duration: TimeInterval)
     var ignoredURLs: [String] { get }
 
     var ignoredTaskTypes: [AnyClass] { get }
 }
 
 final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
-
-    /// Calls to `URLSessionRequestsDataSource.spanParent(for:currentParentContext:)` taking longer than this are logged.
-    static let slowSpanParentCallThreshold: TimeInterval = 0.005
 
     private let spans = EmbraceMutex<[URLSessionTask: EmbraceSpan]>([:])
     private let queue: DispatchableQueue
@@ -343,7 +342,7 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         return nil
     }
 
-    /// Asks the requests data source for the network span's parent, logging the first call that is slow.
+    /// Asks the requests data source for the network span's parent. Every slow call is recorded, and the first one is logged.
     private func spanParentDecision(
         for request: URLRequest,
         networkSpanParent: EmbraceSpanContext?
@@ -356,7 +355,13 @@ final class DefaultURLSessionTaskHandler: NSObject, URLSessionTaskHandler {
         let decision = requestsDataSource.spanParent(for: request, currentParentContext: networkSpanParent)
         let duration = TimeInterval(uptimeNanoseconds() - start) / TimeInterval(NSEC_PER_SEC)
 
-        if duration > Self.slowSpanParentCallThreshold, didWarnSlowSpanParentCall.exchange(true) == false {
+        guard let dataSource, duration > dataSource.spanParentSlowCallThreshold else {
+            return decision
+        }
+
+        dataSource.recordSlowSpanParentCall(duration: duration)
+
+        if didWarnSlowSpanParentCall.exchange(true) == false {
             logger.warning(
                 "URLSessionRequestsDataSource.spanParent(for:currentParentContext:) took \(Int(duration * 1000)) ms for a request to '\(request.url?.host ?? "unknown host")\(request.url?.path ?? "")'. It is called before every captured request starts, so it should return quickly. Further slow calls won't be logged."
             )

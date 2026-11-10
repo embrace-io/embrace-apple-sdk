@@ -167,4 +167,8 @@ extension EmbraceConfig /* EmbraceConfigurable delegation */ {
     public var useNewStorageForSpanEvents: Bool {
         configurable.useNewStorageForSpanEvents
     }
+
+    public var networkSpanParentProviderSlowThreshold: TimeInterval {
+        configurable.networkSpanParentProviderSlowThreshold
+    }
 }

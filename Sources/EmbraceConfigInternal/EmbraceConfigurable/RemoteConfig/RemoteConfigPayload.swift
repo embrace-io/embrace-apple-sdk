@@ -57,6 +57,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var userSessionMaxDurationSeconds: TimeInterval
     var userSessionInactivityTimeoutSeconds: TimeInterval
 
+    var networkSpanParentProviderSlowThreshold: TimeInterval
+
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
 
@@ -121,6 +123,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case maxDurationSeconds = "max_duration_seconds"
             case inactivityTimeoutSeconds = "inactivity_timeout_seconds"
         }
+
+        case networkSpanParentProviderSlowMs = "network_span_parent_provider_slow_ms"
     }
 
     public init(from decoder: Decoder) throws {
@@ -419,6 +423,14 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             userSessionMaxDurationSeconds = defaultPayload.userSessionMaxDurationSeconds
             userSessionInactivityTimeoutSeconds = defaultPayload.userSessionInactivityTimeoutSeconds
         }
+
+        // network span parent provider slow threshold
+        let slowMs = try? rootContainer.decodeIfPresent(Double.self, forKey: .networkSpanParentProviderSlowMs)
+        if let slowMs, slowMs.isFinite, slowMs > 0 {
+            networkSpanParentProviderSlowThreshold = slowMs / 1000
+        } else {
+            networkSpanParentProviderSlowThreshold = defaultPayload.networkSpanParentProviderSlowThreshold
+        }
     }
 
     /// Validates the user-session config values.
@@ -494,5 +506,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         userSessionMaxDurationSeconds = UserSessionSemantics.defaultMaxDurationSeconds
         userSessionInactivityTimeoutSeconds = UserSessionSemantics.defaultInactivityTimeoutSeconds
+
+        networkSpanParentProviderSlowThreshold = SlowCallbackSemantics.defaultNetworkSpanParentProviderThreshold
     }
 }

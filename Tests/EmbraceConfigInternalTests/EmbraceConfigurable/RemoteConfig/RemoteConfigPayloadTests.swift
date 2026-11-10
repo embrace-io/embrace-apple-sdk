@@ -184,6 +184,44 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.maxExperimentVariantLength, 128)
     }
 
+    // MARK: - Network span parent provider slow threshold
+
+    func test_networkSpanParentProviderSlowThreshold_missing_usesDefault() throws {
+        XCTAssertEqual(try decodePayload("{}").networkSpanParentProviderSlowThreshold, 0.005)
+    }
+
+    func test_networkSpanParentProviderSlowThreshold_valid_isConvertedToSeconds() throws {
+        let payload = try decodePayload(#"{ "network_span_parent_provider_slow_ms": 20 }"#)
+        XCTAssertEqual(payload.networkSpanParentProviderSlowThreshold, 0.020)
+    }
+
+    func test_networkSpanParentProviderSlowThreshold_fractional_isKept() throws {
+        let payload = try decodePayload(#"{ "network_span_parent_provider_slow_ms": 2.5 }"#)
+        XCTAssertEqual(payload.networkSpanParentProviderSlowThreshold, 0.0025)
+    }
+
+    func test_networkSpanParentProviderSlowThreshold_zeroOrNegative_usesDefault() throws {
+        XCTAssertEqual(
+            try decodePayload(#"{ "network_span_parent_provider_slow_ms": 0 }"#).networkSpanParentProviderSlowThreshold,
+            0.005
+        )
+        XCTAssertEqual(
+            try decodePayload(#"{ "network_span_parent_provider_slow_ms": -10 }"#).networkSpanParentProviderSlowThreshold,
+            0.005
+        )
+    }
+
+    func test_networkSpanParentProviderSlowThreshold_malformed_usesDefault_andKeepsTheRestOfTheConfig() throws {
+        let payload = try decodePayload(#"{ "threshold": 50, "network_span_parent_provider_slow_ms": "fast" }"#)
+        XCTAssertEqual(payload.networkSpanParentProviderSlowThreshold, 0.005)
+        XCTAssertEqual(payload.sdkEnabledThreshold, 50)
+    }
+
+    func test_networkSpanParentProviderSlowThreshold_nested_isIgnored() throws {
+        let payload = try decodePayload(#"{ "data": { "network_span_parent_provider_slow_ms": 20 } }"#)
+        XCTAssertEqual(payload.networkSpanParentProviderSlowThreshold, 0.005)
+    }
+
     // MARK: - User session config
 
     private func decodePayload(_ json: String) throws -> RemoteConfigPayload {

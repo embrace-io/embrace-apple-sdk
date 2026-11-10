@@ -58,6 +58,8 @@ public class DefaultConfig: EmbraceConfigurable {
 
     public let traceparentInjectionEnabled: Bool = false
 
+    public let networkSpanParentProviderSlowThreshold: TimeInterval = SlowCallbackSemantics.defaultNetworkSpanParentProviderThreshold
+
     public func update(completion: (Result<Bool, Error>) -> Void) {
         completion(.success(false))
     }
