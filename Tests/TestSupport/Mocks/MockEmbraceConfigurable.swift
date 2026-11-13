@@ -33,7 +33,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         experimentsLimits: ExperimentsLimits = ExperimentsLimits(),
         useNewStorageForSpanEvents: Bool = false,
         userSessionMaxDuration: TimeInterval = 12 * 3600,
-        userSessionInactivityTimeout: TimeInterval = 30 * 60
+        userSessionInactivityTimeout: TimeInterval = 30 * 60,
+        isSmoothnessEnabled: Bool = false
     ) {
         self._isSDKEnabled = isSDKEnabled
         self._isBackgroundSessionEnabled = isBackgroundSessionEnabled
@@ -57,6 +58,7 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
         self._useNewStorageForSpanEvents = useNewStorageForSpanEvents
         self._userSessionMaxDuration = userSessionMaxDuration
         self._userSessionInactivityTimeout = userSessionInactivityTimeout
+        self.isSmoothnessEnabled = isSmoothnessEnabled
         self.updateCompletionParamDidUpdate = updateCompletionParamDidUpdate
         self.updateCompletionParamError = updateCompletionParamError
     }
@@ -336,6 +338,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
     }
 
     public var traceparentInjectionEnabled: Bool = false
+
+    public var isSmoothnessEnabled: Bool
 
     public var updateCallCount = 0
     public var updateCompletionParamDidUpdate: Bool

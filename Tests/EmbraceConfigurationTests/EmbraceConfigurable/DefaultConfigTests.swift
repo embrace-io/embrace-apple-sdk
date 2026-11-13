@@ -28,5 +28,6 @@ final class DefaultConfigTests: XCTestCase {
         XCTAssertTrue(config.networkPayloadCaptureRules.isEmpty)
         XCTAssertEqual(config.userSessionMaxDuration, 12 * 3600)
         XCTAssertEqual(config.userSessionInactivityTimeout, 30 * 60)
+        XCTAssertFalse(config.isSmoothnessEnabled)
     }
 }

@@ -34,6 +34,7 @@ public final class CaptureServicesOptionsBuilder {
         let lowMemoryWarning = (map[.lowMemoryWarning] as? Bool) ?? false
         let lowPowerMode = (map[.lowPowerMode] as? Bool) ?? false
         let hang = (map[.hang] as? Bool) ?? false
+        let smoothness = (map[.smoothness] as? Bool) ?? false
         #if os(watchOS)
             return EmbraceIO.CaptureServicesOptions(
                 urlSession: urlSession,
@@ -41,6 +42,7 @@ public final class CaptureServicesOptionsBuilder {
                 lowMemoryWarning: lowMemoryWarning,
                 lowPowerMode: lowPowerMode,
                 hang: hang,
+                smoothness: smoothness,
                 customServices: customServices
             )
         #else
@@ -55,6 +57,7 @@ public final class CaptureServicesOptionsBuilder {
                         lowMemoryWarning: lowMemoryWarning,
                         lowPowerMode: lowPowerMode,
                         hang: hang,
+                        smoothness: smoothness,
                         customServices: customServices
                     )
                 #else
@@ -66,6 +69,7 @@ public final class CaptureServicesOptionsBuilder {
                         lowMemoryWarning: lowMemoryWarning,
                         lowPowerMode: lowPowerMode,
                         hang: hang,
+                        smoothness: smoothness,
                         customServices: customServices
                     )
                 #endif
@@ -78,6 +82,7 @@ public final class CaptureServicesOptionsBuilder {
                     lowMemoryWarning: lowMemoryWarning,
                     lowPowerMode: lowPowerMode,
                     hang: hang,
+                    smoothness: smoothness,
                     customServices: customServices
                 )
             #endif
@@ -86,7 +91,8 @@ public final class CaptureServicesOptionsBuilder {
     }
 
     /// Adds the default `CaptureServices` using their corresponding default options.
-    /// The default services are: `.urlSession`, `.tap`, `.view`, `webView`, `.lowMemoryWarning` and `.lowPowerMode`.
+    /// The default services are: `.urlSession`, `.tap`, `.view`, `webView`, `.lowMemoryWarning`, `.lowPowerMode` and
+    /// `.smoothness`. Smoothness stays dormant until remote config enables it for the device; remove it to opt out.
     /// - Note: Any existing `CaptureService` previously added will not get replaced by calling this method.
     @discardableResult
     public func addDefaults() -> Self {
@@ -123,6 +129,13 @@ public final class CaptureServicesOptionsBuilder {
         if map[.lowPowerMode] == nil {
             map[.lowPowerMode] = true
         }
+
+        #if !os(watchOS) && !os(macOS)
+            // smoothness
+            if map[.smoothness] == nil {
+                map[.smoothness] = true
+            }
+        #endif
 
         return self
     }
@@ -198,6 +211,15 @@ public final class CaptureServicesOptionsBuilder {
             map[.hang] = true
             return self
         }
+
+        /// Adds a new `SmoothnessCaptureService`.
+        /// - Note: Stays dormant until remote config enables it. Available on iOS and tvOS only.
+        /// - Note: If there was another `SmoothnessCaptureService` previously added, it will be replaced with the new one.
+        @discardableResult
+        public func addSmoothnessCaptureService() -> Self {
+            map[.smoothness] = true
+            return self
+        }
     #endif
 
     /// Adds the given custom `CaptureService`.
@@ -250,6 +272,10 @@ public final class CaptureServicesOptionsBuilder {
         #if !os(watchOS) && !os(macOS)
             if ofType == HangCaptureService.self {
                 map[.hang] = nil
+            }
+
+            if ofType == SmoothnessCaptureService.self {
+                map[.smoothness] = nil
             }
         #endif
 
