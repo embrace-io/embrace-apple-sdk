@@ -124,7 +124,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case inactivityTimeoutSeconds = "inactivity_timeout_seconds"
         }
 
-        case networkSpanParentProviderSlowMs = "network_span_parent_provider_slow_ms"
+        case data
+        enum DataCodingKeys: String, CodingKey {
+            case networkSpanParentProviderSlowMs = "network_span_parent_provider_slow_ms"
+        }
     }
 
     public init(from decoder: Decoder) throws {
@@ -424,8 +427,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             userSessionInactivityTimeoutSeconds = defaultPayload.userSessionInactivityTimeoutSeconds
         }
 
-        // network span parent provider slow threshold
-        let slowMs = try? rootContainer.decodeIfPresent(Double.self, forKey: .networkSpanParentProviderSlowMs)
+        // data
+        let dataContainer = try? rootContainer.nestedContainer(keyedBy: CodingKeys.DataCodingKeys.self, forKey: .data)
+        let slowMs = try? dataContainer?.decodeIfPresent(Double.self, forKey: .networkSpanParentProviderSlowMs)
         if let slowMs, slowMs.isFinite, slowMs > 0 {
             networkSpanParentProviderSlowThreshold = slowMs / 1000
         } else {
