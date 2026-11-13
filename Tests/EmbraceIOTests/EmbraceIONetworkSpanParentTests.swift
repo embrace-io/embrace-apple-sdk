@@ -165,6 +165,36 @@ final class EmbraceIONetworkSpanParentTests: XCTestCase {
         XCTAssertNil(otelSpan.parentSpanId)
     }
 
+    // MARK: - Slow-call telemetry
+
+    func test_slowSpanParentCall_isCountedOnTheSessionPartSpan_untilTheSessionPartEnds() throws {
+        try start()
+        let client = try XCTUnwrap(Embrace.client)
+        let captureService = URLSessionCaptureService()
+        let countKey = "emb.private.slow_callback.network_span_parent_provider.count"
+        let maxMsKey = "emb.private.slow_callback.network_span_parent_provider.max_ms"
+
+        XCTAssertEqual(captureService.spanParentSlowCallThreshold, 0.005)
+
+        // The calls are still pending, and ending the session part writes them.
+        captureService.recordSlowSpanParentCall(duration: 0.012)
+        captureService.recordSlowSpanParentCall(duration: 0.0079)
+        let firstPart = try XCTUnwrap(client.sessionController.currentSessionSpan)
+        _ = client.sessionController.endSession()
+        XCTAssertEqual(firstPart.attributes[countKey]?.description, "2")
+        XCTAssertEqual(firstPart.attributes[maxMsKey]?.description, "12")
+
+        _ = client.sessionController.startSession(state: .foreground)
+        let secondPart = try XCTUnwrap(client.sessionController.currentSessionSpan)
+        XCTAssertNil(secondPart.attributes[countKey])
+        XCTAssertNil(secondPart.attributes[maxMsKey])
+
+        captureService.recordSlowSpanParentCall(duration: 0.006)
+        client.slowCallbacks.flush()
+        XCTAssertEqual(secondPart.attributes[countKey]?.description, "1")
+        XCTAssertEqual(secondPart.attributes[maxMsKey]?.description, "6")
+    }
+
     // MARK: - Helpers
 
     private func url(path: String) -> URL {

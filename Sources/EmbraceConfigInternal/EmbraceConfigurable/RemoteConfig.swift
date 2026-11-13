@@ -172,6 +172,8 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var userSessionInactivityTimeout: TimeInterval { payload.userSessionInactivityTimeoutSeconds }
 
+    public var networkSpanParentProviderSlowThreshold: TimeInterval { payload.networkSpanParentProviderSlowThreshold }
+
     public func update(completion: @escaping (Result<Bool, Error>) -> Void) {
         guard updating == false else {
             completion(.success(false))

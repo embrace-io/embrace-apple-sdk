@@ -57,6 +57,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var userSessionMaxDurationSeconds: TimeInterval
     var userSessionInactivityTimeoutSeconds: TimeInterval
 
+    var networkSpanParentProviderSlowThreshold: TimeInterval
+
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
 
@@ -120,6 +122,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         enum UserSessionCodingKeys: String, CodingKey {
             case maxDurationSeconds = "max_duration_seconds"
             case inactivityTimeoutSeconds = "inactivity_timeout_seconds"
+        }
+
+        case data
+        enum DataCodingKeys: String, CodingKey {
+            case networkSpanParentProviderSlowMs = "network_span_parent_provider_slow_ms"
         }
     }
 
@@ -419,6 +426,15 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             userSessionMaxDurationSeconds = defaultPayload.userSessionMaxDurationSeconds
             userSessionInactivityTimeoutSeconds = defaultPayload.userSessionInactivityTimeoutSeconds
         }
+
+        // data
+        let dataContainer = try? rootContainer.nestedContainer(keyedBy: CodingKeys.DataCodingKeys.self, forKey: .data)
+        let slowMs = try? dataContainer?.decodeIfPresent(Double.self, forKey: .networkSpanParentProviderSlowMs)
+        if let slowMs, slowMs.isFinite, slowMs > 0 {
+            networkSpanParentProviderSlowThreshold = slowMs / 1000
+        } else {
+            networkSpanParentProviderSlowThreshold = defaultPayload.networkSpanParentProviderSlowThreshold
+        }
     }
 
     /// Validates the user-session config values.
@@ -494,5 +510,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         userSessionMaxDurationSeconds = UserSessionSemantics.defaultMaxDurationSeconds
         userSessionInactivityTimeoutSeconds = UserSessionSemantics.defaultInactivityTimeoutSeconds
+
+        networkSpanParentProviderSlowThreshold = SlowCallbackSemantics.defaultNetworkSpanParentProviderThreshold
     }
 }

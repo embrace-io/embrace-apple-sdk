@@ -53,6 +53,7 @@ class SessionController: SessionControllable {
     weak var otel: InternalOTelSignalsHandler?
     weak var userSessionController: UserSessionController?
     weak var experiments: ExperimentsHandler?
+    weak var slowCallbacks: SlowCallbackRecorder?
 
     private struct SessionInfo {
         var session: EmbraceSession? = nil
@@ -475,6 +476,9 @@ class SessionController: SessionControllable {
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .embraceSessionPartWillEnd, object: mainQueueSession)
         }
+
+        // write the slow callback calls still pending, before the span ends
+        slowCallbacks?.flush()
 
         // end span
         if let inProgressSessionSpan {

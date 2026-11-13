@@ -220,6 +220,63 @@ final class SessionPayloadBuilderTests: XCTestCase {
             XCTAssertNil(span.attributes.first { $0.key == SpanSemantics.keyExperiments })
         }
     }
+
+    // MARK: - Slow callbacks
+
+    /// The session span is read from storage, so a session part that never ended cleanly still reports its slow calls.
+    func test_slowCallbacks_storedOnTheSessionSpan_areSessionSpanAttributes() throws {
+        // given a stored session span that never ended, with slow-call attributes and another attribute
+        storage.upsertSpan(
+            MockSpan(
+                id: TestConstants.spanId,
+                traceId: TestConstants.traceId,
+                name: "emb-session",
+                type: .session,
+                startTime: Date(timeIntervalSince1970: 0),
+                sessionId: TestConstants.sessionId,
+                processId: ProcessIdentifier.current,
+                attributes: [
+                    "emb.private.slow_callback.network_span_parent_provider.count": "3",
+                    "emb.private.slow_callback.network_span_parent_provider.max_ms": "42",
+                    "emb.private.other": "value"
+                ]
+            )
+        )
+
+        // when building a session payload
+        let payload = try XCTUnwrap(SessionPayloadBuilder.build(for: sessionRecord, storage: storage))
+
+        // then the session span carries the slow-call attributes, and only those
+        let sessionSpan = try XCTUnwrap(payload.data["spans"]?.first { $0.name == "emb-session" })
+        func attribute(_ key: String) -> String? {
+            sessionSpan.attributes.first { $0.key == key }?.value
+        }
+        XCTAssertEqual(attribute("emb.private.slow_callback.network_span_parent_provider.count"), "3")
+        XCTAssertEqual(attribute("emb.private.slow_callback.network_span_parent_provider.max_ms"), "42")
+        XCTAssertNil(attribute("emb.private.other"))
+    }
+
+    func test_slowCallbacks_noneRecorded_noAttributes() throws {
+        // given a stored session span without slow calls
+        storage.upsertSpan(
+            MockSpan(
+                id: TestConstants.spanId,
+                traceId: TestConstants.traceId,
+                name: "emb-session",
+                type: .session,
+                startTime: Date(timeIntervalSince1970: 0),
+                sessionId: TestConstants.sessionId,
+                processId: ProcessIdentifier.current
+            )
+        )
+
+        // when building a session payload
+        let payload = try XCTUnwrap(SessionPayloadBuilder.build(for: sessionRecord, storage: storage))
+
+        // then the session span has no slow-call attributes
+        let sessionSpan = try XCTUnwrap(payload.data["spans"]?.first { $0.name == "emb-session" })
+        XCTAssertFalse(sessionSpan.attributes.contains { $0.key.hasPrefix("emb.private.slow_callback.") })
+    }
 }
 
 extension SessionPayloadBuilderTests {

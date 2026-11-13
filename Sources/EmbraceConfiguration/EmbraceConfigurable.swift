@@ -81,6 +81,10 @@ public protocol EmbraceConfigurable: AnyObject {
     /// Whether a `traceparent` header is injected into captured network requests.
     var traceparentInjectionEnabled: Bool { get }
 
+    /// Calls to `URLSessionRequestsDataSource.spanParent(for:currentParentContext:)` taking longer than this,
+    /// in seconds, are reported as slow.
+    var networkSpanParentProviderSlowThreshold: TimeInterval { get }
+
     /// Tell the configurable implementation it should update if possible.
     /// - Parameters:
     ///     - completion: A completion block that receives a `Result`. On success it carries `true`

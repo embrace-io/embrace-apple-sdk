@@ -565,11 +565,7 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
 
     func test_spanParent_SlowCall_IsLoggedOnce() {
         givenTaskHandler()
-        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
-        requestsDataSource.spanParentBlock = { [unowned self] _, _ in
-            self.uptimeNanoseconds += UInt64(DefaultURLSessionTaskHandler.slowSpanParentCallThreshold * 2 * Double(NSEC_PER_SEC))
-            return .default
-        }
+        givenSpanParentCalls(takingNanoseconds: [10_000_000, 10_000_000])
         givenAnURLSessionTask(urlString: "https://first.embrace.io/checkout/pay?id=1")
         whenInvokingCreate()
         givenAnURLSessionTask(urlString: "https://second.embrace.io")
@@ -587,6 +583,45 @@ class DefaultURLSessionTaskHandlerTests: XCTestCase {
         whenInvokingCreate()
 
         XCTAssertTrue(warnings(containing: "spanParent(for:currentParentContext:) took").isEmpty)
+    }
+
+    func test_spanParent_SlowCalls_AreAllRecorded() {
+        givenTaskHandler()
+        givenSpanParentCalls(takingNanoseconds: [10_000_000, 1_000_000, 20_000_000])
+        for _ in 0..<3 {
+            givenAnURLSessionTask()
+            whenInvokingCreate()
+        }
+
+        XCTAssertEqual(dataSource.recordedSlowSpanParentCalls, [0.010, 0.020])
+    }
+
+    func test_spanParent_CallTakingExactlyTheThreshold_IsNotSlow() {
+        givenTaskHandler()
+        dataSource.spanParentSlowCallThreshold = 0.005
+        givenSpanParentCalls(takingNanoseconds: [5_000_000])
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+
+        XCTAssertTrue(dataSource.recordedSlowSpanParentCalls.isEmpty)
+        XCTAssertTrue(warnings(containing: "spanParent(for:currentParentContext:) took").isEmpty)
+    }
+
+    func test_spanParent_SlowCallThreshold_IsReadOnEveryCall() {
+        givenTaskHandler()
+        givenSpanParentCalls(takingNanoseconds: [20_000_000, 20_000_000])
+
+        dataSource.spanParentSlowCallThreshold = 0.050
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+        XCTAssertTrue(dataSource.recordedSlowSpanParentCalls.isEmpty)
+        XCTAssertTrue(warnings(containing: "spanParent(for:currentParentContext:) took").isEmpty)
+
+        dataSource.spanParentSlowCallThreshold = 0.010
+        givenAnURLSessionTask()
+        whenInvokingCreate()
+        XCTAssertEqual(dataSource.recordedSlowSpanParentCalls, [0.020])
+        XCTAssertEqual(warnings(containing: "spanParent(for:currentParentContext:) took").count, 1)
     }
 
     // MARK: - Requests Data Source
@@ -928,6 +963,16 @@ extension DefaultURLSessionTaskHandlerTests {
     fileprivate func givenRequestsDataSource(spanParent: EmbraceNetworkSpanParent) {
         let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
         requestsDataSource.spanParentBlock = { _, _ in spanParent }
+    }
+
+    /// Makes each `spanParent(for:currentParentContext:)` call take the next duration, by advancing the handler's clock.
+    fileprivate func givenSpanParentCalls(takingNanoseconds durations: [UInt64]) {
+        var remaining = durations
+        let requestsDataSource = givenRequestsDataSourceWithBlock { $0 }
+        requestsDataSource.spanParentBlock = { [unowned self] _, _ in
+            self.uptimeNanoseconds += remaining.isEmpty ? 0 : remaining.removeFirst()
+            return .default
+        }
     }
 
     fileprivate func headerValue(flags: String) -> String {
