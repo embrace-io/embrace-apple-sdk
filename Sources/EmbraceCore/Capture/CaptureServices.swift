@@ -20,6 +20,17 @@ final class CaptureServices {
         _services.safeValue
     }
 
+    /// State of a capture service that was added after the SDK started.
+    private struct LateServiceState {
+        /// Identifier of the last session the service was notified about.
+        var lastSessionId: String?
+    }
+
+    /// Capture services added after the SDK started, by identity.
+    /// These are notified of the current session when added, so the notification of that same session
+    /// must not reach them a second time.
+    private let lateServices = EmbraceMutex([ObjectIdentifier: LateServiceState]())
+
     var context: CrashReporterContext
     var crashReporter: EmbraceCrashReporter?
 
@@ -157,7 +168,7 @@ final class CaptureServices {
     }
 
     /// Passes the internal dependencies to a capture service before it's installed.
-    private func wire(_ service: CaptureService) {
+    func wire(_ service: CaptureService) {
         // pass storage reference to capture services
         // that generate resources
         if let resourceService = service as? ResourceCaptureService {
@@ -172,16 +183,22 @@ final class CaptureServices {
         #endif
     }
 
-    /// Adds a capture service after setup.
-    /// The service receives its internal dependencies, but it's not installed nor started,
-    /// and it doesn't receive the current config. Callers must call `onConfigUpdated` on it.
+    /// Whether a capture service of the same type as the given one was already added.
+    func containsService(ofSameTypeAs service: CaptureService) -> Bool {
+        let typeName = Self.typeName(of: service)
+        return services.contains { Self.typeName(of: $0) == typeName }
+    }
+
+    /// Adds a capture service before the SDK started. It's installed and started with the rest.
+    /// The service receives its internal dependencies, but it doesn't receive the current config.
+    /// Callers must call `onConfigUpdated` on it.
     /// - Returns: `false` if a capture service of the same type was already added.
     @discardableResult
     func add(_ service: CaptureService) -> Bool {
-        let typeName = String(describing: type(of: service))
+        let typeName = Self.typeName(of: service)
 
         let added = _services.withLock { services in
-            guard !services.contains(where: { String(describing: type(of: $0)) == typeName }) else {
+            guard !services.contains(where: { Self.typeName(of: $0) == typeName }) else {
                 return false
             }
 
@@ -196,6 +213,47 @@ final class CaptureServices {
 
         wire(service)
         return true
+    }
+
+    /// Adds a capture service that was already installed after the SDK started, and notifies it of the current session.
+    ///
+    /// The service only joins the list once it's installed, so session notifications never reach it before that.
+    /// Each session start is delivered to it once, even if the notification of `currentSession` arrives while it's being added.
+    /// - Parameters:
+    ///   - service: The installed capture service.
+    ///   - currentSession: The session to notify the service about, if any.
+    func addInstalled(_ service: CaptureService, currentSession: EmbraceSession?) {
+        let id = ObjectIdentifier(service)
+
+        // Tracked before it's visible in the list, so any session notification that can see it also deduplicates it.
+        lateServices.withLock { $0[id] = LateServiceState() }
+        _services.withLock { $0.append(service) }
+
+        if let currentSession, shouldNotifySessionStart(service, sessionId: currentSession.id.stringValue) {
+            service.onSessionStart()
+        }
+    }
+
+    /// Whether a capture service has to be notified that the given session started.
+    /// Capture services added before the SDK started are always notified.
+    private func shouldNotifySessionStart(_ service: CaptureService, sessionId: String?) -> Bool {
+        return lateServices.withLock { states in
+            guard var state = states[ObjectIdentifier(service)], let sessionId else {
+                return true
+            }
+
+            guard state.lastSessionId != sessionId else {
+                return false
+            }
+
+            state.lastSessionId = sessionId
+            states[ObjectIdentifier(service)] = state
+            return true
+        }
+    }
+
+    private static func typeName(of service: CaptureService) -> String {
+        return String(describing: type(of: service))
     }
 
     func install() {
@@ -219,10 +277,14 @@ final class CaptureServices {
     }
 
     @objc func onSessionStart(notification: Notification) {
-        if let session = notification.object as? EmbraceSession {
-            crashReporter?.currentSessionId = session.id.stringValue
+        let sessionId = (notification.object as? EmbraceSession)?.id.stringValue
+        if let sessionId {
+            crashReporter?.currentSessionId = sessionId
         }
-        for service in services { service.onSessionStart() }
+
+        for service in services where shouldNotifySessionStart(service, sessionId: sessionId) {
+            service.onSessionStart()
+        }
     }
 
     @objc func onSessionWillEnd(notification: Notification) {

@@ -102,6 +102,82 @@ final class EmbraceIOCaptureServicesTests: XCTestCase {
         XCTAssertFalse(Embrace.client?.captureServices.services.contains { $0 === service } == true)
     }
 
+    func test_addCaptureService_concurrentStop_stopsTheService() throws {
+        // given a started SDK
+        try EmbraceIO.start(options: options)
+
+        // and a capture service that pauses while it's being added
+        let service = LateCaptureService()
+        let addingStarted = DispatchSemaphore(value: 0)
+        let resumeAdding = DispatchSemaphore(value: 0)
+        service.onConfigUpdatedHook = {
+            addingStarted.signal()
+            // gives `stop()` the chance to run while the service is being added
+            _ = resumeAdding.wait(timeout: .now() + 0.5)
+        }
+
+        // when the SDK is stopped while the capture service is being added
+        let added = expectation(description: "capture service added")
+        DispatchQueue.global().async {
+            EmbraceIO.shared.add(captureService: service)
+            added.fulfill()
+        }
+        addingStarted.wait()
+        try EmbraceIO.shared.stop()
+        resumeAdding.signal()
+        wait(for: [added], timeout: .defaultTimeout)
+
+        // then the capture service is not left running
+        XCTAssertFalse(service.isActive)
+    }
+
+    func test_addCaptureService_sessionNotificationWhileAdding_isOnlyDeliveredAfterInstall() throws {
+        // given a started SDK with an active session
+        try EmbraceIO.start(options: options)
+        let session = try XCTUnwrap(Embrace.client?.sessionController.currentSession)
+
+        // when the session start notification arrives while a capture service is being added
+        let service = LateCaptureService()
+        service.onConfigUpdatedHook = {
+            NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
+        }
+        EmbraceIO.shared.add(captureService: service)
+
+        // then the capture service is only notified once, after being installed
+        XCTAssertFalse(service.sessionStartedBeforeInstall)
+        XCTAssertEqual(service.sessionStartCount, 1)
+    }
+
+    func test_addCaptureService_sessionNotificationAfterAdding_isOnlyDeliveredForNewSessions() throws {
+        // given a started SDK with an active session
+        // and a capture service added afterwards
+        try EmbraceIO.start(options: options)
+        let session = try XCTUnwrap(Embrace.client?.sessionController.currentSession)
+        let service = LateCaptureService()
+        EmbraceIO.shared.add(captureService: service)
+        XCTAssertEqual(service.sessionStartCount, 1)
+
+        // when the notification of the same session arrives
+        NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
+
+        // then the capture service is not notified again
+        XCTAssertEqual(service.sessionStartCount, 1)
+
+        // when a new session starts
+        let newSession = MockSession(
+            id: .random,
+            processId: ProcessIdentifier.current,
+            state: .foreground,
+            traceId: TestConstants.traceId,
+            spanId: TestConstants.spanId,
+            startTime: Date()
+        )
+        NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: newSession)
+
+        // then the capture service is notified
+        XCTAssertEqual(service.sessionStartCount, 2)
+    }
+
     // MARK: Resources
 
     func test_addResources_storesResourcesForCurrentProcess() throws {
@@ -174,10 +250,26 @@ private class LateCaptureService: CaptureService {
     var installCount = 0
     var startCount = 0
     var sessionStartCount = 0
+    var sessionStartedBeforeInstall = false
     var receivedConfig: EmbraceConfigurable?
 
+    /// Called once, the first time the capture service receives a config.
+    var onConfigUpdatedHook: (() -> Void)?
+
     override func onInstall() { installCount += 1 }
-    override func onConfigUpdated(_ config: EmbraceConfigurable) { receivedConfig = config }
     override func onStart() { startCount += 1 }
-    override func onSessionStart() { sessionStartCount += 1 }
+
+    override func onConfigUpdated(_ config: EmbraceConfigurable) {
+        receivedConfig = config
+        let hook = onConfigUpdatedHook
+        onConfigUpdatedHook = nil
+        hook?()
+    }
+
+    override func onSessionStart() {
+        if isUninstalled {
+            sessionStartedBeforeInstall = true
+        }
+        sessionStartCount += 1
+    }
 }

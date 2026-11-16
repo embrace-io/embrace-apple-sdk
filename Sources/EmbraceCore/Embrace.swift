@@ -460,46 +460,40 @@ package class Embrace {
     /// If the SDK was already started, the capture service is installed and started right away,
     /// and it's notified of the current session if there's one active.
     /// - Note: Capture services added after the SDK has started must not swizzle.
+    /// - Note: The capture service callbacks run while the SDK's lock is held, so they must not start, stop or add capture services to the SDK.
     /// - Note: This method has no effect if the SDK was stopped, or if a capture service of the same type was already added.
     package func add(captureService: CaptureService) {
-        // Registering the capture service happens under the same lock `start()` holds, so the service
-        // is either installed and started by `start()` or by this method, never both nor neither.
-        // `nil` means the capture service was not added.
-        let shouldInstall = Embrace._syncLock.lockedForWriting { () -> Bool? in
+        // Everything happens under the same lock `start()` and `stop()` hold, so the capture service is
+        // installed and started either by `start()` or by this method, and `stop()` always sees it.
+        Embrace._syncLock.lockedForWriting {
             guard state != .stopped else {
                 Embrace.logger.warning("Capture services can't be added after the SDK was stopped!")
-                return nil
-            }
-
-            guard captureServices.add(captureService) else {
-                return nil
+                return
             }
 
             // If the SDK hasn't started yet, the capture service is installed and started with the rest.
-            return state == .started
-        }
+            guard state == .started else {
+                if captureServices.add(captureService) {
+                    captureService.onConfigUpdated(config.configurable)
+                }
+                return
+            }
 
-        guard let shouldInstall else {
-            return
-        }
+            guard !captureServices.containsService(ofSameTypeAs: captureService) else {
+                Embrace.logger.warning("A capture service of type \(type(of: captureService)) was already added!")
+                return
+            }
 
-        // The capture service calls are done outside of the lock since they run external code.
-        captureService.onConfigUpdated(config.configurable)
+            captureServices.wire(captureService)
+            captureService.onConfigUpdated(config.configurable)
+            captureService.install(otel: otel, logger: Embrace.logger)
 
-        guard shouldInstall else {
-            return
-        }
+            let isEnabled = config.isSDKEnabled
+            if isEnabled {
+                captureService.start()
+            }
 
-        captureService.install(otel: otel, logger: Embrace.logger)
-
-        guard config.isSDKEnabled else {
-            return
-        }
-
-        captureService.start()
-
-        if sessionController.currentSession != nil {
-            captureService.onSessionStart()
+            captureServices.addInstalled(captureService, currentSession: isEnabled ? sessionController.currentSession : nil)
         }
     }
 
