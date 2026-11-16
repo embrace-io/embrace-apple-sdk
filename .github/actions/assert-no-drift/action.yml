@@ -1,0 +1,60 @@
+name: Assert no drift
+description: >
+  Fails the job if committed generated files under a path differ from what the generator just
+  produced. Run the generate step first, then call this to validate.
+
+inputs:
+  path:
+    description: >
+      Path to the committed generated output to check (e.g. docs, or a source dir), relative to the
+      repo root.
+    required: true
+  label:
+    description: Human label for the output, e.g. "generated semantic-convention sources" or "docs".
+    required: true
+  regenerate-hint:
+    description: Shell snippet shown in the failure summary describing how to regenerate and re-add.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Compare committed files with the generator's output
+      shell: bash
+      env:
+        DRIFT_PATH: ${{ inputs.path }}
+        DRIFT_LABEL: ${{ inputs.label }}
+        DRIFT_HINT: ${{ inputs.regenerate-hint }}
+      run: |
+        untracked="$(git ls-files --others --exclude-standard -- "${DRIFT_PATH}")"
+        if git diff --exit-code -- "${DRIFT_PATH}" && [ -z "${untracked}" ]; then
+          echo "OK: committed ${DRIFT_LABEL} are up to date"
+          exit 0
+        fi
+        echo "::error::Committed ${DRIFT_LABEL} under ${DRIFT_PATH} are out of sync with the generator. Regenerate and commit them with your change."
+        {
+          echo "## Drift detected: ${DRIFT_LABEL}"
+          echo ""
+          echo "The committed files under \`${DRIFT_PATH}\` do not match what the generator produces."
+          echo "Regenerate and commit them together with your change:"
+          echo ""
+          echo '```bash'
+          echo "${DRIFT_HINT}"
+          echo '```'
+          if [ -n "${untracked}" ]; then
+            echo ""
+            echo "Untracked generated files:"
+            echo ""
+            echo '```'
+            echo "${untracked}"
+            echo '```'
+          fi
+          echo ""
+          echo "<details><summary>Diff against committed files</summary>"
+          echo ""
+          echo '```diff'
+          git diff -- "${DRIFT_PATH}"
+          echo '```'
+          echo "</details>"
+        } >> "${GITHUB_STEP_SUMMARY}"
+        exit 1

@@ -1,0 +1,89 @@
+# Regenerates Sources/EmbraceSemantics/Generated/ from the pinned embrace-semconv registry and fails
+# when the committed code differs, doesn't build, or doesn't pass the repo's swift-format lint.
+name: Semconv CI validation
+
+# No `paths:` filter: the aggregate job is a required check, and a required check that never runs
+# blocks the pull request.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# The directory holding the project's Makefile, relative to the repo root.
+defaults:
+  run:
+    working-directory: semconv
+
+jobs:
+  validate-generated:
+    name: Validate generated code
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The same Xcode the build matrix pins, so there is one Xcode pin to move.
+      - name: Select Xcode
+        working-directory: .
+        run: |
+          xcode_version="$(jq -r '.pr.include[0].xcode_version' .github/matrices/builds.json)"
+          sudo xcode-select -s "/Applications/Xcode_${xcode_version}.app"
+          xcodebuild -version
+
+      - name: Read pinned weaver version
+        id: weaver
+        run: |
+          source versions.env
+          echo "version=$WEAVER_VERSION" >> "$GITHUB_OUTPUT"
+
+      # Pinned to the weaver v0.26.1 tag's commit, so the action and the CLI pin move together.
+      - name: Install Weaver
+        uses: open-telemetry/weaver/.github/actions/setup-weaver@38befce4bc68fe320d20f189465c93835ac20c12 # v0.26.1
+        with:
+          version: ${{ steps.weaver.outputs.version }}
+
+      - name: Regenerate the code
+        run: make generate
+
+      # `$/` is GitHub's syntax for this repository's own actions, at the commit running.
+      - name: Compare committed code with the regenerated code
+        uses: $/.github/actions/assert-no-drift
+        with:
+          path: Sources/EmbraceSemantics/Generated
+          label: generated code
+          regenerate-hint: |
+            make -C semconv install-weaver   # once, if weaver is not on PATH
+            make -C semconv generate
+            git add Sources/EmbraceSemantics/Generated/
+
+      # Reruns `make generate` first, so it fetches too.
+      - name: Validate the generated code
+        run: make validate-generated
+
+  # Aggregate gate for branch protection: require only this job. Branch protection sees a job by
+  # its `name:`, so keep the name identical to the id, unique among the repo's workflows, and name
+  # it in the protection rule.
+  semconv-required-status-check:
+    name: semconv-required-status-check
+    if: always()
+    # No checkout here, so the project directory doesn't exist.
+    defaults:
+      run:
+        working-directory: .
+    needs:
+      - validate-generated
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail if any dependency did not pass
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
