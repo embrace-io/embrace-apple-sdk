@@ -17,11 +17,11 @@ public struct CommonSemantics {
 
     /// `emb.user_session_id` — same value as `session.id` for now (until a future override
     /// API lets customers override `session.id` independently). Stamped on every span and log.
-    public static let keyUserSessionId = "emb.user_session_id"
+    public static let keyUserSessionId = EmbraceSemconvAttributes.embUserSessionId
 
     /// `emb.session_part_id` — the session part UUID (the value `session.id` had historically).
     /// Stamped on every span and log.
-    public static let keyPartId = "emb.session_part_id"
+    public static let keyPartId = EmbraceSemconvAttributes.embSessionPartId
 
     /// The state the application was in when the signal was recorded.
     public static let keyState = "emb.state"
