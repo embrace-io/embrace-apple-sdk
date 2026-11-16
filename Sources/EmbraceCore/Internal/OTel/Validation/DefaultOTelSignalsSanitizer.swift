@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
+    import EmbraceCommonInternal
 #endif
 
 class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
@@ -18,13 +19,13 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
         self.attributeLimits = attributeLimits
     }
 
-    func sanitizeName(_ name: String, lengthLimit: Int) -> String {
+    func sanitizeName(_ name: String, lengthLimit: Int?) -> String {
         // trim whitespaces
         let trimSet: CharacterSet = .whitespacesAndNewlines.union(.controlCharacters)
         var result = name.trimmingCharacters(in: trimSet)
 
         // truncate
-        if result.count > lengthLimit {
+        if let lengthLimit, result.count > lengthLimit {
             result = String(result.prefix(lengthLimit))
             Embrace.logger.warning("Name is too long and has to be truncated!: \(name)")
         }
@@ -32,39 +33,33 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
         return result
     }
 
-    func sanitizeSpanName(_ name: String) -> String {
-        return sanitizeName(name, lengthLimit: sessionLimits.customSpans.nameLength)
-    }
-
-    func sanitizeSpanEventName(_ name: String) -> String {
-        return sanitizeName(name, lengthLimit: sessionLimits.events.nameLength)
-    }
-
-    func sanitizeAttributeKey(_ key: String) -> String {
-        // truncate
-        if key.count > attributeLimits.keyLength {
-            Embrace.logger.warning("Attribute key is too long and has to be truncated!: \(key)")
-            return String(key.prefix(attributeLimits.keyLength))
+    func sanitizeSpanName(_ name: String, source: EmbraceOTelSignalSource) -> String {
+        guard let limits = sessionLimits.limits(for: source) else {
+            return name
         }
 
-        return key
+        return sanitizeName(name, lengthLimit: limits.customSpans.nameLength)
     }
 
-    func sanitizeAttributeValue(_ value: EmbraceAttributeValue?) -> EmbraceAttributeValue? {
-        guard let value = value as? String else {
-            return value
+    func sanitizeSpanEventName(_ name: String, source: EmbraceOTelSignalSource) -> String {
+        guard let limits = sessionLimits.limits(for: source) else {
+            return name
         }
 
-        // truncate
-        if value.count > attributeLimits.valueLength {
-            Embrace.logger.warning("Attribute value is too long and has to be truncated!: \(value)")
-            return String(value.prefix(attributeLimits.valueLength))
-        }
-
-        return value
+        return sanitizeName(name, lengthLimit: limits.events.nameLength)
     }
 
-    func sanitizeAttributes(_ attributes: EmbraceAttributes, limit: Int) -> EmbraceAttributes {
+    func sanitizeAttributeKey(_ key: String, source: EmbraceOTelSignalSource) -> String {
+        return sanitizeAttributeKey(key, limits: attributeLimits.limits(for: source))
+    }
+
+    func sanitizeAttributeValue(_ value: EmbraceAttributeValue?, source: EmbraceOTelSignalSource) -> EmbraceAttributeValue? {
+        return sanitizeAttributeValue(value, limits: attributeLimits.limits(for: source))
+    }
+
+    func sanitizeAttributes(_ attributes: EmbraceAttributes, limit: Int, source: EmbraceOTelSignalSource) -> EmbraceAttributes {
+        let lengthLimits = attributeLimits.limits(for: source)
+
         var finalAttributes: EmbraceAttributes = [:]
         let sortedKeys = attributes.keys.sorted()
         var count = 0
@@ -74,8 +69,8 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
                 continue
             }
 
-            let finalKey = sanitizeAttributeKey(key)
-            let finalValue = sanitizeAttributeValue(value)
+            let finalKey = sanitizeAttributeKey(key, limits: lengthLimits)
+            let finalValue = sanitizeAttributeValue(value, limits: lengthLimits)
             finalAttributes[finalKey] = finalValue
 
             count += 1
@@ -87,57 +82,105 @@ class DefaultOtelSignalsSanitizer: OTelSignalsSanitizer {
         return finalAttributes
     }
 
-    func sanitizeSpanAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
-        return sanitizeSpanAttributes(attributes, protecting: [])
+    func sanitizeSpanAttributes(_ attributes: EmbraceAttributes, source: EmbraceOTelSignalSource) -> EmbraceAttributes {
+        return sanitizeSpanAttributes(attributes, protecting: [], source: source)
     }
 
-    func sanitizeSpanAttributes(_ attributes: EmbraceAttributes, protecting protectedKeys: Set<String>) -> EmbraceAttributes {
-        // Always include protected entries — they bypass truncation and count limits.
-        let protectedEntries = attributes.filter { protectedKeys.contains($0.key) }
-        let unprotected = attributes.filter { !protectedKeys.contains($0.key) }
-
-        var result = sanitizeAttributes(unprotected, limit: sessionLimits.customSpans.attributeCount)
-
-        // Merge protected entries back on top so they always win.
-        for (key, value) in protectedEntries {
-            result[key] = value
+    func sanitizeSpanAttributes(
+        _ attributes: EmbraceAttributes,
+        protecting protectedKeys: Set<String>,
+        source: EmbraceOTelSignalSource
+    ) -> EmbraceAttributes {
+        guard let limits = sessionLimits.limits(for: source) else {
+            return attributes
         }
 
-        return result
+        return sanitizeAttributes(attributes, protecting: protectedKeys, limit: limits.customSpans.attributeCount, source: source)
     }
 
-    func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
-        return sanitizeSpanEventAttributes(attributes, protecting: [])
+    func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes, source: EmbraceOTelSignalSource) -> EmbraceAttributes {
+        return sanitizeSpanEventAttributes(attributes, protecting: [], source: source)
     }
 
-    func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes, protecting protectedKeys: Set<String>) -> EmbraceAttributes {
-        // Always include protected entries — they bypass truncation and count limits.
-        let protectedEntries = attributes.filter { protectedKeys.contains($0.key) }
-        let unprotected = attributes.filter { !protectedKeys.contains($0.key) }
-
-        var result = sanitizeAttributes(unprotected, limit: sessionLimits.events.attributeCount)
-
-        // Merge protected entries back on top so they always win.
-        for (key, value) in protectedEntries {
-            result[key] = value
+    func sanitizeSpanEventAttributes(
+        _ attributes: EmbraceAttributes,
+        protecting protectedKeys: Set<String>,
+        source: EmbraceOTelSignalSource
+    ) -> EmbraceAttributes {
+        guard let limits = sessionLimits.limits(for: source) else {
+            return attributes
         }
 
-        return result
+        return sanitizeAttributes(attributes, protecting: protectedKeys, limit: limits.events.attributeCount, source: source)
     }
 
-    func sanitizeSpanLinkAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
-        return sanitizeAttributes(attributes, limit: sessionLimits.links.attributeCount)
+    func sanitizeSpanLinkAttributes(_ attributes: EmbraceAttributes, source: EmbraceOTelSignalSource) -> EmbraceAttributes {
+        guard let limits = sessionLimits.limits(for: source) else {
+            return attributes
+        }
+
+        return sanitizeAttributes(attributes, limit: limits.links.attributeCount, source: source)
     }
 
-    func sanitizeLogAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
-        return sanitizeLogAttributes(attributes, protecting: [])
+    func sanitizeLogAttributes(_ attributes: EmbraceAttributes, source: EmbraceOTelSignalSource) -> EmbraceAttributes {
+        return sanitizeLogAttributes(attributes, protecting: [], source: source)
     }
 
-    func sanitizeLogAttributes(_ attributes: EmbraceAttributes, protecting protectedKeys: Set<String>) -> EmbraceAttributes {
+    func sanitizeLogAttributes(
+        _ attributes: EmbraceAttributes,
+        protecting protectedKeys: Set<String>,
+        source: EmbraceOTelSignalSource
+    ) -> EmbraceAttributes {
+        guard let limits = sessionLimits.limits(for: source) else {
+            return attributes
+        }
+
+        return sanitizeAttributes(attributes, protecting: protectedKeys, limit: limits.logs.attributeCount, source: source)
+    }
+
+    // MARK: Private
+
+    private func sanitizeAttributeKey(_ key: String, limits: AttributeLengthLimits?) -> String {
+        guard let keyLength = limits?.keyLength else {
+            return key
+        }
+
+        // truncate
+        if key.count > keyLength {
+            Embrace.logger.warning("Attribute key is too long and has to be truncated!: \(key)")
+            return String(key.prefix(keyLength))
+        }
+
+        return key
+    }
+
+    private func sanitizeAttributeValue(_ value: EmbraceAttributeValue?, limits: AttributeLengthLimits?) -> EmbraceAttributeValue? {
+        guard let valueLength = limits?.valueLength,
+            let value = value as? String
+        else {
+            return value
+        }
+
+        // truncate
+        if value.count > valueLength {
+            Embrace.logger.warning("Attribute value is too long and has to be truncated!: \(value)")
+            return String(value.prefix(valueLength))
+        }
+
+        return value
+    }
+
+    /// Protected entries bypass truncation and count limits, and always win over unprotected ones.
+    private func sanitizeAttributes(
+        _ attributes: EmbraceAttributes,
+        protecting protectedKeys: Set<String>,
+        limit: Int,
+        source: EmbraceOTelSignalSource
+    ) -> EmbraceAttributes {
         let protectedEntries = attributes.filter { protectedKeys.contains($0.key) }
         let unprotected = attributes.filter { !protectedKeys.contains($0.key) }
 
-        var result = sanitizeAttributes(unprotected, limit: sessionLimits.logs.attributeCount)
+        var result = sanitizeAttributes(unprotected, limit: limit, source: source)
 
         for (key, value) in protectedEntries {
             result[key] = value

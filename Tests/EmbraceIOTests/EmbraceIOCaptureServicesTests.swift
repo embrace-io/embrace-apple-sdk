@@ -1,0 +1,183 @@
+//
+//  Copyright © 2026 Embrace Mobile, Inc. All rights reserved.
+//
+
+import EmbraceCaptureService
+import EmbraceCommonInternal
+import EmbraceConfiguration
+import EmbraceSemantics
+import TestSupport
+import XCTest
+
+@testable import EmbraceCore
+@testable import EmbraceIO
+
+final class EmbraceIOCaptureServicesTests: XCTestCase {
+
+    override func setUpWithError() throws {
+        Embrace.client = nil
+        EmbraceIO.shared.otelBridge.safeValue = nil
+    }
+
+    override func tearDownWithError() throws {
+        _ = try? Embrace.client?.stop()
+        Embrace.client = nil
+        EmbraceIO.shared.otelBridge.safeValue = nil
+    }
+
+    private var options: EmbraceIO.Options {
+        EmbraceIO.Options.withLocalConfiguration(
+            captureServices: CaptureServicesOptionsBuilder().build(),
+            crashReporter: .none,
+            otel: EmbraceIO.OTelOptions()
+        )
+    }
+
+    // MARK: Adding capture services
+
+    func test_addCaptureService_afterStart_installsAndStartsIt() throws {
+        // given a started SDK with an active session
+        try EmbraceIO.start(options: options)
+        XCTAssertNotNil(Embrace.client?.sessionController.currentSession)
+
+        // when adding a capture service
+        let service = LateCaptureService()
+        EmbraceIO.shared.add(captureService: service)
+
+        // then the service receives the current config, is installed, started and notified of the current session
+        XCTAssertNotNil(service.receivedConfig)
+        XCTAssertTrue(service.isActive)
+        XCTAssertEqual(service.installCount, 1)
+        XCTAssertEqual(service.startCount, 1)
+        XCTAssertEqual(service.sessionStartCount, 1)
+        XCTAssertTrue(Embrace.client?.captureServices.services.contains { $0 === service } == true)
+    }
+
+    func test_addCaptureService_beforeStart_isInstalledOnStart() throws {
+        // given a SDK that was setup but not started
+        let internalOptions = try XCTUnwrap(Embrace.Options.from(options: options))
+        let client = try Embrace.setup(options: internalOptions)
+
+        // when adding a capture service
+        let service = LateCaptureService()
+        client.add(captureService: service)
+
+        // then it's not installed yet
+        XCTAssertTrue(service.isUninstalled)
+
+        // when the SDK starts
+        try client.start()
+
+        // then the service is installed and started once
+        XCTAssertTrue(service.isActive)
+        XCTAssertEqual(service.installCount, 1)
+        XCTAssertEqual(service.startCount, 1)
+    }
+
+    func test_addCaptureService_duplicateType_isIgnored() throws {
+        // given a started SDK with a capture service added
+        try EmbraceIO.start(options: options)
+        EmbraceIO.shared.add(captureService: LateCaptureService())
+
+        // when adding another capture service of the same type
+        let duplicate = LateCaptureService()
+        EmbraceIO.shared.add(captureService: duplicate)
+
+        // then it's ignored
+        XCTAssertTrue(duplicate.isUninstalled)
+        XCTAssertEqual(duplicate.installCount, 0)
+    }
+
+    func test_addCaptureService_afterStop_isIgnored() throws {
+        // given a stopped SDK
+        try EmbraceIO.start(options: options)
+        try EmbraceIO.shared.stop()
+
+        // when adding a capture service
+        let service = LateCaptureService()
+        EmbraceIO.shared.add(captureService: service)
+
+        // then it's ignored
+        XCTAssertTrue(service.isUninstalled)
+        XCTAssertFalse(Embrace.client?.captureServices.services.contains { $0 === service } == true)
+    }
+
+    // MARK: Resources
+
+    func test_addResources_storesResourcesForCurrentProcess() throws {
+        // given a started SDK
+        try EmbraceIO.start(options: options)
+        let client = try XCTUnwrap(Embrace.client)
+
+        // when adding resources
+        EmbraceIO.shared.addResources(["test.resource.1": "value1", "test.resource.2": "value2"])
+        client.metadata.synchronizationQueue.sync {}
+
+        // then they are stored for the current process
+        let resources = client.storage.fetchResourcesForProcessId(ProcessIdentifier.current)
+        XCTAssertEqual(resources.first { $0.key == "test.resource.1" }?.value, "value1")
+        XCTAssertEqual(resources.first { $0.key == "test.resource.2" }?.value, "value2")
+        XCTAssertEqual(resources.first { $0.key == "test.resource.1" }?.type, .resource)
+    }
+
+    func test_addResources_respectsResourcesLimit() throws {
+        // given a started SDK
+        try EmbraceIO.start(options: options)
+        let client = try XCTUnwrap(Embrace.client)
+        let limit = client.storage.options.resourcesLimit
+
+        // when adding more resources than the limit allows
+        var resources: [String: String] = [:]
+        for index in 0..<(limit + 10) {
+            resources["test.limit.\(index)"] = "value"
+        }
+        EmbraceIO.shared.addResources(resources)
+        client.metadata.synchronizationQueue.sync {}
+
+        // then the resources over the limit are dropped
+        let stored = client.storage.fetchResourcesForProcessId(ProcessIdentifier.current).filter { $0.key.hasPrefix("test.limit.") }
+        XCTAssertLessThanOrEqual(stored.count, limit)
+    }
+
+    func test_addResources_overwritesExistingKeys() throws {
+        // given a started SDK with a resource added
+        try EmbraceIO.start(options: options)
+        let client = try XCTUnwrap(Embrace.client)
+        EmbraceIO.shared.addResources(["test.resource": "old"])
+
+        // when adding a resource with the same key
+        EmbraceIO.shared.addResources(["test.resource": "new"])
+        client.metadata.synchronizationQueue.sync {}
+
+        // then the value is overwritten
+        let resources = client.storage.fetchResourcesForProcessId(ProcessIdentifier.current).filter { $0.key == "test.resource" }
+        XCTAssertEqual(resources.count, 1)
+        XCTAssertEqual(resources.first?.value, "new")
+    }
+
+    func test_addResources_whenNotStarted_isIgnored() throws {
+        // given a SDK that was setup but not started
+        let internalOptions = try XCTUnwrap(Embrace.Options.from(options: options))
+        let client = try Embrace.setup(options: internalOptions)
+
+        // when adding resources
+        client.addResources(["test.resource.not_started": "value"])
+        client.metadata.synchronizationQueue.sync {}
+
+        // then nothing is stored
+        let resources = client.storage.fetchResourcesForProcessId(ProcessIdentifier.current)
+        XCTAssertNil(resources.first { $0.key == "test.resource.not_started" })
+    }
+}
+
+private class LateCaptureService: CaptureService {
+    var installCount = 0
+    var startCount = 0
+    var sessionStartCount = 0
+    var receivedConfig: EmbraceConfigurable?
+
+    override func onInstall() { installCount += 1 }
+    override func onConfigUpdated(_ config: EmbraceConfigurable) { receivedConfig = config }
+    override func onStart() { startCount += 1 }
+    override func onSessionStart() { sessionStartCount += 1 }
+}

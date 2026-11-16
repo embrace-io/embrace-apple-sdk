@@ -25,6 +25,7 @@ final class CaptureServices {
 
     weak var config: EmbraceConfigurable?
     weak var otel: InternalOTelSignalsHandler?
+    weak var storage: EmbraceStorage?
 
     init(
         options: Embrace.Options,
@@ -35,6 +36,7 @@ final class CaptureServices {
     ) throws {
         self.config = config
         self.otel = otel
+        self.storage = storage
 
         // add required capture services
         // and remove duplicates
@@ -74,22 +76,7 @@ final class CaptureServices {
             }
         }
 
-        // pass storage reference to capture services
-        // that generate resources
-        for service in services {
-            if let resourceService = service as? ResourceCaptureService {
-                resourceService.handler = storage
-            }
-        }
-
-        // Ensure the hang service has the right config
-        #if !os(watchOS) && !os(macOS)
-            if let limits = config?.hangLimits {
-                services
-                    .compactMap { $0 as? HangCaptureService }
-                    .forEach { $0.limits = limits }
-            }
-        #endif
+        services.forEach { wire($0) }
 
         if let config {
             services.forEach { $0.onConfigUpdated(config) }
@@ -167,6 +154,48 @@ final class CaptureServices {
             $0.append(MetricKitHangCaptureService(options: options))
             $0.append(MetricKitMetricsCaptureService(options: options))
         }
+    }
+
+    /// Passes the internal dependencies to a capture service before it's installed.
+    private func wire(_ service: CaptureService) {
+        // pass storage reference to capture services
+        // that generate resources
+        if let resourceService = service as? ResourceCaptureService {
+            resourceService.handler = storage
+        }
+
+        // Ensure the hang service has the right config
+        #if !os(watchOS) && !os(macOS)
+            if let limits = config?.hangLimits, let hangService = service as? HangCaptureService {
+                hangService.limits = limits
+            }
+        #endif
+    }
+
+    /// Adds a capture service after setup.
+    /// The service receives its internal dependencies, but it's not installed nor started,
+    /// and it doesn't receive the current config. Callers must call `onConfigUpdated` on it.
+    /// - Returns: `false` if a capture service of the same type was already added.
+    @discardableResult
+    func add(_ service: CaptureService) -> Bool {
+        let typeName = String(describing: type(of: service))
+
+        let added = _services.withLock { services in
+            guard !services.contains(where: { String(describing: type(of: $0)) == typeName }) else {
+                return false
+            }
+
+            services.append(service)
+            return true
+        }
+
+        guard added else {
+            Embrace.logger.warning("A capture service of type \(typeName) was already added!")
+            return false
+        }
+
+        wire(service)
+        return true
     }
 
     func install() {

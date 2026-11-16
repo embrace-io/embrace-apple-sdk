@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import TestSupport
 import XCTest
@@ -40,7 +41,8 @@ class DefaultOTelSignalBridgeTests: XCTestCase {
         let parent = DefaultEmbraceSpan(
             context: EmbraceSpanContext(spanId: TestConstants.spanId, traceId: TestConstants.traceId),
             parentSpanId: nil,
-            name: "parent"
+            name: "parent",
+            source: .user
         )
 
         let context = bridge.startSpan(

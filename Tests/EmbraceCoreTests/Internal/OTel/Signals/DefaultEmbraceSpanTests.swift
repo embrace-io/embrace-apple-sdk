@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import TestSupport
 import XCTest
@@ -31,7 +32,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         makeTestSpan(endTime: Date(timeIntervalSince1970: 2))
     }
 
-    func makeTestSpan(endTime: Date? = nil) -> DefaultEmbraceSpan {
+    func makeTestSpan(endTime: Date? = nil, source: EmbraceOTelSignalSource = .user) -> DefaultEmbraceSpan {
         let context = EmbraceSpanContext(spanId: TestConstants.spanId, traceId: TestConstants.traceId)
         let startTime = Date(timeIntervalSince1970: 1)
         let event = EmbraceSpanEvent(name: "event")
@@ -52,6 +53,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
             sessionId: TestConstants.sessionId,
             processId: TestConstants.processId,
             autoTerminationCode: .failure,
+            source: source,
             handler: handler
         )
     }
@@ -63,6 +65,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
             context: EmbraceSpanContext(spanId: TestConstants.spanId, traceId: TestConstants.traceId),
             name: "name",
             startTime: Date(timeIntervalSince1970: 1),
+            source: .user,
             handler: handler
         )
     }
@@ -164,7 +167,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
             timestamp: Date(timeIntervalSince1970: 5),
             attributes: ["key1": "value1"],
             internalAttributes: ["key2": "value2"],
-            isInternal: false
+            source: .user
         )
 
         // then the event is added correctly
@@ -197,7 +200,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
                 timestamp: Date(timeIntervalSince1970: 5),
                 attributes: ["key1": "value1"],
                 internalAttributes: ["key2": "value2"],
-                isInternal: false
+                source: .user
             )
         ) { error in
 
@@ -221,7 +224,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
             timestamp: Date(timeIntervalSince1970: 5),
             attributes: ["key1": "value1"],
             internalAttributes: ["key2": "value2"],
-            isInternal: true
+            source: .sdk
         )
 
         // then the event is added correctly
@@ -594,7 +597,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         // when adding internal and non internal events from multiple threads at once
         DispatchQueue.concurrentPerform(iterations: 1000) { index in
             if index.isMultiple(of: 2) {
-                try? span._addEvent(name: "internal\(index)", isInternal: true)
+                try? span._addEvent(name: "internal\(index)", source: .sdk)
             } else {
                 span.addEvent(name: "event\(index)")
             }
@@ -862,7 +865,7 @@ class DefaultEmbraceSpanTests: XCTestCase {
         span.end()
 
         // when the SDK itself adds a session event afterwards
-        let result = try span.addSessionEvent(name: "sessionEvent", isInternal: true)
+        let result = try span.addSessionEvent(name: "sessionEvent", source: .sdk)
 
         // then nothing is added and nothing is written through
         XCTAssertNil(result)

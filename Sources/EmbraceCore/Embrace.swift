@@ -7,6 +7,7 @@ import Foundation
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
     import EmbraceCommonInternal
+    import EmbraceCaptureService
     import EmbraceConfigInternal
     import EmbraceStorageInternal
     import EmbraceUploadInternal
@@ -452,6 +453,53 @@ package class Embrace {
             Embrace.logger.startup("Embrace SDK stopped successfully!")
 
             return self
+        }
+    }
+
+    /// Adds a capture service after the SDK was setup.
+    /// If the SDK was already started, the capture service is installed and started right away,
+    /// and it's notified of the current session if there's one active.
+    /// - Note: Capture services added after the SDK has started must not swizzle.
+    /// - Note: This method has no effect if the SDK was stopped, or if a capture service of the same type was already added.
+    package func add(captureService: CaptureService) {
+        // Registering the capture service happens under the same lock `start()` holds, so the service
+        // is either installed and started by `start()` or by this method, never both nor neither.
+        // `nil` means the capture service was not added.
+        let shouldInstall = Embrace._syncLock.lockedForWriting { () -> Bool? in
+            guard state != .stopped else {
+                Embrace.logger.warning("Capture services can't be added after the SDK was stopped!")
+                return nil
+            }
+
+            guard captureServices.add(captureService) else {
+                return nil
+            }
+
+            // If the SDK hasn't started yet, the capture service is installed and started with the rest.
+            return state == .started
+        }
+
+        guard let shouldInstall else {
+            return
+        }
+
+        // The capture service calls are done outside of the lock since they run external code.
+        captureService.onConfigUpdated(config.configurable)
+
+        guard shouldInstall else {
+            return
+        }
+
+        captureService.install(otel: otel, logger: Embrace.logger)
+
+        guard config.isSDKEnabled else {
+            return
+        }
+
+        captureService.start()
+
+        if sessionController.currentSession != nil {
+            captureService.onSessionStart()
         }
     }
 

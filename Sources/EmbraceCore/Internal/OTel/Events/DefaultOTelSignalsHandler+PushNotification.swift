@@ -72,7 +72,7 @@ extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
                 timestamp: timestamp,
                 attributes: attributes,
                 internalAttributes: internalAttributes,
-                isInternal: false
+                source: .user
             )
         } catch {
             Embrace.logger.warning("Failed to add push notification event: \(error.localizedDescription)")

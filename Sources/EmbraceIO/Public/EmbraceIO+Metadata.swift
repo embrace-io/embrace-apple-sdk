@@ -46,6 +46,21 @@ extension EmbraceIO {
     }
 }
 
+/// Resources
+extension EmbraceIO {
+
+    /// Adds resources to the current process, on top of the ones passed in the options when starting the SDK.
+    /// Every payload uploaded after this call includes them.
+    /// If a key is too long or the resources limit is reached, the resource is dropped and a warning is logged.
+    /// - Parameter resources: The resources to add. Keys can not be longer than 128 characters, and values are truncated if they're longer than 1024 characters.
+    ///   Existing keys are overwritten.
+    /// - Note: These resources are not added to the OpenTelemetry resource, so external OpenTelemetry exporters don't receive them.
+    /// - Note: This method has no effect if the SDK is disabled.
+    public func addResources(_ resources: [String: String]) {
+        Embrace.client?.addResources(resources)
+    }
+}
+
 /// Personas
 extension EmbraceIO {
     /// Adds a persona tag with the given value and lifespan.
