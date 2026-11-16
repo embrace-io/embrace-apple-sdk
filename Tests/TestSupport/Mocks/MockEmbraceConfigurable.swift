@@ -341,6 +341,8 @@ public class MockEmbraceConfigurable: EmbraceConfigurable {
 
     public var isSmoothnessEnabled: Bool
 
+    public var networkSpanParentProviderSlowThreshold: TimeInterval = 0.005
+
     public var updateCallCount = 0
     public var updateCompletionParamDidUpdate: Bool
     public var updateCompletionParamError: Error?

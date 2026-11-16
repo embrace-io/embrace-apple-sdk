@@ -37,7 +37,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_startSpan_returnsNonEmptyContext() {
         let context = bridge.startSpan(
             name: "test-span",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -54,7 +54,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let end = start.addingTimeInterval(1)
         _ = bridge.startSpan(
             name: "immediate",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: start,
             endTime: end,
@@ -73,7 +73,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let end = start.addingTimeInterval(1)
         _ = bridge.startSpan(
             name: "attr-span",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: start,
             endTime: end,
@@ -91,7 +91,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_endSpan_triggersExporter() {
         let ctx = bridge.startSpan(
             name: "to-end",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -108,7 +108,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_endSpan_calledTwice_onlyExportsOnce() {
         let ctx = bridge.startSpan(
             name: "to-end",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -134,7 +134,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         // endTime is nil — the span is started but not ended, isolating the onStart window.
         _ = bridge.startSpan(
             name: "internal",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -148,7 +148,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_outboundSpan_onEnd_doesNotCallDelegate() {
         let ctx = bridge.startSpan(
             name: "internal",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -164,7 +164,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_outboundSpan_doesNotCallDelegate() {
         let ctx = bridge.startSpan(
             name: "internal",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -281,7 +281,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_updateSpanStatus_changesUnderlyingOtelSpanStatus() {
         let ctx = bridge.startSpan(
             name: "status-span",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -306,7 +306,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_updateSpanAttribute_setsAttributeOnOtelSpan() {
         let ctx = bridge.startSpan(
             name: "attr-span",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -330,7 +330,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_addSpanEvent_addsEventToOtelSpan() {
         let ctx = bridge.startSpan(
             name: "event-span",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -358,7 +358,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_startSpan_withParent_setsOtelParentViaSpanCache() {
         let parentCtx = bridge.startSpan(
             name: "parent",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -370,7 +370,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
 
         let childCtx = bridge.startSpan(
             name: "child",
-            parentSpan: parentMock,
+            parentContext: parentMock.context,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -397,7 +397,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_startSpan_withEndedParent_stillInheritsTrace() {
         let parentCtx = bridge.startSpan(
             name: "parent",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -412,7 +412,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
 
         let childCtx = bridge.startSpan(
             name: "child",
-            parentSpan: parentMock,
+            parentContext: parentMock.context,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -439,7 +439,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         // A span created with an end time is ended — and uncached — before it can be used as a parent.
         let parentCtx = bridge.startSpan(
             name: "parent",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: start,
             endTime: start.addingTimeInterval(1),
@@ -451,7 +451,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
 
         let childCtx = bridge.startSpan(
             name: "child",
-            parentSpan: parentMock,
+            parentContext: parentMock.context,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -480,7 +480,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
 
         let childCtx = bridge.startSpan(
             name: "child",
-            parentSpan: parentMock,
+            parentContext: parentMock.context,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -512,7 +512,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
             // when creating a span with no parent
             bridge.startSpan(
                 name: "root",
-                parentSpan: nil,
+                parentContext: nil,
                 status: .unset,
                 startTime: Date(),
                 endTime: nil,
@@ -542,7 +542,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
 
         let parentCtx = bridge.startSpan(
             name: "parent",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -556,7 +556,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let childCtx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
             bridge.startSpan(
                 name: "child",
-                parentSpan: parentMock,
+                parentContext: parentMock.context,
                 status: .unset,
                 startTime: Date(),
                 endTime: nil,
@@ -584,7 +584,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
     func test_startSpan_withoutParent_outsideAnyScope_startsItsOwnTrace() {
         let first = bridge.startSpan(
             name: "first",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -594,7 +594,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         )
         let second = bridge.startSpan(
             name: "second",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -615,7 +615,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
 
         let ctx = bridge.startSpan(
             name: "span",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -638,7 +638,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
 
         let childCtx = bridge.startSpan(
             name: "child",
-            parentSpan: parentMock,
+            parentContext: parentMock.context,
             status: .unset,
             startTime: Date(),
             endTime: nil,
@@ -667,7 +667,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let childCtx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
             bridge.startSpan(
                 name: "child",
-                parentSpan: parentMock,
+                parentContext: parentMock.context,
                 status: .unset,
                 startTime: Date(),
                 endTime: nil,
@@ -704,7 +704,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let childCtx = OpenTelemetry.instance.contextProvider.withActiveSpan(ambientSpan) {
             bridge.startSpan(
                 name: "child",
-                parentSpan: parentMock,
+                parentContext: parentMock.context,
                 status: .unset,
                 startTime: Date(),
                 endTime: nil,
@@ -741,7 +741,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let end = start.addingTimeInterval(1)
         _ = bridge.startSpan(
             name: "linked-span",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: start,
             endTime: end,
@@ -769,7 +769,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let end = start.addingTimeInterval(1)
         _ = bridge.startSpan(
             name: "event-span",
-            parentSpan: nil,
+            parentContext: nil,
             status: .unset,
             startTime: start,
             endTime: end,
@@ -793,7 +793,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         let end = start.addingTimeInterval(1)
         _ = bridge.startSpan(
             name: "ok-span",
-            parentSpan: nil,
+            parentContext: nil,
             status: .ok,
             startTime: start,
             endTime: end,
@@ -884,7 +884,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
         DispatchQueue.concurrentPerform(iterations: iterations) { index in
             let context = bridge.startSpan(
                 name: "concurrent-\(index)",
-                parentSpan: nil,
+                parentContext: nil,
                 status: .unset,
                 startTime: Date(),
                 endTime: nil,
@@ -930,7 +930,7 @@ final class EmbraceOTelBridgeTests: XCTestCase {
             if index.isMultiple(of: 2) {
                 let context = bridge.startSpan(
                     name: "internal-\(index)",
-                    parentSpan: nil,
+                    parentContext: nil,
                     status: .unset,
                     startTime: Date(),
                     endTime: nil,

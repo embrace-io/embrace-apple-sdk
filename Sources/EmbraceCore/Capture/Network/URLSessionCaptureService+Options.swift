@@ -7,6 +7,10 @@ import Foundation
 extension URLSessionCaptureService {
 
     /// Configuration for W3C `traceparent` header propagation on captured network requests.
+    ///
+    /// When a header is injected into a request that already has a `traceparent` header, the existing
+    /// header is replaced with the network span's. If the network span is in the trace the existing
+    /// header names, the new header keeps that header's trace-flags.
     public struct Traceparent {
         /// First-party domain allowlist. When not nil, only requests whose host matches one of these entries
         /// get a `traceparent` header.

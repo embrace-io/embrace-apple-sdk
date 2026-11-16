@@ -28,7 +28,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
 
     public func _createSpan(
         name: String,
-        parentSpan: EmbraceSpan? = nil,
+        parentContext: EmbraceSpanContext? = nil,
         type: EmbraceType,
         status: EmbraceSpanStatus = .unset,
         startTime: Date,
@@ -40,12 +40,12 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         isInternal: Bool = true
     ) throws -> EmbraceSpan {
 
-        let traceId = parentSpan?.context.traceId ?? .randomTraceId()
+        let traceId = parentContext?.traceId ?? .randomTraceId()
 
         let span = MockSpan(
             id: .randomSpanId(),
             traceId: traceId,
-            parentSpanId: parentSpan?.context.spanId,
+            parentSpanId: parentContext?.spanId,
             name: name,
             type: type,
             status: status,

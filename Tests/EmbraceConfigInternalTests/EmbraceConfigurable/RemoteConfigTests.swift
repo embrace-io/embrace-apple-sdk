@@ -94,6 +94,17 @@ final class RemoteConfigTests: XCTestCase {
         XCTAssertFalse(config.isNetworkSpansForwardingEnabled)
     }
 
+    func test_networkSpanParentProviderSlowThreshold() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        // then networkSpanParentProviderSlowThreshold returns the payload's value
+        XCTAssertEqual(config.networkSpanParentProviderSlowThreshold, 0.005)
+
+        config.payload.networkSpanParentProviderSlowThreshold = 0.020
+        XCTAssertEqual(config.networkSpanParentProviderSlowThreshold, 0.020)
+    }
+
     func test_traceparentInjectionEnabled() {
         // given a config
         let config = RemoteConfig(options: options, logger: logger)
