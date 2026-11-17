@@ -215,21 +215,26 @@ final class CaptureServices {
         return true
     }
 
-    /// Adds a capture service that was already installed after the SDK started, and notifies it of the current session.
+    /// Adds a capture service that was already installed after the SDK started, and asynchronously notifies it of the current session.
     ///
     /// The service only joins the list once it's installed, so session notifications never reach it before that.
-    /// Each session start is delivered to it once, even if the notification of `currentSession` arrives while it's being added.
+    /// Session start notifications are delivered on the main queue, so the current session is also delivered there:
+    /// every session start reaches the service once and in order, even if sessions change while it's being added.
     /// - Parameters:
     ///   - service: The installed capture service.
-    ///   - currentSession: The session to notify the service about, if any.
-    func addInstalled(_ service: CaptureService, currentSession: EmbraceSession?) {
+    ///   - currentSession: Returns the session to notify the service about, if any. It's called on the main queue, after the service was added.
+    func addInstalled(_ service: CaptureService, currentSession: @escaping () -> EmbraceSession?) {
         let id = ObjectIdentifier(service)
 
         // Tracked before it's visible in the list, so any session notification that can see it also deduplicates it.
         lateServices.withLock { $0[id] = LateServiceState() }
         _services.withLock { $0.append(service) }
 
-        if let currentSession, shouldNotifySessionStart(service, sessionId: currentSession.id.stringValue) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let session = currentSession(), self.shouldNotifySessionStart(service, sessionId: session.id.stringValue) else {
+                return
+            }
+
             service.onSessionStart()
         }
     }

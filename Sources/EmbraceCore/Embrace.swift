@@ -493,7 +493,14 @@ package class Embrace {
                 captureService.start()
             }
 
-            captureServices.addInstalled(captureService, currentSession: isEnabled ? sessionController.currentSession : nil)
+            captureServices.addInstalled(captureService) { [weak self] in
+                Embrace._syncLock.lockedForReading {
+                    guard let self, isEnabled, self.state == .started else {
+                        return nil
+                    }
+                    return self.sessionController.currentSession
+                }
+            }
         }
     }
 

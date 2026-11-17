@@ -14,8 +14,8 @@ extension EmbraceIO {
 
     /// Adds a capture service after the SDK was started.
     ///
-    /// The capture service is installed and started right away, and `onSessionStart()` is called on it
-    /// if there's an active session.
+    /// The capture service is installed and started right away. If there's an active session, `onSessionStart()`
+    /// is called on it shortly after, on the main queue.
     ///
     /// - Warning: Capture services added through this method **must not use swizzling**.
     ///   By the time the capture service is added the app is already running: the swizzled classes may already be in use,
@@ -24,7 +24,7 @@ extension EmbraceIO {
     ///   Capture services that use swizzling must be passed in the options when starting the SDK, which should be done
     ///   as early as possible in the app's lifecycle.
     ///
-    /// - Note: The capture service's `onConfigUpdated()`, `onInstall()`, `onStart()` and `onSessionStart()` are called while the SDK is locked,
+    /// - Note: The capture service's `onConfigUpdated()`, `onInstall()` and `onStart()` are called while the SDK is locked,
     ///   so they must not start or stop the SDK, nor add capture services.
     /// - Note: This method has no effect if the SDK was stopped, or if a capture service of the same type was already added.
     /// - Parameter captureService: The capture service to add.

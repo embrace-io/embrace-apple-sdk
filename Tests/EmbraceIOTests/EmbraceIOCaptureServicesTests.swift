@@ -33,18 +33,28 @@ final class EmbraceIOCaptureServicesTests: XCTestCase {
         )
     }
 
+    /// Waits for the blocks already enqueued on the main queue, like session notifications, to run.
+    private func drainMainQueue() {
+        let drained = expectation(description: "main queue drained")
+        DispatchQueue.main.async { drained.fulfill() }
+        wait(for: [drained], timeout: .defaultTimeout)
+    }
+
     // MARK: Adding capture services
 
     func test_addCaptureService_afterStart_installsAndStartsIt() throws {
         // given a started SDK with an active session
         try EmbraceIO.start(options: options)
         XCTAssertNotNil(Embrace.client?.sessionController.currentSession)
+        drainMainQueue()
 
         // when adding a capture service
         let service = LateCaptureService()
         EmbraceIO.shared.add(captureService: service)
+        drainMainQueue()
 
-        // then the service receives the current config, is installed, started and notified of the current session
+        // then the service receives the current config, is installed, started and notified of the current session on the main thread
+        XCTAssertTrue(service.sessionStartedOnMainThread)
         XCTAssertNotNil(service.receivedConfig)
         XCTAssertTrue(service.isActive)
         XCTAssertEqual(service.installCount, 1)
@@ -134,6 +144,7 @@ final class EmbraceIOCaptureServicesTests: XCTestCase {
     func test_addCaptureService_sessionNotificationWhileAdding_isOnlyDeliveredAfterInstall() throws {
         // given a started SDK with an active session
         try EmbraceIO.start(options: options)
+        drainMainQueue()
         let session = try XCTUnwrap(Embrace.client?.sessionController.currentSession)
 
         // when the session start notification arrives while a capture service is being added
@@ -142,6 +153,7 @@ final class EmbraceIOCaptureServicesTests: XCTestCase {
             NotificationCenter.default.post(name: .embraceSessionPartDidStart, object: session)
         }
         EmbraceIO.shared.add(captureService: service)
+        drainMainQueue()
 
         // then the capture service is only notified once, after being installed
         XCTAssertFalse(service.sessionStartedBeforeInstall)
@@ -152,9 +164,11 @@ final class EmbraceIOCaptureServicesTests: XCTestCase {
         // given a started SDK with an active session
         // and a capture service added afterwards
         try EmbraceIO.start(options: options)
+        drainMainQueue()
         let session = try XCTUnwrap(Embrace.client?.sessionController.currentSession)
         let service = LateCaptureService()
         EmbraceIO.shared.add(captureService: service)
+        drainMainQueue()
         XCTAssertEqual(service.sessionStartCount, 1)
 
         // when the notification of the same session arrives
@@ -176,6 +190,40 @@ final class EmbraceIOCaptureServicesTests: XCTestCase {
 
         // then the capture service is notified
         XCTAssertEqual(service.sessionStartCount, 2)
+    }
+
+    func test_addCaptureService_sessionChangesBeforeNotifying_isOnlyNotifiedOfTheNewSession() throws {
+        // given a started SDK with an active session
+        try EmbraceIO.start(options: options)
+        let client = try XCTUnwrap(Embrace.client)
+        drainMainQueue()
+
+        // when a capture service is added
+        // and a new session starts before it's notified of the current one
+        let service = LateCaptureService()
+        EmbraceIO.shared.add(captureService: service)
+        let newSession = try XCTUnwrap(client.sessionController.startSession(state: .foreground))
+        drainMainQueue()
+
+        // then the capture service is only notified once, while the new session is the current one
+        XCTAssertEqual(service.sessionStartCount, 1)
+        XCTAssertEqual(service.sessionIdsAtStart, [newSession.id])
+    }
+
+    func test_addCaptureService_stoppedBeforeNotifying_isNotNotified() throws {
+        // given a started SDK with an active session
+        try EmbraceIO.start(options: options)
+        drainMainQueue()
+
+        // when a capture service is added
+        // and the SDK is stopped before the capture service is notified of the current session
+        let service = LateCaptureService()
+        EmbraceIO.shared.add(captureService: service)
+        try EmbraceIO.shared.stop()
+        drainMainQueue()
+
+        // then the capture service is not notified
+        XCTAssertEqual(service.sessionStartCount, 0)
     }
 
     // MARK: Resources
@@ -296,6 +344,8 @@ private class LateCaptureService: CaptureService {
     var startCount = 0
     var sessionStartCount = 0
     var sessionStartedBeforeInstall = false
+    var sessionStartedOnMainThread = false
+    var sessionIdsAtStart: [EmbraceIdentifier?] = []
     var receivedConfig: EmbraceConfigurable?
 
     /// Called once, the first time the capture service receives a config.
@@ -315,6 +365,8 @@ private class LateCaptureService: CaptureService {
         if isUninstalled {
             sessionStartedBeforeInstall = true
         }
+        sessionStartedOnMainThread = Thread.isMainThread
+        sessionIdsAtStart.append(Embrace.client?.sessionController.currentSession?.id)
         sessionStartCount += 1
     }
 }
