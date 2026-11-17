@@ -95,8 +95,9 @@
                 throw parentSpanNotFoundError
             }
 
+            // the attributes come from the app, so they get the user limits and sanitization
             attributes.forEach {
-                parentSpan.setAttribute(key: $0.key, value: $0.value)
+                parentSpan.setAttribute(key: $0.key, value: $0.value, source: .user)
             }
         }
     }

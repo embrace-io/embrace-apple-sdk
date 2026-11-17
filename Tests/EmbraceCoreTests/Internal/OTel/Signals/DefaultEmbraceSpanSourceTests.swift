@@ -93,6 +93,22 @@ class DefaultEmbraceSpanSourceTests: XCTestCase {
         XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
     }
 
+    func test_sdk_setAttributeWithUserSource_usesHandlerValidation() throws {
+        // given a span created by the SDK
+        let span = makeTestSpan(source: .sdk)
+
+        // when setting an attribute that comes from the user
+        span.setAttribute(key: "key", value: "value", source: .user)
+
+        // then the attribute is validated with the user rules
+        // and it doesn't count as an internal attribute
+        XCTAssertEqual(span.attributes["key"] as! String, "value")
+        XCTAssertEqual(handler.validateAttributeCallCount, 1)
+        XCTAssertEqual(handler.validateAttributeSource, .user)
+        XCTAssertEqual(span.state.safeValue.internalAttributeCount, 1)
+        XCTAssertEqual(handler.onSpanAttributeUpdatedCallCount, 1)
+    }
+
     func test_sdk_addLink_passesSourceToHandler() throws {
         // given a span created by the SDK
         let span = makeTestSpan(source: .sdk)

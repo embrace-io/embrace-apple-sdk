@@ -425,6 +425,22 @@ extension EmbraceSpan {
 
         span._setInternalAttribute(key: key, value: value)
     }
+
+    /// Sets an attribute validated with the rules of the given source instead of the span's own source.
+    /// Used when the attribute comes from someone other than the creator of the span, like app-provided attributes on a span created by the SDK.
+    /// If the attribute is dropped, a warning is logged.
+    func setAttribute(key: String, value: EmbraceAttributeValue?, source: EmbraceOTelSignalSource) {
+        guard let span = self as? DefaultEmbraceSpan else {
+            setAttribute(key: key, value: value)
+            return
+        }
+
+        do {
+            try span._setAttribute(key: key, value: value, source: source)
+        } catch {
+            Embrace.logger.warning("Failed to set attribute to span '\(span.name)': \(error.localizedDescription)")
+        }
+    }
 }
 
 // MARK: Internal Session Events

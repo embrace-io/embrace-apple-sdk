@@ -58,8 +58,9 @@ extension StartupInstrumentation {
             return
         }
 
+        // the attributes come from the app, so they get the user limits and sanitization
         for (key, value) in attributes {
-            rootSpan.setAttribute(key: key, value: value)
+            rootSpan.setAttribute(key: key, value: value, source: .user)
         }
     }
 }
