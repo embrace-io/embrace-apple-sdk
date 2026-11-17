@@ -482,13 +482,13 @@ class LogControllerTests: XCTestCase {
         thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
-    func testWarningLog_createLogByDefault_addsStackTraceToAttributes() throws {
+    func testWarningLog_createLogByDefault_doesntAddStackTraceToAttributes() throws {
         givenLogController()
 
         var createdLog: EmbraceLog?
         whenCreatingLog(severity: .warn) { createdLog = $0 }
 
-        thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
     func testErrorLog_createLogByDefault_addsStackTraceToAttributes() throws {
@@ -518,13 +518,24 @@ class LogControllerTests: XCTestCase {
         thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
 
-    func testWarnAndErrorLogs_createLogByWithCustomStacktrace_alwaysAddStackTraceToAttributes() throws {
+    func testErrorLog_createLogByWithCustomStacktrace_addsStackTraceToAttributes() throws {
         givenLogController()
 
         let customStackTrace = try XCTUnwrap(EmbraceStackTrace(frames: Thread.callStackSymbols))
 
         var createdLog: EmbraceLog?
         whenCreatingLog(severity: .error, stackTraceBehavior: .custom(customStackTrace)) { createdLog = $0 }
+
+        thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
+    }
+
+    func testWarningLog_createLogByWithCustomStacktrace_addsStackTraceToAttributes() throws {
+        givenLogController()
+
+        let customStackTrace = try XCTUnwrap(EmbraceStackTrace(frames: Thread.callStackSymbols))
+
+        var createdLog: EmbraceLog?
+        whenCreatingLog(severity: .warn, stackTraceBehavior: .custom(customStackTrace)) { createdLog = $0 }
 
         thenLogHasAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
@@ -559,6 +570,15 @@ class LogControllerTests: XCTestCase {
 
         var createdLog: EmbraceLog?
         whenCreatingLogOffMainThread(severity: .warn, stackTraceBehavior: .main) { createdLog = $0 }
+
+        thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
+    }
+
+    func testInfoLog_withMainStacktrace_doesntAddStackTraceToAttributes() throws {
+        givenLogController()
+
+        var createdLog: EmbraceLog?
+        whenCreatingLogOffMainThread(severity: .info, stackTraceBehavior: .main) { createdLog = $0 }
 
         thenLogHasntGotAnEmbbededStackTraceInTheAttributes(try XCTUnwrap(createdLog))
     }
