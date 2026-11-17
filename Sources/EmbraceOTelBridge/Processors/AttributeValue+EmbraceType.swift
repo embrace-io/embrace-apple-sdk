@@ -7,15 +7,15 @@ import OpenTelemetryApi
 
 extension Optional where Wrapped == AttributeValue {
     /// Whether an `emb.type` attribute value has to be replaced by the default type.
-    /// Missing values and empty strings are treated as not present.
+    /// Missing values, non-string values, and empty or whitespace-only strings are treated as not present.
     var isMissingEmbraceType: Bool {
         switch self {
         case .none:
             return true
         case .some(.string(let value)):
-            return value.isEmpty
+            return value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .some:
-            return false
+            return true
         }
     }
 }
