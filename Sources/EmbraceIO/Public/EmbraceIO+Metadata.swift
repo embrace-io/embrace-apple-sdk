@@ -53,7 +53,7 @@ extension EmbraceIO {
     /// Every payload uploaded after this call includes them.
     /// If a key is too long or the resources limit is reached, the resource is dropped and a warning is logged.
     /// - Parameter resources: The resources to add. Keys can not be longer than 128 characters, and values are truncated if they're longer than 1024 characters.
-    ///   Existing keys are overwritten.
+    ///   Existing keys are overwritten, except for the resources set by the SDK (like `emb.sdk.version` or `os.version`), which are dropped and a warning is logged.
     /// - Note: These resources are not added to the OpenTelemetry resource, so external OpenTelemetry exporters don't receive them.
     /// - Note: This method has no effect if the SDK is disabled.
     public func addResources(_ resources: [String: String]) {

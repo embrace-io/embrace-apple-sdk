@@ -231,6 +231,51 @@ final class EmbraceIOCaptureServicesTests: XCTestCase {
         XCTAssertEqual(resources.first?.value, "new")
     }
 
+    func test_addResources_reservedKeys_areNotOverwritten() throws {
+        // given a started SDK with the SDK's resources stored
+        try EmbraceIO.start(options: options)
+        let client = try XCTUnwrap(Embrace.client)
+        let sdkVersionKey = AppResourceKey.sdkVersion.rawValue
+        let osVersionKey = DeviceResourceKey.osVersion.rawValue
+        let stored = expectation(description: "resources stored")
+        client.storage.coreData.performAsyncOperation { _ in stored.fulfill() }
+        wait(for: [stored], timeout: 5)
+
+        // when adding resources with reserved keys
+        EmbraceIO.shared.addResources([sdkVersionKey: "fake", osVersionKey: "fake", "test.resource.allowed": "value"])
+        client.metadata.synchronizationQueue.sync {}
+
+        // then the reserved resources are dropped and the SDK values are kept
+        let resources = client.storage.fetchResourcesForProcessId(ProcessIdentifier.current)
+        XCTAssertFalse(resources.contains { $0.key == sdkVersionKey && $0.value == "fake" })
+        XCTAssertFalse(resources.contains { $0.key == osVersionKey && $0.value == "fake" })
+        XCTAssertEqual(resources.filter { $0.key == sdkVersionKey }.map(\.value), [EmbraceMeta.sdkVersion])
+        XCTAssertEqual(resources.first { $0.key == "test.resource.allowed" }?.value, "value")
+    }
+
+    func test_startResources_reservedKeys_areNotOverwritten() throws {
+        // given a SDK started with resources that use reserved keys
+        let sdkVersionKey = AppResourceKey.sdkVersion.rawValue
+        let internalOptions = try XCTUnwrap(Embrace.Options.from(options: options))
+        let client = try Embrace.setup(
+            options: internalOptions,
+            otelResources: [sdkVersionKey: "fake", "test.start.allowed": "value"]
+        )
+        try client.start()
+
+        // when the start resources are stored
+        client.processingQueue.sync {}
+        client.metadata.synchronizationQueue.sync {}
+        let stored = expectation(description: "resources stored")
+        client.storage.coreData.performAsyncOperation { _ in stored.fulfill() }
+        wait(for: [stored], timeout: 5)
+
+        // then the reserved resources are dropped and the SDK values are kept
+        let resources = client.storage.fetchResourcesForProcessId(ProcessIdentifier.current)
+        XCTAssertEqual(resources.filter { $0.key == sdkVersionKey }.map(\.value), [EmbraceMeta.sdkVersion])
+        XCTAssertEqual(resources.first { $0.key == "test.start.allowed" }?.value, "value")
+    }
+
     func test_addResources_whenNotStarted_isIgnored() throws {
         // given a SDK that was setup but not started
         let internalOptions = try XCTUnwrap(Embrace.Options.from(options: options))
