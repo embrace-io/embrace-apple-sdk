@@ -19,11 +19,13 @@ extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
     ///   - timestamp: Timestamp of the event.
     ///   - attributes: Attributes of the event.
     ///   - captureData: Whether or not Embrace should parse the data inside the push notification.
+    ///   - source: Who generated the event, which determines the limits and sanitization applied to it.
     package func addPushNotificationEvent(
         notification: UNNotification,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
-        captureData: Bool = true
+        captureData: Bool = true,
+        source: EmbraceOTelSignalSource
     ) {
         var userInfo: [AnyHashable: Any] = [:]
         #if !os(tvOS)
@@ -34,7 +36,8 @@ extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
             userInfo: userInfo,
             timestamp: timestamp,
             attributes: attributes,
-            captureData: captureData
+            captureData: captureData,
+            source: source
         )
     }
 
@@ -45,11 +48,13 @@ extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
     ///   - timestamp: Timestamp of the event.
     ///   - attributes: Attributes of the event.
     ///   - captureData: Whether or not Embrace should parse the data inside the push notification.
+    ///   - source: Who generated the event, which determines the limits and sanitization applied to it.
     package func addPushNotificationEvent(
         userInfo: [AnyHashable: Any],
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
-        captureData: Bool = true
+        captureData: Bool = true,
+        source: EmbraceOTelSignalSource
     ) {
 
         guard let span = sessionController?.currentSessionSpan else {
@@ -72,7 +77,7 @@ extension DefaultOTelSignalsHandler: PushNotificationSignalHandler {
                 timestamp: timestamp,
                 attributes: attributes,
                 internalAttributes: internalAttributes,
-                source: .user
+                source: source
             )
         } catch {
             Embrace.logger.warning("Failed to add push notification event: \(error.localizedDescription)")
@@ -166,7 +171,8 @@ protocol PushNotificationSignalHandler {
         notification: UNNotification,
         timestamp: Date,
         attributes: EmbraceAttributes,
-        captureData: Bool
+        captureData: Bool,
+        source: EmbraceOTelSignalSource
     )
 }
 
@@ -183,7 +189,8 @@ extension EmbraceOTelSignalsHandler {
             notification: notification,
             timestamp: Date(),
             attributes: [:],
-            captureData: captureData
+            captureData: captureData,
+            source: .sdk
         )
     }
 }

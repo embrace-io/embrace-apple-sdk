@@ -29,7 +29,8 @@ extension EmbraceIO {
             notification: notification,
             timestamp: timestamp,
             attributes: attributes,
-            captureData: captureData
+            captureData: captureData,
+            source: .user
         )
     }
 
@@ -50,7 +51,8 @@ extension EmbraceIO {
             userInfo: userInfo,
             timestamp: timestamp,
             attributes: attributes,
-            captureData: captureData
+            captureData: captureData,
+            source: .user
         )
     }
 }
