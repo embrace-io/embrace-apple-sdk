@@ -32,7 +32,7 @@ open class CaptureService {
     private(set) package weak var otel: EmbraceOTelSignalsHandler?
 
     /// `EmbraceConsoleLogger` instance used to generate internal logs.
-    private(set) public weak var logger: InternalLogger?
+    private(set) package weak var logger: InternalLogger?
 
     /// Getter for the state of the capture service.
     public let state: EmbraceAtomic<CaptureServiceState> = EmbraceAtomic(.uninstalled)

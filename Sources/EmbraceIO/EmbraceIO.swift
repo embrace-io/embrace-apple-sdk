@@ -6,6 +6,8 @@ import Foundation
 import OpenTelemetryApi
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
+    @_exported import EmbraceCaptureService
+    @_exported import EmbraceConfiguration
     @_exported import EmbraceCore
     import EmbraceCommonInternal
     import EmbraceOTelBridge
