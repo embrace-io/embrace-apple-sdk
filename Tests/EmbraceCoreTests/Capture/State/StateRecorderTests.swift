@@ -25,7 +25,7 @@ private final class InterferingOTelHandler: MockOTelSignalsHandler {
 
     override func _createSpan(
         name: String,
-        parentSpan: EmbraceSpan? = nil,
+        parentContext: EmbraceSpanContext? = nil,
         type: EmbraceType,
         status: EmbraceSpanStatus = .unset,
         startTime: Date,
@@ -48,7 +48,7 @@ private final class InterferingOTelHandler: MockOTelSignalsHandler {
 
         return try super._createSpan(
             name: name,
-            parentSpan: parentSpan,
+            parentContext: parentContext,
             type: type,
             status: status,
             startTime: startTime,

@@ -23,7 +23,7 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
 
     func _createSpan(
         name: String,
-        parentSpan: EmbraceSpan?,
+        parentContext: EmbraceSpanContext?,
         type: EmbraceType,
         status: EmbraceSpanStatus,
         startTime: Date,
@@ -36,7 +36,7 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
     ) throws -> EmbraceSpan {
         let span = try wrapped._createSpan(
             name: name,
-            parentSpan: parentSpan,
+            parentContext: parentContext,
             type: type,
             status: status,
             startTime: startTime,
