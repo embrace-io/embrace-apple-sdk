@@ -250,6 +250,61 @@
             XCTAssertEqual(otel.startedSpans.count, 0)
         }
 
+        func test_onViewDidReappear_startsVisibilitySpan() throws {
+            // given a view controller that appeared and then disappeared
+            let vc = MockViewController()
+            handler.onViewDidLoadStart(vc)
+            handler.onViewDidAppearEnd(vc)
+            handler.onViewDidDisappear(vc)
+            let loadSpanCount = otel.startedSpans.filter { $0.name != "emb-screen-view" }.count
+
+            // when it appears again
+            handler.onViewDidReappear(vc)
+
+            // then a second visibility span is started and no load spans are
+            let visibilitySpans = otel.startedSpans.filter { $0.name == "emb-screen-view" }
+            XCTAssertEqual(visibilitySpans.count, 2)
+            XCTAssertEqual(visibilitySpans.last?.type, .view)
+            XCTAssertEqual(otel.startedSpans.filter { $0.name != "emb-screen-view" }.count, loadSpanCount)
+            XCTAssertNotNil(handler.data.safeValue.visibilitySpans[try XCTUnwrap(vc.emb_instrumentation_state?.identifier)])
+        }
+
+        func test_onViewDidReappear_visibilitySpanAlreadyOpen() {
+            // given a view controller with an open visibility span
+            let vc = MockViewController()
+            handler.onViewDidAppearEnd(vc)
+
+            // when it reappears without disappearing first
+            handler.onViewDidReappear(vc)
+
+            // then no extra visibility span is started
+            XCTAssertEqual(otel.startedSpans.filter { $0.name == "emb-screen-view" }.count, 1)
+        }
+
+        func test_onViewDidReappear_instrumentationDisabled() {
+            // given a handler with visibility instrumentation disabled
+            dataSource.instrumentVisibility = false
+            let vc = MockViewController()
+            vc.emb_instrumentation_state = .init(identifier: "test")
+
+            // when a view controller reappears
+            handler.onViewDidReappear(vc)
+
+            // then no spans are created
+            XCTAssertEqual(otel.startedSpans.count, 0)
+        }
+
+        func test_onViewDidReappear_noState() {
+            // given a view controller that was never instrumented
+            let vc = MockViewController()
+
+            // when it reappears
+            handler.onViewDidReappear(vc)
+
+            // then no spans are created
+            XCTAssertEqual(otel.startedSpans.count, 0)
+        }
+
         func test_timeToFirstRenderFlow() throws {
             // given a handler
             let vc = MockViewController()

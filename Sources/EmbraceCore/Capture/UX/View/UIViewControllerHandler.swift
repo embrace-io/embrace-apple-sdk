@@ -307,17 +307,8 @@
                 }
 
                 // check if we need to create a visibility span
-                if self.dataSource?.instrumentVisibility == true,
-                    let visibilitySpan = self.createSpan(
-                        with: otel,
-                        viewName: viewName,
-                        className: className,
-                        name: SpanSemantics.View.screenName,
-                        type: .view,
-                        startTime: now
-                    )
-                {
-                    self.data.withLock { $0.visibilitySpans[id] = visibilitySpan }
+                if self.dataSource?.instrumentVisibility == true {
+                    self.startVisibilitySpan(id: id, otel: otel, viewName: viewName, className: className, now: now)
                 }
 
                 if let span = self.data.withLock({ $0.viewDidAppearSpans.removeValue(forKey: id) }) {
@@ -357,6 +348,29 @@
                         self.data.withLock { $0.uiReadySpans[id] = span }
                     }
                 }
+            }
+        }
+
+        /// A controller appearing again after its first appearance. Only its visibility is measured again;
+        /// its load spans are tied to the first appearance.
+        func onViewDidReappear(_ vc: UIViewController, now: Date = Date()) {
+            guard dataSource?.instrumentVisibility == true,
+                let id = vc.emb_instrumentation_state?.identifier
+            else {
+                return
+            }
+
+            let className = vc.className
+            let viewName = vc.emb_viewName
+
+            queue.async {
+                guard let otel = self.dataSource?.otel,
+                    self.data.withLock({ $0.visibilitySpans[id] }) == nil
+                else {
+                    return
+                }
+
+                self.startVisibilitySpan(id: id, otel: otel, viewName: viewName, className: className, now: now)
             }
         }
 
@@ -430,6 +444,29 @@
             for span in spans {
                 span.end(errorCode: .userAbandon, endTime: time)
             }
+        }
+
+        private func startVisibilitySpan(
+            id: String,
+            otel: EmbraceOTelSignalsHandler,
+            viewName: String,
+            className: String,
+            now: Date
+        ) {
+            guard
+                let span = createSpan(
+                    with: otel,
+                    viewName: viewName,
+                    className: className,
+                    name: SpanSemantics.View.screenName,
+                    type: .view,
+                    startTime: now
+                )
+            else {
+                return
+            }
+
+            data.withLock { $0.visibilitySpans[id] = span }
         }
 
         private func createSpan(
