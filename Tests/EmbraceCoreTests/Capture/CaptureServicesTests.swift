@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCaptureService
 import EmbraceCommonInternal
 import TestSupport
 import XCTest
@@ -67,4 +68,43 @@ final class CaptureServicesTests: XCTestCase {
         // then no MetricKit service is added
         XCTAssert(services.services.isEmpty)
     }
+
+    // MARK: Adding capture services
+
+    func test_add_appendsService() {
+        // given capture services
+        let services = captureServices(crashReporter: nil)
+
+        // when adding a capture service
+        let service = LateCaptureService()
+        let result = services.add(service)
+
+        // then the service is added but not installed
+        XCTAssertTrue(result)
+        XCTAssertTrue(services.services.contains { $0 === service })
+        XCTAssertTrue(service.isUninstalled)
+    }
+
+    func test_add_rejectsDuplicateType() {
+        // given capture services with a capture service already added
+        let services = captureServices(crashReporter: nil)
+        services.add(LateCaptureService())
+
+        // when adding another capture service of the same type
+        let result = services.add(LateCaptureService())
+
+        // then it's rejected
+        XCTAssertFalse(result)
+        XCTAssertEqual(services.services.count, 1)
+    }
+}
+
+class LateCaptureService: CaptureService {
+    var installCount = 0
+    var startCount = 0
+    var sessionStartCount = 0
+
+    override func onInstall() { installCount += 1 }
+    override func onStart() { startCount += 1 }
+    override func onSessionStart() { sessionStartCount += 1 }
 }

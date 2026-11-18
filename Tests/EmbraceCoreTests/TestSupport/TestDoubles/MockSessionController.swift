@@ -109,7 +109,7 @@ class MockSessionController: SessionControllable {
 
         currentSession = session
 
-        currentSessionSpan = InternalEmbraceSpan(
+        currentSessionSpan = DefaultEmbraceSpan(
             context: EmbraceSpanContext(
                 spanId: TestConstants.spanId,
                 traceId: TestConstants.traceId
@@ -126,6 +126,7 @@ class MockSessionController: SessionControllable {
             ],
             sessionId: session!.id,
             processId: ProcessIdentifier.current,
+            source: .sdk,
             handler: spanHandler
         )
         if let storage {

@@ -82,6 +82,57 @@ final class EmbraceLogProcessorTests: XCTestCase {
         XCTAssertEqual(log?.attributes[LogSemantics.keyPartId], .string("part-123"))
     }
 
+    func test_onEmit_keepsExistingEmbraceType() {
+        // given an external log that already has an emb.type
+        otelLogger.logRecordBuilder()
+            .setBody(.string("external-log"))
+            .setAttributes([LogSemantics.keyEmbraceType: .string(EmbraceType.crash.rawValue)])
+            .emit()
+
+        // then the type is not replaced
+        XCTAssertEqual(mockDelegate.emittedLogs.first?.attributes[LogSemantics.keyEmbraceType], .string(EmbraceType.crash.rawValue))
+    }
+
+    func test_onEmit_replacesEmptyEmbraceType() {
+        // given an external log with an empty emb.type
+        otelLogger.logRecordBuilder()
+            .setBody(.string("external-log"))
+            .setAttributes([LogSemantics.keyEmbraceType: .string("")])
+            .emit()
+
+        // then the default type is set
+        XCTAssertEqual(mockDelegate.emittedLogs.first?.attributes[LogSemantics.keyEmbraceType], .string(EmbraceType.message.rawValue))
+    }
+
+    func test_onEmit_replacesWhitespaceEmbraceType() {
+        // given an external log with a whitespace-only emb.type
+        otelLogger.logRecordBuilder()
+            .setBody(.string("external-log"))
+            .setAttributes([LogSemantics.keyEmbraceType: .string("  \n")])
+            .emit()
+
+        // then the default type is set
+        XCTAssertEqual(mockDelegate.emittedLogs.first?.attributes[LogSemantics.keyEmbraceType], .string(EmbraceType.message.rawValue))
+    }
+
+    func test_onEmit_replacesNonStringEmbraceType() {
+        // given external logs with non-string emb.type values
+        otelLogger.logRecordBuilder()
+            .setBody(.string("int-log"))
+            .setAttributes([LogSemantics.keyEmbraceType: .int(5)])
+            .emit()
+        otelLogger.logRecordBuilder()
+            .setBody(.string("bool-log"))
+            .setAttributes([LogSemantics.keyEmbraceType: .bool(true)])
+            .emit()
+
+        // then the default type is set
+        XCTAssertEqual(mockDelegate.emittedLogs.count, 2)
+        for log in mockDelegate.emittedLogs {
+            XCTAssertEqual(log.attributes[LogSemantics.keyEmbraceType], .string(EmbraceType.message.rawValue))
+        }
+    }
+
     // MARK: - Child processor forwarding
 
     func test_onEmit_forwardsToChildProcessors() {

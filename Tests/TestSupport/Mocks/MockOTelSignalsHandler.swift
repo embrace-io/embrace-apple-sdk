@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import Foundation
 
@@ -16,6 +17,11 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
     @TestLocked public private(set) var events: [EmbraceSpanEvent] = []
     @TestLocked public private(set) var logs: [EmbraceLog] = []
 
+    /// Sources passed when creating spans, session events and logs, in the order they arrived.
+    @TestLocked package private(set) var spanSources: [EmbraceOTelSignalSource] = []
+    @TestLocked package private(set) var eventSources: [EmbraceOTelSignalSource] = []
+    @TestLocked package private(set) var logSources: [EmbraceOTelSignalSource] = []
+
     /// Called synchronously when a span is created, like a span processor's `onStart`.
     @TestLocked public var onSpanStartedCallback: ((EmbraceSpan) -> Void)?
     /// Called synchronously when a span ends, like a span processor's `onEnd`.
@@ -26,7 +32,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
 
     public init() {}
 
-    public func _createSpan(
+    package func _createSpan(
         name: String,
         parentContext: EmbraceSpanContext? = nil,
         type: EmbraceType,
@@ -37,8 +43,10 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
-        isInternal: Bool = true
+        source: EmbraceOTelSignalSource = .sdk
     ) throws -> EmbraceSpan {
+
+        spanSources.append(source)
 
         let traceId = parentContext?.traceId ?? .randomTraceId()
 
@@ -70,13 +78,15 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
     }
 
     @discardableResult
-    public func _addSessionEvent(
+    package func _addSessionEvent(
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
-        isInternal: Bool = true
+        source: EmbraceOTelSignalSource = .sdk
     ) throws -> EmbraceSpanEvent? {
+        eventSources.append(source)
+
         let event = EmbraceSpanEvent(
             name: name,
             type: type,
@@ -87,7 +97,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         return event
     }
 
-    public func _log(
+    package func _log(
         _ message: String,
         severity: EmbraceLogSeverity = .info,
         type: EmbraceType,
@@ -95,8 +105,10 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default,
-        isInternal: Bool = true
+        source: EmbraceOTelSignalSource = .sdk
     ) {
+        logSources.append(source)
+
         let log = MockLog(
             id: UUID().withoutHyphen,
             severity: severity,

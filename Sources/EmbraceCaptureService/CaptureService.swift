@@ -21,13 +21,18 @@ import Foundation
 ///
 /// This base class provides the necessary functionality and structure that should be used
 /// by all capture services.
+///
+/// Capture services can also be added after the SDK has started. These must not use swizzling:
+/// by the time they are added the app is already running, so swizzling is unreliable.
+/// Capture services that use swizzling must be passed when setting up the SDK, which should be done
+/// as early as possible in the app's lifecycle.
 open class CaptureService {
 
     /// Getter for the OTel signals handler used by the capture service.
     private(set) package weak var otel: EmbraceOTelSignalsHandler?
 
     /// `EmbraceConsoleLogger` instance used to generate internal logs.
-    private(set) public weak var logger: InternalLogger?
+    private(set) package weak var logger: InternalLogger?
 
     /// Getter for the state of the capture service.
     public let state: EmbraceAtomic<CaptureServiceState> = EmbraceAtomic(.uninstalled)
@@ -79,7 +84,8 @@ open class CaptureService {
         onStop()
     }
 
-    /// This method will be called once when the Embrace SDK starts.
+    /// This method will be called once when the capture service is installed. This happens when the Embrace SDK starts,
+    /// or when the capture service is added if the SDK was already started.
     /// You should override this method if your `CaptureService` needs some sort of
     /// setup process before it can start generating data.
     open func onInstall() {
