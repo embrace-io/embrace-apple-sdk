@@ -46,8 +46,11 @@ class RemoteConfigFetcher {
         dataTask.resume()
     }
 
-    /// Maps the outcome of a config request to what `fetch` reports: the decoded payload and the
-    /// response body on success, a default payload when the body doesn't decode, and `nil` otherwise.
+    /// Converts a finished config request into the values `fetch` passes to its completion, and logs
+    /// the outcome to `logger`:
+    /// - 2xx `HTTPURLResponse` with a body that decodes: the decoded payload and the body.
+    /// - 2xx with a body that doesn't decode: `RemoteConfigPayload()` and `nil`.
+    /// - An error, no body, a response that isn't HTTP, or a status outside 2xx: `(nil, nil)`.
     static func result(
         data: Data?,
         response: URLResponse?,

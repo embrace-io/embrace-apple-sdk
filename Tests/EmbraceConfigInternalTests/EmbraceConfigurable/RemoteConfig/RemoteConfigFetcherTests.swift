@@ -138,8 +138,9 @@ class RemoteConfigFetcherTests: XCTestCase {
             expectation.fulfill()
         }
 
-        // then the request goes through the session and the response is decoded
-        // (a positive wait: it returns as soon as the response arrives)
+        // then the request goes through the session (answered by EmbraceHTTPMock) and the response
+        // is decoded. 30 s leaves room for sanitizer runs; the wait returns as soon as the
+        // expectation is fulfilled.
         wait(for: [expectation], timeout: 30)
         XCTAssertNotNil(fetchedPayload)
         XCTAssertEqual(fetchedData, try remoteConfigFixture())
@@ -149,27 +150,52 @@ class RemoteConfigFetcherTests: XCTestCase {
     func test_result_successfulResponse_returnsPayloadAndData() throws {
         let data = try remoteConfigFixture()
 
-        let result = RemoteConfigFetcher.result(
-            data: data, response: try httpResponse(statusCode: 200), error: nil, logger: logger)
+        for statusCode in [200, 299] {
+            let result = RemoteConfigFetcher.result(
+                data: data, response: try httpResponse(statusCode: statusCode), error: nil, logger: logger)
 
-        XCTAssertEqual(result.payload, try JSONDecoder().decode(RemoteConfigPayload.self, from: data))
-        XCTAssertEqual(result.data, data)
+            XCTAssertEqual(
+                result.payload, try JSONDecoder().decode(RemoteConfigPayload.self, from: data), "status \(statusCode)")
+            XCTAssertEqual(result.data, data, "status \(statusCode)")
+        }
+        XCTAssertTrue(loggedMessage(.info, startingWith: "Successfully fetched remote config"))
     }
 
-    func test_result_unsuccessfulStatusCode_returnsNil() throws {
-        let result = RemoteConfigFetcher.result(
-            data: Data(), response: try httpResponse(statusCode: 404), error: nil, logger: logger)
+    func test_result_statusOutside2xx_returnsNil() throws {
+        // a body that decodes, so only the status check can reject it
+        let data = try remoteConfigFixture()
 
-        XCTAssertNil(result.payload)
-        XCTAssertNil(result.data)
+        for statusCode in [199, 300, 304, 404, 500] {
+            let result = RemoteConfigFetcher.result(
+                data: data, response: try httpResponse(statusCode: statusCode), error: nil, logger: logger)
+
+            XCTAssertNil(result.payload, "status \(statusCode)")
+            XCTAssertNil(result.data, "status \(statusCode)")
+        }
+        XCTAssertTrue(loggedMessage(.error, startingWith: "Error fetching remote config - Invalid response"))
     }
 
     func test_result_requestError_returnsNil() throws {
+        // a 200 with a body that decodes, so only the error check can reject it
         let result = RemoteConfigFetcher.result(
-            data: nil, response: nil, error: NSError(domain: TestConstants.domain, code: 500), logger: logger)
+            data: try remoteConfigFixture(),
+            response: try httpResponse(statusCode: 200),
+            error: NSError(domain: TestConstants.domain, code: 500),
+            logger: logger
+        )
 
         XCTAssertNil(result.payload)
         XCTAssertNil(result.data)
+        XCTAssertTrue(loggedMessage(.error, startingWith: "Error fetching remote config:"))
+    }
+
+    func test_result_noBody_returnsNil() throws {
+        let result = RemoteConfigFetcher.result(
+            data: nil, response: try httpResponse(statusCode: 200), error: nil, logger: logger)
+
+        XCTAssertNil(result.payload)
+        XCTAssertNil(result.data)
+        XCTAssertTrue(loggedMessage(.error, startingWith: "Error fetching remote config:"))
     }
 
     func test_result_responseThatIsNotHTTP_returnsNil() throws {
@@ -181,6 +207,7 @@ class RemoteConfigFetcherTests: XCTestCase {
 
         XCTAssertNil(result.payload)
         XCTAssertNil(result.data)
+        XCTAssertTrue(loggedMessage(.error, startingWith: "Error fetching remote config - Invalid response"))
     }
 
     func test_result_bodyThatDoesNotDecode_returnsDefaultPayload() throws {
@@ -189,5 +216,10 @@ class RemoteConfigFetcherTests: XCTestCase {
 
         XCTAssertEqual(result.payload, RemoteConfigPayload())
         XCTAssertNil(result.data)
+        XCTAssertTrue(loggedMessage(.error, startingWith: "Error decoding remote config"))
+    }
+
+    private func loggedMessage(_ level: EmbraceLogLevel, startingWith prefix: String) -> Bool {
+        logger.loggedMessages.contains { $0.level == level && $0.message.hasPrefix(prefix) }
     }
 }

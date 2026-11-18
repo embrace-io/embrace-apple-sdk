@@ -11,8 +11,13 @@ import XCTest
 class DataTaskWithURLRequestAndCompletionSwizzlerTests: SwizzlerTestCase {
     private var session: URLSession!
     private var sut: DataTaskWithURLRequestAndCompletionSwizzler!
+    fileprivate typealias Received = (Data?, URLResponse?, Error?)
+
     private var handler: MockURLSessionTaskHandler!
     private var stubSession: StubURLSession!
+    private var sentData: Data?
+    private var sentResponse: URLResponse?
+    private var sentError: NSError?
     private var request: URLRequest!
 
     private var dataTask: URLSessionDataTask!
@@ -25,7 +30,7 @@ class DataTaskWithURLRequestAndCompletionSwizzlerTests: SwizzlerTestCase {
     func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
         givenDataTaskWithURLRequestSwizzler(baseClass: StubURLSession.self)
         try givenSwizzlingWasDone()
-        givenSuccessfulRequest()
+        givenRequest()
         givenStubSession()
         whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in }, resume: false)
         thenHandlerShouldHaveInvokedCreateWithTask()
@@ -34,25 +39,25 @@ class DataTaskWithURLRequestAndCompletionSwizzlerTests: SwizzlerTestCase {
     func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
         givenDataTaskWithURLRequestSwizzler(baseClass: StubURLSession.self)
         try givenSwizzlingWasDone()
-        givenSuccessfulRequest()
+        givenRequest()
         givenStubSession()
-        var didCallCompletion = false
-        whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in didCallCompletion = true }, resume: false)
-        try whenTheSessionFinishesSuccessfully()
+        var received: Received?
+        whenInvokingDataTaskWithUrl(completionHandler: { received = ($0, $1, $2) }, resume: false)
+        whenTheSessionFinishesSuccessfully()
         thenHandlerShouldHaveInvokedFinishTask()
-        XCTAssertTrue(didCallCompletion)
+        thenTheCompletionShouldHaveReceivedWhatTheSessionSent(received)
     }
 
     func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
         givenDataTaskWithURLRequestSwizzler(baseClass: StubURLSession.self)
         try givenSwizzlingWasDone()
-        givenFailedRequest()
+        givenRequest()
         givenStubSession()
-        var didCallCompletion = false
-        whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in didCallCompletion = true }, resume: false)
+        var received: Received?
+        whenInvokingDataTaskWithUrl(completionHandler: { received = ($0, $1, $2) }, resume: false)
         whenTheSessionFails()
         thenHandlerShouldHaveInvokedFinishTaskWithError()
-        XCTAssertTrue(didCallCompletion)
+        thenTheCompletionShouldHaveReceivedWhatTheSessionSent(received)
     }
 
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
@@ -97,27 +102,37 @@ extension DataTaskWithURLRequestAndCompletionSwizzlerTests {
         url.mockResponse = .successful(withData: mockData, response: mockResponse)
     }
 
-    fileprivate func givenFailedRequest() {
-        var url = URL(string: "https://embrace.io")!
-        request = URLRequest(url: url)
-        let error = NSError(domain: UUID().uuidString, code: 0)
-        let mockResponse = HTTPURLResponse(url: url, statusCode: 400, httpVersion: nil, headerFields: nil)!
-        url.mockResponse = .failure(withError: error, response: mockResponse)
+    fileprivate func givenRequest() {
+        request = URLRequest(url: URL(string: "https://embrace.io")!)
     }
 
     fileprivate func givenStubSession() {
+        StubURLSession.assertOverrides(DataTaskWithURLRequestAndCompletionSwizzler.selector)
         stubSession = StubURLSession()
         session = stubSession
     }
 
-    fileprivate func whenTheSessionFinishesSuccessfully() throws {
-        let response = HTTPURLResponse(url: URL(string: "https://embrace.io")!, statusCode: 200, httpVersion: nil, headerFields: nil)
-        stubSession.completeDataTask(data: Data("Mock Data".utf8), response: response, error: nil)
+    fileprivate func whenTheSessionFinishesSuccessfully() {
+        sentData = Data("Mock Data".utf8)
+        sentResponse = HTTPURLResponse(url: URL(string: "https://embrace.io")!, statusCode: 200, httpVersion: nil, headerFields: nil)
+        stubSession.completeDataTask(data: sentData, response: sentResponse, error: nil)
     }
 
     fileprivate func whenTheSessionFails() {
-        let response = HTTPURLResponse(url: URL(string: "https://embrace.io")!, statusCode: 400, httpVersion: nil, headerFields: nil)
-        stubSession.completeDataTask(data: nil, response: response, error: NSError(domain: UUID().uuidString, code: 0))
+        sentResponse = HTTPURLResponse(url: URL(string: "https://embrace.io")!, statusCode: 400, httpVersion: nil, headerFields: nil)
+        sentError = NSError(domain: UUID().uuidString, code: 0)
+        stubSession.completeDataTask(data: nil, response: sentResponse, error: sentError)
+    }
+
+    fileprivate func thenTheCompletionShouldHaveReceivedWhatTheSessionSent(
+        _ received: Received?, file: StaticString = #filePath, line: UInt = #line
+    ) {
+        guard let received else {
+            return XCTFail("The completion wasn't called", file: file, line: line)
+        }
+        XCTAssertEqual(received.0, sentData, file: file, line: line)
+        XCTAssertIdentical(received.1, sentResponse, file: file, line: line)
+        XCTAssertIdentical(received.2 as NSError?, sentError, file: file, line: line)
     }
 
     fileprivate func whenInvokingDataTaskWithUrl(
@@ -143,11 +158,13 @@ extension DataTaskWithURLRequestAndCompletionSwizzlerTests {
     fileprivate func thenHandlerShouldHaveInvokedFinishTask() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.1)
+        XCTAssertIdentical(handler.finishWithDataReceivedParameters?.0, dataTask)
     }
 
     fileprivate func thenHandlerShouldHaveInvokedFinishTaskWithError() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.2)
+        XCTAssertIdentical(handler.finishWithDataReceivedParameters?.0, dataTask)
     }
 
     fileprivate func thenDataTaskShouldHaveEmbraceHeaders() throws {
