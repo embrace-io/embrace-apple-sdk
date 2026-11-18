@@ -9,6 +9,7 @@ import XCTest
 
 class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: SwizzlerTestCase {
     private var handler: MockURLSessionTaskHandler!
+    private var stubSession: StubURLSession!
     private var sut: UploadTaskWithRequestFromDataWithCompletionSwizzler!
     private var session: URLSession!
     private var request: URLRequest!
@@ -21,45 +22,37 @@ class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: SwizzlerTestCase 
     }
 
     func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
-        let expectation = expectation(description: #function)
-        givenUploadTaskWithURLRequestAndCompletionSwizzler()
+        givenUploadTaskWithURLRequestAndCompletionSwizzler(baseClass: StubURLSession.self)
         try givenSwizzlingWasDone()
         givenSuccessfulRequest()
-        givenProxiedUrlSession()
-        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedCreateWithTask()
-            expectation.fulfill()
-        })
-        wait(for: [expectation], timeout: .longTimeout)
+        givenStubSession()
+        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in }, resume: false)
+        thenHandlerShouldHaveInvokedCreateWithTask()
     }
 
     func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
-        let expectation = expectation(description: #function)
-        givenUploadTaskWithURLRequestAndCompletionSwizzler()
+        givenUploadTaskWithURLRequestAndCompletionSwizzler(baseClass: StubURLSession.self)
         try givenSwizzlingWasDone()
         givenSuccessfulRequest()
-        givenProxiedUrlSession()
-        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedFinishTask()
-            expectation.fulfill()
-        })
-        wait(for: [expectation], timeout: .longTimeout)
+        givenStubSession()
+        var didCallCompletion = false
+        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in didCallCompletion = true }, resume: false)
+        try whenTheSessionFinishesSuccessfully()
+        thenHandlerShouldHaveInvokedFinishTask()
+        XCTAssertTrue(didCallCompletion)
     }
 
-    #if !os(watchOS)
-        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
-            let expectation = expectation(description: #function)
-            givenUploadTaskWithURLRequestAndCompletionSwizzler()
-            try givenSwizzlingWasDone()
-            givenFailedRequest()
-            givenProxiedUrlSession()
-            whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in
-                self.thenHandlerShouldHaveInvokedFinishTaskWithError()
-                expectation.fulfill()
-            })
-            wait(for: [expectation], timeout: .longTimeout)
-        }
-    #endif
+    func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
+        givenUploadTaskWithURLRequestAndCompletionSwizzler(baseClass: StubURLSession.self)
+        try givenSwizzlingWasDone()
+        givenFailedRequest()
+        givenStubSession()
+        var didCallCompletion = false
+        whenInvokingUploadTaskWithURLRequest(completionHandler: { _, _, _ in didCallCompletion = true }, resume: false)
+        whenTheSessionFails()
+        thenHandlerShouldHaveInvokedFinishTaskWithError()
+        XCTAssertTrue(didCallCompletion)
+    }
 
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
         givenUploadTaskWithURLRequestAndCompletionSwizzler()
@@ -82,9 +75,9 @@ class UploadTaskWithRequestFromDataAndCompletionSwizzlerTests: SwizzlerTestCase 
 }
 
 extension UploadTaskWithRequestFromDataAndCompletionSwizzlerTests {
-    fileprivate func givenUploadTaskWithURLRequestAndCompletionSwizzler() {
+    fileprivate func givenUploadTaskWithURLRequestAndCompletionSwizzler(baseClass: AnyClass = URLSession.self) {
         handler = MockURLSessionTaskHandler()
-        sut = UploadTaskWithRequestFromDataWithCompletionSwizzler(handler: handler)
+        sut = UploadTaskWithRequestFromDataWithCompletionSwizzler(handler: handler, baseClass: baseClass)
     }
 
     fileprivate func givenSwizzlingWasDone() throws {
@@ -113,13 +106,31 @@ extension UploadTaskWithRequestFromDataAndCompletionSwizzlerTests {
         session = ProxiedURLSessionProvider.default()
     }
 
+    fileprivate func givenStubSession() {
+        stubSession = StubURLSession()
+        session = stubSession
+    }
+
+    fileprivate func whenTheSessionFinishesSuccessfully() throws {
+        let response = HTTPURLResponse(url: URL(string: "https://embrace.io")!, statusCode: 200, httpVersion: nil, headerFields: nil)
+        stubSession.completeDataTask(data: Data("Mock Data".utf8), response: response, error: nil)
+    }
+
+    fileprivate func whenTheSessionFails() {
+        let response = HTTPURLResponse(url: URL(string: "https://embrace.io")!, statusCode: 400, httpVersion: nil, headerFields: nil)
+        stubSession.completeDataTask(data: nil, response: response, error: NSError(domain: UUID().uuidString, code: 0))
+    }
+
     fileprivate func whenInvokingUploadTaskWithURLRequest(
-        completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void
+        completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void,
+        resume: Bool = true
     ) {
         uploadTask = session.uploadTask(with: request, from: Data()) { data, response, error in
             completionHandler(data, response, error)
         }
-        uploadTask.resume()
+        if resume {
+            uploadTask.resume()
+        }
     }
 
     fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {

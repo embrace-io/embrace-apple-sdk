@@ -37,41 +37,50 @@ class RemoteConfigFetcher {
         }
 
         // execute request
-        let dataTask = session.dataTask(with: request) { [weak self] data, response, error in
-
-            guard let data = data, error == nil else {
-                self?.logger.error("Error fetching remote config:\n\(String(describing: error?.localizedDescription))")
-                completion(nil, nil)
-                return
-            }
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                self?.logger.error(
-                    "Error fetching remote config - Invalid response:\n\(String(describing: response?.description))")
-                completion(nil, nil)
-                return
-            }
-
-            guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
-                self?.logger.error("Error fetching remote config - Invalid response:\n\(httpResponse.description))")
-                completion(nil, nil)
-                return
-            }
-
-            // decode JSON
-            do {
-                let payload = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
-
-                self?.logger.info("Successfully fetched remote config")
-                completion(payload, data)
-            } catch {
-                self?.logger.error("Error decoding remote config:\n\(error.localizedDescription)")
-                // if a decoding issue happens, instead of returning `nil`, we provide a default `RemoteConfigPayload`
-                completion(RemoteConfigPayload(), nil)
-            }
+        let logger = self.logger
+        let dataTask = session.dataTask(with: request) { data, response, error in
+            let result = Self.result(data: data, response: response, error: error, logger: logger)
+            completion(result.payload, result.data)
         }
 
         dataTask.resume()
+    }
+
+    /// Maps the outcome of a config request to what `fetch` reports: the decoded payload and the
+    /// response body on success, a default payload when the body doesn't decode, and `nil` otherwise.
+    static func result(
+        data: Data?,
+        response: URLResponse?,
+        error: Error?,
+        logger: InternalLogger
+    ) -> (payload: RemoteConfigPayload?, data: Data?) {
+        guard let data = data, error == nil else {
+            logger.error("Error fetching remote config:\n\(String(describing: error?.localizedDescription))")
+            return (nil, nil)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            logger.error(
+                "Error fetching remote config - Invalid response:\n\(String(describing: response?.description))")
+            return (nil, nil)
+        }
+
+        guard httpResponse.statusCode >= 200 && httpResponse.statusCode < 300 else {
+            logger.error("Error fetching remote config - Invalid response:\n\(httpResponse.description))")
+            return (nil, nil)
+        }
+
+        // decode JSON
+        do {
+            let payload = try JSONDecoder().decode(RemoteConfigPayload.self, from: data)
+
+            logger.info("Successfully fetched remote config")
+            return (payload, data)
+        } catch {
+            logger.error("Error decoding remote config:\n\(error.localizedDescription)")
+            // if a decoding issue happens, instead of returning `nil`, we provide a default `RemoteConfigPayload`
+            return (RemoteConfigPayload(), nil)
+        }
     }
 
     func buildURL() -> URL? {
