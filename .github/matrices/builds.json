@@ -4,26 +4,41 @@
       {
         "platform": "iOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "device": "iPhone 17",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "tvOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "device": "Apple TV",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "macOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "watchOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "device": "Apple Watch Series 11 (46mm)",
+        "sanitizer": "none",
+        "coverage": true
+      },
+      {
+        "platform": "iOS",
+        "xcode_version": "27.2",
+        "runner": "xcode-27",
+        "device": "iPhone 17",
+        "sanitizer": "none",
+        "experimental": true
       }
     ]
   },
@@ -32,38 +47,78 @@
       {
         "platform": "iOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "device": "iPhone 17",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "tvOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "device": "Apple TV",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "macOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "watchOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "device": "Apple Watch Series 11 (46mm)",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "iOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
+        "runner": "macos-26",
+        "device": "iPhone 17",
         "sanitizer": "address"
       },
       {
         "platform": "iOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
+        "runner": "macos-26",
+        "device": "iPhone 17",
         "sanitizer": "thread"
+      },
+      {
+        "platform": "iOS",
+        "xcode_version": "27.2",
+        "runner": "xcode-27",
+        "device": "iPhone 17",
+        "sanitizer": "none",
+        "experimental": true
+      },
+      {
+        "platform": "tvOS",
+        "xcode_version": "27.2",
+        "runner": "xcode-27",
+        "device": "Apple TV 4K (4th generation)",
+        "sanitizer": "none",
+        "experimental": true
+      },
+      {
+        "platform": "macOS",
+        "xcode_version": "27.2",
+        "runner": "xcode-27",
+        "sanitizer": "none",
+        "experimental": true
+      },
+      {
+        "platform": "watchOS",
+        "xcode_version": "27.2",
+        "runner": "xcode-27",
+        "device": "Apple Watch Series 12 (46mm)",
+        "sanitizer": "none",
+        "experimental": true
       }
     ]
   },
@@ -72,38 +127,55 @@
       {
         "platform": "iOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "device": "iPhone 17",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "tvOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "device": "Apple TV",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "macOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "watchOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
-        "sanitizer": "none"
+        "runner": "macos-26",
+        "device": "Apple Watch Series 11 (46mm)",
+        "sanitizer": "none",
+        "coverage": true
       },
       {
         "platform": "iOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
+        "runner": "macos-26",
+        "device": "iPhone 17",
         "sanitizer": "address"
       },
       {
         "platform": "iOS",
         "xcode_version": "26.6",
-        "macos-version": "26",
+        "runner": "macos-26",
+        "device": "iPhone 17",
         "sanitizer": "thread"
+      },
+      {
+        "platform": "iOS",
+        "xcode_version": "27.2",
+        "runner": "xcode-27",
+        "device": "iPhone 17",
+        "sanitizer": "none",
+        "experimental": true
       }
     ]
   }

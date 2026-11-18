@@ -36,9 +36,12 @@ jobs:
 
   build:
     needs: prepare
-    name: Build ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}
+    name: Build ${{ matrix.platform }}, on ${{ matrix.runner }}, with Xcode ${{ matrix.xcode_version }}
     timeout-minutes: 30
-    runs-on: macos-${{ matrix.macos-version }}
+    runs-on: ${{ matrix.runner }}
+    # Rows marked `experimental` (the next Xcode major, on a preview runner
+    # image) report failures without failing the workflow run.
+    continue-on-error: ${{ matrix.experimental == true }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}

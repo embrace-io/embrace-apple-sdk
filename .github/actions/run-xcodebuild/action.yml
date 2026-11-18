@@ -24,6 +24,12 @@ inputs:
     description: SDK/runtime version (e.g. 18.0). Defaults to the runner's latest.
     required: false
     default: latest
+  device:
+    description: >
+      Simulator name for `action=test` on a simulator platform (e.g. "iPhone 17").
+      Required there; ignored for `build` and for macOS / Mac Catalyst.
+    required: false
+    default: ''
   arch:
     description: Architecture for macOS / Mac Catalyst destinations.
     required: false
@@ -56,6 +62,7 @@ runs:
         SCHEME: ${{ inputs.scheme }}
         PLATFORM: ${{ inputs.platform }}
         PLATFORM_VERSION: ${{ inputs.platform-version }}
+        DEVICE: ${{ inputs.device }}
         ARCH: ${{ inputs.arch }}
         XCODE_ACTION: ${{ inputs.action }}
         SANITIZER: ${{ inputs.sanitizer }}
@@ -81,10 +88,10 @@ runs:
         PLATFORM_VERSION="${PLATFORM_VERSION:-latest}"
 
         case "$PLATFORM" in
-          iOS)          SIM_PLATFORM="iOS Simulator";      SIM_NAME="iPhone 17" ;;
-          tvOS)         SIM_PLATFORM="tvOS Simulator";     SIM_NAME="Apple TV" ;;
-          watchOS)      SIM_PLATFORM="watchOS Simulator";  SIM_NAME="Apple Watch Series 11 (46mm)" ;;
-          visionOS)     SIM_PLATFORM="visionOS Simulator"; SIM_NAME="Apple Vision Pro" ;;
+          iOS)          SIM_PLATFORM="iOS Simulator" ;;
+          tvOS)         SIM_PLATFORM="tvOS Simulator" ;;
+          watchOS)      SIM_PLATFORM="watchOS Simulator" ;;
+          visionOS)     SIM_PLATFORM="visionOS Simulator" ;;
           macOS)        DESTINATION="platform=macOS,arch=${ARCH}" ;;
           mac-catalyst) DESTINATION="platform=macOS,variant=Mac Catalyst,arch=${ARCH}" ;;
           *)            echo "::error::run-xcodebuild: unknown platform '$PLATFORM'"; exit 1 ;;
@@ -96,12 +103,18 @@ runs:
         # churn (e.g. an image that ships "iPhone 16e" but not "iPhone 16", or an
         # `-downloadPlatform` runtime with no devices created against it — both
         # of which broke cocoapod-lint on 2026-06-24). A `test` must run on a
-        # real device, so it resolves a named one against the latest runtime.
+        # real device, so it resolves the caller's `device` against the
+        # runtime. Device names differ between Xcode majors (27 has no plain
+        # "Apple TV"), so the caller picks one that exists on its runner image.
         if [[ -n "${SIM_PLATFORM:-}" ]]; then
           if [[ "$XCODE_ACTION" == "build" ]]; then
             DESTINATION="generic/platform=${SIM_PLATFORM}"
           else
-            DESTINATION="platform=${SIM_PLATFORM},OS=${PLATFORM_VERSION},name=${SIM_NAME}"
+            if [[ -z "$DEVICE" ]]; then
+              echo "::error::run-xcodebuild: 'device' is required for action=${XCODE_ACTION} on ${PLATFORM}"
+              exit 1
+            fi
+            DESTINATION="platform=${SIM_PLATFORM},OS=${PLATFORM_VERSION},name=${DEVICE}"
           fi
         fi
 

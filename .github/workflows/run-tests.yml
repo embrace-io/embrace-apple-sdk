@@ -48,12 +48,15 @@ jobs:
 
   run-tests:
     needs: prepare
-    name: Test ${{ matrix.platform }}, on macOS ${{ matrix.macos-version }}, with Xcode ${{ matrix.xcode_version }}, sanitizer ${{ matrix.sanitizer }}
+    name: Test ${{ matrix.platform }}, on ${{ matrix.runner }}, with Xcode ${{ matrix.xcode_version }}, sanitizer ${{ matrix.sanitizer }}
     # 20 min: typical run is ~6 min compile + ~5 min tests. Per-test timeouts
     # (see .github/actions/run-xcodebuild) catch single-method hangs; this
     # job-level cap is the backstop for XCTest infra / parallel-worker hangs.
     timeout-minutes: 20
-    runs-on: macos-${{ matrix.macos-version }}
+    runs-on: ${{ matrix.runner }}
+    # Rows marked `experimental` (the next Xcode major, on a preview runner
+    # image) report failures without failing the workflow run.
+    continue-on-error: ${{ matrix.experimental == true }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
@@ -104,6 +107,7 @@ jobs:
           scheme: EmbraceIO-Package
           platform: ${{ matrix.platform }}
           platform-version: ${{ matrix.platform-version }}
+          device: ${{ matrix.device }}
           arch: arm64
           action: test
           sanitizer: ${{ matrix.sanitizer }}
@@ -136,8 +140,10 @@ jobs:
           xcrun xcresulttool get test-results tests --path test.xcresult || true
           echo "::endgroup::"
 
+      # Only `coverage` rows upload, so Codecov sees one report per platform
+      # from the primary Xcode instead of overlapping ones from every row.
       - name: Upload coverage reports to Codecov
-        if: success()
+        if: success() && matrix.coverage == true
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # zizmor: ignore[secrets-outside-env]

@@ -18,11 +18,21 @@ concurrency:
 jobs:
 
   build-and-lint-cocoapod:
-    name: Cocoapod Build And Lint
-    runs-on: macos-26
+    name: Cocoapod Build And Lint (Xcode ${{ matrix.xcode }})
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    # The `experimental` toolchain (the next Xcode major, on a preview runner
+    # image) reports failures without failing the workflow run.
+    continue-on-error: ${{ matrix.experimental == true }}
     strategy:
-      fail-fast: true
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-26
+            xcode: "26.6"
+          - runner: xcode-27
+            xcode: "27.2"
+            experimental: true
 
     permissions:
       checks: write
@@ -30,8 +40,10 @@ jobs:
     steps:
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.6.app
+          sudo xcode-select -s "/Applications/Xcode_${MATRIX_XCODE}.app"
           xcodebuild -version
+        env:
+          MATRIX_XCODE: ${{ matrix.xcode }}
 
       - name: Ensure the Platform is Downloaded
         run: |
@@ -87,6 +99,6 @@ jobs:
         if: failure() || cancelled()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: cocoapod-lint-output
+          name: cocoapod-lint-output-xcode${{ matrix.xcode }}
           path: cocoapod-lint-output.log
           retention-days: 2
