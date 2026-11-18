@@ -1128,6 +1128,8 @@ class UnsentDataHandlerTests: XCTestCase {
         try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSpansUrl())
+        let sessionRequestSent = expectation(description: "session upload request sent")
+        EmbraceHTTPMock.onRequest(to: testSpansUrl()) { sessionRequestSent.fulfill() }
 
         // given a storage and upload modules
         let storage = try EmbraceStorage.createInMemoryDb()
@@ -1189,7 +1191,11 @@ class UnsentDataHandlerTests: XCTestCase {
             storage: storage, upload: upload, otel: otel, logController: logController, completion: nil)
 
         // then the session is still sent
-        wait(timeout: .longTimeout, interval: .shortInterval, until: { EmbraceHTTPMock.requestsForUrl(self.testSpansUrl()).count == 1 })
+        // (the session upload is dispatched from a queue private to `sendUnsentData`, which the test
+        // can't drain, so it waits for the request instead)
+        await fulfillment(of: [sessionRequestSent], timeout: 30)
+        upload.waitForAllWork()
+        XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(testSpansUrl()).count, 1)
         XCTAssertEqual(logUploader.didCallUploadLogCount, 1)
     }
 
