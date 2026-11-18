@@ -423,6 +423,49 @@ class LogControllerTests: XCTestCase {
         thenLogIsCreatedCorrectly(try XCTUnwrap(createdLog))
     }
 
+    /// The one place the state stamps are wired into a real log. Every other assertion about them
+    /// goes straight to the builder, so without this the call could be removed and the feature would
+    /// vanish from the payload with nothing failing.
+    func test_createLog_carriesTheCurrentStateStamps() throws {
+        givenLogController()
+
+        let otel = MockOTelSignalsHandler()
+        let sessionSpan = try otel.createInternalSpan(
+            name: SpanSemantics.Session.name,
+            type: .session,
+            startTime: Date()
+        )
+        let stateController = StateController()
+        let screen = StateRecorder<Screen>(
+            stateName: "screen-automatic",
+            initialValue: .backgrounded,
+            otel: otel
+        )
+        let now = Date()
+        stateController.onSessionPartStart(sessionSpan: sessionSpan, at: now)
+        stateController.register(screen, at: now)
+        sut.stateController = stateController
+
+        let expectation = XCTestExpectation()
+        sut.createLog(
+            "test",
+            severity: .info,
+            // Forged by the caller: the SDK's own values must win both keys.
+            attributes: [
+                "emb.state.screen-automatic": "Checkout",
+                "emb.state.screen-automatic.value_type": "forged"
+            ]
+        ) { log in
+            let attributes = log?.attributes ?? [:]
+            XCTAssertEqual(attributes["emb.state.screen-automatic"]?.description, "Backgrounded")
+            XCTAssertEqual(attributes["emb.state.screen-automatic.value_type"]?.description, "system")
+            expectation.fulfill()
+        }
+        waitForLoggingQueue()
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+    }
+
     func test_createLogWithAttachment_success() throws {
         givenEmbraceLogUploader()
         givenLogController()
