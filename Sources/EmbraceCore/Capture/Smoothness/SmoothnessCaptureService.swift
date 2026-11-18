@@ -96,14 +96,6 @@
         }
 
         public override func onStart() {
-
-            // Breakpoints and stepping would read as dropped frames.
-            if isBlockedByDebugger {
-                logger?.warning(
-                    "[Smoothness] Disabled because a debugger is attached. Set the env var EMBAllowWatchdogInDebugger=1 to enable in debug mode.")
-                return
-            }
-
             onMain { [weak self] in self?.activate() }
         }
 
@@ -205,9 +197,15 @@
         /// Must be called on the main thread. The recheck under the lock drops the new capture if a
         /// teardown raced in off main while it was being built.
         private func activate() {
-            guard !isBlockedByDebugger,
-                data.withLock({ $0.capture == nil && isRunnable($0) })
-            else {
+            guard data.withLock({ $0.capture == nil && isRunnable($0) }) else {
+                return
+            }
+
+            // Checked after the remote config gate so only apps that would run the service log it.
+            // Breakpoints and stepping would read as dropped frames.
+            if isBlockedByDebugger {
+                logger?.warning(
+                    "[Smoothness] Disabled because a debugger is attached. Set the env var EMBAllowWatchdogInDebugger=1 to enable in debug mode.")
                 return
             }
 

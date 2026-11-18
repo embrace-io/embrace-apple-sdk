@@ -590,12 +590,26 @@
 
         func test_remote_enabledWhileDebuggerAttached_staysDormant() {
             makeRemoteGatedService(debuggerAttached: { true })
-            startService()
+            let logger = MockLogger()
+            service.install(otel: otel, logger: logger)
+            service.start()
 
             setRemotelyEnabled(true)
             drainMain()
 
             XCTAssertNil(service.tracker)
+            XCTAssertTrue(logger.loggedMessages.contains { $0.level == .warning && $0.message.contains("debugger") })
+        }
+
+        func test_remote_notEnabledWhileDebuggerAttached_doesNotLogDebuggerWarning() {
+            makeRemoteGatedService(debuggerAttached: { true })
+            let logger = MockLogger()
+            service.install(otel: otel, logger: logger)
+            service.start()
+            drainMain()
+
+            XCTAssertNil(service.tracker)
+            XCTAssertFalse(logger.loggedMessages.contains { $0.message.contains("debugger") })
         }
 
         func test_remote_disabledWhileRunning_endsSpanAndReleasesCapture() throws {
