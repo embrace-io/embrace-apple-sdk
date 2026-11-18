@@ -81,6 +81,10 @@ public protocol EmbraceConfigurable: AnyObject {
     /// Whether a `traceparent` header is injected into captured network requests.
     var traceparentInjectionEnabled: Bool { get }
 
+    /// Calls to `URLSessionRequestsDataSource.spanParent(for:currentParentContext:)` taking longer than this,
+    /// in seconds, are reported as slow.
+    var networkSpanParentProviderSlowThreshold: TimeInterval { get }
+
     /// Whether state spans are captured at all — the global gate for the state subsystem.
     ///
     /// AND-ed with ``isScreenTrackingEnabled``: if either is off, no screen state is recorded.

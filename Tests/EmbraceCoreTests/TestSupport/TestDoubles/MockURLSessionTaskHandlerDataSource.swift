@@ -17,11 +17,18 @@ class MockURLSessionTaskHandlerDataSource: URLSessionTaskHandlerDataSource {
     var stubbedShouldInjectHeader = false
     var isNSFEligible = false
     var requestsDataSource: URLSessionRequestsDataSource?
+    var networkSpanParent: NetworkSpanParentProvider?
+    var spanParentSlowCallThreshold: TimeInterval = 0.005
+    private(set) var recordedSlowSpanParentCalls: [TimeInterval] = []
     var ignoredURLs: [String] = []
 
     var ignoredTaskTypes: [AnyClass] = []
 
     func shouldInjectHeader(for request: URLRequest) -> Bool {
         stubbedShouldInjectHeader
+    }
+
+    func recordSlowSpanParentCall(duration: TimeInterval) {
+        recordedSlowSpanParentCalls.append(duration)
     }
 }

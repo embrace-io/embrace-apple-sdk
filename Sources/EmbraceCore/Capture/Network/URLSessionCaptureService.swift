@@ -9,6 +9,7 @@ import Foundation
     import EmbraceCommonInternal
     import EmbraceObjCUtilsInternal
     import EmbraceConfiguration
+    import EmbraceSemantics
 #endif
 
 typealias URLSessionCompletion = (Data?, URLResponse?, Error?) -> Void
@@ -93,6 +94,19 @@ public final class URLSessionCaptureService: CaptureService, URLSessionTaskHandl
 
     var requestsDataSource: URLSessionRequestsDataSource? {
         return options.requestsDataSource
+    }
+
+    var networkSpanParent: NetworkSpanParentProvider? {
+        return Embrace.client?.networkSpanParentController
+    }
+
+    var spanParentSlowCallThreshold: TimeInterval {
+        return Embrace.client?.config.networkSpanParentProviderSlowThreshold
+            ?? SlowCallbackSemantics.defaultNetworkSpanParentProviderThreshold
+    }
+
+    func recordSlowSpanParentCall(duration: TimeInterval) {
+        Embrace.client?.slowCallbacks.recordSlowCall(.networkSpanParentProvider, duration: duration)
     }
 
     var ignoredURLs: [String] {

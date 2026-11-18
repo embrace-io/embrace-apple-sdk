@@ -53,6 +53,7 @@ class SessionController: SessionControllable {
     weak var otel: InternalOTelSignalsHandler?
     weak var userSessionController: UserSessionController?
     weak var experiments: ExperimentsHandler?
+    weak var slowCallbacks: SlowCallbackRecorder?
     weak var stateController: StateController?
 
     private struct SessionInfo {
@@ -482,6 +483,9 @@ class SessionController: SessionControllable {
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .embraceSessionPartWillEnd, object: mainQueueSession)
         }
+
+        // write the slow callback calls still pending, before the span ends
+        slowCallbacks?.flush()
 
         // close the state spans and link them from the part span. Must happen before the session
         // span ends below, so they land inside this part's payload.
