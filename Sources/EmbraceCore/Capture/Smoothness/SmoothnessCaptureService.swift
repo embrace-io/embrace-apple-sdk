@@ -293,7 +293,7 @@
             let focalMomentEmitter = focalMoments.map { focalMoments in
                 FocalMomentEmitter(
                     tracker: focalMoments.tracker,
-                    currentPartId: { [currentSession = self.currentSession] in currentSession()?.id },
+                    currentSession: currentSession,
                     otel: { [weak self] in self?.otel },
                     embraceNotificationCenter: embraceNotificationCenter,
                     queue: focalMomentQueue,

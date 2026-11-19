@@ -19,23 +19,30 @@
     /// `queue`, so span creation never runs on the tick handler. One whose part is no longer current by
     /// then is dropped rather than attributed to the next part. `.embraceSessionPartWillEndSync`
     /// interrupts the open moment and creates the ending part's spans synchronously, before the part's
-    /// payload is built.
+    /// payload is built. Moments that end after that, while the part is still briefly current, are
+    /// dropped.
     ///
-    /// Lock order: the tracker's lock, then this one. Spans are created with neither held.
+    /// Each drain holds `drainLock` from choosing its part until its spans are created, and spans are
+    /// created for the tagged part rather than whichever is current. So a part can't end between an
+    /// async drain's check and its spans: the will-end drain waits for it, and its spans are in the
+    /// part's payload.
+    ///
+    /// Lock order: the tracker's lock or `drainLock`, then `lock`. The tracker's lock is never taken
+    /// with `drainLock` held, and spans are created with only `drainLock` held.
     final class FocalMomentEmitter {
 
         /// - Parameters:
         ///   - tracker: Its `onMoment` is set to feed this emitter.
-        ///   - currentPartId: Returns the current session part's id. Called with the tracker's lock held,
-        ///     and from the will-end hook with `SessionController`'s lock held, so it must only take the
-        ///     controller's session mutex.
+        ///   - currentSession: Returns the current session part. Called with the tracker's lock held,
+        ///     sometimes from the will-end hook with `SessionController`'s lock held, so it must only take
+        ///     the controller's session mutex.
         ///   - otel: Where spans are created.
         ///   - embraceNotificationCenter: Where `.embraceSessionPartWillEndSync` is posted.
         ///   - queue: Where buffered moments are created as spans.
         ///   - clockOffset: Seconds to add to a `CACurrentMediaTime` value to get a Unix time.
         init(
             tracker: FocalMomentTracker,
-            currentPartId: @escaping () -> EmbraceIdentifier?,
+            currentSession: @escaping () -> EmbraceSession?,
             otel: @escaping () -> EmbraceOTelSignalsHandler?,
             embraceNotificationCenter: NotificationCenter,
             queue: DispatchQueue,
@@ -43,7 +50,7 @@
             clockOffset: @escaping () -> TimeInterval = { Date().timeIntervalSince1970 - CACurrentMediaTime() }
         ) {
             self.tracker = tracker
-            self.currentPartId = currentPartId
+            self.currentSession = currentSession
             self.otel = otel
             self.embraceNotificationCenter = embraceNotificationCenter
             self.queue = queue
@@ -78,7 +85,7 @@
         // MARK: - Private
 
         private struct PendingMoment {
-            let partId: EmbraceIdentifier
+            let session: EmbraceSession
             let moment: FocalMoment
             /// `clockOffset` when the moment ended.
             let clockOffset: TimeInterval
@@ -88,27 +95,31 @@
             var pending: [PendingMoment] = []
             var isDrainScheduled = false
             var isInvalidated = false
+            /// The last part drained by the will-end hook, whose later moments are dropped.
+            var endedPartId: EmbraceIdentifier?
             var countedPartId: EmbraceIdentifier?
             var spanCount = 0
         }
 
         private weak var tracker: FocalMomentTracker?
-        private let currentPartId: () -> EmbraceIdentifier?
+        private let currentSession: () -> EmbraceSession?
         private let otel: () -> EmbraceOTelSignalsHandler?
         private let embraceNotificationCenter: NotificationCenter
         private let queue: DispatchQueue
         private let spanLimit: Int
         private let clockOffset: () -> TimeInterval
         private let lock = UnfairLock()
+        /// Held by each drain from choosing its part until its spans are created.
+        private let drainLock = UnfairLock()
         private var state = EmitterState()
 
         /// Called with the tracker's lock held, on whichever thread ended the moment.
         private func enqueue(_ moment: FocalMoment) {
-            guard let partId = currentPartId() else { return }
+            guard let session = currentSession() else { return }
 
-            let pending = PendingMoment(partId: partId, moment: moment, clockOffset: clockOffset())
+            let pending = PendingMoment(session: session, moment: moment, clockOffset: clockOffset())
             let schedulesDrain = lock.locked { () -> Bool in
-                guard !state.isInvalidated else { return false }
+                guard !state.isInvalidated, state.endedPartId != session.id else { return false }
                 state.pending.append(pending)
                 guard !state.isDrainScheduled else { return false }
                 state.isDrainScheduled = true
@@ -117,31 +128,37 @@
 
             if schedulesDrain {
                 queue.async { [weak self] in
-                    self?.drain(partId: nil)
+                    self?.drain(endingSession: nil)
                 }
             }
         }
 
-        /// Creates spans for the moments buffered for `partId`, or for the current part when `nil`, and
-        /// drops the rest.
-        private func drain(partId: EmbraceIdentifier?) {
-            let isAsync = partId == nil
-            guard let partId = partId ?? currentPartId() else {
-                lock.locked {
-                    state.pending = []
-                    if isAsync { state.isDrainScheduled = false }
+        /// Creates spans for the moments buffered for `endingSession`, or for the current part when `nil`,
+        /// and drops the rest. Passing `endingSession` also drops that part's later moments.
+        private func drain(endingSession: EmbraceSession?) {
+            drainLock.locked {
+                let isAsync = endingSession == nil
+                guard let partId = endingSession?.id ?? currentSession()?.id else {
+                    lock.locked {
+                        state.pending = []
+                        if isAsync { state.isDrainScheduled = false }
+                    }
+                    return
                 }
-                return
-            }
 
-            let emitted = lock.locked { () -> [PendingMoment] in
-                if isAsync { state.isDrainScheduled = false }
-                let pending = state.pending
-                state.pending = []
-                return pending.filter { $0.partId == partId && reserveSpanLocked(partId: partId) }
-            }
+                let emitted = lock.locked { () -> [PendingMoment] in
+                    if isAsync {
+                        state.isDrainScheduled = false
+                    } else {
+                        state.endedPartId = partId
+                    }
+                    let pending = state.pending
+                    state.pending = []
+                    return pending.filter { $0.session.id == partId && reserveSpanLocked(partId: partId) }
+                }
 
-            emitted.forEach(emit)
+                emitted.forEach(emit)
+            }
         }
 
         private func reserveSpanLocked(partId: EmbraceIdentifier) -> Bool {
@@ -179,7 +196,8 @@
                 type: .smoothness,
                 startTime: Date(timeIntervalSince1970: pending.clockOffset + moment.start),
                 endTime: Date(timeIntervalSince1970: pending.clockOffset + moment.end),
-                attributes: attributes
+                attributes: attributes,
+                session: pending.session
             )
         }
 
@@ -201,7 +219,7 @@
             guard let session = notification.object as? EmbraceSession else { return }
 
             tracker?.interrupt()
-            drain(partId: session.id)
+            drain(endingSession: session)
         }
     }
 

@@ -53,6 +53,7 @@ extension CaptureService {
             links: links,
             attributes: attributes,
             autoTerminationCode: autoTerminationCode,
+            session: nil,
             isInternal: false
         )
     }

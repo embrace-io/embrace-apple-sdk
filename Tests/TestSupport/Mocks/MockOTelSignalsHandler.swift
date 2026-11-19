@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import Foundation
 
@@ -26,7 +27,8 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
 
     public init() {}
 
-    public func _createSpan(
+    // `package` because `EmbraceSession` is a package type.
+    package func _createSpan(
         name: String,
         parentSpan: EmbraceSpan? = nil,
         type: EmbraceType,
@@ -37,6 +39,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
+        session: EmbraceSession? = nil,
         isInternal: Bool = true
     ) throws -> EmbraceSpan {
 
@@ -53,7 +56,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
             endTime: endTime,
             events: events,
             links: links,
-            sessionId: currentSessionId,
+            sessionId: session?.id ?? currentSessionId,
             processId: currentProcessId,
             attributes: attributes,
             delegate: self

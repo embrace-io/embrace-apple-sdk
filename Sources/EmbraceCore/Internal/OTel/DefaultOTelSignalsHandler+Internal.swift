@@ -22,6 +22,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
+        session: EmbraceSession? = nil,
         isInternal: Bool = true
     ) throws -> EmbraceSpan {
 
@@ -39,21 +40,23 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
 
         // Resolve the part id used for the spans-to-parts storage association. The session
         // part span itself carries its id via `keyPartId` in `attributes` (set by
-        // `SessionSpanUtils.span`); every other span inherits the active part from the
-        // session controller.
+        // `SessionSpanUtils.span`); every other span belongs to `session` if one is passed,
+        // and otherwise inherits the active part from the session controller.
         var sessionId: EmbraceIdentifier?
         if type == .session {
             if let value = sanitizedAttributes[SpanSemantics.Session.keyPartId] as? String {
                 sessionId = EmbraceIdentifier(stringValue: value)
             }
         } else {
-            sessionId = sessionController?.currentSession?.id
+            // Read once, so the part and user session ids can't come from different parts.
+            let session = session ?? sessionController?.currentSession
+            sessionId = session?.id
 
             // Cross-cutting attribute stamping. Every non-session-part span carries the three
             // identity keys so backend correlation works even on spans that started before
             // an active session existed .
             internalAttributes.setSessionIdentity(
-                userSessionId: sessionController?.currentSession?.userSessionId?.stringValue ?? "",
+                userSessionId: session?.userSessionId?.stringValue ?? "",
                 partId: sessionId?.stringValue ?? ""
             )
         }

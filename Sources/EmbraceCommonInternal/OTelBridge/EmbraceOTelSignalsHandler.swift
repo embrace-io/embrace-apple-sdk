@@ -11,6 +11,9 @@ import Foundation
 /// Protocol used to generate OTel signals.
 package protocol EmbraceOTelSignalsHandler: AnyObject {
 
+    /// Creates a span.
+    /// - Parameter session: The part the span belongs to, or `nil` for the current one. Ignored for
+    ///   `.session` spans.
     @discardableResult
     func _createSpan(
         name: String,
@@ -23,6 +26,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
         links: [EmbraceSpanLink],
         attributes: EmbraceAttributes,
         autoTerminationCode: EmbraceSpanErrorCode?,
+        session: EmbraceSession?,
         isInternal: Bool
     ) throws -> EmbraceSpan
 
@@ -48,6 +52,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
 }
 
 extension EmbraceOTelSignalsHandler {
+    /// - Parameter session: The session part the span belongs to, or `nil` for the current one.
     package func createInternalSpan(
         name: String,
         parentSpan: EmbraceSpan? = nil,
@@ -58,7 +63,8 @@ extension EmbraceOTelSignalsHandler {
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
-        autoTerminationCode: EmbraceSpanErrorCode? = nil
+        autoTerminationCode: EmbraceSpanErrorCode? = nil,
+        session: EmbraceSession? = nil
     ) throws -> EmbraceSpan {
         return try _createSpan(
             name: name,
@@ -71,6 +77,7 @@ extension EmbraceOTelSignalsHandler {
             links: links,
             attributes: attributes,
             autoTerminationCode: autoTerminationCode,
+            session: session,
             isInternal: true
         )
     }

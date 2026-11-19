@@ -56,7 +56,7 @@
         private func makeEmitter(spanLimit: Int = SmoothnessLimits.defaultSpanLimit) -> FocalMomentEmitter {
             FocalMomentEmitter(
                 tracker: tracker,
-                currentPartId: { [unowned self] in self.currentSession?.id },
+                currentSession: { [unowned self] in self.currentSession },
                 otel: { [unowned self] in self.otel },
                 embraceNotificationCenter: notificationCenter,
                 queue: queue,
@@ -199,6 +199,34 @@
             XCTAssertTrue(spans.isEmpty)
         }
 
+        func test_spanIsAttributedToTheMomentsPart() throws {
+            let part = try XCTUnwrap(currentSession)
+
+            interruptedMoment()
+            drainQueue()
+
+            // Not `otel.currentSessionId`, which is whatever part is current when the span is created.
+            XCTAssertEqual(spans.map(\.sessionId), [part.id])
+        }
+
+        func test_partChangesWhileDrainCreatesSpans_keepsTheMomentsPart() throws {
+            let part = try XCTUnwrap(currentSession)
+            let nextPart = MockSession.with(id: .random, state: .background)
+            otel.onSpanStartedCallback = { [unowned self] _ in
+                currentSession = nextPart
+                otel.currentSessionId = nextPart.id
+            }
+
+            suspendQueue()
+            interruptedMoment()
+            interruptedMoment()
+            resumeQueue()
+            drainQueue()
+
+            // The drain chose `part` before the first span, so the second is stamped `part` too.
+            XCTAssertEqual(spans.map(\.sessionId), [part.id, part.id])
+        }
+
         func test_partChangesBeforeDrain_dropsMoment() {
             suspendQueue()
             interruptedMoment()
@@ -232,6 +260,54 @@
             resumeQueue()
             drainQueue()
             XCTAssertEqual(spans.count, 2)
+        }
+
+        func test_partWillEnd_waitsForAnAsyncDrainCreatingSpans() throws {
+            let part = try XCTUnwrap(currentSession)
+            let center = notificationCenter!
+            let spanStarted = DispatchSemaphore(value: 0)
+            let releaseSpan = DispatchSemaphore(value: 0)
+            otel.onSpanStartedCallback = { _ in
+                spanStarted.signal()
+                releaseSpan.wait()
+            }
+
+            // An async drain has checked the part and is creating its span.
+            interruptedMoment()
+            XCTAssertEqual(spanStarted.wait(timeout: .now() + 5), .success)
+
+            // The part ends on another thread meanwhile.
+            let partEnded = DispatchSemaphore(value: 0)
+            var spanCountWhenPartEnded: Int?
+            DispatchQueue.global().async {
+                center.post(name: .embraceSessionPartWillEndSync, object: part)
+                spanCountWhenPartEnded = self.spans.count
+                partEnded.signal()
+            }
+
+            // Gives the hook time to reach the drain. Not needed for the assertions to hold, only for a
+            // hook that doesn't wait to fail them.
+            Thread.sleep(forTimeInterval: 0.1)
+            releaseSpan.signal()
+            XCTAssertEqual(partEnded.wait(timeout: .now() + 5), .success)
+
+            // The will-end hook waited, so the part's payload isn't built without the span.
+            XCTAssertEqual(spanCountWhenPartEnded, 1)
+            XCTAssertEqual(spans.map(\.sessionId), [part.id])
+        }
+
+        func test_partWillEnd_dropsMomentsEndingAfterIt() {
+            endPart()
+
+            // The part is still current until the session controller replaces it.
+            interruptedMoment()
+            drainQueue()
+            XCTAssertTrue(spans.isEmpty)
+
+            currentSession = MockSession.with(id: .random, state: .foreground)
+            interruptedMoment()
+            drainQueue()
+            XCTAssertEqual(spans.count, 1)
         }
 
         func test_partWillEnd_dropsPendingMomentsOfOtherParts() {
