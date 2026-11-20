@@ -20,6 +20,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var smoothnessHeldIdleThreshold: TimeInterval
     var smoothnessSpanLimit: Int
     var smoothnessFrameTraceThreshold: Float
+
+    var stateCaptureThreshold: Float?
+    var screenTrackingThreshold: Float?
     var walModeThreshold: Float
 
     var uiLoadInstrumentationEnabled: Bool
@@ -62,6 +65,8 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var userSessionMaxDurationSeconds: TimeInterval
     var userSessionInactivityTimeoutSeconds: TimeInterval
 
+    var networkSpanParentProviderSlowThreshold: TimeInterval
+
     enum CodingKeys: String, CodingKey {
         case sdkEnabledThreshold = "threshold"
 
@@ -72,7 +77,10 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         case nsfThreshold = "nsf_pct_enabled"
         case traceparentInjectionThreshold = "traceparent_injection_pct_enabled"
-        case smoothnessThreshold = "pct_smoothness_enabled"
+        case smoothnessThreshold = "smoothness_pct_enabled"
+
+        case stateCaptureThreshold = "pct_state_enabled_v2"
+        case screenTrackingThreshold = "pct_screen_tracking_enabled"
 
         case vitals
         enum VitalsCodingKeys: String, CodingKey {
@@ -135,6 +143,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             case maxDurationSeconds = "max_duration_seconds"
             case inactivityTimeoutSeconds = "inactivity_timeout_seconds"
         }
+
+        case data
+        enum DataCodingKeys: String, CodingKey {
+            case networkSpanParentProviderSlowMs = "network_span_parent_provider_slow_ms"
+        }
     }
 
     public init(from decoder: Decoder) throws {
@@ -166,6 +179,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         // network span forwarding (new flat keys — old SDKs keep reading legacy nested key)
         nsfThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .nsfThreshold)
         traceparentInjectionThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .traceparentInjectionThreshold)
+
+        stateCaptureThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .stateCaptureThreshold)
+        screenTrackingThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .screenTrackingThreshold)
 
         // smoothness (off when absent)
         smoothnessThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .smoothnessThreshold)
@@ -451,6 +467,15 @@ public struct RemoteConfigPayload: Decodable, Equatable {
             userSessionMaxDurationSeconds = defaultPayload.userSessionMaxDurationSeconds
             userSessionInactivityTimeoutSeconds = defaultPayload.userSessionInactivityTimeoutSeconds
         }
+
+        // data
+        let dataContainer = try? rootContainer.nestedContainer(keyedBy: CodingKeys.DataCodingKeys.self, forKey: .data)
+        let slowMs = try? dataContainer?.decodeIfPresent(Double.self, forKey: .networkSpanParentProviderSlowMs)
+        if let slowMs, slowMs.isFinite, slowMs > 0 {
+            networkSpanParentProviderSlowThreshold = slowMs / 1000
+        } else {
+            networkSpanParentProviderSlowThreshold = defaultPayload.networkSpanParentProviderSlowThreshold
+        }
     }
 
     /// Validates the user-session config values.
@@ -491,6 +516,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         smoothnessHeldIdleThreshold = SmoothnessLimits.defaultHeldIdleThreshold
         smoothnessSpanLimit = SmoothnessLimits.defaultSpanLimit
         smoothnessFrameTraceThreshold = 0
+
+        stateCaptureThreshold = nil
+        screenTrackingThreshold = nil
         walModeThreshold = 100.0
 
         uiLoadInstrumentationEnabled = true
@@ -531,5 +559,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         userSessionMaxDurationSeconds = UserSessionSemantics.defaultMaxDurationSeconds
         userSessionInactivityTimeoutSeconds = UserSessionSemantics.defaultInactivityTimeoutSeconds
+
+        networkSpanParentProviderSlowThreshold = SlowCallbackSemantics.defaultNetworkSpanParentProviderThreshold
     }
 }

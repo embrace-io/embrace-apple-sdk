@@ -27,6 +27,13 @@ public class EditableConfig: EmbraceConfigurable {
 
     public var isSwiftUiViewInstrumentationEnabled: Bool = false
 
+    // Declared here rather than inherited from the protocol's default implementations, which return
+    // `false` and cannot be overridden by assignment — leaving these two silently unsettable in a
+    // type whose entire purpose is letting tests set config values.
+    public var isStateCaptureEnabled: Bool = false
+
+    public var isScreenTrackingEnabled: Bool = false
+
     public var isMetricKitEnabled: Bool = true
 
     public var isMetricKitCrashCaptureEnabled: Bool = false
@@ -54,6 +61,8 @@ public class EditableConfig: EmbraceConfigurable {
     public var traceparentInjectionEnabled: Bool = false
 
     public var isSmoothnessEnabled: Bool = false
+
+    public var networkSpanParentProviderSlowThreshold: TimeInterval = 0.005
 
     public func update(completion: (Result<Bool, Error>) -> Void) {
         completion(.success(false))

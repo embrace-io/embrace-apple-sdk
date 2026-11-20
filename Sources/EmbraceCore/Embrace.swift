@@ -58,6 +58,12 @@ package class Embrace {
     /// Returns the current `StartupInstrumentation` used to instrument the app startup process.
     package let startupInstrumentation: StartupInstrumentation
 
+    /// Holds the span that new network spans are parented to.
+    package let networkSpanParentController: NetworkSpanParentController
+
+    /// Counts slow calls to app callbacks on the session part's span.
+    let slowCallbacks: SlowCallbackRecorder
+
     /// Holds the experiments and feature flags tracked during this process.
     package let experiments: ExperimentsHandler
 
@@ -81,6 +87,8 @@ package class Embrace {
     let sessionController: SessionController
     let userSessionController: UserSessionController
     let sessionLifecycle: SessionLifecycle
+
+    let stateController = StateController()
 
     let otelResources: EmbraceAttributes?
 
@@ -255,6 +263,18 @@ package class Embrace {
         // initialize startup instrumentation
         self.startupInstrumentation = StartupInstrumentation()
 
+        // initialize network span parent
+        self.networkSpanParentController = NetworkSpanParentController(logger: Embrace.logger) { [weak sessionController] in
+            sessionController?.currentUserSession?.id
+        }
+        self.networkSpanParentController.otel = self.otel
+        self.otel.networkSpanParentController = self.networkSpanParentController
+
+        self.slowCallbacks = SlowCallbackRecorder { [weak sessionController] in
+            sessionController?.currentSessionSpan
+        }
+        self.sessionController.slowCallbacks = self.slowCallbacks
+
         // metrick kit
         captureServices.addMetricKitServices(
             payloadProvider: metricKit,
@@ -265,7 +285,9 @@ package class Embrace {
         // set providers
         sessionController.sdkStateProvider = self
         sessionController.otel = self.otel
+        sessionController.stateController = stateController
         logController.sdkStateProvider = self
+        logController.stateController = stateController
         logController.privateLogger = self
         Embrace.logger.otel = self.otel
 

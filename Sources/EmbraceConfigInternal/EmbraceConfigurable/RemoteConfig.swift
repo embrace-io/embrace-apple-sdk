@@ -131,6 +131,10 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isSmoothnessFrameTraceEnabled: Bool { isEnabled(threshold: payload.smoothnessFrameTraceThreshold) }
 
+    public var isStateCaptureEnabled: Bool { isEnabled(threshold: payload.stateCaptureThreshold ?? 0) }
+
+    public var isScreenTrackingEnabled: Bool { isEnabled(threshold: payload.screenTrackingThreshold ?? 0) }
+
     public var isUiLoadInstrumentationEnabled: Bool { payload.uiLoadInstrumentationEnabled }
 
     public var isWalModeEnabled: Bool { isEnabled(threshold: payload.walModeThreshold) }
@@ -183,6 +187,8 @@ extension RemoteConfig: EmbraceConfigurable {
     public var userSessionMaxDuration: TimeInterval { payload.userSessionMaxDurationSeconds }
 
     public var userSessionInactivityTimeout: TimeInterval { payload.userSessionInactivityTimeoutSeconds }
+
+    public var networkSpanParentProviderSlowThreshold: TimeInterval { payload.networkSpanParentProviderSlowThreshold }
 
     public func update(completion: @escaping (Result<Bool, Error>) -> Void) {
         guard updating == false else {

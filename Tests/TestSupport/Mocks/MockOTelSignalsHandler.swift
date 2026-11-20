@@ -8,7 +8,9 @@ import Foundation
 
 @testable import EmbraceCore
 
-public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
+// `open` so test targets can subclass it to interfere with span creation — the window in which the
+// SDK holds no lock, and therefore where the races worth testing live.
+open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
 
     // Appended from background queues (e.g. span delegate callbacks dispatched off the SUT's queues)
     // while tests read them on the main thread — see `TestLocked`.
@@ -27,10 +29,14 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
 
     public init() {}
 
+    /// Runs at the start of every `_createSpan`, before the span exists. Subclasses override it to
+    /// interfere with span creation, since `_createSpan` itself is `package` and can't be overridden.
+    open func willCreateSpan() throws {}
+
     // `package` because `EmbraceSession` is a package type.
     package func _createSpan(
         name: String,
-        parentSpan: EmbraceSpan? = nil,
+        parentContext: EmbraceSpanContext? = nil,
         type: EmbraceType,
         status: EmbraceSpanStatus = .unset,
         startTime: Date,
@@ -42,13 +48,14 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         session: EmbraceSession? = nil,
         isInternal: Bool = true
     ) throws -> EmbraceSpan {
+        try willCreateSpan()
 
-        let traceId = parentSpan?.context.traceId ?? .randomTraceId()
+        let traceId = parentContext?.traceId ?? .randomTraceId()
 
         let span = MockSpan(
             id: .randomSpanId(),
             traceId: traceId,
-            parentSpanId: parentSpan?.context.spanId,
+            parentSpanId: parentContext?.spanId,
             name: name,
             type: type,
             status: status,

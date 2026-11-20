@@ -17,7 +17,7 @@ class DefaultOTelSignalBridgeTests: XCTestCase {
         // when starting a span
         let context = bridge.startSpan(
             name: "test",
-            parentSpan: nil,
+            parentContext: nil,
             status: .ok,
             startTime: Date(),
             endTime: Date(),
@@ -45,7 +45,7 @@ class DefaultOTelSignalBridgeTests: XCTestCase {
 
         let context = bridge.startSpan(
             name: "test",
-            parentSpan: parent,
+            parentContext: parent.context,
             status: .ok,
             startTime: Date(),
             endTime: Date(),

@@ -5,7 +5,7 @@
     "threshold": 50,
     "nsf_pct_enabled": 25,
     "traceparent_injection_pct_enabled": 10,
-    "pct_smoothness_enabled": 5,
+    "smoothness_pct_enabled": 5,
     "vitals": {
         "smoothness_idle_threshold_ms": 150,
         "smoothness_held_idle_threshold_ms": 750,

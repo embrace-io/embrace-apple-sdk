@@ -9,8 +9,8 @@ public enum EmbraceStackTraceBehavior {
     /// Stack traces are not automatically captured.
     case notIncluded
 
-    /// The default behavior for automatically capturing stack traces.
-    /// which takes a stack of the current thread.
+    /// The default behavior for automatically capturing stack traces,
+    /// which takes a stack of the current thread for error logs only.
     case `default`
 
     /// A custom stack trace provided.

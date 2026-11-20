@@ -194,6 +194,49 @@ class RemoteConfigPayloadTests: XCTestCase {
         XCTAssertEqual(payload.maxExperimentVariantLength, 128)
     }
 
+    // MARK: - Data section
+
+    func test_networkSpanParentProviderSlowThreshold_missing_usesDefault() throws {
+        XCTAssertEqual(try decodePayload("{}").networkSpanParentProviderSlowThreshold, 0.005)
+        XCTAssertEqual(try decodePayload(#"{ "data": {} }"#).networkSpanParentProviderSlowThreshold, 0.005)
+    }
+
+    func test_networkSpanParentProviderSlowThreshold_valid_isConvertedToSeconds() throws {
+        let payload = try decodePayload(#"{ "data": { "network_span_parent_provider_slow_ms": 20 } }"#)
+        XCTAssertEqual(payload.networkSpanParentProviderSlowThreshold, 0.020)
+    }
+
+    func test_networkSpanParentProviderSlowThreshold_fractional_isKept() throws {
+        let payload = try decodePayload(#"{ "data": { "network_span_parent_provider_slow_ms": 2.5 } }"#)
+        XCTAssertEqual(payload.networkSpanParentProviderSlowThreshold, 0.0025)
+    }
+
+    func test_networkSpanParentProviderSlowThreshold_zeroOrNegative_usesDefault() throws {
+        XCTAssertEqual(
+            try decodePayload(#"{ "data": { "network_span_parent_provider_slow_ms": 0 } }"#).networkSpanParentProviderSlowThreshold,
+            0.005
+        )
+        XCTAssertEqual(
+            try decodePayload(#"{ "data": { "network_span_parent_provider_slow_ms": -10 } }"#).networkSpanParentProviderSlowThreshold,
+            0.005
+        )
+    }
+
+    func test_networkSpanParentProviderSlowThreshold_malformed_usesDefault_andKeepsTheRestOfTheConfig() throws {
+        let payload = try decodePayload(#"{ "threshold": 50, "data": { "network_span_parent_provider_slow_ms": "fast" } }"#)
+        XCTAssertEqual(payload.networkSpanParentProviderSlowThreshold, 0.005)
+        XCTAssertEqual(payload.sdkEnabledThreshold, 50)
+
+        let notAnObject = try decodePayload(#"{ "threshold": 50, "data": 20 }"#)
+        XCTAssertEqual(notAnObject.networkSpanParentProviderSlowThreshold, 0.005)
+        XCTAssertEqual(notAnObject.sdkEnabledThreshold, 50)
+    }
+
+    func test_networkSpanParentProviderSlowThreshold_atTheRoot_isIgnored() throws {
+        let payload = try decodePayload(#"{ "network_span_parent_provider_slow_ms": 20 }"#)
+        XCTAssertEqual(payload.networkSpanParentProviderSlowThreshold, 0.005)
+    }
+
     // MARK: - User session config
 
     private func decodePayload(_ json: String) throws -> RemoteConfigPayload {
@@ -319,11 +362,39 @@ class RemoteConfigPayloadTests: XCTestCase {
     }
 
     func test_vitals_notAnObject_usesDefaults() throws {
-        let payload = try decodePayload(#"{ "vitals": 1, "pct_smoothness_enabled": 5 }"#)
+        let payload = try decodePayload(#"{ "vitals": 1, "smoothness_pct_enabled": 5 }"#)
         XCTAssertEqual(payload.smoothnessThreshold, 5)
         XCTAssertEqual(payload.smoothnessIdleThreshold, 0.1)
         XCTAssertEqual(payload.smoothnessHeldIdleThreshold, 0.5)
         XCTAssertEqual(payload.smoothnessSpanLimit, 250)
+    }
+
+    // MARK: - State capture
+
+    func test_stateCapture_keysAbsent_areNil() throws {
+        // absent keys must stay nil so the `?? 0` at the read site resolves to "off"
+        let payload = try decodePayload("{}")
+        XCTAssertNil(payload.stateCaptureThreshold)
+        XCTAssertNil(payload.screenTrackingThreshold)
+    }
+
+    func test_stateCapture_keysPresent_areDecoded() throws {
+        let payload = try decodePayload(
+            #"""
+            { "pct_state_enabled_v2": 100, "pct_screen_tracking_enabled": 50 }
+            """#)
+        XCTAssertEqual(payload.stateCaptureThreshold, 100)
+        XCTAssertEqual(payload.screenTrackingThreshold, 50)
+    }
+
+    func test_stateCapture_malformedValues_fallBackToNil() throws {
+        // a bad backend value must fail closed (nil -> off), not throw and take the whole payload down
+        let payload = try decodePayload(
+            #"""
+            { "pct_state_enabled_v2": "not a number", "pct_screen_tracking_enabled": true }
+            """#)
+        XCTAssertNil(payload.stateCaptureThreshold)
+        XCTAssertNil(payload.screenTrackingThreshold)
     }
 
     func getRemoteConfigData(forResource resource: String) throws -> Data {

@@ -138,7 +138,7 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
 
     package func startSpan(
         name: String,
-        parentSpan: EmbraceSpan?,
+        parentContext: EmbraceSpanContext?,
         status: EmbraceSpanStatus,
         startTime: Date,
         endTime: Date?,
@@ -155,15 +155,15 @@ extension EmbraceOTelBridge: EmbraceOTelSignalBridge {
         // Leaving that to chance would let an unrelated span become the parent of a span that
         // was meant to start its own trace, and the resulting trace id would not match the one
         // recorded alongside it.
-        if let parentSpan {
-            let parentId = parentSpan.context.spanId
+        if let parentContext {
+            let parentId = parentContext.spanId
 
             if let otelParent = spanCache.withLock({ $0[parentId] }) {
                 builder = builder.setParent(otelParent)
 
             } else {
-                if let parentContext = Self.otelContext(from: parentSpan.context) {
-                    builder = builder.setParent(parentContext)
+                if let otelParentContext = Self.otelContext(from: parentContext) {
+                    builder = builder.setParent(otelParentContext)
 
                 } else {
                     // The identifiers can't be honored, so start a new trace rather than falling

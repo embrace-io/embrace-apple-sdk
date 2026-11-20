@@ -47,7 +47,7 @@ package class DefaultOTelSignalsHandler {
         do {
             return try _createSpan(
                 name: name,
-                parentSpan: parentSpan,
+                parentContext: parentSpan?.context,
                 type: type,
                 status: status,
                 startTime: startTime,
@@ -149,6 +149,9 @@ package class DefaultOTelSignalsHandler {
     let limiter: OTelSignalsLimiter
     let sanitizer: OTelSignalsSanitizer
     let bridge: EmbraceOTelSignalBridge
+
+    /// Told about every span that ends, so a network span parent stops being used once it ends.
+    weak var networkSpanParentController: NetworkSpanParentController?
 
     struct Cache {
         var externalSpanCount: Int = 0

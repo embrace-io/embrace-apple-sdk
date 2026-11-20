@@ -64,6 +64,12 @@ struct SessionSpanUtils {
         span?.setInternalAttribute(key: SpanSemantics.keyExperiments, value: value)
     }
 
+    /// Sets the number of slow calls to `callback` during the session part, and the longest one.
+    static func setSlowCallback(span: EmbraceSpan?, callback: SlowCallback, count: Int, maxMs: Int) {
+        span?.setInternalAttribute(key: callback.countKey, value: String(count))
+        span?.setInternalAttribute(key: callback.maxMsKey, value: String(maxMs))
+    }
+
     static func payload(
         from session: EmbraceSession,
         span: EmbraceSpan? = nil,
@@ -172,14 +178,19 @@ extension SpanPayload {
                 ))
         }
 
-        // Written onto the live span by `SmoothnessCaptureService` just before the part ends, and only
-        // kept on the stored span, not the session record.
-        if let span {
+        // Read from the stored span, which is updated while the session part is open. Smoothness
+        // attributes are written onto it by `SmoothnessCaptureService` just before the part ends, and
+        // only kept on the stored span, not the session record.
+        if let spanAttributes = span?.attributes {
             attributeArray.append(
-                contentsOf: span.attributes
-                    .filter { $0.key.hasPrefix(SpanSemantics.Smoothness.keyPrefix) }
+                contentsOf:
+                    spanAttributes
+                    .filter {
+                        $0.key.hasPrefix(SpanSemantics.Session.keySlowCallbackPrefix)
+                            || $0.key.hasPrefix(SpanSemantics.Smoothness.keyPrefix)
+                    }
                     .sorted { $0.key < $1.key }
-                    .map { Attribute(key: $0.key, value: String(describing: $0.value)) }
+                    .map { Attribute(key: $0.key, value: $0.value.description) }
             )
         }
 
