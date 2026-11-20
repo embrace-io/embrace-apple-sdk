@@ -58,9 +58,9 @@
             onViewDidAppearEndCalled = true
         }
 
-        var onViewDidReappearCalled = false
-        override func onViewDidReappear(_ vc: UIViewController, now: Date = Date()) {
-            onViewDidReappearCalled = true
+        var notifyIfNavigationCalled = false
+        override func notifyIfNavigation(_ vc: UIViewController) {
+            notifyIfNavigationCalled = true
         }
 
         var onViewDidDisappearCalled = false

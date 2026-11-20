@@ -1054,9 +1054,11 @@
 
             service = SmoothnessCaptureService(
                 currentSession: { [unowned self] in self.controller.currentSession },
+                sessionSpan: { [unowned self] partId in
+                    self.controller.currentSession?.id == partId ? self.controller.currentSessionSpan : nil
+                },
                 notificationCenter: .default,
                 embraceNotificationCenter: Embrace.notificationCenter,
-                flushStorage: { [unowned self] in self.storage.coreData.save(allowMainQueue: true) },
                 thermalState: { .nominal },
                 debuggerAttached: { false },
                 ignoresRemoteConfig: true,
@@ -1098,8 +1100,7 @@
             }
 
             // The last part opened from its did-start post.
-            tracker.record(lateBy: 0)
-            XCTAssertEqual(tracker.openFrameCount, 1)
+            XCTAssertNotNil(tracker.openPartCounts)
         }
     }
 

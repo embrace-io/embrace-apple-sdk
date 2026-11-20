@@ -76,12 +76,14 @@ extension EmbraceOTelSignalsHandler {
             events: events,
             links: links,
             attributes: attributes,
-            autoTerminationCode: autoTerminationCode
+            autoTerminationCode: autoTerminationCode,
+            session: session
         )
     }
 
     /// Creates an internal span whose parent is only known by its context.
     /// The parent doesn't need to be a span created through the SDK.
+    /// - Parameter session: The session part the span belongs to, or `nil` for the current one.
     package func createInternalSpan(
         name: String,
         parentContext: EmbraceSpanContext?,
@@ -92,7 +94,8 @@ extension EmbraceOTelSignalsHandler {
         events: [EmbraceSpanEvent] = [],
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
-        autoTerminationCode: EmbraceSpanErrorCode? = nil
+        autoTerminationCode: EmbraceSpanErrorCode? = nil,
+        session: EmbraceSession? = nil
     ) throws -> EmbraceSpan {
         return try _createSpan(
             name: name,

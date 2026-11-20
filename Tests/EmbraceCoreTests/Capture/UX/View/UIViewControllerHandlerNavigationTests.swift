@@ -10,34 +10,23 @@
 
     @testable import EmbraceCore
 
-    /// Navigations reported to smoothness, which interrupt the open focal moment, and controllers
-    /// appearing again.
+    /// Navigations reported to smoothness, which interrupt the open focal moment.
     final class UIViewControllerHandlerNavigationTests: XCTestCase {
 
         private var dataSource: MockUIViewControllerHandlerDataSource!
         private var handler: UIViewControllerHandler!
         private var isNavigation = true
         private var navigations = 0
-        private var totals: SmoothnessFrameCounts? = SmoothnessFrameCounts()
-
-        private var otel: MockOTelSignalsHandler {
-            dataSource.otel as! MockOTelSignalsHandler
-        }
-
-        private var screenSpans: [EmbraceSpan] {
-            otel.startedSpans.filter { $0.name == SpanSemantics.View.screenName }
-        }
 
         override func setUpWithError() throws {
             try super.setUpWithError()
             isNavigation = true
             navigations = 0
-            totals = SmoothnessFrameCounts()
             dataSource = MockUIViewControllerHandlerDataSource()
             dataSource.instrumentFirstRender = false
             handler = UIViewControllerHandler(
                 queue: MockQueue(),
-                frameCountTotals: { [unowned self] in self.totals },
+                frameCountTotals: { nil },
                 isNavigation: { [unowned self] _ in self.isNavigation },
                 screenDidNavigate: { [unowned self] in self.navigations += 1 }
             )
@@ -53,7 +42,7 @@
         // MARK: - Reporting
 
         func test_navigationAppearing_isReported() {
-            handler.onViewDidAppearEnd(MockViewController())
+            handler.notifyIfNavigation(MockViewController())
 
             XCTAssertEqual(navigations, 1)
         }
@@ -61,7 +50,7 @@
         func test_nonNavigationAppearing_isNotReported() {
             isNavigation = false
 
-            handler.onViewDidAppearEnd(MockViewController())
+            handler.notifyIfNavigation(MockViewController())
 
             XCTAssertEqual(navigations, 0)
         }
@@ -69,7 +58,7 @@
         func test_blockedController_isNotReported() {
             dataSource.blockList = ViewControllerBlockList(types: [MockViewController.self])
 
-            handler.onViewDidAppearEnd(MockViewController())
+            handler.notifyIfNavigation(MockViewController())
 
             XCTAssertEqual(navigations, 0)
         }
@@ -78,7 +67,7 @@
             let vc = MockViewController()
             vc.shouldCaptureViewInEmbrace = false
 
-            handler.onViewDidAppearEnd(vc)
+            handler.notifyIfNavigation(vc)
 
             XCTAssertEqual(navigations, 0)
         }
@@ -86,51 +75,16 @@
         func test_serviceNotActive_isNotReported() {
             dataSource.serviceState = .paused
 
-            handler.onViewDidAppearEnd(MockViewController())
+            handler.notifyIfNavigation(MockViewController())
 
             XCTAssertEqual(navigations, 0)
         }
 
-        // MARK: - Reappearing
+        func test_viewDidAppearEnd_isNotReported() {
+            // Reported from the `viewDidAppear` swizzle instead, so a first appearance isn't reported twice.
+            handler.onViewDidAppearEnd(MockViewController())
 
-        func test_reappear_isReportedAndStartsANewScreen() throws {
-            let vc = MockViewController()
-            handler.onViewDidAppearEnd(vc)
-            handler.onViewDidDisappear(vc)
-
-            totals?.droppedFrames += 3
-            totals?.expectedFrames += 6
-            handler.onViewDidReappear(vc)
-            totals?.droppedFrames += 1
-            totals?.expectedFrames += 2
-            handler.onViewDidDisappear(vc)
-
-            XCTAssertEqual(navigations, 2)
-            XCTAssertEqual(screenSpans.count, 2)
-            let span = try XCTUnwrap(screenSpans.last)
-            XCTAssertNotNil(span.endTime)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyDroppedFrames] as? Int, 1)
-            XCTAssertEqual(span.attributes[SpanSemantics.Smoothness.keyExpectedFrames] as? Int, 2)
-        }
-
-        func test_reappear_whileScreenOpen_doesNotStartAnother() {
-            let vc = MockViewController()
-            handler.onViewDidAppearEnd(vc)
-
-            handler.onViewDidReappear(vc)
-
-            XCTAssertEqual(screenSpans.count, 1)
-        }
-
-        func test_reappear_withVisibilityOff_isStillReported() {
-            dataSource.instrumentVisibility = false
-            let vc = MockViewController()
-            vc.emb_instrumentation_state = ViewInstrumentationState(identifier: UUID().uuidString)
-
-            handler.onViewDidReappear(vc)
-
-            XCTAssertEqual(navigations, 1)
-            XCTAssertTrue(screenSpans.isEmpty)
+            XCTAssertEqual(navigations, 0)
         }
 
         // MARK: - What counts as a navigation

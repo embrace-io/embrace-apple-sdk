@@ -71,7 +71,15 @@
             XCTAssert(handler.onViewDidAppearEndCalled)
         }
 
-        func test_viewDidAppear_again_onlyReappears() {
+        func test_viewDidAppear_reportsNavigation() {
+            let vc = MockViewController()
+
+            vc.viewDidAppear(false)
+
+            XCTAssertTrue(handler.notifyIfNavigationCalled)
+        }
+
+        func test_viewDidAppear_again_onlyReportsNavigation() {
             let vc = MockViewController()
             let state = ViewInstrumentationState(identifier: UUID().uuidString)
             state.viewDidAppearSpanCreated = true
@@ -79,7 +87,7 @@
 
             vc.viewDidAppear(false)
 
-            XCTAssertTrue(handler.onViewDidReappearCalled)
+            XCTAssertTrue(handler.notifyIfNavigationCalled)
             XCTAssertFalse(handler.onViewDidAppearStartCalled)
             XCTAssertFalse(handler.onViewDidAppearEndCalled)
         }
