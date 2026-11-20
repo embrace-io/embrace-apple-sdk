@@ -323,10 +323,26 @@ final class EmbraceStorage_SpanForSessionRecordTests: XCTestCase {
             endTime: .relative(-5)
         )
 
+        // belongs to the previous, contiguous part, which ends at this same instant
         addSpanRecord(startTime: .relative(-30), endTime: boundary)
         let results = storage.fetchSpans(for: session)
 
-        XCTAssertEqual(results[0].context.spanId, "test")
+        XCTAssertTrue(results.isEmpty)
+    }
+
+    func test_withSpanEndAtIsEqualToPartBoundary_returnsSpanOnlyForEndingPart() throws {
+        // previous :  |-------|
+        // next     :          |-------
+        // span     :    ------|
+        let boundary: Date = .relative(-20)
+
+        let previous = sessionRecord(startTime: .relative(-40), endTime: boundary)
+        let next = sessionRecord(startTime: boundary, endTime: .relative(-5))
+
+        addSpanRecord(startTime: .relative(-30), endTime: boundary)
+
+        XCTAssertEqual(storage.fetchSpans(for: previous).map(\.context.spanId), ["test"])
+        XCTAssertTrue(storage.fetchSpans(for: next).isEmpty)
     }
 
     func test_withSpanEndAtIsEqualToSessionStart_whenColdStart_returnsSpan() throws {

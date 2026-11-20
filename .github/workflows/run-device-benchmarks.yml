@@ -34,6 +34,9 @@ jobs:
     secrets:
       BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+    with:
+      # The Smoothness suites run from their own workflows.
+      skip_testing: 'BenchmarksUITests/SmoothnessOverheadUITests,BenchmarksUITests/SmoothnessLoadCalibrationUITests'
 
   browserstack-main:
     name: Run BrowserStack Tests on Main
@@ -45,6 +48,7 @@ jobs:
       BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
     with:
       ref: main
+      skip_testing: 'BenchmarksUITests/SmoothnessOverheadUITests,BenchmarksUITests/SmoothnessLoadCalibrationUITests'
 
   compare-results:
     name: Compare Performance Results
