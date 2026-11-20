@@ -141,6 +141,35 @@ final class RemoteConfigTests: XCTestCase {
         XCTAssertFalse(config.isSmoothnessEnabled)
     }
 
+    func test_smoothnessLimits() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        config.payload.smoothnessIdleThreshold = 0.2
+        config.payload.smoothnessHeldIdleThreshold = 0.6
+        config.payload.smoothnessSpanLimit = 0
+
+        XCTAssertEqual(config.smoothnessLimits, SmoothnessLimits(idleThreshold: 0.2, heldIdleThreshold: 0.6, spanLimit: 0))
+    }
+
+    func test_isSmoothnessFrameTraceEnabled() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        // then isSmoothnessFrameTraceEnabled samples on the same device bucket as smoothness_pct_enabled
+        config.payload.smoothnessFrameTraceThreshold = 100
+        XCTAssertTrue(config.isSmoothnessFrameTraceEnabled)
+
+        config.payload.smoothnessFrameTraceThreshold = 0
+        XCTAssertFalse(config.isSmoothnessFrameTraceEnabled)
+
+        config.payload.smoothnessFrameTraceThreshold = 51
+        XCTAssertTrue(config.isSmoothnessFrameTraceEnabled)
+
+        config.payload.smoothnessFrameTraceThreshold = 49
+        XCTAssertFalse(config.isSmoothnessFrameTraceEnabled)
+    }
+
     /// Load-bearing: `RemoteConfig` is the only conformer that really implements this — the protocol
     /// supplies a `false` default — so if its implementation were ever dropped or renamed the flag
     /// would silently return `false` forever, which is indistinguishable from "not rolled out yet".

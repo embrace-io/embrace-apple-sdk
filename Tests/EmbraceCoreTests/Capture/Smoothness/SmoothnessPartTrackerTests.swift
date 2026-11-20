@@ -14,37 +14,39 @@
     final class SmoothnessPartTrackerTests: XCTestCase {
 
         private let frameDuration = 1.0 / 60.0
-        private let accuracy = 1e-9
 
         private var notificationCenter: NotificationCenter!
         private var embraceNotificationCenter: NotificationCenter!
+        private var accumulator: FrameAccumulator!
         private var tracker: SmoothnessPartTracker!
         private var currentSession: EmbraceSession?
         private var events: [Event] = []
-        private var reported: [SmoothnessPartStats] = []
+        private var reported: [SmoothnessFrameCounts] = []
 
         override func setUp() {
             super.setUp()
             notificationCenter = NotificationCenter()
             embraceNotificationCenter = NotificationCenter()
             currentSession = nil
+            accumulator = FrameAccumulator(hangThreshold: 0.249)
             tracker = SmoothnessPartTracker(
-                hangThreshold: 0.249,
+                accumulator: accumulator,
                 currentSession: { [unowned self] in self.currentSession },
                 notificationCenter: notificationCenter,
                 embraceNotificationCenter: embraceNotificationCenter
             )
             events = []
             reported = []
-            tracker.onPartOpened = { [unowned self] partId, _ in self.events.append(.opened(partId)) }
-            tracker.onPartClosed = { [unowned self] partId, stats in
+            tracker.onPartOpened = { [unowned self] partId in self.events.append(.opened(partId)) }
+            tracker.onPartClosed = { [unowned self] partId, counts in
                 self.events.append(.closed(partId))
-                self.reported.append(stats)
+                self.reported.append(counts)
             }
         }
 
         override func tearDown() {
             tracker = nil
+            accumulator = nil
             notificationCenter = nil
             embraceNotificationCenter = nil
             currentSession = nil
@@ -81,14 +83,9 @@
             return session
         }
 
-        /// Posts the synchronous will-end hook for `session`, defaulting to the current part, with the
-        /// part's end time as `SessionController` does.
-        private func endPart(_ session: EmbraceSession? = nil, at endTime: Date = Date()) {
-            embraceNotificationCenter.post(
-                name: .embraceSessionPartWillEndSync,
-                object: session ?? currentSession,
-                userInfo: [SessionController.sessionPartWillEndSyncEndTimeKey: endTime]
-            )
+        /// Posts the synchronous will-end hook for `session`, defaulting to the current part.
+        private func endPart(_ session: EmbraceSession? = nil) {
+            embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: session ?? currentSession)
         }
 
         private func postDidBecomeActive() {
@@ -106,10 +103,9 @@
             handle(delay: frameDuration * delayInFrames)
         }
 
-        /// Delivers a tick at a steady refresh rate with `frameInterval` between vsyncs.
-        private func handle(delay: TimeInterval, frameInterval: TimeInterval? = nil) {
-            let interval = frameInterval ?? frameDuration
-            tracker.record(FrameTimingSource.Tick(delay: delay, frameInterval: interval, previousFrameInterval: interval))
+        /// Delivers a tick at a steady 60Hz refresh rate.
+        private func handle(delay: TimeInterval) {
+            accumulator.record(MeasuredTick(FrameTimingSource.Tick(timestamp: 0, previousTimestamp: 0, delay: delay, frameInterval: frameDuration, previousFrameInterval: frameDuration)))
         }
 
         // MARK: - Lifecycle
@@ -170,39 +166,14 @@
             XCTAssertEqual(opened, [session.id])
         }
 
-        func testPartEndClosesAndReports() {
+        func testPartEndClosesAndReportsZerosWithNoTicks() {
             let session = startPart(.foreground)
-            let before = Date()
 
             endPart()
 
             XCTAssertNil(openPartId)
-            XCTAssertEqual(reported.count, 1)
             XCTAssertEqual(reportedPartIds, [session.id])
-            XCTAssertEqual(reported.first?.frameCount, 0)
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames, 0)
-            XCTAssertGreaterThanOrEqual(reported.first?.endTime ?? .distantPast, before)
-            XCTAssertLessThanOrEqual(reported.first?.endTime ?? .distantFuture, Date())
-        }
-
-        func testPartEndClosesAtPartEndTime() {
-            startPart(.foreground)
-            let endTime = Date(timeIntervalSinceNow: -1)
-
-            endPart(at: endTime)
-
-            XCTAssertEqual(reported.first?.endTime, endTime)
-        }
-
-        func testPartEndWithoutEndTimeClosesNow() {
-            startPart(.foreground)
-            let before = Date()
-
-            embraceNotificationCenter.post(name: .embraceSessionPartWillEndSync, object: currentSession)
-
-            XCTAssertEqual(reported.count, 1)
-            XCTAssertGreaterThanOrEqual(reported.first?.endTime ?? .distantPast, before)
-            XCTAssertLessThanOrEqual(reported.first?.endTime ?? .distantFuture, Date())
+            XCTAssertEqual(reported, [SmoothnessFrameCounts()])
         }
 
         func testEndForAnotherPartIsIgnored() {
@@ -270,7 +241,7 @@
 
         // MARK: - Accounting
 
-        func testAccumulatesFrameCountAndNormalizedDroppedFrames() {
+        func testReportsFramesCountedWhileOpen() {
             startPart(.foreground)
 
             tick(delayInFrames: 0)
@@ -278,83 +249,54 @@
             tick(delayInFrames: 3.9)
             endPart()
 
-            XCTAssertEqual(reported.first?.frameCount, 3)
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 5.1, accuracy: accuracy)
-            XCTAssertEqual(reported.first?.hangCount, 0)
+            XCTAssertEqual(reported, [SmoothnessFrameCounts(droppedFrames: 5, expectedFrames: 8, hangCount: 0)])
         }
 
-        func testTicksOutsideOpenPartAreIgnored() {
-            tick(delayInFrames: 5.5)
+        func testTicksOutsideOpenPartAreNotReported() {
+            tick(delayInFrames: 5)
 
             startPart(.foreground)
-            tick(delayInFrames: 1.5)
+            tick(delayInFrames: 1)
             endPart()
 
-            tick(delayInFrames: 5.5)
+            tick(delayInFrames: 5)
 
-            XCTAssertEqual(reported.count, 1)
-            XCTAssertEqual(reported.first?.frameCount, 1)
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 1.5, accuracy: accuracy)
+            XCTAssertEqual(reported, [SmoothnessFrameCounts(droppedFrames: 1, expectedFrames: 2, hangCount: 0)])
         }
 
         func testNewPartStartsFromZero() {
             startPart(.foreground)
-            tick(delayInFrames: 3.5)
+            tick(delayInFrames: 3)
+            handle(delay: 1)
             endPart()
 
             startPart(.foreground)
             tick(delayInFrames: 0)
             endPart()
 
-            XCTAssertEqual(reported.last?.frameCount, 1)
-            XCTAssertEqual(reported.last?.normalizedDroppedFrames, 0)
+            XCTAssertEqual(reported.last, SmoothnessFrameCounts(droppedFrames: 0, expectedFrames: 1, hangCount: 0))
         }
 
-        // MARK: - 60fps normalization
+        func testOpenPartCountsAreFramesSinceOpen() {
+            tick(delayInFrames: 2)
+            XCTAssertNil(tracker.openPartCounts)
 
-        func testOneMissedVsyncAt120HzIsHalfAReferenceFrame() {
             startPart(.foreground)
+            tick(delayInFrames: 1)
 
-            handle(delay: 1.0 / 120.0, frameInterval: 1.0 / 120.0)
+            XCTAssertEqual(tracker.openPartCounts, SmoothnessFrameCounts(droppedFrames: 1, expectedFrames: 2, hangCount: 0))
+
             endPart()
-
-            XCTAssertEqual(reported.first?.frameCount, 1)
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 0.5, accuracy: accuracy)
+            XCTAssertNil(tracker.openPartCounts)
         }
 
-        // MARK: - Hang ceiling
-
-        func testTickPastHangThresholdIsCapped() {
+        func testHangsAreCountedAndNotCapped() {
             startPart(.foreground)
 
-            tick(delayInFrames: 120)
+            handle(delay: 2)
             endPart()
 
-            // Capped to 0.249s = 14.94 reference frames.
-            XCTAssertEqual(reported.first?.frameCount, 1)
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
-            XCTAssertEqual(reported.first?.hangCount, 1)
-        }
-
-        func testTickAtHangThresholdIsNotCapped() {
-            startPart(.foreground)
-
-            handle(delay: 0.249)
-            endPart()
-
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 14.94, accuracy: accuracy)
-            XCTAssertEqual(reported.first?.hangCount, 0)
-        }
-
-        func testHangThresholdUpdateAppliesToOpenPart() {
-            startPart(.foreground)
-
-            tracker.setHangThreshold(0.5)
-            handle(delay: 2.0)
-            endPart()
-
-            XCTAssertEqual(reported.first?.normalizedDroppedFrames ?? 0, 30, accuracy: accuracy)
-            XCTAssertEqual(reported.first?.hangCount, 1)
+            XCTAssertEqual(reported, [SmoothnessFrameCounts(droppedFrames: 120, expectedFrames: 121, hangCount: 1)])
         }
 
         // MARK: - Invalidate and skip
@@ -362,8 +304,8 @@
         func testInvalidateReturnsWhetherItClosed() {
             startPart(.foreground)
 
-            XCTAssertTrue(tracker.invalidate(at: Date()))
-            XCTAssertFalse(tracker.invalidate(at: Date()))
+            XCTAssertTrue(tracker.invalidate())
+            XCTAssertFalse(tracker.invalidate())
             XCTAssertEqual(reported.count, 1)
         }
 
@@ -371,15 +313,15 @@
             let part = startPart(.foreground)
             tick(delayInFrames: 0)
 
-            tracker.invalidate(at: Date())
+            tracker.invalidate()
 
             XCTAssertNil(openPartId)
             XCTAssertEqual(reportedPartIds, [part.id])
-            XCTAssertEqual(reported.first?.frameCount, 1)
+            XCTAssertEqual(reported.first?.expectedFrames, 1)
         }
 
         func testInvalidatedTrackerOpensNoPart() {
-            tracker.invalidate(at: Date())
+            tracker.invalidate()
 
             // A later part start, cold-start swap or direct open is ignored.
             startPart(.foreground)
@@ -389,64 +331,6 @@
 
             XCTAssertNil(openPartId)
             XCTAssertTrue(opened.isEmpty)
-        }
-    }
-
-    // MARK: - Lateness
-
-    extension SmoothnessPartTrackerTests {
-
-        private var interval60: TimeInterval { 1.0 / 60.0 }
-        private var interval120: TimeInterval { 1.0 / 120.0 }
-
-        private func lateness(delay: TimeInterval, frameInterval: TimeInterval, previousFrameInterval: TimeInterval? = nil) -> TimeInterval {
-            SmoothnessPartTracker.lateness(
-                of: FrameTimingSource.Tick(
-                    delay: delay,
-                    frameInterval: frameInterval,
-                    previousFrameInterval: previousFrameInterval ?? frameInterval
-                ))
-        }
-
-        func testMultiFrameDelayIsPassedThroughUnrounded() {
-            let delay = interval60 * 3.9
-
-            XCTAssertEqual(lateness(delay: delay, frameInterval: interval60), delay)
-        }
-
-        func testJitterBelowNoiseFloorReportsZero() {
-            XCTAssertEqual(lateness(delay: 0.000_001, frameInterval: interval120), 0)
-            XCTAssertEqual(lateness(delay: interval60 * 0.4, frameInterval: interval60), 0)
-        }
-
-        func testLatenessAtNoiseFloorIsPassedThroughUnchanged() {
-            let delay = interval60 * SmoothnessPartTracker.noiseFloorFraction
-
-            XCTAssertEqual(lateness(delay: delay, frameInterval: interval60), delay)
-        }
-
-        func testNoiseFloorScalesWithFrameInterval() {
-            // 0.3 of a 60Hz frame is 0.6 of a 120Hz frame.
-            let delay = interval60 * 0.3
-
-            XCTAssertEqual(lateness(delay: delay, frameInterval: interval60), 0)
-            XCTAssertEqual(lateness(delay: delay, frameInterval: interval120), delay)
-        }
-
-        func testRateStepDownFrom120To60ReportsZero() {
-            // The tick lands one 120Hz interval after the 120Hz tick's target.
-            XCTAssertEqual(lateness(delay: interval120, frameInterval: interval60, previousFrameInterval: interval120), 0)
-        }
-
-        func testMissedFrameDuringRateStepDownIsCountedWithoutTheStep() {
-            // Steps 120 → 60Hz and also misses one 60Hz frame.
-            let late = lateness(delay: interval120 + interval60, frameInterval: interval60, previousFrameInterval: interval120)
-
-            XCTAssertEqual(late, interval60, accuracy: 1e-12)
-        }
-
-        func testMissedFrameDuringRateStepUpIsCountedInFull() {
-            XCTAssertEqual(lateness(delay: interval120, frameInterval: interval120, previousFrameInterval: interval60), interval120)
         }
     }
 

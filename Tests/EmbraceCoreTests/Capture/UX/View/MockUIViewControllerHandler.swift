@@ -58,6 +58,11 @@
             onViewDidAppearEndCalled = true
         }
 
+        var notifyIfNavigationCalled = false
+        override func notifyIfNavigation(_ vc: UIViewController) {
+            notifyIfNavigationCalled = true
+        }
+
         var onViewDidDisappearCalled = false
         override func onViewDidDisappear(_ vc: UIViewController) {
             onViewDidDisappearCalled = true

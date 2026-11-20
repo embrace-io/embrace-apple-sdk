@@ -1,18 +1,18 @@
 """Smoothness overhead load calibration report.
 
-Reads `SmoothnessLoadCalibrationUITests` results from one benchmark run: the scroll scenario at
-several frame loads, each with no added cost (`off`) and with 25µs and 250µs injected per frame.
-For each load it reports:
+Reads `SmoothnessLoadCalibrationUITests` results from one benchmark run: each loaded scenario
+(scrolling and touch) at several frame loads, each with no added cost (`off`) and with 25µs and
+250µs injected per frame. For each scenario and load it reports:
 
 - the Off arm's hitch ratio: the gate is only sensitive while it is small but non-zero;
 - for each injected cost, the hitch ratio delta, how clearly it stands out from noise
   (z = delta / its Welch standard error), and the verdict the gate's hitch check would give;
 - the refresh rate and peak thermal state, which make a load's numbers unusable if off.
 
-It then suggests the load that best detects the 25µs cost, among loads that ran at the expected
-refresh rate, weren't throttled, and caught the 250µs control, plus a starting OFF_HITCH_BAND for
-that device class: half to twice the suggested load's Off hitch ratio. Both are suggestions to
-review, not applied automatically.
+For each scenario it then suggests the load that best detects the 25µs cost, among loads that ran
+at the expected refresh rate, weren't throttled, and caught the 250µs control, plus a starting
+OFF_HITCH_BAND_<SCENARIO>_<rate> for that device class: half to twice the suggested load's Off hitch
+ratio. Both are suggestions to review, not applied automatically.
 
 The report goes to stdout and the job summary. Exits 1 if the run has no calibration results.
 """
@@ -28,6 +28,7 @@ from smoothness_overhead import (
     OVER,
     RATE_MIN_FRACTION,
     THERMAL_SERIOUS,
+    band_variable,
     expected_rate,
     find,
     fmt,
@@ -36,21 +37,23 @@ from smoothness_overhead import (
 
 DEVICE = os.getenv("DEVICE", "")
 
-# e.g. `testFraction60_1_off()` or `testFraction90_3_cost250()`.
-CASE = re.compile(r"^testFraction(?P<value>\d+)_\d+_(?P<arm>off|cost25|cost250)(\(\))?$")
+# e.g. `testScrollingFraction60_1_off()` or `testTouchFraction90_3_cost250()`. The scenario is named
+# as in `SmoothnessOverheadUITests`, e.g. `testScrolling`.
+CASE = re.compile(r"^(?P<scenario>test[A-Za-z]+?)Fraction(?P<value>\d+)_\d+_(?P<arm>off|cost25|cost250)(\(\))?$")
 
 COSTS = ("cost25", "cost250")
 
 
 def load_settings(results):
-    """Returns {fraction percent: {arm: {displayName: metric}}}."""
+    """Returns {scenario: {fraction percent: {arm: {displayName: metric}}}}."""
     settings = {}
     for metric in results:
         match = CASE.match(metric["name"].split("/")[-1])
         if not match:
             continue
         key = int(match["value"])
-        settings.setdefault(key, {}).setdefault(match["arm"], {})[metric["displayName"]] = metric
+        scenario = settings.setdefault(match["scenario"], {})
+        scenario.setdefault(key, {}).setdefault(match["arm"], {})[metric["displayName"]] = metric
     return settings
 
 
@@ -123,17 +126,27 @@ def suggest(rows):
     return max(usable, key=lambda row: (z(row, "cost25"), z(row, "cost250")))
 
 
-def render(rows, suggestion):
+def render(scenarios):
+    """`scenarios` is {scenario: (rows, suggestion)}."""
     body = ["### 🎚️ Smoothness Overhead Load Calibration"]
     if DEVICE:
         body.append(f"Device: `{DEVICE}`")
     body.append(
-        "The scroll scenario at each load, with Smoothness off and 0, 25 or 250 µs injected per frame. "
+        "Each loaded scenario at each load, with Smoothness off and 0, 25 or 250 µs injected per frame. "
         "z is the hitch ratio delta in Welch standard errors; the verdict is the gate's hitch check. "
         "A load is usable if it ran at the expected refresh rate, wasn't throttled and caught the 250 µs control."
     )
-    body.append("")
-    body.append("| Load | Refresh (Hz) | Thermal peak | Off hitch ratio (ms/s) | +25 µs Δ (z) | +25 µs verdict | +250 µs Δ (z) | +250 µs verdict | Usable |")
+    for scenario in sorted(scenarios):
+        rows, suggestion = scenarios[scenario]
+        body.append("")
+        body.append(f"#### {scenario}")
+        body.append("")
+        body += render_scenario(scenario, rows, suggestion)
+    return "\n".join(body)
+
+
+def render_scenario(scenario, rows, suggestion):
+    body = ["| Load | Refresh (Hz) | Thermal peak | Off hitch ratio (ms/s) | +25 µs Δ (z) | +25 µs verdict | +250 µs Δ (z) | +250 µs verdict | Usable |"]
     body.append("|:---|---:|---:|---:|---:|:---|---:|:---|:---|")
     for row in rows:
         cells = [
@@ -154,17 +167,17 @@ def render(rows, suggestion):
     body.append("")
     if suggestion is None:
         body.append("**No usable load.** None ran at the expected rate unthrottled and caught the 250 µs control.")
-        return "\n".join(body)
+        return body
 
     env = f"EMBFrameLoadFraction={suggestion['key'] / 100:.2f}"
     rate = round(suggestion["expected"])
     low, high = suggestion["off_mean"] / 2, suggestion["off_mean"] * 2
     body.append(f"**Suggested load:** {label(suggestion['key'])} (`{env}`).")
     body.append(
-        f"**Suggested band:** `OFF_HITCH_BAND_{rate}=\"{low:.2f},{high:.2f}\"` "
+        f"**Suggested band:** `{band_variable(scenario, rate)}=\"{low:.2f},{high:.2f}\"` "
         "(half to twice this load's Off hitch ratio). Review both before committing them."
     )
-    return "\n".join(body)
+    return body
 
 
 def main():
@@ -177,8 +190,11 @@ def main():
         print("No SmoothnessLoadCalibrationUITests results found in this run.", file=sys.stderr)
         sys.exit(1)
 
-    rows = evaluate(settings)
-    markdown = render(rows, suggest(rows))
+    scenarios = {}
+    for scenario, loads in settings.items():
+        rows = evaluate(loads)
+        scenarios[scenario] = (rows, suggest(rows))
+    markdown = render(scenarios)
     print(markdown)
 
     summary = os.getenv("GITHUB_STEP_SUMMARY")

@@ -32,6 +32,7 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
         links: [EmbraceSpanLink],
         attributes: EmbraceAttributes,
         autoTerminationCode: EmbraceSpanErrorCode?,
+        session: EmbraceSession?,
         isInternal: Bool
     ) throws -> EmbraceSpan {
         let span = try wrapped._createSpan(
@@ -45,6 +46,7 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
             links: links,
             attributes: attributes,
             autoTerminationCode: autoTerminationCode,
+            session: session,
             isInternal: isInternal
         )
         createdSpans.append(span)

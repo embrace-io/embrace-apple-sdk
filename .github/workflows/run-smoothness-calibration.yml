@@ -1,8 +1,9 @@
 name: Smoothness Load Calibration
 
-# Sweeps the Smoothness overhead scroll scenario's frame load on one device, and reports which load
-# the overhead gate is most sensitive at (bin/smoothness_calibration.py). Run once per device class
-# (120Hz ProMotion and 60Hz), then commit the chosen load and OFF_HITCH_BAND_<rate>.
+# Sweeps the frame load of the Smoothness overhead scenarios that run one (scrolling and touch) on one
+# device, and reports which load the overhead gate is most sensitive at, per scenario
+# (bin/smoothness_calibration.py). Run once per device class (120Hz ProMotion and 60Hz), then commit
+# the chosen loads and OFF_HITCH_BAND_<SCENARIO>_<rate>.
 
 on:
   workflow_dispatch:
@@ -31,7 +32,7 @@ jobs:
     with:
       device: ${{ inputs.device }}
       only_testing: 'BenchmarksUITests/SmoothnessLoadCalibrationUITests'
-      # 9 tests, each launching the app and settling before 20 measured swipes.
+      # 18 tests, each launching the app and settling before 20 measured swipes or drags.
       test_timeout_minutes: 90
 
   report:

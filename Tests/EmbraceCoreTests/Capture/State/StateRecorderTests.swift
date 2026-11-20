@@ -23,20 +23,7 @@ private final class InterferingOTelHandler: MockOTelSignalsHandler {
 
     struct CreateFailure: Error {}
 
-    override func _createSpan(
-        name: String,
-        parentContext: EmbraceSpanContext? = nil,
-        type: EmbraceType,
-        status: EmbraceSpanStatus = .unset,
-        startTime: Date,
-        endTime: Date? = nil,
-        events: [EmbraceSpanEvent] = [],
-        links: [EmbraceSpanLink] = [],
-        attributes: EmbraceAttributes = [:],
-        autoTerminationCode: EmbraceSpanErrorCode? = nil,
-        isInternal: Bool = true
-    ) throws -> EmbraceSpan {
-
+    override func willCreateSpan() throws {
         if failuresRemaining > 0 {
             failuresRemaining -= 1
             throw CreateFailure()
@@ -45,20 +32,6 @@ private final class InterferingOTelHandler: MockOTelSignalsHandler {
         let hook = duringNextCreate
         duringNextCreate = nil
         hook?()
-
-        return try super._createSpan(
-            name: name,
-            parentContext: parentContext,
-            type: type,
-            status: status,
-            startTime: startTime,
-            endTime: endTime,
-            events: events,
-            links: links,
-            attributes: attributes,
-            autoTerminationCode: autoTerminationCode,
-            isInternal: isInternal
-        )
     }
 }
 

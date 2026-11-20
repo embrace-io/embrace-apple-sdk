@@ -24,6 +24,9 @@
 
         weak var dataSource: UIViewControllerHandlerDataSource?
         private let queue: DispatchableQueue
+        private let frameCountTotals: () -> SmoothnessFrameCounts?
+        private let isNavigation: (UIViewController) -> Bool
+        private let screenDidNavigate: () -> Void
 
         struct ViewControllerHandlerMutableData {
             var parentSpans: [String: EmbraceSpan] = [:]
@@ -34,11 +37,25 @@
             var visibilitySpans: [String: EmbraceSpan] = [:]
             var uiReadySpans: [String: EmbraceSpan] = [:]
             var alreadyFinishedUiReadyIds: Set<String> = []
+            /// Smoothness totals when each visibility span started, if smoothness was running.
+            var visibilityFrameCountStarts: [String: SmoothnessFrameCounts] = [:]
         }
         internal let data = EmbraceMutex(ViewControllerHandlerMutableData())
 
-        init(queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility)) {
+        /// - Parameters:
+        ///   - frameCountTotals: Smoothness running totals, or `nil` while smoothness isn't running. Read on
+        ///     the calling thread at each screen boundary, before the hop to `queue`.
+        ///   - screenDidNavigate: Called on main, before the hop to `queue`, when a navigation appears.
+        init(
+            queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility),
+            frameCountTotals: @escaping () -> SmoothnessFrameCounts? = UIViewControllerHandler.smoothnessFrameCountTotals,
+            isNavigation: @escaping (UIViewController) -> Bool = { UIViewControllerHandler.isNavigation($0) },
+            screenDidNavigate: @escaping () -> Void = UIViewControllerHandler.smoothnessScreenDidNavigate
+        ) {
             self.queue = queue
+            self.frameCountTotals = frameCountTotals
+            self.isNavigation = isNavigation
+            self.screenDidNavigate = screenDidNavigate
             Embrace.notificationCenter.addObserver(
                 self,
                 selector: #selector(foregroundSessionDidEnd),
@@ -61,11 +78,13 @@
 
         @objc func foregroundSessionDidEnd(_ notification: Notification? = nil) {
             let now = notification?.object as? Date ?? Date()
+            let frameCounts = frameCountTotals()
 
             // end all parent spans and visibility spans if the app enters the background
             // also clear all the cached spans
             queue.async {
-                for span in self.data.withLock({ $0.visibilitySpans.values }) {
+                for (id, span) in self.data.withLock({ $0.visibilitySpans }) {
+                    self.setFrameCounts(on: span, id: id, endCounts: frameCounts)
                     span.end(endTime: now)
                 }
 
@@ -82,6 +101,7 @@
                     $0.visibilitySpans.removeAll()
                     $0.uiReadySpans.removeAll()
                     $0.alreadyFinishedUiReadyIds.removeAll()
+                    $0.visibilityFrameCountStarts.removeAll()
                 }
 
             }
@@ -300,6 +320,7 @@
 
             let className = vc.className
             let viewName = vc.emb_viewName
+            let frameCounts = frameCountTotals()
 
             queue.async {
                 guard let otel = self.dataSource?.otel else {
@@ -317,7 +338,10 @@
                         startTime: now
                     )
                 {
-                    self.data.withLock { $0.visibilitySpans[id] = visibilitySpan }
+                    self.data.withLock {
+                        $0.visibilitySpans[id] = visibilitySpan
+                        $0.visibilityFrameCountStarts[id] = frameCounts
+                    }
                 }
 
                 if let span = self.data.withLock({ $0.viewDidAppearSpans.removeValue(forKey: id) }) {
@@ -365,11 +389,14 @@
                 return
             }
 
+            let frameCounts = frameCountTotals()
+
             queue.async {
                 let now = Date()
 
                 // end visibility span
                 if let span = self.data.withLock({ $0.self.visibilitySpans[id] }) {
+                    self.setFrameCounts(on: span, id: id, endCounts: frameCounts)
                     span.end(endTime: now)
                     self.data.withLock { $0.visibilitySpans[id] = nil }
                 }
@@ -430,6 +457,61 @@
             for span in spans {
                 span.end(errorCode: .userAbandon, endTime: time)
             }
+        }
+
+        /// Writes the frames counted since the visibility span `id` started, if smoothness was running at
+        /// both ends, and forgets the start.
+        private func setFrameCounts(on span: EmbraceSpan, id: String, endCounts: SmoothnessFrameCounts?) {
+            guard let start = data.withLock({ $0.visibilityFrameCountStarts.removeValue(forKey: id) }), let endCounts else {
+                return
+            }
+
+            let counts = endCounts - start
+            span.setAttribute(key: SpanSemantics.Smoothness.keyDroppedFrames, value: counts.droppedFrames)
+            span.setAttribute(key: SpanSemantics.Smoothness.keyExpectedFrames, value: counts.expectedFrames)
+        }
+
+        /// The running `SmoothnessCaptureService`'s totals, if one is installed.
+        static func smoothnessFrameCountTotals() -> SmoothnessFrameCounts? {
+            smoothnessService()?.frameCountTotals
+        }
+
+        /// Tells the installed `SmoothnessCaptureService`, if any, that a navigation appeared.
+        static func smoothnessScreenDidNavigate() {
+            smoothnessService()?.screenDidNavigate()
+        }
+
+        private static func smoothnessService() -> SmoothnessCaptureService? {
+            Embrace.client?.captureServices.services.first { $0 is SmoothnessCaptureService } as? SmoothnessCaptureService
+        }
+
+        /// Whether `vc` appearing is a navigation: it's in the key window and is a direct child of a
+        /// navigation, tab bar or split view controller, the root of a presentation, or the window's root.
+        /// Controllers embedded in other screens aren't.
+        static func isNavigation(_ vc: UIViewController, isKeyWindow: (UIWindow) -> Bool = { $0.isKeyWindow }) -> Bool {
+            guard let window = vc.viewIfLoaded?.window, isKeyWindow(window) else {
+                return false
+            }
+
+            if let parent = vc.parent {
+                return parent is UINavigationController || parent is UITabBarController || parent is UISplitViewController
+            }
+
+            return vc.presentingViewController != nil || window.rootViewController === vc
+        }
+
+        /// Reports `vc` to smoothness if its appearance is a navigation. Called on every `viewDidAppear`,
+        /// including repeat appearances that create no spans. Must be called on main.
+        func notifyIfNavigation(_ vc: UIViewController) {
+            guard dataSource?.serviceState == .active,
+                vc.emb_shouldCaptureView,
+                dataSource?.isViewControllerBlocked(vc) == false,
+                isNavigation(vc)
+            else {
+                return
+            }
+
+            screenDidNavigate()
         }
 
         private func createSpan(

@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import Foundation
 
@@ -28,7 +29,12 @@ open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate 
 
     public init() {}
 
-    open func _createSpan(
+    /// Runs at the start of every `_createSpan`, before the span exists. Subclasses override it to
+    /// interfere with span creation, since `_createSpan` itself is `package` and can't be overridden.
+    open func willCreateSpan() throws {}
+
+    // `package` because `EmbraceSession` is a package type.
+    package func _createSpan(
         name: String,
         parentContext: EmbraceSpanContext? = nil,
         type: EmbraceType,
@@ -39,8 +45,10 @@ open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate 
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
+        session: EmbraceSession? = nil,
         isInternal: Bool = true
     ) throws -> EmbraceSpan {
+        try willCreateSpan()
 
         let traceId = parentContext?.traceId ?? .randomTraceId()
 
@@ -55,7 +63,7 @@ open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate 
             endTime: endTime,
             events: events,
             links: links,
-            sessionId: currentSessionId,
+            sessionId: session?.id ?? currentSessionId,
             processId: currentProcessId,
             attributes: attributes,
             delegate: self
