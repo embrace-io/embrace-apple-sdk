@@ -4,10 +4,6 @@
 
 /// The device's connectivity, as recorded by the `network` state.
 ///
-/// The raw values are the wire contract, shared with Android so one backend query serves both
-/// platforms. `mixed` is derived by the backend when a session's values differ, so it is never
-/// emitted. Android's `unverified` and `*_connecting` values come from its two-phase validation
-/// model; a satisfied path here is already validated, so they have no equivalent.
 enum NetworkConnectivity: String, StateValue {
 
     /// Connected over WiFi. Takes precedence: a path that is both WiFi and cellular is WiFi.

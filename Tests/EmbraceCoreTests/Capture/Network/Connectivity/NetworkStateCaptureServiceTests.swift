@@ -27,9 +27,6 @@ private final class MockPathMonitor: NetworkPathMonitoring {
     }
 }
 
-/// These assertions pin the `emb-state-network` wire contract (shared with Android) and the
-/// service's lifecycle rules; the state primitive's own behavior is specified in
-/// `StateRecorderTests`.
 final class NetworkStateCaptureServiceTests: XCTestCase {
 
     private var mockOTel: MockOTelSignalsHandler!

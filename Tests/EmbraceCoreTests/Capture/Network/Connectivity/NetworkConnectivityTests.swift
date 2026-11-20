@@ -29,8 +29,6 @@ final class NetworkConnectivityTests: XCTestCase {
         XCTAssertEqual(map(satisfied: false, wifi: true, cellular: true), .none)
     }
 
-    /// The four strings are the wire contract shared with Android; a rename here splits the
-    /// backend's connectivity filter between platforms.
     func testTheWireStrings() {
         XCTAssertEqual(NetworkConnectivity.wifi.stateDescription, "wifi")
         XCTAssertEqual(NetworkConnectivity.wan.stateDescription, "wan")
