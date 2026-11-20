@@ -28,10 +28,11 @@ extension EmbraceIO {
         let lowMemoryWarning: Bool
         let lowPowerMode: Bool
         let hang: Bool
+        let networkState: Bool
         let customServices: [CaptureService]
 
         /// Returns a `CaptureServicesOptions` instance configured with the default set of `CaptureServices`.
-        /// - Note: The default services are `.urlSession`, `.tap`, `.view`, `.webView`, `.lowMemoryWarning` and `.lowPowerMode`.
+        /// - Note: The default services are `.urlSession`, `.tap`, `.view`, `.webView`, `.lowMemoryWarning`, `.lowPowerMode` and `.networkState`.
         public class func `default`() -> EmbraceIO.CaptureServicesOptions {
             return CaptureServicesOptions()
         }
@@ -42,6 +43,7 @@ extension EmbraceIO {
                 lowMemoryWarning: Bool = true,
                 lowPowerMode: Bool = true,
                 hang: Bool = false,
+                networkState: Bool = true,
                 customServices: [CaptureService] = []
             ) {
                 self.urlSession = urlSession
@@ -49,6 +51,7 @@ extension EmbraceIO {
                 self.lowMemoryWarning = lowMemoryWarning
                 self.lowPowerMode = lowPowerMode
                 self.hang = hang
+                self.networkState = networkState
                 self.customServices = customServices
             }
         #else
@@ -63,6 +66,7 @@ extension EmbraceIO {
                         lowMemoryWarning: Bool = true,
                         lowPowerMode: Bool = true,
                         hang: Bool = false,
+                        networkState: Bool = true,
                         customServices: [CaptureService] = []
                     ) {
                         self.urlSession = urlSession
@@ -73,6 +77,7 @@ extension EmbraceIO {
                         self.lowMemoryWarning = lowMemoryWarning
                         self.lowPowerMode = lowPowerMode
                         self.hang = hang
+                        self.networkState = networkState
                         self.customServices = customServices
                     }
                 #else
@@ -84,6 +89,7 @@ extension EmbraceIO {
                         lowMemoryWarning: Bool = true,
                         lowPowerMode: Bool = true,
                         hang: Bool = false,
+                        networkState: Bool = true,
                         customServices: [CaptureService] = []
                     ) {
                         self.urlSession = urlSession
@@ -93,6 +99,7 @@ extension EmbraceIO {
                         self.lowMemoryWarning = lowMemoryWarning
                         self.lowPowerMode = lowPowerMode
                         self.hang = hang
+                        self.networkState = networkState
                         self.customServices = customServices
                     }
                 #endif
@@ -105,6 +112,7 @@ extension EmbraceIO {
                     lowMemoryWarning: Bool = true,
                     lowPowerMode: Bool = true,
                     hang: Bool = false,
+                    networkState: Bool = true,
                     customServices: [CaptureService] = []
                 ) {
                     self.urlSession = urlSession
@@ -113,6 +121,7 @@ extension EmbraceIO {
                     self.lowMemoryWarning = lowMemoryWarning
                     self.lowPowerMode = lowPowerMode
                     self.hang = hang
+                    self.networkState = networkState
                     self.customServices = customServices
                 }
             #endif
@@ -160,6 +169,10 @@ extension EmbraceIO {
                     services.append(HangCaptureService())
                 }
             #endif
+
+            if networkState {
+                services.append(NetworkStateCaptureService())
+            }
 
             services.append(contentsOf: customServices)
 

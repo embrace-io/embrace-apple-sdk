@@ -33,6 +33,7 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         XCTAssertNil(options.pushNotification)
         XCTAssertTrue(options.lowMemoryWarning)
         XCTAssertTrue(options.lowPowerMode)
+        XCTAssertTrue(options.networkState)
 
         XCTAssertFalse(options.hang)
 
@@ -296,6 +297,51 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
 
         XCTAssertFalse(options.lowPowerMode)
         XCTAssertTrue(options.lowMemoryWarning)
+    }
+
+    func test_networkState() throws {
+        // given a builder
+        let builder = CaptureServicesOptionsBuilder()
+
+        // when adding network state
+        builder.addNetworkStateCaptureService()
+
+        // then the result contains the correct options
+        let options = builder.build()
+
+        XCTAssertTrue(options.networkState)
+        XCTAssertTrue(options.list.contains { $0 is NetworkStateCaptureService })
+    }
+
+    func test_networkState_remove() throws {
+        // given a builder with default services
+        let builder = CaptureServicesOptionsBuilder()
+        builder.addDefaults()
+
+        // when removing network state
+        builder.remove(embraceType: .networkState)
+
+        // then no network state service is built
+        let options = builder.build()
+
+        XCTAssertFalse(options.networkState)
+        XCTAssertFalse(options.list.contains { $0 is NetworkStateCaptureService })
+    }
+
+    func test_networkState_removeOfType() throws {
+        // given a builder with default services
+        let builder = CaptureServicesOptionsBuilder()
+        builder.addDefaults()
+
+        // when removing network state via the class-type overload
+        builder.remove(ofType: NetworkStateCaptureService.self)
+
+        // then only network state is removed
+        let options = builder.build()
+
+        XCTAssertFalse(options.networkState)
+        XCTAssertTrue(options.lowMemoryWarning)
+        XCTAssertTrue(options.lowPowerMode)
     }
 
     #if !os(watchOS) && !os(macOS)
