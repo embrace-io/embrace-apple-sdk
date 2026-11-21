@@ -26,6 +26,8 @@ class LogController: LogBatcherDelegate {
     weak var experiments: ExperimentsHandler?
     weak var privateLogger: EmbracePrivateLogger?
 
+    weak var stateController: StateController?
+
     /// This will probably be injected eventually.
     /// For consistency, I created a constant
     static let maxLogsPerBatch: Int = 20
@@ -130,15 +132,22 @@ class LogController: LogBatcherDelegate {
             .addApplicationState()
             .addSessionIdentifier()
             .addExperiments(experiments?.encodedExperiments)
+            .addCurrentStates(stateController)
 
         // We want to ensure the backtrace is taken on this thread,
         // but added from the queue as to not use up possibly main thread resources.
         let addStacktraceBlock: ((_ builder: EmbraceLogAttributesBuilder) -> Void)?
         switch stackTraceBehavior {
-        case .default where severity == .warn || severity == .error:
+        case _ where !severity.allowsStackTrace:
+            addStacktraceBlock = nil
+        case .notIncluded:
+            addStacktraceBlock = nil
+        case .default where !severity.capturesStackTraceByDefault:
+            addStacktraceBlock = nil
+        case .default:
             let backtrace = EmbraceBacktrace.backtrace(of: pthread_self(), threadIndex: 0)
             addStacktraceBlock = { $0.addBacktrace(backtrace) }
-        case .main where severity == .warn || severity == .error:
+        case .main:
             // A remote-thread capture comes back empty when it could not be taken (e.g. another
             // stack walk was in flight), so an empty capture attaches no stack at all.
             let backtrace = EmbraceBacktrace.backtrace(of: EmbraceGetMainThread(), threadIndex: 0)
@@ -148,11 +157,9 @@ class LogController: LogBatcherDelegate {
                 addStacktraceBlock = nil
                 Embrace.logger.debug("stackTraceBehavior .main capture returned no frames; log sent without a stack")
             }
-        case .custom(let customStackTrace) where severity == .warn || severity == .error:
+        case .custom(let customStackTrace):
             let stackTrace = customStackTrace.frames
             addStacktraceBlock = { $0.addStackTrace(stackTrace) }
-        default:
-            addStacktraceBlock = nil
         }
 
         // Now we can jump to the queue and process everything.
@@ -591,5 +598,19 @@ extension LogController {
         func log() {
             Embrace.logger.error(localizedDescription)
         }
+    }
+}
+
+extension EmbraceLogSeverity {
+    /// Whether a log of this severity can have a stack trace. When false, `stackTraceBehavior` is
+    /// ignored and no stack is captured.
+    var allowsStackTrace: Bool {
+        self == .warn || self == .error
+    }
+
+    /// Whether `.default` captures the calling thread's stack for this severity. Other severities
+    /// that allow a stack trace only get one from `.main` or `.custom`.
+    var capturesStackTraceByDefault: Bool {
+        self == .error
     }
 }
