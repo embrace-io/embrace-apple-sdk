@@ -770,10 +770,10 @@ class DefaultOTelSignalsHandlerTests: XCTestCase {
         // when creating a warn log with default stack trace
         handler.log("test", severity: .warn, stackTraceBehavior: .default)
 
-        // then the stack trace is added
+        // then the stack trace is not added
         logQueue.sync {}
         let log = try XCTUnwrap(logController.batcher.currentBatch()?.logs.first)
-        XCTAssertNotNil(log.attributes["emb.stacktrace.ios"])
+        XCTAssertNil(log.attributes["emb.stacktrace.ios"])
     }
 
     func test_errorLog_defaultStackTrace() throws {
