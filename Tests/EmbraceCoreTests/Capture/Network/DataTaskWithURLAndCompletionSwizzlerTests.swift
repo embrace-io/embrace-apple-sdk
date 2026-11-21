@@ -12,7 +12,13 @@ class DataTaskWithURLAndCompletionSwizzlerTests: SwizzlerTestCase {
     private var session: URLSession!
     private var sut: DataTaskWithURLAndCompletionSwizzler!
     private var sut2: DataTaskWithURLRequestAndCompletionSwizzler!
+    fileprivate typealias Received = (Data?, URLResponse?, Error?)
+
     private var handler: MockURLSessionTaskHandler!
+    private var stubSession: StubURLSession!
+    private var sentData: Data?
+    private var sentResponse: URLResponse?
+    private var sentError: NSError?
     private var url: URL!
 
     private var dataTask: URLSessionDataTask!
@@ -24,45 +30,37 @@ class DataTaskWithURLAndCompletionSwizzlerTests: SwizzlerTestCase {
     }
 
     func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
-        let expectation = expectation(description: #function)
-        givenDataTaskWithURLAndCompletionSwizzler()
+        givenDataTaskWithURLAndCompletionSwizzler(baseClass: StubURLSession.self)
         try givenSwizzlingWasDone()
-        givenSuccessfulRequest()
-        givenProxiedUrlSession()
-        whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedCreateWithTask()
-            expectation.fulfill()
-        })
-        wait(for: [expectation], timeout: .longTimeout)
+        givenRequest()
+        givenStubSession()
+        whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in }, resume: false)
+        thenHandlerShouldHaveInvokedCreateWithTask()
     }
 
     func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
-        let expectation = expectation(description: #function)
-        givenDataTaskWithURLAndCompletionSwizzler()
+        givenDataTaskWithURLAndCompletionSwizzler(baseClass: StubURLSession.self)
         try givenSwizzlingWasDone()
-        givenSuccessfulRequest()
-        givenProxiedUrlSession()
-        whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedFinishTask()
-            expectation.fulfill()
-        })
-        wait(for: [expectation], timeout: .longTimeout)
+        givenRequest()
+        givenStubSession()
+        var received: Received?
+        whenInvokingDataTaskWithUrl(completionHandler: { received = ($0, $1, $2) }, resume: false)
+        whenTheSessionFinishesSuccessfully()
+        thenHandlerShouldHaveInvokedFinishTask()
+        thenTheCompletionShouldHaveReceivedWhatTheSessionSent(received)
     }
 
-    #if !os(watchOS)
-        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
-            let expectation = expectation(description: #function)
-            givenDataTaskWithURLAndCompletionSwizzler()
-            try givenSwizzlingWasDone()
-            givenFailedRequest()
-            givenProxiedUrlSession()
-            whenInvokingDataTaskWithUrl(completionHandler: { _, _, _ in
-                self.thenHandlerShouldHaveInvokedFinishTaskWithError()
-                expectation.fulfill()
-            })
-            wait(for: [expectation], timeout: .longTimeout)
-        }
-    #endif
+    func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
+        givenDataTaskWithURLAndCompletionSwizzler(baseClass: StubURLSession.self)
+        try givenSwizzlingWasDone()
+        givenRequest()
+        givenStubSession()
+        var received: Received?
+        whenInvokingDataTaskWithUrl(completionHandler: { received = ($0, $1, $2) }, resume: false)
+        whenTheSessionFails()
+        thenHandlerShouldHaveInvokedFinishTaskWithError()
+        thenTheCompletionShouldHaveReceivedWhatTheSessionSent(received)
+    }
 
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
         givenDataTaskWithURLAndCompletionSwizzler()
@@ -85,10 +83,10 @@ class DataTaskWithURLAndCompletionSwizzlerTests: SwizzlerTestCase {
 }
 
 extension DataTaskWithURLAndCompletionSwizzlerTests {
-    fileprivate func givenDataTaskWithURLAndCompletionSwizzler() {
+    fileprivate func givenDataTaskWithURLAndCompletionSwizzler(baseClass: AnyClass = URLSession.self) {
         handler = MockURLSessionTaskHandler()
-        sut = DataTaskWithURLAndCompletionSwizzler(handler: handler)
-        sut2 = DataTaskWithURLRequestAndCompletionSwizzler(handler: handler)
+        sut = DataTaskWithURLAndCompletionSwizzler(handler: handler, baseClass: baseClass)
+        sut2 = DataTaskWithURLRequestAndCompletionSwizzler(handler: handler, baseClass: baseClass)
     }
 
     fileprivate func givenSwizzlingWasDone() throws {
@@ -107,18 +105,50 @@ extension DataTaskWithURLAndCompletionSwizzlerTests {
         url.mockResponse = .successful(withData: mockData, response: mockResponse)
     }
 
-    fileprivate func givenFailedRequest() {
+    fileprivate func givenRequest() {
         url = URL(string: "https://embrace.io")!
-        let error = NSError(domain: UUID().uuidString, code: 0)
-        let mockResponse = HTTPURLResponse(url: url, statusCode: 400, httpVersion: nil, headerFields: nil)!
-        url.mockResponse = .failure(withError: error, response: mockResponse)
     }
 
-    fileprivate func whenInvokingDataTaskWithUrl(completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) {
+    fileprivate func givenStubSession() {
+        StubURLSession.assertOverrides(DataTaskWithURLAndCompletionSwizzler.selector)
+        StubURLSession.assertOverrides(DataTaskWithURLRequestAndCompletionSwizzler.selector)
+        stubSession = StubURLSession.make()
+        session = stubSession
+    }
+
+    fileprivate func whenTheSessionFinishesSuccessfully() {
+        sentData = Data("Mock Data".utf8)
+        sentResponse = HTTPURLResponse(url: URL(string: "https://embrace.io")!, statusCode: 200, httpVersion: nil, headerFields: nil)
+        stubSession.completeDataTask(data: sentData, response: sentResponse, error: nil)
+    }
+
+    fileprivate func whenTheSessionFails() {
+        sentResponse = HTTPURLResponse(url: URL(string: "https://embrace.io")!, statusCode: 400, httpVersion: nil, headerFields: nil)
+        sentError = NSError(domain: UUID().uuidString, code: 0)
+        stubSession.completeDataTask(data: nil, response: sentResponse, error: sentError)
+    }
+
+    fileprivate func thenTheCompletionShouldHaveReceivedWhatTheSessionSent(
+        _ received: Received?, file: StaticString = #filePath, line: UInt = #line
+    ) {
+        guard let received else {
+            return XCTFail("The completion wasn't called", file: file, line: line)
+        }
+        XCTAssertEqual(received.0, sentData, file: file, line: line)
+        XCTAssertIdentical(received.1, sentResponse, file: file, line: line)
+        XCTAssertIdentical(received.2 as NSError?, sentError, file: file, line: line)
+    }
+
+    fileprivate func whenInvokingDataTaskWithUrl(
+        completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void,
+        resume: Bool = true
+    ) {
         dataTask = session.dataTask(with: url) { data, response, error in
             completionHandler(data, response, error)
         }
-        dataTask.resume()
+        if resume {
+            dataTask.resume()
+        }
     }
 
     fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
@@ -132,11 +162,13 @@ extension DataTaskWithURLAndCompletionSwizzlerTests {
     fileprivate func thenHandlerShouldHaveInvokedFinishTask() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.1)
+        XCTAssertIdentical(handler.finishWithDataReceivedParameters?.0, dataTask)
     }
 
     fileprivate func thenHandlerShouldHaveInvokedFinishTaskWithError() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.2)
+        XCTAssertIdentical(handler.finishWithDataReceivedParameters?.0, dataTask)
     }
 
     fileprivate func thenDataTaskShouldHaveHeaders() throws {

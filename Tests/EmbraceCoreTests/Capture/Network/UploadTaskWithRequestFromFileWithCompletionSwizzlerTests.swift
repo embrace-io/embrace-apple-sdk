@@ -8,7 +8,13 @@ import XCTest
 @testable import EmbraceCore
 
 class UploadTaskWithRequestFromFileWithCompletionSwizzlerTests: SwizzlerTestCase {
+    fileprivate typealias Received = (Data?, URLResponse?, Error?)
+
     private var handler: MockURLSessionTaskHandler!
+    private var stubSession: StubURLSession!
+    private var sentData: Data?
+    private var sentResponse: URLResponse?
+    private var sentError: NSError?
     private var sut: UploadTaskWithRequestFromFileWithCompletionSwizzler!
     private var session: URLSession!
     private var request: URLRequest!
@@ -21,45 +27,37 @@ class UploadTaskWithRequestFromFileWithCompletionSwizzlerTests: SwizzlerTestCase
     }
 
     func testAfterInstall_onExecutingRequest_taskWillBeCreatedInHandler() throws {
-        let expectation = expectation(description: #function)
-        givenUploadTaskWithRequestFromFileAndCompletionSwizzler()
+        givenUploadTaskWithRequestFromFileAndCompletionSwizzler(baseClass: StubURLSession.self)
         try givenSwizzlingWasDone()
-        givenSuccessfulRequest()
-        givenProxiedUrlSession()
-        whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedCreateWithTask()
-            expectation.fulfill()
-        })
-        wait(for: [expectation], timeout: .longTimeout)
+        givenRequest()
+        givenStubSession()
+        whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { _, _, _ in }, resume: false)
+        thenHandlerShouldHaveInvokedCreateWithTask()
     }
 
     func testAfterInstall_onFinishingRequest_taskWillBeFinishedInHandler() throws {
-        let expectation = expectation(description: #function)
-        givenUploadTaskWithRequestFromFileAndCompletionSwizzler()
+        givenUploadTaskWithRequestFromFileAndCompletionSwizzler(baseClass: StubURLSession.self)
         try givenSwizzlingWasDone()
-        givenSuccessfulRequest()
-        givenProxiedUrlSession()
-        whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { _, _, _ in
-            self.thenHandlerShouldHaveInvokedFinishTask()
-            expectation.fulfill()
-        })
-        wait(for: [expectation], timeout: .longTimeout)
+        givenRequest()
+        givenStubSession()
+        var received: Received?
+        whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { received = ($0, $1, $2) }, resume: false)
+        whenTheSessionFinishesSuccessfully()
+        thenHandlerShouldHaveInvokedFinishTask()
+        thenTheCompletionShouldHaveReceivedWhatTheSessionSent(received)
     }
 
-    #if !os(watchOS)
-        func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
-            let expectation = expectation(description: #function)
-            givenUploadTaskWithRequestFromFileAndCompletionSwizzler()
-            try givenSwizzlingWasDone()
-            givenFailedRequest()
-            givenProxiedUrlSession()
-            whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { _, _, _ in
-                self.thenHandlerShouldHaveInvokedFinishTaskWithError()
-                expectation.fulfill()
-            })
-            wait(for: [expectation], timeout: .longTimeout)
-        }
-    #endif
+    func testAfterInstall_onFailedRequest_taskWillBeFinishedInHandler() throws {
+        givenUploadTaskWithRequestFromFileAndCompletionSwizzler(baseClass: StubURLSession.self)
+        try givenSwizzlingWasDone()
+        givenRequest()
+        givenStubSession()
+        var received: Received?
+        whenInvokingUploadTaskWithURLRequestFromFile(completionHandler: { received = ($0, $1, $2) }, resume: false)
+        whenTheSessionFails()
+        thenHandlerShouldHaveInvokedFinishTaskWithError()
+        thenTheCompletionShouldHaveReceivedWhatTheSessionSent(received)
+    }
 
     func test_afterInstall_taskShouldHaveEmbraceHeaders() throws {
         givenUploadTaskWithRequestFromFileAndCompletionSwizzler()
@@ -82,9 +80,9 @@ class UploadTaskWithRequestFromFileWithCompletionSwizzlerTests: SwizzlerTestCase
 }
 
 extension UploadTaskWithRequestFromFileWithCompletionSwizzlerTests {
-    fileprivate func givenUploadTaskWithRequestFromFileAndCompletionSwizzler() {
+    fileprivate func givenUploadTaskWithRequestFromFileAndCompletionSwizzler(baseClass: AnyClass = URLSession.self) {
         handler = MockURLSessionTaskHandler()
-        sut = UploadTaskWithRequestFromFileWithCompletionSwizzler(handler: handler)
+        sut = UploadTaskWithRequestFromFileWithCompletionSwizzler(handler: handler, baseClass: baseClass)
     }
 
     fileprivate func givenSwizzlingWasDone() throws {
@@ -100,21 +98,47 @@ extension UploadTaskWithRequestFromFileWithCompletionSwizzlerTests {
         request.httpMethod = "POST"
     }
 
-    fileprivate func givenFailedRequest() {
-        var url = URL(string: "https://embrace.io")!
-        let error = NSError(domain: UUID().uuidString, code: 0)
-        let mockResponse = HTTPURLResponse(url: url, statusCode: 400, httpVersion: nil, headerFields: nil)!
-        url.mockResponse = .failure(withError: error, response: mockResponse)
-        request = URLRequest(url: url)
-        request.httpMethod = "POST"
-    }
-
     fileprivate func givenProxiedUrlSession() {
         session = ProxiedURLSessionProvider.default()
     }
 
+    fileprivate func givenRequest() {
+        request = URLRequest(url: URL(string: "https://embrace.io")!)
+        request.httpMethod = "POST"
+    }
+
+    fileprivate func givenStubSession() {
+        StubURLSession.assertOverrides(UploadTaskWithRequestFromFileWithCompletionSwizzler.selector)
+        stubSession = StubURLSession.make()
+        session = stubSession
+    }
+
+    fileprivate func whenTheSessionFinishesSuccessfully() {
+        sentData = Data("Mock Data".utf8)
+        sentResponse = HTTPURLResponse(url: URL(string: "https://embrace.io")!, statusCode: 200, httpVersion: nil, headerFields: nil)
+        stubSession.completeDataTask(data: sentData, response: sentResponse, error: nil)
+    }
+
+    fileprivate func whenTheSessionFails() {
+        sentResponse = HTTPURLResponse(url: URL(string: "https://embrace.io")!, statusCode: 400, httpVersion: nil, headerFields: nil)
+        sentError = NSError(domain: UUID().uuidString, code: 0)
+        stubSession.completeDataTask(data: nil, response: sentResponse, error: sentError)
+    }
+
+    fileprivate func thenTheCompletionShouldHaveReceivedWhatTheSessionSent(
+        _ received: Received?, file: StaticString = #filePath, line: UInt = #line
+    ) {
+        guard let received else {
+            return XCTFail("The completion wasn't called", file: file, line: line)
+        }
+        XCTAssertEqual(received.0, sentData, file: file, line: line)
+        XCTAssertIdentical(received.1, sentResponse, file: file, line: line)
+        XCTAssertIdentical(received.2 as NSError?, sentError, file: file, line: line)
+    }
+
     fileprivate func whenInvokingUploadTaskWithURLRequestFromFile(
-        completionHandler: @escaping ((Data?, URLResponse?, Error?) -> Void)
+        completionHandler: @escaping ((Data?, URLResponse?, Error?) -> Void),
+        resume: Bool = true
     ) {
         let dummyFile = Bundle.module.url(forResource: "dummy", withExtension: "json", subdirectory: "Mocks")!
         uploadTask = session.uploadTask(
@@ -124,7 +148,9 @@ extension UploadTaskWithRequestFromFileWithCompletionSwizzlerTests {
 
                 completionHandler(data, response, error)
             })
-        uploadTask.resume()
+        if resume {
+            uploadTask.resume()
+        }
     }
 
     fileprivate func thenHandlerShouldHaveInvokedCreateWithTask() {
@@ -134,11 +160,13 @@ extension UploadTaskWithRequestFromFileWithCompletionSwizzlerTests {
     fileprivate func thenHandlerShouldHaveInvokedFinishTask() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.1)
+        XCTAssertIdentical(handler.finishWithDataReceivedParameters?.0, uploadTask)
     }
 
     fileprivate func thenHandlerShouldHaveInvokedFinishTaskWithError() {
         XCTAssertTrue(handler.didInvokeFinishWithData)
         XCTAssertNotNil(handler.finishWithDataReceivedParameters?.2)
+        XCTAssertIdentical(handler.finishWithDataReceivedParameters?.0, uploadTask)
     }
 
     fileprivate func thenDataTaskShouldHaveEmbraceHeaders() throws {

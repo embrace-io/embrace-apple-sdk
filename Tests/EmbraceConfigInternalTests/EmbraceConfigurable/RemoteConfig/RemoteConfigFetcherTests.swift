@@ -61,31 +61,19 @@ class RemoteConfigFetcherTests: XCTestCase {
             XCTFail("This will fail on versions prior to iOS 16.0")
         }
 
-        let path = Bundle.module.path(
-            forResource: "remote_config",
-            ofType: "json",
-            inDirectory: "Fixtures"
-        )!
-        let data = try Data(contentsOf: URL(fileURLWithPath: path))
-        EmbraceHTTPMock.mock(url: url, response: .withData(data, statusCode: 200))
+        EmbraceHTTPMock.mock(url: url, response: .withData(try remoteConfigFixture(), statusCode: 200))
     }
 
-    func mock404Response() throws {
-        var url = try XCTUnwrap(URL(string: "\(apiBaseUrl)/v2/config"))
+    func remoteConfigFixture() throws -> Data {
+        let path = try XCTUnwrap(Bundle.module.path(forResource: "remote_config", ofType: "json", inDirectory: "Fixtures"))
+        return try Data(contentsOf: URL(fileURLWithPath: path))
+    }
 
-        if #available(iOS 16.0, tvOS 16.0, *) {
-            url.append(queryItems: [
-                .init(name: "appId", value: TestConstants.appId),
-                .init(name: "osVersion", value: TestConstants.osVersion),
-                .init(name: "appVersion", value: TestConstants.appVersion),
-                .init(name: "deviceId", value: TestConstants.deviceId.stringValue),
-                .init(name: "sdkVersion", value: TestConstants.sdkVersion)
-            ])
-        } else {
-            XCTFail("This will fail on versions prior to iOS 16.0")
-        }
-
-        EmbraceHTTPMock.mock(url: url, response: .withData(Data(), statusCode: 404))
+    func httpResponse(statusCode: Int) throws -> HTTPURLResponse {
+        try XCTUnwrap(
+            HTTPURLResponse(
+                url: try XCTUnwrap(URL(string: apiBaseUrl)), statusCode: statusCode, httpVersion: nil, headerFields: nil
+            ))
     }
 
     // MARK: buildURL
@@ -136,38 +124,102 @@ class RemoteConfigFetcherTests: XCTestCase {
 
     // MARK: fetch
     func test_fetch_completesSuccessfullyWithPayload() throws {
-        // given a config with 1 hour minimum update interval
-        let options = fetcherOptions()
-
-        // Given the response is successful
+        // given a successful response
         try mockSuccessfulResponse()
+        let fetcher = RemoteConfigFetcher(options: fetcherOptions(), logger: logger)
 
-        // Given an RemoteConfig (executes fetch on init)
-        let fetcher = RemoteConfigFetcher(options: options, logger: logger)
-
+        // when fetching
         let expectation = expectation(description: "URL request")
+        var fetchedPayload: RemoteConfigPayload?
+        var fetchedData: Data?
         fetcher.fetch { payload, data in
-            XCTAssertNotNil(payload)
+            fetchedPayload = payload
+            fetchedData = data
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: .longTimeout)
+
+        // then the request goes through the session (answered by EmbraceHTTPMock) and the response
+        // is decoded. 30 s leaves room for sanitizer runs; the wait returns as soon as the
+        // expectation is fulfilled.
+        wait(for: [expectation], timeout: 30)
+        XCTAssertNotNil(fetchedPayload)
+        XCTAssertEqual(fetchedData, try remoteConfigFixture())
     }
 
-    func test_fetch_completesFailureWithNilPayload() throws {
-        // given a config with 1 hour minimum update interval
-        let options = fetcherOptions()
+    // MARK: result
+    func test_result_successfulResponse_returnsPayloadAndData() throws {
+        let data = try remoteConfigFixture()
 
-        // Given the response is successful
-        try mock404Response()
+        for statusCode in [200, 299] {
+            let result = RemoteConfigFetcher.result(
+                data: data, response: try httpResponse(statusCode: statusCode), error: nil, logger: logger)
 
-        // Given an RemoteConfig (executes fetch on init)
-        let fetcher = RemoteConfigFetcher(options: options, logger: logger)
-
-        let expectation = expectation(description: "URL request")
-        fetcher.fetch { payload, data in
-            XCTAssertNil(payload)
-            expectation.fulfill()
+            XCTAssertEqual(
+                result.payload, try JSONDecoder().decode(RemoteConfigPayload.self, from: data), "status \(statusCode)")
+            XCTAssertEqual(result.data, data, "status \(statusCode)")
         }
-        wait(for: [expectation], timeout: .longTimeout)
+        XCTAssertTrue(loggedMessage(.info, startingWith: "Successfully fetched remote config"))
+    }
+
+    func test_result_statusOutside2xx_returnsNil() throws {
+        // a body that decodes, so only the status check can reject it
+        let data = try remoteConfigFixture()
+
+        for statusCode in [199, 300, 304, 404, 500] {
+            let result = RemoteConfigFetcher.result(
+                data: data, response: try httpResponse(statusCode: statusCode), error: nil, logger: logger)
+
+            XCTAssertNil(result.payload, "status \(statusCode)")
+            XCTAssertNil(result.data, "status \(statusCode)")
+        }
+        XCTAssertTrue(loggedMessage(.error, startingWith: "Error fetching remote config - Invalid response"))
+    }
+
+    func test_result_requestError_returnsNil() throws {
+        // a 200 with a body that decodes, so only the error check can reject it
+        let result = RemoteConfigFetcher.result(
+            data: try remoteConfigFixture(),
+            response: try httpResponse(statusCode: 200),
+            error: NSError(domain: TestConstants.domain, code: 500),
+            logger: logger
+        )
+
+        XCTAssertNil(result.payload)
+        XCTAssertNil(result.data)
+        XCTAssertTrue(loggedMessage(.error, startingWith: "Error fetching remote config:"))
+    }
+
+    func test_result_noBody_returnsNil() throws {
+        let result = RemoteConfigFetcher.result(
+            data: nil, response: try httpResponse(statusCode: 200), error: nil, logger: logger)
+
+        XCTAssertNil(result.payload)
+        XCTAssertNil(result.data)
+        XCTAssertTrue(loggedMessage(.error, startingWith: "Error fetching remote config:"))
+    }
+
+    func test_result_responseThatIsNotHTTP_returnsNil() throws {
+        let response = URLResponse(
+            url: try XCTUnwrap(URL(string: apiBaseUrl)), mimeType: nil, expectedContentLength: 0, textEncodingName: nil)
+
+        let result = RemoteConfigFetcher.result(
+            data: try remoteConfigFixture(), response: response, error: nil, logger: logger)
+
+        XCTAssertNil(result.payload)
+        XCTAssertNil(result.data)
+        XCTAssertTrue(loggedMessage(.error, startingWith: "Error fetching remote config - Invalid response"))
+    }
+
+    func test_result_bodyThatDoesNotDecode_returnsDefaultPayload() throws {
+        let result = RemoteConfigFetcher.result(
+            data: Data("not json".utf8), response: try httpResponse(statusCode: 200), error: nil, logger: logger)
+
+        XCTAssertEqual(result.payload, RemoteConfigPayload())
+        XCTAssertNil(result.data)
+        XCTAssertTrue(loggedMessage(.error, startingWith: "Error decoding remote config"))
+    }
+
+    private func loggedMessage(_ level: EmbraceLogLevel, startingWith prefix: String) -> Bool {
+        logger.loggedMessages.contains { $0.level == level && $0.message.hasPrefix(prefix) }
     }
 }
