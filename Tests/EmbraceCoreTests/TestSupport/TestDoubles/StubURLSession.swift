@@ -18,9 +18,10 @@ import XCTest
 ///   `URLSession`'s own, so the swizzle would apply to every session in the process.
 /// - The overrides are `dynamic`, so calls go through `objc_msgSend` and reach the swizzled method
 ///   whatever the static type of the reference.
-/// - Create it with `StubURLSession()`. That initializer is deprecated, but
-///   `URLSession(configuration:)` comes from a class factory that returns `URLSession` rather than
-///   `instancetype`, so subclasses don't inherit it.
+/// - Create it with `StubURLSession.make()`. `URLSession(configuration:)` comes from a class factory
+///   that returns `URLSession` rather than `instancetype`, so subclasses don't inherit it, and the
+///   inherited `init()` is deprecated. `make()` calls `init()` through a protocol requirement, which
+///   Swift doesn't check for deprecation, so creating the stub adds no warning.
 final class StubURLSession: URLSession, @unchecked Sendable {
     /// Creates the returned tasks. Don't resume them: they belong to a real session, so resuming sends
     /// a request whose result never reaches the stored completion.
@@ -29,6 +30,14 @@ final class StubURLSession: URLSession, @unchecked Sendable {
     private let lock = NSLock()
     private var dataCompletion: URLSessionCompletion?
     private var downloadCompletion: DownloadTaskCompletion?
+
+    static func make() -> StubURLSession {
+        construct(StubURLSession.self)
+    }
+
+    private static func construct<T: DefaultInitializable>(_: T.Type) -> T {
+        T()
+    }
 
     /// Fails the test unless this class overrides `selector`, so a swizzler installed on it can't
     /// patch `URLSession` itself.
@@ -116,3 +125,9 @@ final class StubURLSession: URLSession, @unchecked Sendable {
         return Self.taskFactory.downloadTask(with: request)
     }
 }
+
+private protocol DefaultInitializable {
+    init()
+}
+
+extension StubURLSession: DefaultInitializable {}

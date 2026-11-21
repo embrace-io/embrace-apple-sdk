@@ -112,7 +112,7 @@ extension DataTaskWithURLAndCompletionSwizzlerTests {
     fileprivate func givenStubSession() {
         StubURLSession.assertOverrides(DataTaskWithURLAndCompletionSwizzler.selector)
         StubURLSession.assertOverrides(DataTaskWithURLRequestAndCompletionSwizzler.selector)
-        stubSession = StubURLSession()
+        stubSession = StubURLSession.make()
         session = stubSession
     }
 

@@ -109,7 +109,7 @@ extension UploadTaskWithRequestFromDataAndCompletionSwizzlerTests {
 
     fileprivate func givenStubSession() {
         StubURLSession.assertOverrides(UploadTaskWithRequestFromDataWithCompletionSwizzler.selector)
-        stubSession = StubURLSession()
+        stubSession = StubURLSession.make()
         session = stubSession
     }
 
