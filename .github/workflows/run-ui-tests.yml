@@ -14,15 +14,27 @@ concurrency:
 
 jobs:
   run-ui-tests-app:
+    name: UI tests (${{ matrix.test_group.name }}, Xcode ${{ matrix.toolchain.xcode }})
     timeout-minutes: 30
-    runs-on: [macos-26]
+    runs-on: ${{ matrix.toolchain.runner }}
+    # The `experimental` toolchain (the next Xcode major, on a preview runner
+    # image) reports failures without failing the workflow run.
+    continue-on-error: ${{ matrix.toolchain.experimental == true }}
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ["26.6"]
-        ios_version: ["26.5"]
-        device:
-          - "iPhone 17 Pro"
+        # Each runner image ships its own Xcode, iOS runtime and device names,
+        # so they're set together per toolchain rather than as separate axes.
+        toolchain:
+          - runner: macos-26
+            xcode: "26.6"
+            ios: "26.5"
+            device: "iPhone 17 Pro"
+          - runner: xcode-27
+            xcode: "27.2"
+            ios: "27.2"
+            device: "iPhone 18 Pro"
+            experimental: true
         test_group:
           - name: startup
             filter: "EmbraceIOTestAppUITests/EmbraceIOTestWARMStartupUITests,EmbraceIOTestAppUITests/EmbraceIOTestCOLDStartupUITests"
@@ -44,7 +56,7 @@ jobs:
       - name: Select Xcode
         # See https://github.com/actions/runner-images/blob/main/images/macos/macos-26-Readme.md
         run: |
-          sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.toolchain.xcode }}.app
           xcodebuild -version
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         timeout-minutes: 5
@@ -61,8 +73,8 @@ jobs:
       - name: Boot Simulator
         id: sim
         env:
-          DEVICE: ${{ matrix.device }}
-          IOS_VERSION: ${{ matrix.ios_version }}
+          DEVICE: ${{ matrix.toolchain.device }}
+          IOS_VERSION: ${{ matrix.toolchain.ios }}
         run: |
           RUNTIME="com.apple.CoreSimulator.SimRuntime.iOS-${IOS_VERSION//./-}"
           UDID=$(xcrun simctl list devices available -j \
@@ -159,12 +171,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: xcodebuild_log_${{ matrix.test_group.name }}
+          name: xcodebuild_log_${{ matrix.test_group.name }}_xcode${{ matrix.toolchain.xcode }}
           path: build/xcodebuild.log
 
       - name: Upload xcresult Bundle Manually
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: output_xcresult_${{ matrix.test_group.name }}
+          name: output_xcresult_${{ matrix.test_group.name }}_xcode${{ matrix.toolchain.xcode }}
           path: .build/test/output.xcresult
