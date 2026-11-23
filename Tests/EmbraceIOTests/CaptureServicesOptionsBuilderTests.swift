@@ -35,6 +35,10 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
         XCTAssertTrue(options.lowPowerMode)
 
         XCTAssertFalse(options.hang)
+        #if !os(watchOS) && !os(macOS)
+            XCTAssertTrue(options.smoothness)
+            XCTAssertTrue(EmbraceIO.CaptureServicesOptions.default().list.contains { $0 is SmoothnessCaptureService })
+        #endif
 
         XCTAssertEqual(options.customServices.count, 0)
     }
@@ -326,6 +330,34 @@ class CaptureServicesOptionsBuilderTests: XCTestCase {
             let options = builder.build()
 
             XCTAssertFalse(options.hang)
+        }
+    #endif
+
+    #if !os(watchOS) && !os(macOS)
+        func test_smoothness() throws {
+            // given a builder
+            let builder = CaptureServicesOptionsBuilder()
+
+            // when adding smoothness
+            builder.addSmoothnessCaptureService()
+
+            // then the result contains the service
+            let options = builder.build()
+
+            XCTAssertTrue(options.smoothness)
+            XCTAssertTrue(options.list.contains { $0 is SmoothnessCaptureService })
+        }
+
+        func test_smoothness_removeOfType() throws {
+            // given a builder with smoothness
+            let builder = CaptureServicesOptionsBuilder()
+            builder.addSmoothnessCaptureService()
+
+            // when removing it by type
+            builder.remove(ofType: SmoothnessCaptureService.self)
+
+            // then it's removed
+            XCTAssertFalse(builder.build().smoothness)
         }
     #endif
 

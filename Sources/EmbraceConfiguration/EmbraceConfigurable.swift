@@ -81,6 +81,12 @@ public protocol EmbraceConfigurable: AnyObject {
     /// Whether a `traceparent` header is injected into captured network requests.
     var traceparentInjectionEnabled: Bool { get }
 
+    /// Whether `SmoothnessCaptureService` measures rendering smoothness on this device.
+    ///
+    /// The service is installed by default but stays dormant, with no `CADisplayLink`, until this is
+    /// `true`. Changes take effect while the app runs.
+    var isSmoothnessEnabled: Bool { get }
+
     /// Calls to `URLSessionRequestsDataSource.spanParent(for:currentParentContext:)` taking longer than this,
     /// in seconds, are reported as slow.
     var networkSpanParentProviderSlowThreshold: TimeInterval { get }
@@ -107,4 +113,7 @@ extension EmbraceConfigurable {
     /// ignore `RemoteConfig`'s overrides.
     public var isStateCaptureEnabled: Bool { false }
     public var isScreenTrackingEnabled: Bool { false }
+
+    /// Off unless a configuration opts the device in, so existing conformers keep smoothness dormant.
+    public var isSmoothnessEnabled: Bool { false }
 }

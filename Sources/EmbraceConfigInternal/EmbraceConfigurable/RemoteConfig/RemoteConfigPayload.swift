@@ -15,6 +15,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var backgroundSessionThreshold: Float
     var nsfThreshold: Float?
     var traceparentInjectionThreshold: Float?
+    var smoothnessThreshold: Float?
     var stateCaptureThreshold: Float?
     var screenTrackingThreshold: Float?
     var walModeThreshold: Float
@@ -71,6 +72,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         case nsfThreshold = "nsf_pct_enabled"
         case traceparentInjectionThreshold = "traceparent_injection_pct_enabled"
+        case smoothnessThreshold = "smoothness_pct_enabled"
 
         case stateCaptureThreshold = "pct_state_enabled_v2"
         case screenTrackingThreshold = "pct_screen_tracking_enabled"
@@ -167,6 +169,9 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         stateCaptureThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .stateCaptureThreshold)
         screenTrackingThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .screenTrackingThreshold)
+
+        // smoothness (off when absent)
+        smoothnessThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .smoothnessThreshold)
 
         // is wal mode enabled config
         walModeThreshold =
@@ -478,6 +483,7 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         backgroundSessionThreshold = 0.0
         nsfThreshold = nil
         traceparentInjectionThreshold = nil
+        smoothnessThreshold = nil
         stateCaptureThreshold = nil
         screenTrackingThreshold = nil
         walModeThreshold = 100.0

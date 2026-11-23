@@ -123,6 +123,24 @@ final class RemoteConfigTests: XCTestCase {
         XCTAssertFalse(config.traceparentInjectionEnabled)
     }
 
+    func test_isSmoothnessEnabled() {
+        // given a config
+        let config = RemoteConfig(options: options, logger: logger)
+
+        // then isSmoothnessEnabled returns the correct values based on smoothness_pct_enabled
+        config.payload.smoothnessThreshold = 100
+        XCTAssertTrue(config.isSmoothnessEnabled)
+
+        config.payload.smoothnessThreshold = nil
+        XCTAssertFalse(config.isSmoothnessEnabled)
+
+        config.payload.smoothnessThreshold = 51
+        XCTAssertTrue(config.isSmoothnessEnabled)
+
+        config.payload.smoothnessThreshold = 49
+        XCTAssertFalse(config.isSmoothnessEnabled)
+    }
+
     /// Load-bearing: `RemoteConfig` is the only conformer that really implements this — the protocol
     /// supplies a `false` default — so if its implementation were ever dropped or renamed the flag
     /// would silently return `false` forever, which is indistinguishable from "not rolled out yet".
