@@ -326,6 +326,27 @@ final class SessionSpanUtilsTests: XCTestCase {
         XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.email" }))
         XCTAssertFalse(payload.attributes.contains(where: { $0.key == "emb.user.identifierj" }))
     }
+
+    func test_payloadFromSession_includesSmoothnessAttributesFromSpanOnly() {
+        let session = givenSessionRecord()
+        let span = MockSpan(
+            name: SpanSemantics.Session.name,
+            attributes: [
+                SpanSemantics.Smoothness.keyDroppedFrames: 3,
+                SpanSemantics.Smoothness.keyExpectedFrames: 120,
+                SpanSemantics.Smoothness.keyPeakThermalState: SpanSemantics.Smoothness.ThermalState.fair,
+                "other.key": "ignored"
+            ]
+        )
+
+        let payload = SessionSpanUtils.payload(from: session, span: span)
+
+        let attributes = Dictionary(payload.attributes.map { ($0.key, $0.value) }, uniquingKeysWith: { first, _ in first })
+        XCTAssertEqual(attributes[SpanSemantics.Smoothness.keyDroppedFrames], "3")
+        XCTAssertEqual(attributes[SpanSemantics.Smoothness.keyExpectedFrames], "120")
+        XCTAssertEqual(attributes[SpanSemantics.Smoothness.keyPeakThermalState], "fair")
+        XCTAssertNil(attributes["other.key"])
+    }
 }
 
 extension SessionSpanUtilsTests {

@@ -707,6 +707,20 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(link.context.traceId, traceId.lowercased())
     }
 
+    func test_createSpan_withSession_stampsThatPartInsteadOfTheCurrentOne() throws {
+        // given a part other than the current one
+        let part = MockSession.with(id: .random, state: .foreground, userSessionId: .random)
+        XCTAssertNotEqual(part.id, sessionController.currentSession?.id)
+
+        // when creating a span for it
+        let span = try handler._createSpan(name: "test", type: .performance, session: part, isInternal: true)
+
+        // then the span belongs to that part
+        XCTAssertEqual(span.sessionId, part.id)
+        XCTAssertEqual(span.attributes["emb.session_part_id"] as? String, part.id.stringValue)
+        XCTAssertEqual(span.attributes["emb.user_session_id"] as? String, part.userSessionId?.stringValue)
+    }
+
     func test_createSpan_dropsInitialLinksWithInvalidIdentifiers() throws {
         // given a span created with one usable link and one that can't be resolved
         let validLink = EmbraceSpanLink(spanId: TestConstants.spanId, traceId: TestConstants.traceId)

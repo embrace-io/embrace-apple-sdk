@@ -31,9 +31,10 @@ or EXPECTED_HZ if set. A scenario is incomplete if any arm's average "Display Re
 RATE_MIN_FRACTION of it, or the arms' averages differ by more than RATE_MAX_SPREAD. The refresh rate
 comes from frame durations, so hitches don't lower it.
 
-The hitch gate is only sensitive while the Off arm hitches a little. OFF_HITCH_BAND_<rate> (e.g.
-OFF_HITCH_BAND_120="0.5,20", in ms/s) sets the Off hitch ratio band for a device class, taken from
-a calibration run; a scenario outside it is incomplete. Unset, the Off hitch ratio is context only.
+The hitch gate is only sensitive while the Off arm hitches a little. OFF_HITCH_BAND_<SCENARIO>_<rate>
+(e.g. OFF_HITCH_BAND_SCROLLING_120="0.5,20", in ms/s) sets a scenario's Off hitch ratio band for a
+device class, taken from a calibration run; a scenario outside it is incomplete. Unset, the Off hitch
+ratio is context only.
 
 Gates look metrics up by their whole display name, allowing a qualifier in parentheses (see `find`).
 A name that matches more than one metric is an error, so a gate never silently picks one.
@@ -60,7 +61,7 @@ HITCH_ABS_FLOOR = float(os.getenv("HITCH_ABS_FLOOR", "1.0"))
 CPU_MAX_DELTA_PP = float(os.getenv("CPU_MAX_DELTA_PP", "1.0"))
 
 # Scenarios whose screen runs a frame load; their CPU utilization is informational only.
-LOADED_SCENARIOS = {"testScrolling"}
+LOADED_SCENARIOS = {"testScrolling", "testTouch"}
 TITLE = "Smoothness Overhead (on vs off)"
 DEVICE = os.getenv("DEVICE", "")
 STRICT = os.getenv("STRICT") == "1"
@@ -266,13 +267,20 @@ def expected_rate(arms):
     return EXPECTED_HZ or (max(max_rates) if max_rates else None)
 
 
-def baseline_band(rate):
-    """The Off hitch ratio band set for this device class, as (low, high), or None if unset.
+def band_variable(scenario, rate):
+    """e.g. OFF_HITCH_BAND_SCROLLING_120 for `testScrolling` at 120Hz."""
+    return f"OFF_HITCH_BAND_{scenario.removeprefix('test').upper()}_{round(rate or 0)}"
 
-    Set from a calibration run (`bin/smoothness_calibration.py`) as OFF_HITCH_BAND_<rate>, e.g.
-    OFF_HITCH_BAND_120="0.5,20", because the sensitive range differs between 60Hz and 120Hz devices.
+
+def baseline_band(scenario, rate):
+    """The Off hitch ratio band set for this scenario and device class, as (low, high), or None if
+    unset.
+
+    Set from a calibration run (`bin/smoothness_calibration.py`) as OFF_HITCH_BAND_<SCENARIO>_<rate>,
+    e.g. OFF_HITCH_BAND_SCROLLING_120="0.5,20", because the sensitive range differs between screens
+    and between 60Hz and 120Hz devices.
     """
-    value = os.getenv(f"OFF_HITCH_BAND_{round(rate)}", "") if rate else ""
+    value = os.getenv(band_variable(scenario, rate), "") if rate else ""
     if not value.strip():
         return None
     low, high = (float(part) for part in value.split(","))
@@ -288,10 +296,10 @@ def baseline_check(scenario, off, rate):
     hitch_off = find(off, "Hitch Time Ratio")
     if not hitch_off:
         return None, True
-    band = baseline_band(rate)
+    band = baseline_band(scenario, rate)
     metric = f"Off hitch ratio ({hitch_off['unitOfMeasurement']})"
     if band is None:
-        return (scenario, metric, "ℹ️ no band set", fmt(hitch_off["avg"]), "", "", f"OFF_HITCH_BAND_{round(rate or 0)} unset"), True
+        return (scenario, metric, "ℹ️ no band set", fmt(hitch_off["avg"]), "", "", f"{band_variable(scenario, rate)} unset"), True
     low, high = band
     ok = low <= hitch_off["avg"] <= high
     status = "✅ in band" if ok else "⚠️ outside band"

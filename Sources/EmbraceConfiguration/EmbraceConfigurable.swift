@@ -87,6 +87,14 @@ public protocol EmbraceConfigurable: AnyObject {
     /// `true`. Changes take effect while the app runs.
     var isSmoothnessEnabled: Bool { get }
 
+    /// Thresholds and limits applied to focal moments. Changes take effect the next time smoothness
+    /// starts measuring.
+    var smoothnessLimits: SmoothnessLimits { get }
+
+    /// Whether focal moment spans carry a frame trace on this device. Changes take effect the next time
+    /// smoothness starts measuring.
+    var isSmoothnessFrameTraceEnabled: Bool { get }
+
     /// Calls to `URLSessionRequestsDataSource.spanParent(for:currentParentContext:)` taking longer than this,
     /// in seconds, are reported as slow.
     var networkSpanParentProviderSlowThreshold: TimeInterval { get }
@@ -116,4 +124,8 @@ extension EmbraceConfigurable {
 
     /// Off unless a configuration opts the device in, so existing conformers keep smoothness dormant.
     public var isSmoothnessEnabled: Bool { false }
+
+    public var smoothnessLimits: SmoothnessLimits { SmoothnessLimits() }
+
+    public var isSmoothnessFrameTraceEnabled: Bool { false }
 }

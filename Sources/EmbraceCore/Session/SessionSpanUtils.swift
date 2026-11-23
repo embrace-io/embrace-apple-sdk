@@ -178,12 +178,17 @@ extension SpanPayload {
                 ))
         }
 
-        // Read from the stored span, which is updated while the session part is open.
+        // Read from the stored span, which is updated while the session part is open. Smoothness
+        // attributes are written onto it by `SmoothnessCaptureService` just before the part ends, and
+        // only kept on the stored span, not the session record.
         if let spanAttributes = span?.attributes {
             attributeArray.append(
                 contentsOf:
                     spanAttributes
-                    .filter { $0.key.hasPrefix(SpanSemantics.Session.keySlowCallbackPrefix) }
+                    .filter {
+                        $0.key.hasPrefix(SpanSemantics.Session.keySlowCallbackPrefix)
+                            || $0.key.hasPrefix(SpanSemantics.Smoothness.keyPrefix)
+                    }
                     .sorted { $0.key < $1.key }
                     .map { Attribute(key: $0.key, value: $0.value.description) }
             )

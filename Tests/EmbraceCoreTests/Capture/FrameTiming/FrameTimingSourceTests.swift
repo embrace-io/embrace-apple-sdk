@@ -58,6 +58,25 @@
 
         // MARK: - Tests
 
+        func testTickCarriesDisplayLinkTimestamp() {
+            tick()
+            let second = now
+            tick()
+
+            XCTAssertEqual(ticks.map(\.timestamp), [second])
+        }
+
+        func testTickCarriesPreviousTimestamp() {
+            let first = now
+            tick()
+            let second = now
+            tick()
+            skip(frameDuration)
+            tick()
+
+            XCTAssertEqual(ticks.map(\.previousTimestamp), [first, second])
+        }
+
         func testWillEnterForegroundOnOtherCenterIsIgnored() {
             tick()
             skip(backgroundGap)
@@ -134,34 +153,35 @@
             let stats = try foregroundPartStatsAfterGap(resetOnWillEnterForeground: true)
 
             // The first tick after the reset only arms.
-            XCTAssertEqual(stats.frameCount, 2)
+            XCTAssertEqual(stats.expectedFrames, 2)
             XCTAssertEqual(stats.hangCount, 0)
-            XCTAssertEqual(stats.normalizedDroppedFrames, 0, accuracy: 1e-9)
+            XCTAssertEqual(stats.droppedFrames, 0)
         }
 
         /// Control for the test above: without the reset, the gap does reach the open part.
         func testGapWithoutResetIsReportedToForegroundPartOpenBeforeFirstTick() throws {
             let stats = try foregroundPartStatsAfterGap(resetOnWillEnterForeground: false)
 
-            XCTAssertEqual(stats.frameCount, 3)
+            XCTAssertEqual(stats.expectedFrames, 3 + stats.droppedFrames)
             XCTAssertEqual(stats.hangCount, 1)
-            XCTAssertGreaterThan(stats.normalizedDroppedFrames, 0)
+            XCTAssertGreaterThan(stats.droppedFrames, 0)
         }
 
         /// Foreground part, background gap, then a new foreground part that starts before the first
         /// post-gap tick. Returns the stats of that second part.
-        private func foregroundPartStatsAfterGap(resetOnWillEnterForeground: Bool) throws -> SmoothnessPartStats {
+        private func foregroundPartStatsAfterGap(resetOnWillEnterForeground: Bool) throws -> SmoothnessFrameCounts {
             let embraceNotificationCenter = NotificationCenter()
             var currentSession: EmbraceSession?
+            let accumulator = FrameAccumulator(hangThreshold: 0.249)
             let tracker = SmoothnessPartTracker(
-                hangThreshold: 0.249,
+                accumulator: accumulator,
                 currentSession: { currentSession },
                 notificationCenter: notificationCenter,
                 embraceNotificationCenter: embraceNotificationCenter
             )
-            var reported: [SmoothnessPartStats] = []
-            tracker.onPartClosed = { _, stats in reported.append(stats) }
-            source.onTick = { [tracker] tick in tracker.record(tick) }
+            var reported: [SmoothnessFrameCounts] = []
+            tracker.onPartClosed = { _, counts in reported.append(counts) }
+            source.onTick = { [accumulator] tick in accumulator.record(MeasuredTick(tick)) }
 
             let foreground = MockSession.with(id: .random, state: .foreground)
             currentSession = foreground

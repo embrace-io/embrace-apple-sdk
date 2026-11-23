@@ -71,6 +71,27 @@
             XCTAssert(handler.onViewDidAppearEndCalled)
         }
 
+        func test_viewDidAppear_reportsNavigation() {
+            let vc = MockViewController()
+
+            vc.viewDidAppear(false)
+
+            XCTAssertTrue(handler.notifyIfNavigationCalled)
+        }
+
+        func test_viewDidAppear_again_onlyReportsNavigation() {
+            let vc = MockViewController()
+            let state = ViewInstrumentationState(identifier: UUID().uuidString)
+            state.viewDidAppearSpanCreated = true
+            vc.emb_instrumentation_state = state
+
+            vc.viewDidAppear(false)
+
+            XCTAssertTrue(handler.notifyIfNavigationCalled)
+            XCTAssertFalse(handler.onViewDidAppearStartCalled)
+            XCTAssertFalse(handler.onViewDidAppearEndCalled)
+        }
+
         func test_viewDidDisappear() {
             // given a ViewCaptureService
             // when viewDidDisappear is called on a UIViewController

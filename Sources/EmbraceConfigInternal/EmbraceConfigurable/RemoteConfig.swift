@@ -121,6 +121,16 @@ extension RemoteConfig: EmbraceConfigurable {
 
     public var isSmoothnessEnabled: Bool { isEnabled(threshold: payload.smoothnessThreshold ?? 0) }
 
+    public var smoothnessLimits: SmoothnessLimits {
+        SmoothnessLimits(
+            idleThreshold: payload.smoothnessIdleThreshold,
+            heldIdleThreshold: payload.smoothnessHeldIdleThreshold,
+            spanLimit: payload.smoothnessSpanLimit
+        )
+    }
+
+    public var isSmoothnessFrameTraceEnabled: Bool { isEnabled(threshold: payload.smoothnessFrameTraceThreshold) }
+
     public var isStateCaptureEnabled: Bool { isEnabled(threshold: payload.stateCaptureThreshold ?? 0) }
 
     public var isScreenTrackingEnabled: Bool { isEnabled(threshold: payload.screenTrackingThreshold ?? 0) }

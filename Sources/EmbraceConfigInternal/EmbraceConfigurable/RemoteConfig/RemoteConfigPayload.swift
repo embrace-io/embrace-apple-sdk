@@ -16,6 +16,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
     var nsfThreshold: Float?
     var traceparentInjectionThreshold: Float?
     var smoothnessThreshold: Float?
+    var smoothnessIdleThreshold: TimeInterval
+    var smoothnessHeldIdleThreshold: TimeInterval
+    var smoothnessSpanLimit: Int
+    var smoothnessFrameTraceThreshold: Float
+
     var stateCaptureThreshold: Float?
     var screenTrackingThreshold: Float?
     var walModeThreshold: Float
@@ -76,6 +81,14 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         case stateCaptureThreshold = "pct_state_enabled_v2"
         case screenTrackingThreshold = "pct_screen_tracking_enabled"
+
+        case vitals
+        enum VitalsCodingKeys: String, CodingKey {
+            case smoothnessIdleThresholdMs = "smoothness_idle_threshold_ms"
+            case smoothnessHeldIdleThresholdMs = "smoothness_held_idle_threshold_ms"
+            case spanLimit = "span_limit"
+            case smoothnessFrameTraceThreshold = "smoothness_frame_trace_pct_enabled"
+        }
 
         case walModeThreshold = "core_data_wal_mode_pct_enabled"
         case uiLoadInstrumentationEnabled = "ui_load_instrumentation_enabled_v2"
@@ -172,6 +185,21 @@ public struct RemoteConfigPayload: Decodable, Equatable {
 
         // smoothness (off when absent)
         smoothnessThreshold = try? rootContainer.decodeIfPresent(Float.self, forKey: .smoothnessThreshold)
+
+        // vitals (thresholds arrive in ms)
+        let vitalsContainer = try? rootContainer.nestedContainer(keyedBy: CodingKeys.VitalsCodingKeys.self, forKey: .vitals)
+        smoothnessIdleThreshold =
+            (try? vitalsContainer?.decodeIfPresent(Int.self, forKey: .smoothnessIdleThresholdMs)).map { TimeInterval($0) / 1000 }
+            ?? defaultPayload.smoothnessIdleThreshold
+        smoothnessHeldIdleThreshold =
+            (try? vitalsContainer?.decodeIfPresent(Int.self, forKey: .smoothnessHeldIdleThresholdMs)).map { TimeInterval($0) / 1000 }
+            ?? defaultPayload.smoothnessHeldIdleThreshold
+        smoothnessSpanLimit =
+            (try? vitalsContainer?.decodeIfPresent(Int.self, forKey: .spanLimit))
+            ?? defaultPayload.smoothnessSpanLimit
+        smoothnessFrameTraceThreshold =
+            (try? vitalsContainer?.decodeIfPresent(Float.self, forKey: .smoothnessFrameTraceThreshold))
+            ?? defaultPayload.smoothnessFrameTraceThreshold
 
         // is wal mode enabled config
         walModeThreshold =
@@ -484,6 +512,11 @@ public struct RemoteConfigPayload: Decodable, Equatable {
         nsfThreshold = nil
         traceparentInjectionThreshold = nil
         smoothnessThreshold = nil
+        smoothnessIdleThreshold = SmoothnessLimits.defaultIdleThreshold
+        smoothnessHeldIdleThreshold = SmoothnessLimits.defaultHeldIdleThreshold
+        smoothnessSpanLimit = SmoothnessLimits.defaultSpanLimit
+        smoothnessFrameTraceThreshold = 0
+
         stateCaptureThreshold = nil
         screenTrackingThreshold = nil
         walModeThreshold = 100.0

@@ -56,6 +56,7 @@ package class DefaultOTelSignalsHandler {
                 links: links,
                 attributes: attributes,
                 autoTerminationCode: autoTerminationCode,
+                session: nil,
                 isInternal: false
             )
         } catch {

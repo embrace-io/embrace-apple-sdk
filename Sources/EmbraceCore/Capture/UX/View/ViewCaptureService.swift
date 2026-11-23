@@ -242,6 +242,8 @@
                     { viewController, animated in
                         // See `instrumentViewWillAppear`: above the span-creation latch on purpose.
                         self.onViewControllerAppearance(viewController, phase: .didAppear, at: Date())
+                        // Also above the latch: smoothness needs every navigation, not only first appearances.
+                        self.handler.notifyIfNavigation(viewController)
 
                         // If the state was already fulfilled, then call the original implementation.
                         if let state = viewController.emb_instrumentation_state, state.viewDidAppearSpanCreated {
