@@ -44,13 +44,13 @@
         /// Must be called on the main thread.
         init(threshold: TimeInterval = FrameRateMonitor.defaultAppleHangThreshold) {
             self.threshold = threshold
-            self.proxy = DisplayLinkProxy()
+            self.proxy = WeakDisplayLinkProxy()
 
-            let link = CADisplayLink(target: proxy, selector: #selector(DisplayLinkProxy.tick(_:)))
+            let link = CADisplayLink(target: proxy, selector: #selector(WeakDisplayLinkProxy.tick(_:)))
             link.add(to: .main, forMode: .common)
             self.displayLink = link
 
-            proxy.monitor = self
+            proxy.target = self
 
             NotificationCenter.default.addObserver(
                 self,
@@ -67,7 +67,7 @@
 
         // MARK: - Private
 
-        private let proxy: DisplayLinkProxy
+        private let proxy: WeakDisplayLinkProxy
         private var displayLink: CADisplayLink?
 
         /// The previous frame's `targetTimestamp` — the system's promise of when
@@ -87,9 +87,9 @@
 
     // MARK: - Frame tick
 
-    extension FrameRateMonitor {
+    extension FrameRateMonitor: DisplayLinkTickTarget {
 
-        fileprivate func tick(_ currentTick: CADisplayLink) {
+        func displayLinkDidTick(_ currentTick: CADisplayLink) {
             defer {
                 previousTickExpectedTimestamp = currentTick.targetTimestamp
             }
@@ -113,21 +113,6 @@
 
             hangObserver?.hangStarted(at: previousTickDate, duration: delay)
             hangObserver?.hangEnded(at: now, duration: delay)
-        }
-    }
-
-    // MARK: - Weak proxy
-
-    extension FrameRateMonitor {
-
-        /// Holds a weak reference to `FrameRateMonitor` to break the retain cycle
-        /// that `CADisplayLink` would otherwise form with its target.
-        private final class DisplayLinkProxy: NSObject {
-            weak var monitor: FrameRateMonitor?
-
-            @objc func tick(_ link: CADisplayLink) {
-                monitor?.tick(link)
-            }
         }
     }
 
