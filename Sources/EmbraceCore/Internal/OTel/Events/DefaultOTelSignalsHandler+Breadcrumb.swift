@@ -36,7 +36,7 @@ extension DefaultOTelSignalsHandler {
                 internalAttributes: [
                     SpanEventSemantics.Breadcrumb.keyMessage: message
                 ],
-                isInternal: false
+                source: .user
             )
         } catch {
             Embrace.logger.warning("Failed to add breadcrumb: \(error.localizedDescription)")

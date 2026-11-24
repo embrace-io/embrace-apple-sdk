@@ -85,6 +85,60 @@ final class EmbraceSpanProcessorTests: XCTestCase {
         span.end()
     }
 
+    func test_onStart_keepsExistingEmbraceType() throws {
+        // given an external span that already has an emb.type
+        let span = tracer.spanBuilder(spanName: "external")
+            .setAttribute(key: SpanSemantics.keyEmbraceType, value: EmbraceType.system.rawValue)
+            .startSpan()
+        defer { span.end() }
+
+        // then the type is not replaced
+        let readable = try XCTUnwrap(span as? ReadableSpan)
+        XCTAssertEqual(readable.toSpanData().attributes[SpanSemantics.keyEmbraceType], .string(EmbraceType.system.rawValue))
+    }
+
+    func test_onStart_replacesEmptyEmbraceType() throws {
+        // given an external span with an empty emb.type
+        let span = tracer.spanBuilder(spanName: "external")
+            .setAttribute(key: SpanSemantics.keyEmbraceType, value: "")
+            .startSpan()
+        defer { span.end() }
+
+        // then the default type is set
+        let readable = try XCTUnwrap(span as? ReadableSpan)
+        XCTAssertEqual(readable.toSpanData().attributes[SpanSemantics.keyEmbraceType], .string(EmbraceType.performance.rawValue))
+    }
+
+    func test_onStart_replacesWhitespaceEmbraceType() throws {
+        // given an external span with a whitespace-only emb.type
+        let span = tracer.spanBuilder(spanName: "external")
+            .setAttribute(key: SpanSemantics.keyEmbraceType, value: "  \n")
+            .startSpan()
+        defer { span.end() }
+
+        // then the default type is set
+        let readable = try XCTUnwrap(span as? ReadableSpan)
+        XCTAssertEqual(readable.toSpanData().attributes[SpanSemantics.keyEmbraceType], .string(EmbraceType.performance.rawValue))
+    }
+
+    func test_onStart_replacesNonStringEmbraceType() throws {
+        // given external spans with non-string emb.type values
+        let intSpan = tracer.spanBuilder(spanName: "int")
+            .setAttribute(key: SpanSemantics.keyEmbraceType, value: 5)
+            .startSpan()
+        defer { intSpan.end() }
+        let boolSpan = tracer.spanBuilder(spanName: "bool")
+            .setAttribute(key: SpanSemantics.keyEmbraceType, value: true)
+            .startSpan()
+        defer { boolSpan.end() }
+
+        // then the default type is set
+        for span in [intSpan, boolSpan] {
+            let readable = try XCTUnwrap(span as? ReadableSpan)
+            XCTAssertEqual(readable.toSpanData().attributes[SpanSemantics.keyEmbraceType], .string(EmbraceType.performance.rawValue))
+        }
+    }
+
     func test_onStart_stampsEmptyStringsWhenIdentifiersAreNil() {
         mockDelegate.currentSessionId = nil
         mockDelegate.currentUserSessionId = nil

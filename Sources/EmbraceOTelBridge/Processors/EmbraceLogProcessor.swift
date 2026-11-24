@@ -59,7 +59,10 @@ class EmbraceLogProcessor: LogRecordProcessor {
         var log = logRecord
 
         if let delegate, !delegate.isInternalLog(logRecord) {
-            log.setAttribute(key: LogSemantics.keyEmbraceType, value: EmbraceType.message.rawValue)
+            // The type is only stamped when the log doesn't already carry one, so logs can set their own.
+            if log.attributes[LogSemantics.keyEmbraceType].isMissingEmbraceType {
+                log.setAttribute(key: LogSemantics.keyEmbraceType, value: EmbraceType.message.rawValue)
+            }
             log.setAttribute(key: LogSemantics.keyState, value: delegate.currentSessionState.rawValue)
 
             let userSessionId = delegate.currentUserSessionId?.stringValue ?? ""

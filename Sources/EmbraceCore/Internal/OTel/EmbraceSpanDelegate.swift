@@ -6,6 +6,7 @@ import Foundation
 
 #if !EMBRACE_COCOAPOD_BUILDING_SDK
     import EmbraceSemantics
+    import EmbraceCommonInternal
 #endif
 
 typealias EmbraceSpanHandler = EmbraceSpanDelegate & EmbraceSpanDataSource
@@ -27,7 +28,8 @@ protocol EmbraceSpanDataSource: AnyObject {
         attributes: EmbraceAttributes,
         internalAttributes: EmbraceAttributes,
         currentCount: Int,
-        isSessionEvent: Bool
+        isSessionEvent: Bool,
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanEvent
 
     func createLink(
@@ -35,7 +37,8 @@ protocol EmbraceSpanDataSource: AnyObject {
         spanId: String,
         traceId: String,
         attributes: EmbraceAttributes,
-        currentCount: Int
+        currentCount: Int,
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanLink
 
     /// Validates an attribute before it is written to a span.
@@ -48,6 +51,7 @@ protocol EmbraceSpanDataSource: AnyObject {
         key: String,
         value: EmbraceAttributeValue?,
         currentAttributes: EmbraceAttributes,
-        currentCount: Int
+        currentCount: Int,
+        source: EmbraceOTelSignalSource
     ) throws -> (String, EmbraceAttributeValue?)
 }

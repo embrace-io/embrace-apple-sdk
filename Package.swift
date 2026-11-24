@@ -49,6 +49,7 @@ let package = Package(
             name: "EmbraceIO",
             dependencies: [
                 "EmbraceCaptureService",
+                "EmbraceConfiguration",
                 "EmbraceCore",
                 "EmbraceCommonInternal",
                 "EmbraceSemantics",

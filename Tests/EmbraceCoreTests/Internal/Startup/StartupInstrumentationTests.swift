@@ -200,6 +200,9 @@ class StartupInstrumentationTests: XCTestCase {
 
         let parent = otel.startedSpans.first(where: { $0.name == "emb-app-startup-cold" })
         XCTAssertEqual(span!.parentSpanId, parent!.context.spanId)
+
+        // the child span is created as a user span
+        XCTAssertEqual(otel.spanSources.last, .user)
     }
 
     func test_recordCompletedChildSpan() {

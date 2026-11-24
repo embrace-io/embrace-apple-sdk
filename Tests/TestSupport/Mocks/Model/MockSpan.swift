@@ -178,22 +178,3 @@ extension MockSpan: EmbraceSpanInternalAttributes {
         setAttribute(key: key, value: value)
     }
 }
-
-extension MockSpan: EmbraceSpanSessionEvents {
-    @discardableResult
-    public func _addSessionEvent(
-        name: String,
-        type: EmbraceType? = .performance,
-        timestamp: Date = Date(),
-        attributes: EmbraceAttributes = [:],
-        internalAttributes: EmbraceAttributes = [:],
-        isInternal: Bool
-    ) throws -> EmbraceSpanEvent? {
-        return addEvent(
-            name: name,
-            type: type,
-            timestamp: timestamp,
-            attributes: internalAttributes.merging(attributes) { (current, _) in current }
-        )
-    }
-}

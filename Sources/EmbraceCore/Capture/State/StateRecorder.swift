@@ -445,7 +445,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
 
     /// Filters and bounds attributes that came from outside the SDK.
     ///
-    /// State spans are internal, and `isInternal` skips sanitization. Caller attributes reach them
+    /// State spans have the `.sdk` source, which skips sanitization. Caller attributes reach them
     /// through the public API, so the sanitizer is applied by hand. It bounds keys and values but
     /// preserves the non-`String` cases of `EmbraceAttributeValue`.
     ///
@@ -454,7 +454,7 @@ final class StateRecorder<Value: StateValue>: StateRecording {
     /// any event without counts.
     private func bounded(_ callerAttributes: EmbraceAttributes) -> EmbraceAttributes {
         let allowed = callerAttributes.filter { !SpanSemantics.State.isReserved($0.key) }
-        return sanitizer.sanitizeSpanEventAttributes(allowed)
+        return sanitizer.sanitizeSpanEventAttributes(allowed, source: .user)
     }
 
     /// Writes the transition count and any residual counts onto the span, then closes it. Must be

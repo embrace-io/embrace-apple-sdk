@@ -2,13 +2,14 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import Foundation
 
 @testable import EmbraceCore
 
-// `open` so test targets can subclass it to interfere with span creation — the window in which the
-// SDK holds no lock, and therefore where the races worth testing live.
+// `open` so test targets can subclass it. Use `beforeCreateSpan` to interfere with span creation — the window in
+// which the SDK holds no lock, and therefore where the races worth testing live.
 open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
 
     // Appended from background queues (e.g. span delegate callbacks dispatched off the SUT's queues)
@@ -18,17 +19,25 @@ open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate 
     @TestLocked public private(set) var events: [EmbraceSpanEvent] = []
     @TestLocked public private(set) var logs: [EmbraceLog] = []
 
+    /// Sources passed when creating spans, session events and logs, in the order they arrived.
+    @TestLocked package private(set) var spanSources: [EmbraceOTelSignalSource] = []
+    @TestLocked package private(set) var eventSources: [EmbraceOTelSignalSource] = []
+    @TestLocked package private(set) var logSources: [EmbraceOTelSignalSource] = []
+
     /// Called synchronously when a span is created, like a span processor's `onStart`.
     @TestLocked public var onSpanStartedCallback: ((EmbraceSpan) -> Void)?
     /// Called synchronously when a span ends, like a span processor's `onEnd`.
     @TestLocked public var onSpanEndedCallback: ((EmbraceSpan) -> Void)?
+
+    /// Called synchronously at the start of `_createSpan`. Throwing makes the span creation fail.
+    @TestLocked public var beforeCreateSpan: (() throws -> Void)?
 
     public var currentSessionId: EmbraceIdentifier? = .random
     public var currentProcessId: EmbraceIdentifier = .random
 
     public init() {}
 
-    open func _createSpan(
+    package func _createSpan(
         name: String,
         parentContext: EmbraceSpanContext? = nil,
         type: EmbraceType,
@@ -39,8 +48,11 @@ open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate 
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
-        isInternal: Bool = true
+        source: EmbraceOTelSignalSource = .sdk
     ) throws -> EmbraceSpan {
+        try beforeCreateSpan?()
+
+        spanSources.append(source)
 
         let traceId = parentContext?.traceId ?? .randomTraceId()
 
@@ -72,13 +84,15 @@ open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate 
     }
 
     @discardableResult
-    public func _addSessionEvent(
+    package func _addSessionEvent(
         name: String,
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
-        isInternal: Bool = true
+        source: EmbraceOTelSignalSource = .sdk
     ) throws -> EmbraceSpanEvent? {
+        eventSources.append(source)
+
         let event = EmbraceSpanEvent(
             name: name,
             type: type,
@@ -89,7 +103,7 @@ open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate 
         return event
     }
 
-    public func _log(
+    package func _log(
         _ message: String,
         severity: EmbraceLogSeverity = .info,
         type: EmbraceType,
@@ -97,8 +111,10 @@ open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate 
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default,
-        isInternal: Bool = true
+        source: EmbraceOTelSignalSource = .sdk
     ) {
+        logSources.append(source)
+
         let log = MockLog(
             id: UUID().withoutHyphen,
             severity: severity,

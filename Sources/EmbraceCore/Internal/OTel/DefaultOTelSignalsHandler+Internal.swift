@@ -22,18 +22,20 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         links: [EmbraceSpanLink] = [],
         attributes: EmbraceAttributes = [:],
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
-        isInternal: Bool = true
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpan {
 
-        guard isInternal || limiter.shouldCreateCustomSpan() else {
+        let isInternal = source == .sdk
+
+        guard isInternal || limiter.shouldCreateCustomSpan(source: source) else {
             throw EmbraceOTelError.spanLimitReached
         }
 
         // sanitize name
-        let finalName = isInternal ? name : sanitizer.sanitizeSpanName(name)
+        let finalName = isInternal ? name : sanitizer.sanitizeSpanName(name, source: source)
 
         // add embrace specific attributes
-        let sanitizedAttributes = isInternal ? attributes : sanitizer.sanitizeSpanAttributes(attributes)
+        let sanitizedAttributes = isInternal ? attributes : sanitizer.sanitizeSpanAttributes(attributes, source: source)
         var internalAttributes = [String: EmbraceAttributeValue]()
         internalAttributes.setEmbraceType(type)
 
@@ -79,7 +81,8 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
                         attributes: event.attributes,
                         internalAttributes: [:],
                         currentCount: index,
-                        isSessionEvent: false
+                        isSessionEvent: false,
+                        source: source
                     )
                 } catch {
                     Embrace.logger.warning("Dropping initial span event '\(event.name)': \(error.localizedDescription)")
@@ -94,7 +97,8 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
                         spanId: link.context.spanId,
                         traceId: link.context.traceId,
                         attributes: link.attributes,
-                        currentCount: index
+                        currentCount: index,
+                        source: source
                     )
                 } catch {
                     Embrace.logger.warning("Dropping initial span link: \(error.localizedDescription)")
@@ -150,7 +154,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             internalAttributeCount: internalAttributes.count,
             sessionId: sessionId,
             autoTerminationCode: code,
-            isInternal: isInternal
+            source: source
         )
 
         // cache auto termination spans
@@ -181,7 +185,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         type: EmbraceType? = nil,
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
-        isInternal: Bool = true
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanEvent? {
 
         guard let span = sessionController?.currentSessionSpan else {
@@ -193,7 +197,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             type: type,
             timestamp: timestamp,
             attributes: attributes,
-            isInternal: isInternal
+            source: source
         )
     }
 
@@ -205,10 +209,12 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
         stackTraceBehavior: EmbraceStackTraceBehavior = .default,
-        isInternal: Bool = true
+        source: EmbraceOTelSignalSource
     ) throws {
 
-        guard isInternal || limiter.shouldCreateLog(type: type, severity: severity) else {
+        let isInternal = source == .sdk
+
+        guard isInternal || limiter.shouldCreateLog(type: type, severity: severity, source: source) else {
             throw EmbraceOTelError.logLimitReached
         }
 
@@ -218,7 +224,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             type: type,
             timestamp: timestamp,
             attachment: attachment,
-            attributes: isInternal ? attributes : sanitizer.sanitizeLogAttributes(attributes),
+            attributes: isInternal ? attributes : sanitizer.sanitizeLogAttributes(attributes, source: source),
             stackTraceBehavior: stackTraceBehavior
         ) { [weak self] log in
             if let log {
@@ -277,29 +283,8 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
         internalAttributeCount: Int,
         sessionId: EmbraceIdentifier?,
         autoTerminationCode: EmbraceSpanErrorCode?,
-        isInternal: Bool
+        source: EmbraceOTelSignalSource
     ) -> DefaultEmbraceSpan {
-
-        if isInternal {
-            return InternalEmbraceSpan(
-                context: context,
-                parentSpanId: parentSpanId,
-                name: name,
-                type: type,
-                status: status,
-                startTime: startTime,
-                endTime: endTime,
-                events: events,
-                links: links,
-                attributes: attributes,
-                internalAttributeCount: internalAttributeCount,
-                sessionId: sessionId,
-                processId: ProcessIdentifier.current,
-                autoTerminationCode: autoTerminationCode,
-                handler: self
-            )
-        }
-
         return DefaultEmbraceSpan(
             context: context,
             parentSpanId: parentSpanId,
@@ -315,6 +300,7 @@ extension DefaultOTelSignalsHandler: InternalOTelSignalsHandler {
             sessionId: sessionId,
             processId: ProcessIdentifier.current,
             autoTerminationCode: autoTerminationCode,
+            source: source,
             handler: self
         )
     }
@@ -367,28 +353,30 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         attributes: EmbraceAttributes,
         internalAttributes: EmbraceAttributes,
         currentCount: Int,
-        isSessionEvent: Bool = false
+        isSessionEvent: Bool = false,
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanEvent {
 
         // check limit
         if isSessionEvent {
-            guard limiter.shouldAddSessionEvent(ofType: type) else {
+            guard limiter.shouldAddSessionEvent(ofType: type, source: source) else {
                 throw EmbraceOTelError.spanEventLimitReached("Events limit reached for session span!")
             }
         } else {
-            guard limiter.shouldAddSpanEvent(currentCount: currentCount) else {
+            guard limiter.shouldAddSpanEvent(currentCount: currentCount, source: source) else {
                 throw EmbraceOTelError.spanEventLimitReached("Events limit reached for span \(spanName)")
             }
         }
 
         let sanitizedAttributes = sanitizer.sanitizeSpanEventAttributes(
             attributes,
-            protecting: [SpanEventSemantics.keyEmbraceType]
+            protecting: [SpanEventSemantics.keyEmbraceType],
+            source: source
         )
         let finalAttributes = internalAttributes.merging(sanitizedAttributes) { (current, _) in current }
 
         return EmbraceSpanEvent(
-            name: sanitizer.sanitizeSpanEventName(name),
+            name: sanitizer.sanitizeSpanEventName(name, source: source),
             type: type,
             timestamp: timestamp,
             attributes: finalAttributes
@@ -400,7 +388,8 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         spanId: String,
         traceId: String,
         attributes: EmbraceAttributes,
-        currentCount: Int
+        currentCount: Int,
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanLink {
 
         // A link is nothing but a pair of identifiers pointing at another span, so identifiers that
@@ -420,14 +409,14 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         }
 
         // check limit
-        guard limiter.shouldAddSpanLink(currentCount: currentCount) else {
+        guard limiter.shouldAddSpanLink(currentCount: currentCount, source: source) else {
             throw EmbraceOTelError.spanLinkLimitReached("Links limit reached for span \(spanName)")
         }
 
         return EmbraceSpanLink(
             spanId: EmbraceSpanContext.normalize(spanId),
             traceId: EmbraceSpanContext.normalize(traceId),
-            attributes: sanitizer.sanitizeSpanLinkAttributes(attributes)
+            attributes: sanitizer.sanitizeSpanLinkAttributes(attributes, source: source)
         )
     }
 
@@ -436,7 +425,8 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         key: String,
         value: EmbraceAttributeValue?,
         currentAttributes: EmbraceAttributes,
-        currentCount: Int
+        currentCount: Int,
+        source: EmbraceOTelSignalSource
     ) throws -> (String, EmbraceAttributeValue?) {
 
         // no limits when removing a key
@@ -445,12 +435,12 @@ extension DefaultOTelSignalsHandler: EmbraceSpanDataSource {
         }
 
         // check limit
-        let finalKey = sanitizer.sanitizeAttributeKey(key)
-        guard currentAttributes[finalKey] != nil || limiter.shouldAddSpanAttribute(currentCount: currentCount) else {
+        let finalKey = sanitizer.sanitizeAttributeKey(key, source: source)
+        guard currentAttributes[finalKey] != nil || limiter.shouldAddSpanAttribute(currentCount: currentCount, source: source) else {
             throw EmbraceOTelError.spanAttributeLimitReached("Attributes limit reached for span \(spanName)")
         }
 
-        let finalValue = sanitizer.sanitizeAttributeValue(value)
+        let finalValue = sanitizer.sanitizeAttributeValue(value, source: source)
 
         return (finalKey, finalValue)
     }
@@ -476,7 +466,7 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
 
         // check limits
         var onlyUpdate = false
-        if !limiter.shouldCreateCustomSpan() {
+        if !limiter.shouldCreateCustomSpan(source: .user) {
             onlyUpdate = true
             Embrace.logger.warning("Limit reached for spans on the current Embrace session!")
         }
@@ -494,7 +484,7 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
 
     public func onEmitLog(_ log: EmbraceLog) {
 
-        guard limiter.shouldCreateLog(type: log.type, severity: log.severity) else {
+        guard limiter.shouldCreateLog(type: log.type, severity: log.severity, source: .user) else {
             Embrace.logger.warning("Limit reached for logs on the current Embrace session!")
             return
         }
@@ -503,7 +493,7 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
         // where the experiments attribute is normally stamped, so it is added here instead. Applied
         // after sanitization: the value is exempt from the attribute value length limit, and
         // truncating it would corrupt the records it carries.
-        var attributes = sanitizer.sanitizeLogAttributes(log.attributes, protecting: Self.bridgeProtectedKeys)
+        var attributes = sanitizer.sanitizeLogAttributes(log.attributes, protecting: Self.bridgeProtectedKeys, source: .user)
         if attributes[LogSemantics.keyExperiments] == nil,
             let experiments = logController?.experiments?.encodedExperiments
         {
@@ -525,29 +515,30 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
     }
 
     private func sanitizeExternalSpan(_ span: EmbraceSpan) -> EmbraceSpan {
-        let name = sanitizer.sanitizeSpanName(span.name)
+        let name = sanitizer.sanitizeSpanName(span.name, source: .user)
 
         let events = span.events.enumerated().compactMap { index, event -> EmbraceSpanEvent? in
-            guard limiter.shouldAddSpanEvent(currentCount: index) else { return nil }
+            guard limiter.shouldAddSpanEvent(currentCount: index, source: .user) else { return nil }
             return EmbraceSpanEvent(
-                name: sanitizer.sanitizeSpanEventName(event.name),
+                name: sanitizer.sanitizeSpanEventName(event.name, source: .user),
                 type: event.type,
                 timestamp: event.timestamp,
-                attributes: sanitizer.sanitizeSpanEventAttributes(event.attributes)
+                attributes: sanitizer.sanitizeSpanEventAttributes(event.attributes, source: .user)
             )
         }
 
         let links = span.links.enumerated().compactMap { index, link -> EmbraceSpanLink? in
-            guard limiter.shouldAddSpanLink(currentCount: index) else { return nil }
+            guard limiter.shouldAddSpanLink(currentCount: index, source: .user) else { return nil }
             return EmbraceSpanLink(
                 context: link.context,
-                attributes: sanitizer.sanitizeSpanLinkAttributes(link.attributes)
+                attributes: sanitizer.sanitizeSpanLinkAttributes(link.attributes, source: .user)
             )
         }
 
         let attributes = sanitizer.sanitizeSpanAttributes(
             span.attributes,
-            protecting: Self.bridgeProtectedKeys
+            protecting: Self.bridgeProtectedKeys,
+            source: .user
         )
 
         return DefaultEmbraceSpan(
@@ -563,6 +554,7 @@ extension DefaultOTelSignalsHandler: EmbraceOTelDelegate {
             attributes: attributes,
             sessionId: span.sessionId,
             processId: span.processId,
+            source: .user,
             handler: nil
         )
     }

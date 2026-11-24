@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import TestSupport
 import XCTest
@@ -15,7 +16,7 @@ import XCTest
 /// hoping a threaded test lands on the right interleaving.
 private final class InterferingOTelHandler: MockOTelSignalsHandler {
 
-    /// Runs once, inside the next `createInternalSpan`, before the span is returned.
+    /// Runs once, inside the next span creation, before the span is returned.
     var duringNextCreate: (() -> Void)?
 
     /// When > 0, the next create throws instead of returning a span.
@@ -23,42 +24,18 @@ private final class InterferingOTelHandler: MockOTelSignalsHandler {
 
     struct CreateFailure: Error {}
 
-    override func _createSpan(
-        name: String,
-        parentContext: EmbraceSpanContext? = nil,
-        type: EmbraceType,
-        status: EmbraceSpanStatus = .unset,
-        startTime: Date,
-        endTime: Date? = nil,
-        events: [EmbraceSpanEvent] = [],
-        links: [EmbraceSpanLink] = [],
-        attributes: EmbraceAttributes = [:],
-        autoTerminationCode: EmbraceSpanErrorCode? = nil,
-        isInternal: Bool = true
-    ) throws -> EmbraceSpan {
+    override init() {
+        super.init()
+        beforeCreateSpan = { [unowned self] in
+            if failuresRemaining > 0 {
+                failuresRemaining -= 1
+                throw CreateFailure()
+            }
 
-        if failuresRemaining > 0 {
-            failuresRemaining -= 1
-            throw CreateFailure()
+            let hook = duringNextCreate
+            duringNextCreate = nil
+            hook?()
         }
-
-        let hook = duringNextCreate
-        duringNextCreate = nil
-        hook?()
-
-        return try super._createSpan(
-            name: name,
-            parentContext: parentContext,
-            type: type,
-            status: status,
-            startTime: startTime,
-            endTime: endTime,
-            events: events,
-            links: links,
-            attributes: attributes,
-            autoTerminationCode: autoTerminationCode,
-            isInternal: isInternal
-        )
     }
 }
 
@@ -68,11 +45,11 @@ private final class InterferingSanitizer: DefaultOtelSignalsSanitizer {
 
     var duringNextEventSanitization: (() -> Void)?
 
-    override func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes) -> EmbraceAttributes {
+    override func sanitizeSpanEventAttributes(_ attributes: EmbraceAttributes, source: EmbraceOTelSignalSource) -> EmbraceAttributes {
         let hook = duringNextEventSanitization
         duringNextEventSanitization = nil
         hook?()
-        return super.sanitizeSpanEventAttributes(attributes)
+        return super.sanitizeSpanEventAttributes(attributes, source: source)
     }
 }
 

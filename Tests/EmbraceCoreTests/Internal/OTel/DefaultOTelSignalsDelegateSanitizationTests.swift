@@ -2,6 +2,7 @@
 //  Copyright © 2025 Embrace Mobile, Inc. All rights reserved.
 //
 
+import EmbraceCommonInternal
 import EmbraceSemantics
 import EmbraceStorageInternal
 import TestSupport
@@ -48,30 +49,32 @@ class DefaultOTelSignalsDelegateSanitizationTests: XCTestCase {
         bridge = MockOTelSignalBridge()
 
         let sessionLimits = SessionLimits(
-            customSpans: SessionLimits.SpanLimits(
-                count: 500,
-                nameLength: Self.spanNameLength,
-                attributeCount: Self.spanAttributeCount
-            ),
-            events: SessionLimits.SpanEventLimits(
-                customSpanEventCount: Self.eventCount,
-                nameLength: 128,
-                typeLimits: nil,
-                attributeCount: 10
-            ),
-            links: SessionLimits.SpanLinkLimits(
-                customSpanLinkCount: Self.linkCount,
-                attributeCount: 10
-            ),
-            logs: SessionLimits.LogLimits(
-                attributeCount: Self.logAttributeCount
-            )
-        )
+            user: SignalLimits(
+                customSpans: SignalLimits.SpanLimits(
+                    count: 500,
+                    nameLength: Self.spanNameLength,
+                    attributeCount: Self.spanAttributeCount
+                ),
+                events: SignalLimits.SpanEventLimits(
+                    customSpanEventCount: Self.eventCount,
+                    nameLength: 128,
+                    typeLimits: nil,
+                    attributeCount: 10
+                ),
+                links: SignalLimits.SpanLinkLimits(
+                    customSpanLinkCount: Self.linkCount,
+                    attributeCount: 10
+                ),
+                logs: SignalLimits.LogLimits(
+                    attributeCount: Self.logAttributeCount
+                )
+            ))
 
         let attributeLimits = AttributeLimits(
-            keyLength: Self.keyLength,
-            valueLength: Self.valueLength
-        )
+            user: AttributeLengthLimits(
+                keyLength: Self.keyLength,
+                valueLength: Self.valueLength
+            ))
 
         let sanitizer = DefaultOtelSignalsSanitizer(
             sessionLimits: sessionLimits,

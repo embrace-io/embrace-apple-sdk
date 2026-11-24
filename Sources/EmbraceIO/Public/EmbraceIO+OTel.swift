@@ -100,6 +100,7 @@ extension EmbraceIO {
     /// - Parameters:
     ///   - message: Message of the log.
     ///   - severity: Severity of the log.
+    ///   - type: Embrace specific type of the log. Defaults to `.message`.
     ///   - timestamp: Timestamp of the log.
     ///   - attachment: Attachment data for the log.
     ///   - attributes: Attributes of the log.
@@ -107,6 +108,7 @@ extension EmbraceIO {
     public func log(
         _ message: String,
         severity: EmbraceLogSeverity,
+        type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
@@ -115,7 +117,7 @@ extension EmbraceIO {
         Embrace.client?.otel.log(
             message,
             severity: severity,
-            type: .message,
+            type: type,
             timestamp: timestamp,
             attachment: attachment,
             attributes: attributes,

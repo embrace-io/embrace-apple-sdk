@@ -107,7 +107,8 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
             userInfo: fullPayload,
             timestamp: timestamp,
             attributes: ["key": "value"],
-            captureData: true
+            captureData: true,
+            source: .user
         )
 
         // then the event is added to the session span with the parsed attributes
@@ -131,7 +132,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
     func test_addPushNotificationEvent_success_localizedAlert() throws {
         // given a handler with an active session
         // when adding a push notification event whose alert uses localized keys
-        handler.addPushNotificationEvent(userInfo: localizedPayload, captureData: true)
+        handler.addPushNotificationEvent(userInfo: localizedPayload, captureData: true, source: .user)
 
         // then the localized keys are picked up for title/subtitle/body
         let event = sessionController.currentSessionSpan!.events[0]
@@ -143,7 +144,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
     func test_addPushNotificationEvent_success_captureDataDisabled() throws {
         // given a handler with an active session
         // when adding a push notification event with data capture disabled
-        handler.addPushNotificationEvent(userInfo: fullPayload, captureData: false)
+        handler.addPushNotificationEvent(userInfo: fullPayload, captureData: false, source: .user)
 
         // then only the type attributes are set
         let event = sessionController.currentSessionSpan!.events[0]
@@ -159,7 +160,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
     func test_addPushNotificationEvent_success_silent() throws {
         // given a handler with an active session
         // when adding a silent push notification event
-        handler.addPushNotificationEvent(userInfo: silentPayload, captureData: true)
+        handler.addPushNotificationEvent(userInfo: silentPayload, captureData: true, source: .user)
 
         // then the notification type is reported as silent
         let event = sessionController.currentSessionSpan!.events[0]
@@ -170,7 +171,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
         // given a handler with an active session
         // when adding a push notification event without an explicit timestamp
         let before = Date()
-        handler.addPushNotificationEvent(userInfo: fullPayload)
+        handler.addPushNotificationEvent(userInfo: fullPayload, source: .user)
         let after = Date()
 
         // then the event timestamp falls within the call window
@@ -184,7 +185,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
     func test_addPushNotificationEvent_invalidPayload_throws() throws {
         // given a handler with an active session
         // when adding a push notification event with a payload missing the aps root
-        handler.addPushNotificationEvent(userInfo: ["foo": "bar"])
+        handler.addPushNotificationEvent(userInfo: ["foo": "bar"], source: .user)
 
         // then no event is added to the session span
         XCTAssertEqual(self.sessionController.currentSessionSpan!.events.count, 0)
@@ -197,7 +198,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
         sessionController.endSession()
 
         // when adding a push notification event
-        handler.addPushNotificationEvent(userInfo: fullPayload)
+        handler.addPushNotificationEvent(userInfo: fullPayload, source: .user)
 
         // then no event is added to the (previous) session span
         let span = storage.fetchSpan(id: spanId, traceId: traceId)
@@ -209,7 +210,7 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
         limiter.shouldAddSessionEventReturnValue = false
 
         // when adding a push notification event
-        handler.addPushNotificationEvent(userInfo: fullPayload)
+        handler.addPushNotificationEvent(userInfo: fullPayload, source: .user)
 
         // then no event is added to the session span
         XCTAssertEqual(self.sessionController.currentSessionSpan!.events.count, 0)
@@ -226,12 +227,38 @@ class DefaultOTelSignalsHandlerPushNotificationTests: XCTestCase {
                 "emb.type": "test",
                 "notification.type": "test"
             ],
-            captureData: true
+            captureData: true,
+            source: .user
         )
 
         // then the internal attributes are kept
         let event = sessionController.currentSessionSpan!.events[0]
         XCTAssertEqual(event.attributes["emb.type"] as? String, "sys.push_notification")
         XCTAssertEqual(event.attributes["notification.type"] as? String, "notif")
+    }
+
+    // MARK: source
+
+    func test_addPushNotificationEvent_userSource_isLimited() throws {
+        // given a handler with an active session
+        // when adding a push notification event from the user
+        handler.addPushNotificationEvent(userInfo: fullPayload, source: .user)
+
+        // then the user limits are applied
+        XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 1)
+        XCTAssertEqual(limiter.shouldAddSessionEventSource, .user)
+        XCTAssertEqual(sessionController.currentSessionSpan!.events.count, 1)
+    }
+
+    func test_addPushNotificationEvent_sdkSource_isNotLimited() throws {
+        // given a handler with an active session that doesn't allow more events
+        limiter.shouldAddSessionEventReturnValue = false
+
+        // when adding a push notification event from the SDK
+        handler.addPushNotificationEvent(userInfo: fullPayload, source: .sdk)
+
+        // then no limits are applied
+        XCTAssertEqual(limiter.shouldAddSessionEventCallCount, 0)
+        XCTAssertEqual(sessionController.currentSessionSpan!.events.count, 1)
     }
 }

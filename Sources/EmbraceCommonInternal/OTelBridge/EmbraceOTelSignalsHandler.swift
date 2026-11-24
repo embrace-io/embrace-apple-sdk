@@ -23,7 +23,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
         links: [EmbraceSpanLink],
         attributes: EmbraceAttributes,
         autoTerminationCode: EmbraceSpanErrorCode?,
-        isInternal: Bool
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpan
 
     @discardableResult
@@ -32,7 +32,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
         type: EmbraceType?,
         timestamp: Date,
         attributes: EmbraceAttributes,
-        isInternal: Bool
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanEvent?
 
     func _log(
@@ -43,7 +43,7 @@ package protocol EmbraceOTelSignalsHandler: AnyObject {
         attachment: EmbraceLogAttachment?,
         attributes: EmbraceAttributes,
         stackTraceBehavior: EmbraceStackTraceBehavior,
-        isInternal: Bool
+        source: EmbraceOTelSignalSource
     ) throws
 }
 
@@ -99,7 +99,7 @@ extension EmbraceOTelSignalsHandler {
             links: links,
             attributes: attributes,
             autoTerminationCode: autoTerminationCode,
-            isInternal: true
+            source: .sdk
         )
     }
 
@@ -115,7 +115,7 @@ extension EmbraceOTelSignalsHandler {
             type: type,
             timestamp: timestamp,
             attributes: attributes,
-            isInternal: true
+            source: .sdk
         )
     }
 
@@ -136,7 +136,7 @@ extension EmbraceOTelSignalsHandler {
             attachment: attachment,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior,
-            isInternal: true
+            source: .sdk
         )
     }
 }

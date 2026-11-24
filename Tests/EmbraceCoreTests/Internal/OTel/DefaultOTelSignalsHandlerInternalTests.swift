@@ -111,7 +111,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
         XCTAssertEqual(span.links[0].context.spanId, TestConstants.spanId)
         XCTAssertEqual(span.links[0].context.traceId, TestConstants.traceId)
         XCTAssertEqual(span.attributes["key"] as! String, "value")
-        XCTAssertTrue(span is InternalEmbraceSpan)
+        XCTAssertEqual((span as? DefaultEmbraceSpan)?.source, .sdk)
 
         // then the span has the correct internal attributes
         XCTAssertEqual(span.attributes["emb.type"] as! String, "perf")
@@ -434,7 +434,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             timestamp: timestamp,
             attributes: ["key": "value"],
             internalAttributes: ["internalKey": "internalValue"],
-            currentCount: 0
+            currentCount: 0,
+            source: .user
         )
 
         // then the right calls are made
@@ -469,7 +470,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
                 timestamp: timestamp,
                 attributes: ["key": "value"],
                 internalAttributes: ["internalKey": "internalValue"],
-                currentCount: 0
+                currentCount: 0,
+                source: .user
             )
         ) { error in
             // then the correct error is thrown
@@ -496,7 +498,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             timestamp: timestamp,
             attributes: ["internalKey": "value"],
             internalAttributes: ["internalKey": "internalValue"],
-            currentCount: 0
+            currentCount: 0,
+            source: .user
         )
 
         // then the right calls are made
@@ -530,7 +533,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             attributes: ["key": "value"],
             internalAttributes: ["internalKey": "internalValue"],
             currentCount: 0,
-            isSessionEvent: true
+            isSessionEvent: true,
+            source: .user
         )
 
         // then the right calls are made
@@ -566,7 +570,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
                 attributes: ["key": "value"],
                 internalAttributes: ["internalKey": "internalValue"],
                 currentCount: 0,
-                isSessionEvent: true
+                isSessionEvent: true,
+                source: .user
             )
         ) { error in
             // then the correct error is thrown
@@ -592,7 +597,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             spanId: TestConstants.spanId,
             traceId: TestConstants.traceId,
             attributes: ["key": "value"],
-            currentCount: 0
+            currentCount: 0,
+            source: .user
         )
 
         // then the right calls are made
@@ -619,7 +625,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
                 spanId: TestConstants.spanId,
                 traceId: TestConstants.traceId,
                 attributes: ["key": "value"],
-                currentCount: 0
+                currentCount: 0,
+                source: .user
             )
         ) { error in
             // then the correct error is thrown
@@ -642,7 +649,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
                 spanId: "not-a-span-id",
                 traceId: TestConstants.traceId,
                 attributes: ["key": "value"],
-                currentCount: 0
+                currentCount: 0,
+                source: .user
             )
         ) { error in
             // then the correct error is thrown and the link is never built
@@ -661,7 +669,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
                 spanId: TestConstants.spanId,
                 traceId: "not-a-trace-id",
                 attributes: ["key": "value"],
-                currentCount: 0
+                currentCount: 0,
+                source: .user
             )
         ) { error in
             // then the correct error is thrown and the link is never built
@@ -680,7 +689,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
                 spanId: "0000000000000000",
                 traceId: "00000000000000000000000000000000",
                 attributes: [:],
-                currentCount: 0
+                currentCount: 0,
+                source: .user
             )
         ) { error in
             XCTAssertEqual((error as? EmbraceOTelError)?.errorCode, -7)
@@ -699,7 +709,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             spanId: spanId,
             traceId: traceId,
             attributes: [:],
-            currentCount: 0
+            currentCount: 0,
+            source: .user
         )
 
         // then the link stores them in lowercase
@@ -717,7 +728,7 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             name: "test",
             type: .performance,
             links: [validLink, invalidLink],
-            isInternal: false
+            source: .user
         )
 
         // then only the usable one is kept
@@ -736,7 +747,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             key: "key",
             value: "value",
             currentAttributes: [:],
-            currentCount: 0
+            currentCount: 0,
+            source: .user
         )
 
         // then the right calls are made
@@ -760,7 +772,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
                 key: "key",
                 value: "value",
                 currentAttributes: [:],
-                currentCount: 0
+                currentCount: 0,
+                source: .user
             )
         ) { error in
             // then the correct error is thrown
@@ -787,7 +800,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             key: "sanitizedKey",
             value: "newValue",
             currentAttributes: ["sanitizedKey": "oldValue"],
-            currentCount: 0
+            currentCount: 0,
+            source: .user
         )
 
         // then the right calls are made
@@ -808,7 +822,8 @@ class DefaultOTelSignalsHandlerInternalTests: XCTestCase {
             key: "key",
             value: nil,
             currentAttributes: [:],
-            currentCount: 0
+            currentCount: 0,
+            source: .user
         )
 
         // then the right calls are made
