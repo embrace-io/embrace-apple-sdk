@@ -34,6 +34,7 @@ public final class CaptureServicesOptionsBuilder {
         let lowMemoryWarning = (map[.lowMemoryWarning] as? Bool) ?? false
         let lowPowerMode = (map[.lowPowerMode] as? Bool) ?? false
         let hang = (map[.hang] as? Bool) ?? false
+        let networkState = (map[.networkState] as? Bool) ?? false
         #if os(watchOS)
             return EmbraceIO.CaptureServicesOptions(
                 urlSession: urlSession,
@@ -41,6 +42,7 @@ public final class CaptureServicesOptionsBuilder {
                 lowMemoryWarning: lowMemoryWarning,
                 lowPowerMode: lowPowerMode,
                 hang: hang,
+                networkState: networkState,
                 customServices: customServices
             )
         #else
@@ -55,6 +57,7 @@ public final class CaptureServicesOptionsBuilder {
                         lowMemoryWarning: lowMemoryWarning,
                         lowPowerMode: lowPowerMode,
                         hang: hang,
+                        networkState: networkState,
                         customServices: customServices
                     )
                 #else
@@ -66,6 +69,7 @@ public final class CaptureServicesOptionsBuilder {
                         lowMemoryWarning: lowMemoryWarning,
                         lowPowerMode: lowPowerMode,
                         hang: hang,
+                        networkState: networkState,
                         customServices: customServices
                     )
                 #endif
@@ -78,6 +82,7 @@ public final class CaptureServicesOptionsBuilder {
                     lowMemoryWarning: lowMemoryWarning,
                     lowPowerMode: lowPowerMode,
                     hang: hang,
+                    networkState: networkState,
                     customServices: customServices
                 )
             #endif
@@ -86,7 +91,7 @@ public final class CaptureServicesOptionsBuilder {
     }
 
     /// Adds the default `CaptureServices` using their corresponding default options.
-    /// The default services are: `.urlSession`, `.tap`, `.view`, `webView`, `.lowMemoryWarning` and `.lowPowerMode`.
+    /// The default services are: `.urlSession`, `.tap`, `.view`, `webView`, `.lowMemoryWarning`, `.lowPowerMode` and `.networkState`.
     /// - Note: Any existing `CaptureService` previously added will not get replaced by calling this method.
     @discardableResult
     public func addDefaults() -> Self {
@@ -122,6 +127,11 @@ public final class CaptureServicesOptionsBuilder {
         // low power mode
         if map[.lowPowerMode] == nil {
             map[.lowPowerMode] = true
+        }
+
+        // network state
+        if map[.networkState] == nil {
+            map[.networkState] = true
         }
 
         return self
@@ -187,6 +197,14 @@ public final class CaptureServicesOptionsBuilder {
         return self
     }
 
+    /// Adds a new `NetworkStateCaptureService`.
+    /// - Note: If there was another `NetworkStateCaptureService` previously added, it will be replaced with the new one.
+    @discardableResult
+    public func addNetworkStateCaptureService() -> Self {
+        map[.networkState] = true
+        return self
+    }
+
     #if !os(watchOS) && !os(macOS)
         /// Adds a new `HangCaptureService`.
         /// - Note: Available on iOS and tvOS only. Hang detection relies on
@@ -245,6 +263,10 @@ public final class CaptureServicesOptionsBuilder {
 
         if ofType == LowPowerModeCaptureService.self {
             map[.lowPowerMode] = nil
+        }
+
+        if ofType == NetworkStateCaptureService.self {
+            map[.networkState] = nil
         }
 
         #if !os(watchOS) && !os(macOS)
