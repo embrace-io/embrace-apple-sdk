@@ -446,7 +446,7 @@ SOFTWARE.
     otherwise be required by Sections 4(a), 4(b) and 4(d) of the License.
 
 
-## swift-syntax (603.0.2)
+## swift-syntax (604.0.0)
 
                                  Apache License
                            Version 2.0, January 2004
