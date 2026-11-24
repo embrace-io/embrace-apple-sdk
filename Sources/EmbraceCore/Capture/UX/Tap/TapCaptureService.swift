@@ -16,6 +16,13 @@
         /// The options used to configure this service.
         public let options: TapCaptureService.Options
 
+        /// Reports tap ups to the screen-load tracker, from this service's `sendEvent` swizzle.
+        /// It reports every tap up once the service is installed, regardless of whether the service is
+        /// active or of the options filtering which taps it records.
+        var screenLoadTapSource: ScreenLoadTapSource { screenLoadTapHandler }
+
+        private let screenLoadTapHandler = UIWindowScreenLoadTapSource()
+
         private var swizzler: UIWindowSendEventSwizzler?
         private let lock: NSLocking
 
@@ -40,6 +47,7 @@
             do {
                 swizzler = UIWindowSendEventSwizzler()
                 swizzler?.onEvent = { [weak self] event in
+                    self?.screenLoadTapHandler.handle(event)
                     self?.handleCapturedEvent(event)
                 }
 
