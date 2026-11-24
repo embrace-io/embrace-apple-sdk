@@ -152,6 +152,9 @@
             let spanData = otel.startedSpans.first(where: { $0.name == "child" })
             XCTAssertNotNil(spanData)
             XCTAssertEqual(spanData!.parentSpanId, parent.context.spanId)
+
+            // and it's created as a user span
+            XCTAssertEqual(otel.spanSources.last, .user)
         }
 
         func test_createChildSpan_withEndTime_endsTheSpan() throws {

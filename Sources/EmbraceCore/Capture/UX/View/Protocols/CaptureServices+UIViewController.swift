@@ -67,13 +67,19 @@
                 throw parentSpanNotFoundError
             }
 
-            return try? viewCaptureService.otel?.createInternalSpan(
+            // the name and attributes come from the app, so the span gets the user limits and sanitization
+            return try? viewCaptureService.otel?._createSpan(
                 name: name,
-                parentSpan: parentSpan,
+                parentContext: parentSpan.context,
                 type: type,
+                status: .unset,
                 startTime: startTime,
                 endTime: endTime,
-                attributes: attributes
+                events: [],
+                links: [],
+                attributes: attributes,
+                autoTerminationCode: nil,
+                source: .user
             )
         }
 
@@ -89,8 +95,9 @@
                 throw parentSpanNotFoundError
             }
 
+            // the attributes come from the app, so they get the user limits and sanitization
             attributes.forEach {
-                parentSpan.setAttribute(key: $0.key, value: $0.value)
+                parentSpan.setAttribute(key: $0.key, value: $0.value, source: .user)
             }
         }
     }

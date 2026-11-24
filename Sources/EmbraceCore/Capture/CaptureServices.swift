@@ -20,11 +20,23 @@ final class CaptureServices {
         _services.safeValue
     }
 
+    /// State of a capture service that was added after the SDK started.
+    private struct LateServiceState {
+        /// Identifier of the last session the service was notified about.
+        var lastSessionId: String?
+    }
+
+    /// Capture services added after the SDK started, by identity.
+    /// These are notified of the current session when added, so the notification of that same session
+    /// must not reach them a second time.
+    private let lateServices = EmbraceMutex([ObjectIdentifier: LateServiceState]())
+
     var context: CrashReporterContext
     var crashReporter: EmbraceCrashReporter?
 
     weak var config: EmbraceConfigurable?
     weak var otel: InternalOTelSignalsHandler?
+    weak var storage: EmbraceStorage?
 
     init(
         options: Embrace.Options,
@@ -35,6 +47,7 @@ final class CaptureServices {
     ) throws {
         self.config = config
         self.otel = otel
+        self.storage = storage
 
         // add required capture services
         // and remove duplicates
@@ -74,22 +87,7 @@ final class CaptureServices {
             }
         }
 
-        // pass storage reference to capture services
-        // that generate resources
-        for service in services {
-            if let resourceService = service as? ResourceCaptureService {
-                resourceService.handler = storage
-            }
-        }
-
-        // Ensure the hang service has the right config
-        #if !os(watchOS) && !os(macOS)
-            if let limits = config?.hangLimits {
-                services
-                    .compactMap { $0 as? HangCaptureService }
-                    .forEach { $0.limits = limits }
-            }
-        #endif
+        services.forEach { wire($0) }
 
         if let config {
             services.forEach { $0.onConfigUpdated(config) }
@@ -169,6 +167,100 @@ final class CaptureServices {
         }
     }
 
+    /// Passes the internal dependencies to a capture service before it's installed.
+    func wire(_ service: CaptureService) {
+        // pass storage reference to capture services
+        // that generate resources
+        if let resourceService = service as? ResourceCaptureService {
+            resourceService.handler = storage
+        }
+
+        // Ensure the hang service has the right config
+        #if !os(watchOS) && !os(macOS)
+            if let limits = config?.hangLimits, let hangService = service as? HangCaptureService {
+                hangService.limits = limits
+            }
+        #endif
+    }
+
+    /// Whether a capture service of the same type as the given one was already added.
+    func containsService(ofSameTypeAs service: CaptureService) -> Bool {
+        let typeName = Self.typeName(of: service)
+        return services.contains { Self.typeName(of: $0) == typeName }
+    }
+
+    /// Adds a capture service before the SDK started. It's installed and started with the rest.
+    /// The service receives its internal dependencies, but it doesn't receive the current config.
+    /// Callers must call `onConfigUpdated` on it.
+    /// - Returns: `false` if a capture service of the same type was already added.
+    @discardableResult
+    func add(_ service: CaptureService) -> Bool {
+        let typeName = Self.typeName(of: service)
+
+        let added = _services.withLock { services in
+            guard !services.contains(where: { Self.typeName(of: $0) == typeName }) else {
+                return false
+            }
+
+            services.append(service)
+            return true
+        }
+
+        guard added else {
+            Embrace.logger.warning("A capture service of type \(typeName) was already added!")
+            return false
+        }
+
+        wire(service)
+        return true
+    }
+
+    /// Adds a capture service that was already installed after the SDK started, and asynchronously notifies it of the current session.
+    ///
+    /// The service only joins the list once it's installed, so session notifications never reach it before that.
+    /// Session start notifications are delivered on the main queue, so the current session is also delivered there:
+    /// every session start reaches the service once and in order, even if sessions change while it's being added.
+    /// - Parameters:
+    ///   - service: The installed capture service.
+    ///   - currentSession: Returns the session to notify the service about, if any. It's called on the main queue, after the service was added.
+    func addInstalled(_ service: CaptureService, currentSession: @escaping () -> EmbraceSession?) {
+        let id = ObjectIdentifier(service)
+
+        // Tracked before it's visible in the list, so any session notification that can see it also deduplicates it.
+        lateServices.withLock { $0[id] = LateServiceState() }
+        _services.withLock { $0.append(service) }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let session = currentSession(), self.shouldNotifySessionStart(service, sessionId: session.id.stringValue) else {
+                return
+            }
+
+            service.onSessionStart()
+        }
+    }
+
+    /// Whether a capture service has to be notified that the given session started.
+    /// Capture services added before the SDK started are always notified.
+    private func shouldNotifySessionStart(_ service: CaptureService, sessionId: String?) -> Bool {
+        return lateServices.withLock { states in
+            guard var state = states[ObjectIdentifier(service)], let sessionId else {
+                return true
+            }
+
+            guard state.lastSessionId != sessionId else {
+                return false
+            }
+
+            state.lastSessionId = sessionId
+            states[ObjectIdentifier(service)] = state
+            return true
+        }
+    }
+
+    private static func typeName(of service: CaptureService) -> String {
+        return String(describing: type(of: service))
+    }
+
     func install() {
         crashReporter?.install(context: context)
 
@@ -190,10 +282,14 @@ final class CaptureServices {
     }
 
     @objc func onSessionStart(notification: Notification) {
-        if let session = notification.object as? EmbraceSession {
-            crashReporter?.currentSessionId = session.id.stringValue
+        let sessionId = (notification.object as? EmbraceSession)?.id.stringValue
+        if let sessionId {
+            crashReporter?.currentSessionId = sessionId
         }
-        for service in services { service.onSessionStart() }
+
+        for service in services where shouldNotifySessionStart(service, sessionId: sessionId) {
+            service.onSessionStart()
+        }
     }
 
     @objc func onSessionWillEnd(notification: Notification) {

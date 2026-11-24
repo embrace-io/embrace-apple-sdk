@@ -17,16 +17,19 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         var createEventError: Error?
         var createEventCurrentCount: Int?
         var createEventLimit: Int?
+        var createEventSource: EmbraceOTelSignalSource?
 
         var createLinkCallCount: Int = 0
         var createLinkError: Error?
         var createLinkCurrentCount: Int?
         var createLinkLimit: Int?
+        var createLinkSource: EmbraceOTelSignalSource?
 
         var validateAttributeCallCount: Int = 0
         var validateAttributeError: Error?
         var validateAttributeCurrentCount: Int?
         var validateAttributeLimit: Int?
+        var validateAttributeSource: EmbraceOTelSignalSource?
 
         var onSpanStatusUpdatedCallCount: Int = 0
         var onSpanEventAddedCallCount: Int = 0
@@ -41,6 +44,15 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         var onSpanEndedTimes: [Date] = []
     }
     private let state = EmbraceMutex(State())
+
+    /// Source passed in the last `createEvent` call.
+    var createEventSource: EmbraceOTelSignalSource? { state.safeValue.createEventSource }
+
+    /// Source passed in the last `createLink` call.
+    var createLinkSource: EmbraceOTelSignalSource? { state.safeValue.createLinkSource }
+
+    /// Source passed in the last `validateAttribute` call.
+    var validateAttributeSource: EmbraceOTelSignalSource? { state.safeValue.validateAttributeSource }
 
     var createEventCallCount: Int {
         get { state.safeValue.createEventCallCount }
@@ -72,11 +84,13 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         attributes: EmbraceAttributes,
         internalAttributes: EmbraceAttributes,
         currentCount: Int,
-        isSessionEvent: Bool
+        isSessionEvent: Bool,
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanEvent {
         let error = state.withLock { state -> Error? in
             state.createEventCallCount += 1
             state.createEventCurrentCount = currentCount
+            state.createEventSource = source
 
             if let limit = state.createEventLimit, currentCount >= limit {
                 return EmbraceOTelError.spanEventLimitReached("Events limit reached for span \(spanName)")
@@ -124,11 +138,13 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         spanId: String,
         traceId: String,
         attributes: EmbraceAttributes,
-        currentCount: Int
+        currentCount: Int,
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanLink {
         let error = state.withLock { state -> Error? in
             state.createLinkCallCount += 1
             state.createLinkCurrentCount = currentCount
+            state.createLinkSource = source
 
             if let limit = state.createLinkLimit, currentCount >= limit {
                 return EmbraceOTelError.spanLinkLimitReached("Links limit reached for span \(spanName)")
@@ -175,11 +191,13 @@ class MockEmbraceSpanHandler: EmbraceSpanHandler {
         key: String,
         value: EmbraceAttributeValue?,
         currentAttributes: EmbraceAttributes,
-        currentCount: Int
+        currentCount: Int,
+        source: EmbraceOTelSignalSource
     ) throws -> (String, EmbraceAttributeValue?) {
         let error = state.withLock { state -> Error? in
             state.validateAttributeCallCount += 1
             state.validateAttributeCurrentCount = currentCount
+            state.validateAttributeSource = source
 
             if let limit = state.validateAttributeLimit,
                 value != nil,

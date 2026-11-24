@@ -23,6 +23,9 @@ class DefaultEmbraceSpan: EmbraceSpan {
     let processId: EmbraceIdentifier
     let autoTerminationCode: EmbraceSpanErrorCode?
 
+    /// Source the span was created by. Every later change to the span is validated with the rules of this source.
+    let source: EmbraceOTelSignalSource
+
     weak var handler: EmbraceSpanHandler?
 
     var status: EmbraceSpanStatus {
@@ -79,6 +82,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
         sessionId: EmbraceIdentifier? = nil,
         processId: EmbraceIdentifier = ProcessIdentifier.current,
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
+        source: EmbraceOTelSignalSource,
         handler: EmbraceSpanHandler? = nil
     ) {
         self.context = context
@@ -89,6 +93,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
         self.sessionId = sessionId
         self.processId = processId
         self.autoTerminationCode = autoTerminationCode
+        self.source = source
         self.handler = handler
 
         state.withLock {
@@ -129,7 +134,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
     }
 
     @discardableResult
-    open func addEvent(
+    func addEvent(
         name: String,
         type: EmbraceType? = .performance,
         timestamp: Date = Date(),
@@ -141,7 +146,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
                 type: type,
                 timestamp: timestamp,
                 attributes: attributes,
-                isInternal: false
+                source: source
             )
         } catch {
             // _addEvent throws only on limit overflow; no-handler returns nil silently.
@@ -157,7 +162,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
         internalAttributes: EmbraceAttributes = [:],
-        isInternal: Bool,
+        source: EmbraceOTelSignalSource,
         isSessionEvent: Bool = false
     ) throws -> EmbraceSpanEvent? {
 
@@ -168,7 +173,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
 
         let event: EmbraceSpanEvent
 
-        if isInternal {
+        if source == .sdk {
             // Internal callers: skip limits; merge internalAttributes onto the user's attributes.
             event = EmbraceSpanEvent(
                 name: name,
@@ -201,7 +206,8 @@ class DefaultEmbraceSpan: EmbraceSpan {
                     attributes: attributes,
                     internalAttributes: internalAttributes,
                     currentCount: currentCount,
-                    isSessionEvent: isSessionEvent
+                    isSessionEvent: isSessionEvent,
+                    source: source
                 )
 
                 $0.events.append(event)
@@ -241,7 +247,8 @@ class DefaultEmbraceSpan: EmbraceSpan {
                     spanId: spanId,
                     traceId: traceId,
                     attributes: attributes,
-                    currentCount: currentCount
+                    currentCount: currentCount,
+                    source: source
                 )
 
                 $0.links.append(link)
@@ -256,19 +263,19 @@ class DefaultEmbraceSpan: EmbraceSpan {
         }
     }
 
-    open func setAttribute(key: String, value: EmbraceAttributeValue?) {
+    func setAttribute(key: String, value: EmbraceAttributeValue?) {
         do {
             try _setAttribute(
                 key: key,
                 value: value,
-                isInternal: false
+                source: source
             )
         } catch {
             Embrace.logger.warning("Failed to set attribute to span '\(self.name)': \(error.localizedDescription)")
         }
     }
 
-    func _setAttribute(key: String, value: EmbraceAttributeValue?, isInternal: Bool) throws {
+    func _setAttribute(key: String, value: EmbraceAttributeValue?, source: EmbraceOTelSignalSource) throws {
 
         guard let handler else {
             return
@@ -286,13 +293,14 @@ class DefaultEmbraceSpan: EmbraceSpan {
             var attribute: (String, EmbraceAttributeValue?) = (key, value)
 
             // apply limits?
-            if !isInternal {
+            if source != .sdk {
                 attribute = try handler.validateAttribute(
                     forSpanNamed: self.name,
                     key: key,
                     value: value,
                     currentAttributes: data.attributes,
-                    currentCount: data.attributes.count - data.internalAttributeCount
+                    currentCount: data.attributes.count - data.internalAttributeCount,
+                    source: source
                 )
             }
 
@@ -301,7 +309,7 @@ class DefaultEmbraceSpan: EmbraceSpan {
             let existed = data.attributes[attribute.0] != nil
             data.attributes[attribute.0] = attribute.1
 
-            if isInternal, existed != (attribute.1 != nil) {
+            if source == .sdk, existed != (attribute.1 != nil) {
                 data.internalAttributeCount += attribute.1 != nil ? 1 : -1
             }
 
@@ -405,7 +413,7 @@ protocol EmbraceSpanInternalAttributes {
 
 extension DefaultEmbraceSpan: EmbraceSpanInternalAttributes {
     func _setInternalAttribute(key: String, value: EmbraceAttributeValue?) {
-        try? _setAttribute(key: key, value: value, isInternal: true)
+        try? _setAttribute(key: key, value: value, source: .sdk)
     }
 }
 
@@ -416,6 +424,22 @@ extension EmbraceSpan {
         }
 
         span._setInternalAttribute(key: key, value: value)
+    }
+
+    /// Sets an attribute validated with the rules of the given source instead of the span's own source.
+    /// Used when the attribute comes from someone other than the creator of the span, like app-provided attributes on a span created by the SDK.
+    /// If the attribute is dropped, a warning is logged.
+    func setAttribute(key: String, value: EmbraceAttributeValue?, source: EmbraceOTelSignalSource) {
+        guard let span = self as? DefaultEmbraceSpan else {
+            setAttribute(key: key, value: value)
+            return
+        }
+
+        do {
+            try span._setAttribute(key: key, value: value, source: source)
+        } catch {
+            Embrace.logger.warning("Failed to set attribute to span '\(span.name)': \(error.localizedDescription)")
+        }
     }
 }
 
@@ -428,7 +452,7 @@ protocol EmbraceSpanSessionEvents {
         timestamp: Date,
         attributes: EmbraceAttributes,
         internalAttributes: EmbraceAttributes,
-        isInternal: Bool
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanEvent?
 }
 
@@ -440,7 +464,7 @@ extension DefaultEmbraceSpan: EmbraceSpanSessionEvents {
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
         internalAttributes: EmbraceAttributes = [:],
-        isInternal: Bool
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanEvent? {
         return try _addEvent(
             name: name,
@@ -448,7 +472,7 @@ extension DefaultEmbraceSpan: EmbraceSpanSessionEvents {
             timestamp: timestamp,
             attributes: attributes,
             internalAttributes: internalAttributes,
-            isInternal: isInternal,
+            source: source,
             isSessionEvent: true
         )
     }
@@ -462,7 +486,7 @@ extension EmbraceSpan {
         timestamp: Date = Date(),
         attributes: EmbraceAttributes = [:],
         internalAttributes: EmbraceAttributes = [:],
-        isInternal: Bool
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanEvent? {
         guard let span = self as? EmbraceSpanSessionEvents else {
             return nil
@@ -474,7 +498,7 @@ extension EmbraceSpan {
             timestamp: timestamp,
             attributes: attributes,
             internalAttributes: internalAttributes,
-            isInternal: isInternal
+            source: source
         )
     }
 }
