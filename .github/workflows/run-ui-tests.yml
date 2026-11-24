@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        xcode_version: ["26.5"]
+        xcode_version: ["26.6"]
         ios_version: ["26.5"]
         device:
           - "iPhone 17 Pro"

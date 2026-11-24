@@ -24,8 +24,17 @@ class SpansPayloadBuilder {
         let endTime = session.endTime ?? session.lastHeartbeatTime
 
         // fetch spans that started during the session
-        // ignore spans where emb.type == session
-        let records = storage.fetchSpans(for: session, ignoreSessionSpans: true)
+        // ignore spans where emb.type == session, and state spans, which are fetched separately next
+        let cappedRecords = storage.fetchSpans(for: session, ignoreSessionSpans: true).filter { $0.type != .state }
+
+        // State spans get their own fetch so a session busy enough to exhaust the capped one above
+        // can't crowd them out: losing one loses that part's whole state timeline plus the session
+        // span's link target. Matched by session id rather than by time, since the previous part's
+        // span ends exactly when this part starts.
+        let stateRecords = storage.fetchSpans(ofType: .state, sessionId: session.id)
+
+        // processed identically from here on — the separate fetch is their only difference
+        let records = cappedRecords + stateRecords
 
         // decode spans and separate them by closed/open
         var spans: [SpanPayload] = []

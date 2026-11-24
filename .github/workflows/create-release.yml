@@ -158,7 +158,7 @@ jobs:
           git push
 
       - name: Select Xcode 26
-        run: sudo xcode-select -switch /Applications/Xcode_26.5.app
+        run: sudo xcode-select -switch /Applications/Xcode_26.6.app
 
       - name: Tag the release candidate version
         run: |
@@ -185,7 +185,7 @@ jobs:
           persist-credentials: false
 
       - name: Select Xcode 26
-        run: sudo xcode-select -switch /Applications/Xcode_26.5.app
+        run: sudo xcode-select -switch /Applications/Xcode_26.6.app
 
       - name: Install Ruby dependencies
         run: bundle install

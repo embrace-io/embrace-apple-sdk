@@ -8,7 +8,9 @@ import Foundation
 
 @testable import EmbraceCore
 
-public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
+// `open` so test targets can subclass it. Use `beforeCreateSpan` to interfere with span creation — the window in
+// which the SDK holds no lock, and therefore where the races worth testing live.
+open class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegate {
 
     // Appended from background queues (e.g. span delegate callbacks dispatched off the SUT's queues)
     // while tests read them on the main thread — see `TestLocked`.
@@ -26,6 +28,9 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
     @TestLocked public var onSpanStartedCallback: ((EmbraceSpan) -> Void)?
     /// Called synchronously when a span ends, like a span processor's `onEnd`.
     @TestLocked public var onSpanEndedCallback: ((EmbraceSpan) -> Void)?
+
+    /// Called synchronously at the start of `_createSpan`. Throwing makes the span creation fail.
+    @TestLocked public var beforeCreateSpan: (() throws -> Void)?
 
     public var currentSessionId: EmbraceIdentifier? = .random
     public var currentProcessId: EmbraceIdentifier = .random
@@ -45,6 +50,7 @@ public class MockOTelSignalsHandler: InternalOTelSignalsHandler, MockSpanDelegat
         autoTerminationCode: EmbraceSpanErrorCode? = nil,
         source: EmbraceOTelSignalSource = .sdk
     ) throws -> EmbraceSpan {
+        try beforeCreateSpan?()
 
         spanSources.append(source)
 
