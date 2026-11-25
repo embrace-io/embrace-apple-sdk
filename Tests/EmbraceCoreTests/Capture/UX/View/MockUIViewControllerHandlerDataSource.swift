@@ -17,6 +17,7 @@
         var otel: EmbraceOTelSignalsHandler? = MockOTelSignalsHandler()
         var instrumentVisibility: Bool = true
         var instrumentFirstRender: Bool = true
+        var instrumentScreenLoad: Bool = false
 
         var blockList: ViewControllerBlockList = ViewControllerBlockList()
         func isViewControllerBlocked(_ vc: UIViewController) -> Bool {
