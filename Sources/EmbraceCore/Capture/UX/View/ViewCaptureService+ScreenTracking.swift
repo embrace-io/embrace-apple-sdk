@@ -139,7 +139,12 @@
 
             // `isKind(of:)` rather than `isMember(of:)`: custom container subclasses are common, and
             // a `MyNavigationController: UINavigationController` is just as much a container.
-            return !Self.containerClasses.contains { vc.isKind(of: $0) }
+            return !Self.isContainer(vc)
+        }
+
+        /// Whether `vc` is a container. Screen load skips them for the same reason.
+        static func isContainer(_ vc: UIViewController) -> Bool {
+            containerClasses.contains { vc.isKind(of: $0) }
         }
 
         /// A SwiftUI host whose resolved name describes a view tree rather than a screen.

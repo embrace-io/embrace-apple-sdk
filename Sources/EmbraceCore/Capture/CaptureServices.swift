@@ -261,8 +261,23 @@ final class CaptureServices {
         return String(describing: type(of: service))
     }
 
+    /// Passes the tap capture service's taps to the view capture service's screen-load vital.
+    /// Without a tap capture service, every screen load starts at its navigation start.
+    private func linkScreenLoadTapSource() {
+        #if canImport(UIKit) && !os(watchOS)
+            let services = services
+            guard let viewService = services.compactMap({ $0 as? ViewCaptureService }).first else {
+                return
+            }
+            viewService.screenLoadTapSource =
+                services.compactMap({ $0 as? TapCaptureService }).first?
+                .screenLoadTapSource
+        #endif
+    }
+
     func install() {
         crashReporter?.install(context: context)
+        linkScreenLoadTapSource()
 
         for service in services {
             service.install(otel: otel, logger: Embrace.logger)

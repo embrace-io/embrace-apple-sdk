@@ -16,6 +16,7 @@
 
         var instrumentVisibility: Bool { get }
         var instrumentFirstRender: Bool { get }
+        var instrumentScreenLoad: Bool { get }
 
         func isViewControllerBlocked(_ vc: UIViewController) -> Bool
     }
@@ -24,6 +25,10 @@
 
         weak var dataSource: UIViewControllerHandlerDataSource?
         private let queue: DispatchableQueue
+
+        /// Feeds the screen-load vital from the lifecycle callbacks below. Separate from the
+        /// time-to-first-render and time-to-interactive spans, which it never changes.
+        let screenLoadHandler: ViewControllerScreenLoadHandler
 
         struct ViewControllerHandlerMutableData {
             var parentSpans: [String: EmbraceSpan] = [:]
@@ -37,8 +42,15 @@
         }
         internal let data = EmbraceMutex(ViewControllerHandlerMutableData())
 
-        init(queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility)) {
+        init(
+            queue: DispatchableQueue = .with(label: "com.embrace.UIViewControllerHandler", qos: .utility),
+            screenLoadHandler: ViewControllerScreenLoadHandler = ViewControllerScreenLoadHandler()
+        ) {
             self.queue = queue
+            self.screenLoadHandler = screenLoadHandler
+            screenLoadHandler.onResult = { [weak self] result in
+                self?.recordScreenLoad(result)
+            }
             Embrace.notificationCenter.addObserver(
                 self,
                 selector: #selector(foregroundSessionDidEnd),
@@ -88,6 +100,9 @@
         }
 
         func onViewDidLoadStart(_ vc: UIViewController, now: Date = Date()) {
+            if shouldMeasureScreenLoad(vc) {
+                screenLoadHandler.navigationStart(vc)
+            }
 
             guard dataSource?.serviceState == .active,
                 dataSource?.instrumentFirstRender == true,
@@ -192,6 +207,8 @@
         }
 
         func onViewWillAppearEnd(_ vc: UIViewController, now: Date = Date()) {
+            screenLoadHandler.viewWillAppearEnded(vc)
+
             guard let id = vc.emb_instrumentation_state?.identifier else {
                 return
             }
@@ -235,6 +252,16 @@
                     $0.viewIsAppearingSpans[id] = span
                 }
             }
+        }
+
+        /// The start and end of the `viewIsAppearing` callback itself. Only screen load uses them: the
+        /// `viewIsAppearing` span runs from the end of `viewWillAppear` to `viewDidAppear` instead.
+        func onViewIsAppearingCallbackStart(_ vc: UIViewController) {
+            screenLoadHandler.viewIsAppearingStarted(vc)
+        }
+
+        func onViewIsAppearingCallbackEnd(_ vc: UIViewController) {
+            screenLoadHandler.viewIsAppearingEnded(vc)
         }
 
         func onViewIsAppearingEnd(_ vc: UIViewController, now: Date = Date()) {
@@ -405,6 +432,50 @@
                 } else {
                     self.data.withLock { $0.alreadyFinishedUiReadyIds.insert(id) }
                 }
+            }
+        }
+
+        /// Whether the screen-load vital is on. It also needs time-to-first-render, which is off when UIKit
+        /// view capture is.
+        var isScreenLoadEnabled: Bool {
+            guard let dataSource else {
+                return false
+            }
+            return dataSource.serviceState == .active
+                && dataSource.instrumentFirstRender
+                && dataSource.instrumentScreenLoad
+        }
+
+        /// Whether `vc` loading counts as a screen-load navigation start: the same eligibility as view
+        /// capture, minus containers, which load alongside the screen they show.
+        private func shouldMeasureScreenLoad(_ vc: UIViewController) -> Bool {
+            guard isScreenLoadEnabled,
+                vc.emb_shouldCaptureView,
+                dataSource?.isViewControllerBlocked(vc) == false
+            else {
+                return false
+            }
+
+            return !ViewCaptureService.isContainer(vc)
+        }
+
+        /// Records a completed load as a private `screen-load` span, as Android's `emitScreenLoadResult` does.
+        private func recordScreenLoad(_ result: ScreenLoadResult) {
+            guard isScreenLoadEnabled, let otel = dataSource?.otel else {
+                return
+            }
+
+            var attributes: EmbraceAttributes = result.attributes.mapValues { $0 }
+            attributes[SpanSemantics.keyPrivate] = "true"
+
+            queue.async {
+                _ = try? otel.createInternalSpan(
+                    name: SpanSemantics.ScreenLoad.name,
+                    type: .screenLoad,
+                    startTime: result.startTime,
+                    endTime: result.startTime.addingTimeInterval(Double(result.durationMs) / 1000),
+                    attributes: attributes
+                )
             }
         }
 

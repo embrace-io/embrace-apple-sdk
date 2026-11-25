@@ -35,6 +35,16 @@
             return options.instrumentFirstRender && Embrace.client?.config.isUiLoadInstrumentationEnabled == true
         }
 
+        /// Whether the screen-load vital is captured. It also needs ``instrumentFirstRender``.
+        /// Off until it is wired to remote config.
+        var instrumentScreenLoad: Bool {
+            return false
+        }
+
+        /// Taps for the screen-load vital, from the `TapCaptureService` if there is one. Set by
+        /// `CaptureServices` before install.
+        var screenLoadTapSource: ScreenLoadTapSource?
+
         var blockList = EmbraceMutex(ViewControllerBlockList())
 
         /// Creates a new `ViewCaptureService` with the given options.
@@ -138,6 +148,11 @@
             }
 
             startScreenTrackingIfEnabled()
+
+            // Disabled means no tracker, observers or tap hook at all, not just no spans.
+            if handler.isScreenLoadEnabled {
+                handler.screenLoadHandler.start(tapSource: screenLoadTapSource)
+            }
         }
 
         override public func onStop() {
@@ -147,6 +162,7 @@
             }
 
             stopScreenTracking()
+            handler.screenLoadHandler.stop()
         }
     }
 
@@ -155,6 +171,7 @@
         fileprivate func instrumentRender(of viewControllerType: UIViewController.Type) {
             instrumentViewDidLoad(of: viewControllerType)
             instrumentViewWillAppear(of: viewControllerType)
+            instrumentViewIsAppearing(of: viewControllerType)
             instrumentViewDidAppear(of: viewControllerType)
         }
 
@@ -209,15 +226,16 @@
                                 return
                             }
 
-                            // Start and end a `viewWillAppear` span
+                            // Start and end a `viewWillAppear` span.
+                            // Before iOS 17, `onViewWillAppearEnd` is also screen load's navigation end, so
+                            // that relies on this latch: screen load is only on when first render is.
                             self.handler.onViewWillAppearStart(viewController)
                             originalImplementation(viewController, selector, animated)
                             self.handler.onViewWillAppearEnd(viewController)
 
                             // Start a `viewIsAppearing` span to measure the animation times.
-                            // Note: we're not swizzling `viewIsAppearing` as:
-                            // 1. Most people doesn't override it.
-                            // 2. It's only available for iOS 15 and up.
+                            // Note: the span doesn't use the `viewIsAppearing` swizzle below, which only
+                            // exists from iOS 17 and only feeds screen load.
                             self.handler.onViewIsAppearingStart(viewController)
                         } else {
                             // Fall back to the original implementation
@@ -227,6 +245,34 @@
                 }
             } catch let exception {
                 Embrace.logger.error("Error swizzling viewWillAppear: \(exception.localizedDescription)")
+            }
+        }
+
+        /// Screen load's navigation end on iOS 17+. Unlike the other appearance swizzles, it creates no
+        /// view spans.
+        fileprivate func instrumentViewIsAppearing(of viewControllerType: UIViewController.Type) {
+            guard ViewControllerScreenLoadHandler.isViewIsAppearingAvailable else {
+                return
+            }
+
+            let selector = #selector(UIViewController.viewIsAppearing(_:))
+            do {
+                try swizzler.swizzleDeclaredInstanceMethod(
+                    in: viewControllerType,
+                    selector: selector,
+                    implementationType: (@convention(c) (UIViewController, Selector, Bool) -> Void).self,
+                    blockImplementationType: (@convention(block) (UIViewController, Bool) -> Void).self
+                ) { originalImplementation in
+                    { viewController, animated in
+                        // Bracketed so the handler can tell when the outermost implementation ends: an
+                        // override that calls `super` runs the base class's swizzle inside its own.
+                        self.handler.onViewIsAppearingCallbackStart(viewController)
+                        originalImplementation(viewController, selector, animated)
+                        self.handler.onViewIsAppearingCallbackEnd(viewController)
+                    }
+                }
+            } catch let exception {
+                Embrace.logger.error("Error swizzling viewIsAppearing: \(exception.localizedDescription)")
             }
         }
 
