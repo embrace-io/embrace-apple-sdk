@@ -56,7 +56,7 @@ package class DefaultOTelSignalsHandler {
                 links: links,
                 attributes: attributes,
                 autoTerminationCode: autoTerminationCode,
-                isInternal: false
+                source: .user
             )
         } catch {
             Embrace.logger.warning("Failed to create span '\(name)': \(error.localizedDescription)")
@@ -84,7 +84,7 @@ package class DefaultOTelSignalsHandler {
                 type: type,
                 timestamp: timestamp,
                 attributes: attributes,
-                isInternal: false
+                source: .user
             )
         } catch {
             Embrace.logger.warning("Failed to add session event '\(name)': \(error.localizedDescription)")
@@ -134,7 +134,7 @@ package class DefaultOTelSignalsHandler {
                 attachment: attachment,
                 attributes: attributes,
                 stackTraceBehavior: stackTraceBehavior,
-                isInternal: false
+                source: .user
             )
         } catch {
             Embrace.logger.warning("Failed to emit log: \(error.localizedDescription)")

@@ -177,7 +177,10 @@ class EmbraceSpanProcessor: SpanProcessor {
     /// `emb.state` is deliberately not stamped. As with spans created through the SDK, only the
     /// session span carries it.
     private func injectAttributes(_ span: ReadableSpan, delegate: EmbraceSpanProcessorDelegate) {
-        span.setAttribute(key: SpanSemantics.keyEmbraceType, value: .string(EmbraceType.performance.rawValue))
+        // The type is only stamped when the span doesn't already carry one, so spans can set their own.
+        if span.getAttributes()[SpanSemantics.keyEmbraceType].isMissingEmbraceType {
+            span.setAttribute(key: SpanSemantics.keyEmbraceType, value: .string(EmbraceType.performance.rawValue))
+        }
 
         let userSessionId = delegate.currentUserSessionId?.stringValue ?? ""
         let partId = delegate.currentSessionId?.stringValue ?? ""

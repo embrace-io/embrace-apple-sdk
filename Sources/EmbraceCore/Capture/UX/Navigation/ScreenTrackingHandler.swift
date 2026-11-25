@@ -293,7 +293,7 @@ final class ScreenTrackingHandler {
     /// A blank name is indistinguishable from an absent one downstream, and would still spend one of
     /// the part's transitions.
     private func screenName(_ name: String, warningIfBlank warning: String? = nil) -> String? {
-        let name = sanitizer.sanitizeSpanEventName(name)
+        let name = sanitizer.sanitizeSpanEventName(name, source: .user)
         guard !name.isEmpty else {
             if let warning {
                 Embrace.logger.warning("Screen tracking: \(warning) and was ignored.")

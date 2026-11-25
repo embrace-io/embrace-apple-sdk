@@ -53,7 +53,7 @@ extension CaptureService {
             links: links,
             attributes: attributes,
             autoTerminationCode: autoTerminationCode,
-            isInternal: false
+            source: .captureService
         )
     }
 
@@ -77,7 +77,7 @@ extension CaptureService {
                 type: type,
                 timestamp: timestamp,
                 attributes: attributes,
-                isInternal: false
+                source: .captureService
             )
         } catch {
             return nil
@@ -102,6 +102,7 @@ extension CaptureService {
     /// - Parameters:
     ///   - message: Message of the log
     ///   - severity: Severity of the log
+    ///   - type: Embrace specific type of the log. Defaults to `.message`.
     ///   - timestamp: Timestamp of the log
     ///   - attachment: Attachment data for the log
     ///   - attributes: Attributes of the log
@@ -109,6 +110,7 @@ extension CaptureService {
     public func log(
         _ message: String,
         severity: EmbraceLogSeverity = .info,
+        type: EmbraceType = .message,
         timestamp: Date = Date(),
         attachment: EmbraceLogAttachment? = nil,
         attributes: EmbraceAttributes = [:],
@@ -117,12 +119,12 @@ extension CaptureService {
         try? otel?._log(
             message,
             severity: severity,
-            type: .message,
+            type: type,
             timestamp: timestamp,
             attachment: attachment,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior,
-            isInternal: false
+            source: .captureService
         )
     }
 }

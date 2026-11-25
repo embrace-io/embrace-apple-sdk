@@ -32,7 +32,7 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
         links: [EmbraceSpanLink],
         attributes: EmbraceAttributes,
         autoTerminationCode: EmbraceSpanErrorCode?,
-        isInternal: Bool
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpan {
         let span = try wrapped._createSpan(
             name: name,
@@ -45,7 +45,7 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
             links: links,
             attributes: attributes,
             autoTerminationCode: autoTerminationCode,
-            isInternal: isInternal
+            source: source
         )
         createdSpans.append(span)
         return span
@@ -56,14 +56,14 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
         type: EmbraceType?,
         timestamp: Date,
         attributes: EmbraceAttributes,
-        isInternal: Bool
+        source: EmbraceOTelSignalSource
     ) throws -> EmbraceSpanEvent? {
         try wrapped._addSessionEvent(
             name: name,
             type: type,
             timestamp: timestamp,
             attributes: attributes,
-            isInternal: isInternal
+            source: source
         )
     }
 
@@ -75,7 +75,7 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
         attachment: EmbraceLogAttachment?,
         attributes: EmbraceAttributes,
         stackTraceBehavior: EmbraceStackTraceBehavior,
-        isInternal: Bool
+        source: EmbraceOTelSignalSource
     ) throws {
         try wrapped._log(
             message,
@@ -85,7 +85,7 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
             attachment: attachment,
             attributes: attributes,
             stackTraceBehavior: stackTraceBehavior,
-            isInternal: isInternal
+            source: source
         )
     }
 }
@@ -93,11 +93,11 @@ private final class SpanCapturingHandler: EmbraceOTelSignalsHandler {
 /// Drives `StateRecorder` through the **real** OTel handler, limiter and sanitizer rather than
 /// `MockOTelSignalsHandler`, which applies no limits at all.
 ///
-/// State spans are created with `createInternalSpan`, so they are `InternalEmbraceSpan`s, whose
-/// `addEvent`/`setAttribute` overrides take the `isInternal: true` path and bypass the customer-facing
-/// event-count, attribute-count and sanitization limits. These tests pin that: without them, a
+/// State spans are created with `createInternalSpan`, so they have the `.sdk` source, whose
+/// `addEvent`/`setAttribute` calls bypass the customer-facing event-count, attribute-count and
+/// sanitization limits. These tests pin that: without them, a
 /// well-meaning change routing transitions through the public span API would silently cap the
-/// per-part transition budget at `SessionLimits.SpanEventLimits.customSpanEventCount` and start
+/// per-part transition budget at `SignalLimits.SpanEventLimits.customSpanEventCount` and start
 /// over-reporting `emb.state.transition_count`.
 final class StateRecorderLimitsTests: XCTestCase {
 
@@ -109,7 +109,7 @@ final class StateRecorderLimitsTests: XCTestCase {
     private var upload: SpyEmbraceLogUploader!
 
     /// The customer-facing per-span event cap. Transitions must NOT be subject to it.
-    private let customEventLimit = Int(SessionLimits().events.customSpanEventCount)
+    private let customEventLimit = Int(SessionLimits().user.events.customSpanEventCount)
 
     override func setUpWithError() throws {
         storage = try EmbraceStorage.createInMemoryDb()

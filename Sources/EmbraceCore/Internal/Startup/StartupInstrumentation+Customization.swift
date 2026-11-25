@@ -33,13 +33,19 @@ extension StartupInstrumentation {
             return nil
         }
 
-        return try? otel.createInternalSpan(
+        // the name and attributes come from the app, so the span gets the user limits and sanitization
+        return try? otel._createSpan(
             name: name,
-            parentSpan: rootSpan,
+            parentContext: rootSpan.context,
             type: .startup,
+            status: .unset,
             startTime: startTime,
             endTime: endTime,
-            attributes: attributes
+            events: [],
+            links: [],
+            attributes: attributes,
+            autoTerminationCode: nil,
+            source: .user
         )
     }
 
@@ -52,8 +58,9 @@ extension StartupInstrumentation {
             return
         }
 
+        // the attributes come from the app, so they get the user limits and sanitization
         for (key, value) in attributes {
-            rootSpan.setAttribute(key: key, value: value)
+            rootSpan.setAttribute(key: key, value: value, source: .user)
         }
     }
 }
