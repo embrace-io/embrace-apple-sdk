@@ -17,10 +17,6 @@ private func makeModule(
     exponentialBackoffBehavior: EmbraceUpload.ExponentialBackoff = .withNoDelay()
 ) throws -> (EmbraceUpload, DispatchQueue) {
 
-    let urlSessionConfig = URLSessionConfiguration.ephemeral
-    urlSessionConfig.httpMaximumConnectionsPerHost = .max
-    urlSessionConfig.protocolClasses = [EmbraceHTTPMock.self]
-
     let metadata = EmbraceUpload.MetadataOptions(
         apiKey: "apiKey",
         userAgent: "userAgent",
@@ -43,7 +39,7 @@ private func makeModule(
             storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
         metadata: metadata,
         redundancy: redundancy,
-        urlSessionConfiguration: urlSessionConfig
+        transport: MockUploadTransport()
     )
 
     let queue = DispatchQueue(label: "com.test.embrace.queue.\(testName)")
@@ -64,8 +60,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     // MARK: - 1. Ordering guarantee
 
     func test_spansAreUploadedInInsertionOrder() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         let (module, _) = try makeModule(testName: testName, automaticRetryCount: 0, queueLimit: 10)
         let spansUrl = URL(string: "https://embrace.\(testName).com/upload/sessions")!
         EmbraceHTTPMock.mock(url: spansUrl)
@@ -95,8 +89,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     }
 
     func test_logsAreUploadedInInsertionOrder() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         let (module, _) = try makeModule(testName: testName, automaticRetryCount: 0, queueLimit: 10)
         let logsUrl = URL(string: "https://embrace.\(testName).com/upload/logs")!
         EmbraceHTTPMock.mock(url: logsUrl)
@@ -127,8 +119,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     // MARK: - 2. Queue cap
 
     func test_queueCapLimitsOperations() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         let queueLimit = 2
         let (module, _) = try makeModule(testName: testName, automaticRetryCount: 0, queueLimit: queueLimit)
         let spansUrl = URL(string: "https://embrace.\(testName).com/upload/sessions")!
@@ -154,8 +144,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     // MARK: - 3. fillQueue excludes in-flight
 
     func test_fillQueueDoesNotCreateDuplicates() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         let (module, _) = try makeModule(testName: testName, automaticRetryCount: 0, queueLimit: 10)
         let spansUrl = URL(string: "https://embrace.\(testName).com/upload/sessions")!
         EmbraceHTTPMock.mock(url: spansUrl)
@@ -205,8 +193,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     // MARK: - 5. Unlimited retries
 
     func test_unlimitedRetriesWithNegativeOne() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         // mock 500 error — retriable.
         // The cancel below counts the requests to this URL, so no other test can share it. A
         // request from another test's operation that is still retrying would throw the count off.
@@ -218,7 +204,7 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         // retryCount: -1 means unlimited. We verify it keeps retrying until it is cancelled.
         var finalAttemptCount = 0
         let operation = EmbraceUploadOperation(
-            urlSession: makeTestURLSession(),
+            transport: MockUploadTransport(),
             queue: .main,
             metadataOptions: EmbraceUpload.MetadataOptions(
                 apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678"),
@@ -251,8 +237,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     // MARK: - 6. Finite retries exhausted → delete
 
     func test_finiteRetriesExhaustedDeletesFromCache() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         let (module, _) = try makeModule(testName: testName, automaticRetryCount: 2, queueLimit: 10)
         let spansUrl = URL(string: "https://embrace.\(testName).com/upload/sessions")!
 
@@ -279,8 +263,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     // MARK: - 7. Non-retriable URLError (.badURL)
 
     func test_nonRetriableErrorDeletesImmediately() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         EmbraceHTTPMock.mock(
             url: TestConstants.url,
             response: .withError(
@@ -295,7 +277,7 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: makeTestURLSession(),
+            transport: MockUploadTransport(),
             queue: .main,
             metadataOptions: EmbraceUpload.MetadataOptions(
                 apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678"),
@@ -318,15 +300,13 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     // MARK: - 8. 4xx is now retriable
 
     func test_404IsRetriable() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         // Mock a 404 response
         EmbraceHTTPMock.mock(url: TestConstants.url, response: .withData(Data(), statusCode: 404))
 
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: makeTestURLSession(),
+            transport: MockUploadTransport(),
             queue: .main,
             metadataOptions: EmbraceUpload.MetadataOptions(
                 apiKey: "apiKey", userAgent: "userAgent", deviceId: "12345678"),
@@ -391,8 +371,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     // MARK: - 10. retryCachedData ordering
 
     func test_retryCachedDataUploadsInDateOrder() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         let (module, _) = try makeModule(testName: testName, automaticRetryCount: 0, queueLimit: 10)
         let spansUrl = URL(string: "https://embrace.\(testName).com/upload/sessions")!
         EmbraceHTTPMock.mock(url: spansUrl)
@@ -436,8 +414,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     // MARK: - 11. retryCachedData + live uploads
 
     func test_retryCachedDataThenLiveUpload() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         let (module, _) = try makeModule(testName: testName, automaticRetryCount: 0, queueLimit: 10)
         let spansUrl = URL(string: "https://embrace.\(testName).com/upload/sessions")!
         EmbraceHTTPMock.mock(url: spansUrl)
@@ -465,8 +441,6 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
     // MARK: - 12. Cross-type independence
 
     func test_crossTypeIndependence() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         let (module, _) = try makeModule(testName: testName, automaticRetryCount: 0, queueLimit: 10)
         let spansUrl = URL(string: "https://embrace.\(testName).com/upload/sessions")!
         let logsUrl = URL(string: "https://embrace.\(testName).com/upload/logs")!
@@ -489,16 +463,5 @@ class EmbraceUploadOrderedDeliveryTests: XCTestCase {
         // Both types should have been uploaded independently
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(spansUrl).count, 1)
         XCTAssertEqual(EmbraceHTTPMock.requestsForUrl(logsUrl).count, 1)
-    }
-}
-
-// MARK: - Helpers
-
-extension EmbraceUploadOrderedDeliveryTests {
-    private func makeTestURLSession() -> URLSession {
-        let config = URLSessionConfiguration.ephemeral
-        config.httpMaximumConnectionsPerHost = .max
-        config.protocolClasses = [EmbraceHTTPMock.self]
-        return URLSession(configuration: config)
     }
 }

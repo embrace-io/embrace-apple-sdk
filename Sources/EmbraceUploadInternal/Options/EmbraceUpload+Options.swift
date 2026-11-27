@@ -18,18 +18,40 @@ extension EmbraceUpload {
 
         public let urlSessionConfiguration: URLSessionConfiguration
 
-        public init(
+        /// Transport used to send the uploads. When `nil`, a `URLSession` created with `urlSessionConfiguration` is used.
+        package let transport: EmbraceUploadTransport?
+
+        public convenience init(
             endpoints: EndpointOptions,
             cache: CacheOptions,
             metadata: MetadataOptions,
             redundancy: RedundancyOptions = RedundancyOptions(),
             urlSessionConfiguration: URLSessionConfiguration? = nil
         ) {
+            self.init(
+                endpoints: endpoints,
+                cache: cache,
+                metadata: metadata,
+                redundancy: redundancy,
+                urlSessionConfiguration: urlSessionConfiguration,
+                transport: nil
+            )
+        }
+
+        package init(
+            endpoints: EndpointOptions,
+            cache: CacheOptions,
+            metadata: MetadataOptions,
+            redundancy: RedundancyOptions = RedundancyOptions(),
+            urlSessionConfiguration: URLSessionConfiguration? = nil,
+            transport: EmbraceUploadTransport?
+        ) {
             self.endpoints = endpoints
             self.cache = cache
             self.metadata = metadata
             self.redundancy = redundancy
             self.urlSessionConfiguration = urlSessionConfiguration ?? Options.defaultUrlSessionConfiguration()
+            self.transport = transport
         }
 
         private class func defaultUrlSessionConfiguration() -> URLSessionConfiguration {

@@ -21,18 +21,14 @@ class EmbraceUploadOperationTests: XCTestCase {
         deviceId: "12345678"
     )
 
-    var urlSession: URLSession!
+    var transport: MockUploadTransport!
     var queue: DispatchQueue!
 
     override func setUpWithError() throws {
         // EmbraceHTTPMock state is process-wide; reset between methods.
         EmbraceHTTPMock.clearRequests()
 
-        let urlSessionconfig = URLSessionConfiguration.ephemeral
-        urlSessionconfig.httpMaximumConnectionsPerHost = .max
-        urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
-
-        self.urlSession = URLSession(configuration: urlSessionconfig)
+        self.transport = MockUploadTransport()
         self.queue = .main
     }
 
@@ -41,7 +37,6 @@ class EmbraceUploadOperationTests: XCTestCase {
     }
 
     func test_genericRequestHeaders() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful response
         EmbraceHTTPMock.mock(url: TestConstants.url)
 
@@ -49,7 +44,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -91,7 +86,6 @@ class EmbraceUploadOperationTests: XCTestCase {
     }
 
     func test_successfulOperation() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
 
         // mock successful response
         EmbraceHTTPMock.mock(url: TestConstants.url)
@@ -100,7 +94,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -122,8 +116,54 @@ class EmbraceUploadOperationTests: XCTestCase {
         wait(for: [expectation], timeout: .defaultTimeout)
     }
 
+    func test_successfulOperation_withURLSession() throws {
+        // `URLSession` ignores custom `URLProtocol` classes on watchOS, so `EmbraceHTTPMock` can't intercept the request there.
+        try XCTSkipIf(XCTestCase.isWatchOS(), "URLSession doesn't use custom URLProtocol classes on watchOS")
+
+        // given a real url session whose requests are answered by EmbraceHTTPMock
+        let urlSessionConfig = URLSessionConfiguration.ephemeral
+        urlSessionConfig.httpMaximumConnectionsPerHost = .max
+        urlSessionConfig.protocolClasses = [EmbraceHTTPMock.self]
+        let urlSession = URLSession(configuration: urlSessionConfig)
+
+        // mock successful response
+        EmbraceHTTPMock.mock(url: TestConstants.url)
+
+        // given an upload operation
+        let expectation = XCTestExpectation()
+
+        let operation = EmbraceUploadOperation(
+            transport: urlSession,
+            queue: queue,
+            metadataOptions: testMetadataOptions,
+            endpoint: TestConstants.url,
+            identifier: "id",
+            data: Data(),
+            payloadTypes: "test",
+            retryCount: 0,
+            exponentialBackoffBehavior: .init(),
+            attemptCount: 0
+        ) { result, attemptCount in
+            // then the operation should be successful
+            XCTAssertEqual(result, .success)
+            XCTAssertEqual(attemptCount, 1)
+
+            expectation.fulfill()
+        }
+
+        operation.start()
+
+        wait(for: [expectation], timeout: .defaultTimeout)
+
+        // then the request went through the url session with the correct headers
+        let request = try XCTUnwrap(EmbraceHTTPMock.requestsForUrl(TestConstants.url).first)
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-EM-AID"), testMetadataOptions.apiKey)
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-EM-PAYLOAD-TYPES"), "test")
+    }
+
     func test_unsuccessfulOperation_redirectStatusCode_shouldntBeRetriable() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
 
         // mock unsuccessful response
         EmbraceHTTPMock.mock(url: TestConstants.url, statusCode: 300)
@@ -132,7 +172,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -155,7 +195,6 @@ class EmbraceUploadOperationTests: XCTestCase {
     }
 
     func test_unsuccessfulOperation_nonRetriableError_shouldntBeRetriable() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
 
         // mock unsuccessful response with unretriable URLError
         EmbraceHTTPMock.mock(
@@ -173,7 +212,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -203,7 +242,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -228,14 +267,13 @@ class EmbraceUploadOperationTests: XCTestCase {
 
     // Regression: cancel after success must not trigger completion twice.
     func test_completionFiresExactlyOnceWhenCancelledAfterSuccess() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         EmbraceHTTPMock.mock(url: TestConstants.url)
 
         let completionFired = XCTestExpectation(description: "completion fires once")
         var completionCount = 0
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -260,7 +298,6 @@ class EmbraceUploadOperationTests: XCTestCase {
     }
 
     func test_onExecuting_whenReceivingNonRetryableError_shouldntRetry() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
 
         // mock error response with a non-retriable URLError (.badURL)
         EmbraceHTTPMock.mock(
@@ -278,7 +315,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -302,7 +339,6 @@ class EmbraceUploadOperationTests: XCTestCase {
     }
 
     func test_onExecuting_whenServerIsDown_shouldReturnARetriableFailure() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
 
         // mock error response
         EmbraceHTTPMock.mock(url: TestConstants.url, errorCode: 500)
@@ -311,7 +347,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -334,7 +370,6 @@ class EmbraceUploadOperationTests: XCTestCase {
     }
 
     func test_onReceivingServerIssuesStatusCode_shouldRetryRequestTheAmountOfRetryCounts() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
 
         // mock error response
         let serverSideErrorStatusCode = try XCTUnwrap((500...599).map { $0 }.randomElement())
@@ -350,7 +385,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -389,7 +424,6 @@ class EmbraceUploadOperationTests: XCTestCase {
     }
 
     func test_onReceivingTooManyRequestsStatusCode_shouldRetryRequestTheAmountOfRetryCounts() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
 
         // mock error response
         EmbraceHTTPMock.mock(
@@ -404,7 +438,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -443,7 +477,6 @@ class EmbraceUploadOperationTests: XCTestCase {
     }
 
     func test_onErrorWithRetryAfterHeader_shouldAppendToTheActualRetryDelay() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
 
         let retryAfterDelay = 0.01
         // mock unsuccessful response with retry after header
@@ -459,7 +492,7 @@ class EmbraceUploadOperationTests: XCTestCase {
         let expectation = XCTestExpectation()
 
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
@@ -498,7 +531,7 @@ class EmbraceUploadOperationTests: XCTestCase {
     func test_getSuggestedDelay_parsesRetryAfterHeader() throws {
         // given an upload operation
         let operation = EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,

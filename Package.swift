@@ -339,6 +339,7 @@ let package = Package(
             dependencies: [
                 "EmbraceCore",
                 "EmbraceCommonInternal",
+                "EmbraceUploadInternal",
                 .product(name: "OpenTelemetrySdk", package: "opentelemetry-swift-core")
             ],
             path: "Tests/TestSupport",

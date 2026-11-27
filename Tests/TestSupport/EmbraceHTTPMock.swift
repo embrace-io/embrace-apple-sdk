@@ -141,7 +141,28 @@ public class EmbraceHTTPMock: URLProtocol {
             return
         }
 
-        let key = Self.createKey(fromURL: url)
+        let (data, response, error) = Self.respond(to: request, url: url)
+
+        // CFNetwork callbacks outside the lock — they can re-enter or hop threads
+        if let data {
+            client?.urlProtocol(self, didLoad: data)
+            if let response {
+                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .allowed)
+            }
+        } else if let error {
+            client?.urlProtocol(self, didFailWithError: error)
+        }
+
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    /// Records `request` and returns the mocked result for it.
+    ///
+    /// Shared by the `URLProtocol` path and `MockUploadTransport`, so both record requests and
+    /// resolve mocked responses the same way. Requests without a mocked response fail with a
+    /// generic server error.
+    static func respond(to request: URLRequest, url: URL) -> (Data?, HTTPURLResponse?, Error?) {
+        let key = createKey(fromURL: url)
 
         // Read body from request outside the lock — stream I/O doesn't touch shared state
         var bodyData: Data?
@@ -162,39 +183,33 @@ public class EmbraceHTTPMock: URLProtocol {
             bodyData = data
         }
 
-        let (mockedResponse, handlers): (MockResponse?, [() -> Void]) = Self.lock.withLock {
-            EmbraceHTTPMock.requests[key, default: []].append(request)
+        let (mockedResponse, handlers): (MockResponse?, [() -> Void]) = lock.withLock {
+            requests[key, default: []].append(request)
             if let data = bodyData {
-                EmbraceHTTPMock.requestBodies[key, default: []].append(data)
+                requestBodies[key, default: []].append(data)
             }
-            return (EmbraceHTTPMock.mockedResponses[key], EmbraceHTTPMock.requestHandlers[key] ?? [])
+            return (mockedResponses[key], requestHandlers[key] ?? [])
         }
         handlers.forEach { $0() }
 
-        // CFNetwork callbacks outside the lock — they can re-enter or hop threads
-        if let response = mockedResponse {
-            if let data = response.data {
-                client?.urlProtocol(self, didLoad: data)
-                if let httpResponse = HTTPURLResponse(
-                    url: url,
-                    statusCode: response.statusCode,
-                    httpVersion: nil,
-                    headerFields: response.headers
-                ) {
-                    client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .allowed)
-                }
-            } else {
-                let error = response.error ?? genericServerError
-                client?.urlProtocol(self, didFailWithError: error)
-            }
-        } else {
-            client?.urlProtocol(self, didFailWithError: genericServerError)
+        guard let mockedResponse else {
+            return (nil, nil, genericServerError)
         }
 
-        client?.urlProtocolDidFinishLoading(self)
+        if let data = mockedResponse.data {
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: mockedResponse.statusCode,
+                httpVersion: nil,
+                headerFields: mockedResponse.headers
+            )
+            return (data, response, nil)
+        }
+
+        return (nil, nil, mockedResponse.error ?? genericServerError)
     }
 
-    private var genericServerError: NSError {
+    private static var genericServerError: NSError {
         return NSError(domain: TestConstants.domain, code: 500)
     }
 

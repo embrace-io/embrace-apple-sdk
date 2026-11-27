@@ -38,7 +38,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         .spans: [], .log: [], .attachment: []
     ]
 
-    private let urlSession: URLSession
+    private let transport: EmbraceUploadTransport
     let cache: EmbraceUploadCache
     private var reachabilityMonitor: EmbraceReachabilityMonitor?
 
@@ -59,7 +59,7 @@ public class EmbraceUpload: EmbraceLogUploader {
 
         cache = try EmbraceUploadCache(options: options.cache, logger: logger)
 
-        urlSession = URLSession(configuration: options.urlSessionConfiguration)
+        transport = options.transport ?? URLSession(configuration: options.urlSessionConfiguration)
 
         // Serial queues for ordered types
         spansQueue = OperationQueue()
@@ -290,7 +290,7 @@ public class EmbraceUpload: EmbraceLogUploader {
 
         if type == .attachment {
             return EmbraceAttachmentUploadOperation(
-                urlSession: urlSession,
+                transport: transport,
                 queue: operationQueue.underlyingQueue ?? .global(qos: .utility),
                 metadataOptions: options.metadata,
                 endpoint: endpoint(for: type),
@@ -306,7 +306,7 @@ public class EmbraceUpload: EmbraceLogUploader {
         }
 
         return EmbraceUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: operationQueue.underlyingQueue ?? .global(qos: .utility),
             metadataOptions: options.metadata,
             endpoint: endpoint(for: type),

@@ -26,17 +26,13 @@ class EmbraceUploadTests: XCTestCase {
         // EmbraceHTTPMock state is process-wide; reset between methods.
         EmbraceHTTPMock.clearRequests()
 
-        let urlSessionconfig = URLSessionConfiguration.ephemeral
-        urlSessionconfig.httpMaximumConnectionsPerHost = .max
-        urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
-
         testOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(testName: testName),
             cache: EmbraceUpload.CacheOptions(
                 storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
             metadata: EmbraceUploadTests.testMetadataOptions,
             redundancy: EmbraceUploadTests.testRedundancyOptions,
-            urlSessionConfiguration: urlSessionconfig
+            transport: MockUploadTransport()
         )
 
         self.queue = DispatchQueue(label: "com.test.embrace.queue")
@@ -112,8 +108,6 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_success() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         EmbraceHTTPMock.mock(url: testSpansUrl())
 
         // given valid values
@@ -130,8 +124,6 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_cacheFlowOnSuccess() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         EmbraceHTTPMock.mock(url: testSpansUrl())
 
         // when uploading data
@@ -178,8 +170,6 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_retryCachedData() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         // given cached data
         _ = module.cache.saveUploadData(id: "id1", type: .spans, data: TestConstants.data)
         _ = module.cache.saveUploadData(id: "id2", type: .log, data: TestConstants.data)
@@ -213,8 +203,6 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_spansEndpoint() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         EmbraceHTTPMock.mock(url: testSpansUrl())
 
         // when uploading session data
@@ -233,8 +221,6 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_logsEndpoint() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         EmbraceHTTPMock.mock(url: testLogsUrl())
 
         // when uploading log data
@@ -253,8 +239,6 @@ class EmbraceUploadTests: XCTestCase {
     }
 
     func test_attachmentsEndpoint() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS())
-
         EmbraceHTTPMock.mock(url: testAttachmentsUrl())
 
         // when uploading attachment data
