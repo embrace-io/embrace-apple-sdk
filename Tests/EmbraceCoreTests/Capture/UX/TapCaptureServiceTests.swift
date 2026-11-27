@@ -65,6 +65,40 @@
             XCTAssertEqual(otel.events.count, 0)
         }
 
+        func test_screenLoadTapSource_reportsTapUp_whenNotStarted() throws {
+            // given an installed but not started tap capture service, recording taps on touch began
+            let service = TapCaptureService()
+            service.install(otel: otel)
+            var tapUps: [TimeInterval] = []
+            service.screenLoadTapSource.onTapUp = { tapUps.append($0) }
+
+            // when a touch ends
+            let event = MockTapEvent(mockedTouches: [MockUITouch(phase: .ended)], timestamp: 42)
+            UIWindow().sendEvent(event)
+
+            // then the tap up is reported, but no tap is recorded
+            XCTAssertEqual(tapUps, [42])
+            XCTAssertEqual(otel.events.count, 0)
+        }
+
+        func test_screenLoadTapSource_reportsTapUp_onIgnoredView() throws {
+            // given a started tap capture service that ignores a view type
+            let options = TapCaptureService.Options(ignoredViewTypes: [MockView.self], tapPhase: .onEnd)
+            let service = TapCaptureService(options: options)
+            service.install(otel: otel)
+            service.start()
+            var tapUps: [TimeInterval] = []
+            service.screenLoadTapSource.onTapUp = { tapUps.append($0) }
+
+            // when a touch ends on an ignored view
+            let touch = MockUITouch(phase: .ended, touchedView: MockView())
+            UIWindow().sendEvent(MockTapEvent(mockedTouches: [touch], timestamp: 7))
+
+            // then the tap up is reported, but no tap is recorded
+            XCTAssertEqual(tapUps, [7])
+            XCTAssertEqual(otel.events.count, 0)
+        }
+
         func test_tap_eventName_accessibilityIdentifier() throws {
             let view = UIView()
             view.accessibilityIdentifier = "an_identifier"
