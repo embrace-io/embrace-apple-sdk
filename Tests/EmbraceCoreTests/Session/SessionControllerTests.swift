@@ -34,17 +34,13 @@ final class SessionControllerTests: XCTestCase {
     var uploadTestOptions: EmbraceUpload.Options!
 
     override func setUpWithError() throws {
-        let uploadUrlSessionconfig = URLSessionConfiguration.ephemeral
-        uploadUrlSessionconfig.httpMaximumConnectionsPerHost = .max
-        uploadUrlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
-
         uploadTestOptions = EmbraceUpload.Options(
             endpoints: testEndpointOptions(testName: testName),
             cache: EmbraceUpload.CacheOptions(
                 storageMechanism: .inMemory(name: testName), enableBackgroundTasks: false),
             metadata: Self.testMetadataOptions,
             redundancy: Self.testRedundancyOptions,
-            urlSessionConfiguration: uploadUrlSessionconfig
+            transport: MockUploadTransport()
         )
 
         upload = try EmbraceUpload(
@@ -620,7 +616,6 @@ final class SessionControllerTests: XCTestCase {
 
     @MainActor
     func test_endSession_uploadsSession() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock successful requests
         EmbraceHTTPMock.mock(url: testSessionsUrl())
 
@@ -652,7 +647,6 @@ final class SessionControllerTests: XCTestCase {
     }
 
     func test_endSession_uploadsSession_error() throws {
-        try XCTSkipIf(XCTestCase.isWatchOS(), "Unavailable on WatchOS")
         // mock error requests
         EmbraceHTTPMock.mock(url: testSessionsUrl(), errorCode: 500)
 
@@ -663,7 +657,7 @@ final class SessionControllerTests: XCTestCase {
             cache: uploadTestOptions.cache,
             metadata: uploadTestOptions.metadata,
             redundancy: EmbraceUpload.RedundancyOptions(automaticRetryCount: -1, exponentialBackoffBehavior: longBackoff),
-            urlSessionConfiguration: uploadTestOptions.urlSessionConfiguration
+            transport: MockUploadTransport()
         )
         upload = try EmbraceUpload(
             options: options, logger: MockLogger(), queue: DispatchQueue(label: "io.embrace.tests.sessionController.upload"))
@@ -683,7 +677,7 @@ final class SessionControllerTests: XCTestCase {
         // when ending the session and the upload fails
         controller.endSession()
 
-        // The request goes out on URLSession's loading thread, and nothing else signals it: the
+        // The request goes out on the transport's queue, and nothing else signals it: the
         // operation stays in flight waiting to retry.
         wait(for: [requestSent], timeout: .defaultTimeout)
         XCTAssertEqual(EmbraceHTTPMock.totalRequestCount(), 1)
@@ -909,10 +903,6 @@ final class SessionControllerTests: XCTestCase {
 
         // given background sessions enabled
         try mockSuccessfulResponse()
-
-        let configUrlSessionconfig = URLSessionConfiguration.ephemeral
-        configUrlSessionconfig.httpMaximumConnectionsPerHost = .max
-        configUrlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
 
         let config = EmbraceConfig(
             configurable: EditableConfig(isBackgroundSessionEnabled: true),

@@ -17,7 +17,7 @@ enum EmbraceUploadOperationResult: Equatable {
 typealias EmbraceUploadOperationCompletion = (_ result: EmbraceUploadOperationResult, _ attemptCount: Int) -> Void
 
 class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
-    private let urlSession: URLSession
+    private let transport: EmbraceUploadTransport
     private let queue: DispatchQueue
     private let metadataOptions: EmbraceUpload.MetadataOptions
     private let endpoint: URL
@@ -33,7 +33,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     /// and `finish()` fire exactly once.
     private struct State {
         var attemptCount: Int
-        var task: URLSessionDataTask?
+        var task: EmbraceUploadTask?
         var hasFinished: Bool
 
         init(attemptCount: Int) {
@@ -46,7 +46,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     private let state: EmbraceMutex<State>
 
     init(
-        urlSession: URLSession,
+        transport: EmbraceUploadTransport,
         queue: DispatchQueue,
         metadataOptions: EmbraceUpload.MetadataOptions,
         endpoint: URL,
@@ -59,7 +59,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
         logger: InternalLogger? = nil,
         completion: EmbraceUploadOperationCompletion? = nil
     ) {
-        self.urlSession = urlSession
+        self.transport = transport
         self.queue = queue
         self.metadataOptions = metadataOptions
         self.endpoint = endpoint
@@ -76,7 +76,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
     override func cancel() {
         super.cancel()
 
-        let (taskToCancel, attemptCount, shouldFire) = state.withLock { s -> (URLSessionDataTask?, Int, Bool) in
+        let (taskToCancel, attemptCount, shouldFire) = state.withLock { s -> (EmbraceUploadTask?, Int, Bool) in
             guard !s.hasFinished else {
                 return (nil, s.attemptCount, false)
             }
@@ -115,7 +115,7 @@ class EmbraceUploadOperation: AsyncOperation, @unchecked Sendable {
 
         let request = updateRequest(r, attemptCount: nextAttemptCount)
 
-        let newTask = urlSession.dataTask(
+        let newTask = transport.uploadTask(
             with: request,
             completionHandler: { [weak self] data, response, error in
                 self?.handleTaskCompletion(

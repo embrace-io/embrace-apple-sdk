@@ -14,15 +14,11 @@ class EmbraceAttachmentUploadOperationTests: XCTestCase {
         deviceId: "12345678"
     )
 
-    var urlSession: URLSession!
+    var transport: MockUploadTransport!
     var queue: DispatchQueue!
 
     override func setUpWithError() throws {
-        let urlSessionconfig = URLSessionConfiguration.ephemeral
-        urlSessionconfig.httpMaximumConnectionsPerHost = .max
-        urlSessionconfig.protocolClasses = [EmbraceHTTPMock.self]
-
-        self.urlSession = URLSession(configuration: urlSessionconfig)
+        self.transport = MockUploadTransport()
         self.queue = .main
     }
 
@@ -32,7 +28,7 @@ class EmbraceAttachmentUploadOperationTests: XCTestCase {
         let attachmentId = "987654321"
 
         let operation = EmbraceAttachmentUploadOperation(
-            urlSession: urlSession,
+            transport: transport,
             queue: queue,
             metadataOptions: testMetadataOptions,
             endpoint: TestConstants.url,
