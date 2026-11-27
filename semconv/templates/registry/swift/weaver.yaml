@@ -1,0 +1,13 @@
+# The Swift attribute constants the SDK takes from the embrace-semconv registry.
+#
+# Only the registry keys listed in the filter below are generated; every other attribute key stays
+# hand-written in Sources/EmbraceSemantics/.
+templates:
+  - pattern: attributes.swift.j2
+    filter: >
+      (.registry.attributes // [])
+      | map(select(.provenance.source | not))
+      | map(select(.key as $key
+          | ["emb.user_session_id", "emb.session_part_id"] | any(. == $key)))
+    application_mode: single
+    file_name: EmbraceSemconvAttributes.swift
